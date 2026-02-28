@@ -150,3 +150,38 @@
                 message: { type: string, example: "FCM token updated successfully" }
       "401": { description: Unauthorized }
       "400": { description: Invalid token provided }
+/api/v1/users/profile-pic:
+  put:
+    tags: [Users]
+    summary: Update profile picture
+    description: Upload a new profile picture (multipart) or provide a pre-signed S3 key (JSON).
+    operationId: updateProfilePic
+    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              profile_pic:
+                type: string
+                format: binary
+        application/json:
+          schema:
+            type: object
+            properties:
+              profilePicKey:
+                type: string
+                description: "S3 key for the profile picture"
+    responses:
+      "200":
+        description: Profile picture updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { type: object }
+      "401": { description: Unauthorized }

@@ -55,6 +55,17 @@
               reason_if_outside: { type: string }
               photo: { type: string, format: binary, description: "Attendance photo" }
               signature: { type: string, format: binary, description: "Surveyor digital signature" }
+        application/json:
+          schema:
+            type: object
+            required: [job_id, submit_latitude, submit_longitude]
+            properties:
+              job_id: { type: string, format: uuid }
+              submit_latitude: { type: number }
+              submit_longitude: { type: number }
+              survey_statement: { type: string }
+              photoKey: { type: string, description: "S3 key for attendance photo" }
+              signatureKey: { type: string, description: "S3 key for surveyor signature" }
     responses:
       "201":
         description: Survey submitted
@@ -211,6 +222,11 @@
             type: object
             properties:
               proof: { type: string, format: binary }
+        application/json:
+          schema:
+            type: object
+            properties:
+              fileKey: { type: string, description: "S3 key for evidence proof" }
     responses:
       "201": { description: Proof uploaded }
 
@@ -251,3 +267,53 @@
         schema: { type: string, format: uuid }
     responses:
       "200": { description: Violation flagged }
+/api/v1/surveys/jobs/{jobId}/statement/draft:
+  post:
+    tags: [Surveys]
+    summary: Draft survey statement
+    operationId: draftSurveyStatement
+    x-roles: [SURVEYOR, TM]
+    parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [survey_statement]
+            properties:
+              survey_statement: { type: string }
+    responses:
+      "200": { description: Drafted }
+
+/api/v1/surveys/jobs/{jobId}/statement/issue:
+  post:
+    tags: [Surveys]
+    summary: Issue signed survey statement (PDF)
+    description: Finalizes and issues the statement with a signed PDF.
+    operationId: issueSurveyStatement
+    x-roles: [TM]
+    parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              statement: { type: string, format: binary }
+        application/json:
+          schema:
+            type: object
+            properties:
+              fileKey: { type: string, description: "S3 key for signed PDF" }
+    responses:
+      "200": { description: Issued }

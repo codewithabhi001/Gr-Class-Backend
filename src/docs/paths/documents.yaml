@@ -1,8 +1,44 @@
+/api/v1/documents/get-upload-url:
+  get:
+    tags: [Documents]
+    summary: Generate a pre-signed URL for direct S3 upload
+    description: Returns a temporary S3 URL where the client can PUT the file binary, and a fileKey to be used for registration.
+    operationId: getUploadSignedUrl
+    x-roles: [CLIENT, ADMIN, GM, TM, SURVEYOR]
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string, example: "report.pdf" }
+      - name: fileType
+        in: query
+        required: true
+        description: MIME type of the file
+        schema: { type: string, example: "application/pdf" }
+      - name: folder
+        in: query
+        required: false
+        schema: { type: string, example: "surveys" }
+    responses:
+      "200":
+        description: Pre-signed URL generated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    uploadUrl: { type: string }
+                    fileKey: { type: string }
+
 /api/v1/documents/upload:
   post:
     tags: [Documents]
-    summary: Upload a standalone document file (No Entity needed yet)
-    description: Upload a file strictly to standard storage and receive its URL. Useful for uploading files before creating vessels or jobs.
+    summary: Upload a standalone document file (Multipart)
+    description: Standard way to upload a file through the backend server. Use Pre-signed URL for better performance.
     operationId: uploadStandaloneFile
     x-roles: [CLIENT, ADMIN, GM, TM, SURVEYOR]
     requestBody:
@@ -27,16 +63,71 @@
             schema:
               type: object
               properties:
-                success:
-                  type: boolean
-                  example: true
+                success: { type: boolean, example: true }
                 data:
                   type: object
                   properties:
-                    file_url:
-                      type: string
-                      example: "https://bucket.s3.amazonaws.com/temp/my-file.pdf"
+                    file_url: { type: string, example: "https://bucket.s3.amazonaws.com/temp/my-file.pdf" }
       "400": { description: "No file provided" }
+      "403": { description: Forbidden }
+
+/api/v1/documents/register:
+  post:
+    tags: [Documents]
+    summary: Register an already uploaded S3 file (Standalone)
+    description: Use this after direct-to-S3 upload to register the file in the backend.
+    operationId: registerStandaloneFile
+    x-roles: [CLIENT, ADMIN, GM, TM, SURVEYOR]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [fileKey]
+            properties:
+              fileKey: { type: string, description: "The fileKey returned from get-upload-url" }
+              fileType: { type: string, description: "MIME type" }
+              document_type: { type: string }
+              description: { type: string }
+    responses:
+      "201": { description: Registered }
+      "403": { description: Forbidden }
+
+/api/v1/documents/{entityType}/{entityId}/register:
+  post:
+    tags: [Documents]
+    summary: Register an already uploaded S3 file for a specific entity
+    description: Similar to direct upload but uses JSON registration.
+    operationId: registerEntityDocument
+    x-roles: [CLIENT, ADMIN, GM, TM, SURVEYOR]
+    parameters:
+      - name: entityType
+        in: path
+        required: true
+        schema: { type: string, example: "JOB" }
+      - name: entityId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [fileData]
+            properties:
+              fileData:
+                type: object
+                required: [url, type]
+                properties:
+                  url: { type: string }
+                  type: { type: string }
+              document_type: { type: string }
+              description: { type: string }
+    responses:
+      "201": { description: Registered }
       "403": { description: Forbidden }
 
 /api/v1/documents/{entityType}/{entityId}:
@@ -110,10 +201,19 @@
                   format: binary
               document_type: { type: string, description: "Type of document (e.g., EVIDENCE, REPORT)" }
               description: { type: string, description: "Optional description of the document" }
-          example:
-            files: ["(Binary file data 1)", "(Binary file data 2)"]
-            document_type: "EVIDENCE"
-            description: "Photos of cracked hull"
+        application/json:
+          schema:
+            type: object
+            required: [fileData]
+            properties:
+              fileData:
+                type: object
+                required: [url, type]
+                properties:
+                  url: { type: string, description: "The fileKey returned from get-upload-url" }
+                  type: { type: string, description: "MIME type" }
+              document_type: { type: string }
+              description: { type: string }
     responses:
       "201":
         description: Documents uploaded successfully

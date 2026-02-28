@@ -1,5 +1,7 @@
 import db from '../../models/index.js';
 import * as authService from '../auth/auth.service.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
+import * as s3Service from '../../services/s3.service.js';
 
 const User = db.User;
 
@@ -72,4 +74,21 @@ export const updateFcmToken = async (id, fcmToken) => {
     if (!user) throw { statusCode: 404, message: 'User not found' };
     await user.update({ fcm_token: fcmToken });
     return { success: true };
+};
+
+export const updateProfilePic = async (userId, file, data = {}) => {
+    const user = await User.findByPk(userId);
+    if (!user) throw { statusCode: 404, message: 'User not found' };
+
+    let profilePicUrl = data.profilePicKey || null;
+    if (file) {
+        profilePicUrl = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, s3Service.UPLOAD_FOLDERS.USER_DOCS || 'users/docs');
+    }
+
+    if (!profilePicUrl) {
+        throw { statusCode: 400, message: 'Profile picture file or key is required.' };
+    }
+
+    await user.update({ profile_pic_url: profilePicUrl });
+    return await fileAccessService.resolveEntity(user);
 };

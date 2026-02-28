@@ -1,14 +1,19 @@
 import express from 'express';
+import multer from 'multer';
 import * as userController from './user.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
 
+const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 router.use(authenticate);
 
 // Get own profile
 router.get('/me', userController.getProfile);
+
+// Update profile picture
+router.put('/profile-pic', upload.single('profile_pic'), userController.updateProfilePic);
 
 // Update FCM token
 router.put('/fcm-token', validate(schemas.updateFcmToken), userController.updateFcmToken);

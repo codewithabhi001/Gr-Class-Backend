@@ -138,7 +138,8 @@ export const registerStandaloneFile = async (req, res, next) => {
         // We can reuse registerDocument service with a null entity if needed, 
         // or just return the key if it's meant to be temporary.
         // For now, let's assume it's for standalone document registration.
-        const result = await documentService.registerDocument(null, null, { url: fileKey, type: fileType }, req.user.id, document_type, description);
+        const type = fileType || 'application/octet-stream';
+        const result = await documentService.registerDocument('STANDALONE', req.user.id, { url: fileKey, type }, req.user.id, document_type, description);
         res.status(201).json({ success: true, data: result });
     } catch (e) { next(e); }
 };

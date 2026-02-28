@@ -72,6 +72,16 @@
                 type: string
                 format: binary
                 description: The video file to upload
+        application/json:
+          schema:
+            type: object
+            required: [section]
+            properties:
+              section: { type: string }
+              title: { type: string }
+              description: { type: string }
+              videoKey: { type: string, description: "S3 key for video" }
+              thumbnailKey: { type: string, description: "S3 key for thumbnail" }
     responses:
       201:
         description: Video uploaded successfully
@@ -110,12 +120,18 @@
                 type: string
               description:
                 type: string
-              thumbnail:
-                type: string
-                format: binary
               video:
                 type: string
                 format: binary
+        application/json:
+          schema:
+            type: object
+            properties:
+              section: { type: string }
+              title: { type: string }
+              description: { type: string }
+              videoKey: { type: string }
+              thumbnailKey: { type: string }
     responses:
       200:
         description: Video updated successfully

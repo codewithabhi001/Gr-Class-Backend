@@ -153,18 +153,18 @@
           format: uuid
     requestBody:
       content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              receipt: { type: string, format: binary }
+              remarks: { type: string }
         application/json:
           schema:
             type: object
             properties:
-              payment_date:
-                type: string
-                format: date
-              receipt_url:
-                type: string
-          example:
-            payment_date: "2026-02-13"
-            receipt_url: "https://storage.example.com/receipts/receipt-123.pdf"
+              receiptKey: { type: string, description: "S3 key for payment receipt" }
+              remarks: { type: string }
     responses:
       "200":
         description: Payment marked as paid

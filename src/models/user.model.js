@@ -41,6 +41,10 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        profile_pic_url: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
     }, {
         tableName: 'users',
         underscored: true,

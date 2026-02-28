@@ -52,6 +52,22 @@
               certificates:
                 type: array
                 items: { type: string, format: binary }
+        application/json:
+          schema:
+            type: object
+            required: [full_name, email, phone, nationality, qualification, years_of_experience]
+            properties:
+              full_name: { type: string }
+              email: { type: string, format: email }
+              phone: { type: string }
+              nationality: { type: string }
+              qualification: { type: string }
+              years_of_experience: { type: integer }
+              cvKey: { type: string, description: "S3 key for CV" }
+              idProofKey: { type: string, description: "S3 key for ID Proof" }
+              certificateKeys:
+                type: array
+                items: { type: string }
     responses:
       "201": { description: Application submitted }
 
