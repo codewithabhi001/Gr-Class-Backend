@@ -2,6 +2,7 @@ import firebaseApp from '../config/firebase.js';
 import db from '../models/index.js';
 import * as emailService from './email.service.js';
 import logger from '../utils/logger.js';
+import { formatNotification } from '../utils/notification.formatter.js';
 
 const Notification = db.Notification;
 const NotificationPreference = db.NotificationPreference;
@@ -13,7 +14,7 @@ const User = db.User;
  * @param {string} eventType - e.g. SLA_BREACH, INFO, JOB_ASSIGNMENT
  * @param {object} data - { title, message, ...otherDetails }
  */
-export const sendNotification = async (userId, eventType, data) => {
+export const sendNotification = async (userId, eventType, data = {}) => {
     try {
         const user = await User.findByPk(userId);
         if (!user) return;
@@ -26,12 +27,17 @@ export const sendNotification = async (userId, eventType, data) => {
         const emailAllowed = !pref || (pref.email_enabled && matchesType);
         const appAllowed = !pref || (pref.app_enabled && matchesType);
 
+        // Populate title and message if not present
+        const formatted = formatNotification(eventType, data);
+        data.title = formatted.title;
+        data.message = formatted.message;
+
         // 1. In-App Notification (Database)
         if (appAllowed) {
             await Notification.create({
                 user_id: userId,
-                title: data.title || eventType,
-                message: data.message || 'New notification',
+                title: data.title,
+                message: data.message,
                 type: eventType
             });
         }
@@ -41,8 +47,8 @@ export const sendNotification = async (userId, eventType, data) => {
             try {
                 const message = {
                     notification: {
-                        title: data.title || eventType,
-                        body: data.message || 'New notification',
+                        title: data.title,
+                        body: data.message,
                     },
                     data: {
                         eventType: eventType,
