@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import db from '../../models/index.js';
 import env from '../../config/env.js';
 import * as emailService from '../../services/email.service.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
 import { passwordReset as passwordResetTemplate } from '../../email-templates/index.js';
 
 const User = db.User;
@@ -47,7 +48,14 @@ export const login = async (email, password) => {
 
     await user.update({ last_login_at: new Date() });
 
-    const userObj = { id: user.id, name: user.name, email: user.email, role: user.role };
+    const resolvedUser = await fileAccessService.resolveEntity(user);
+    const userObj = {
+        id: resolvedUser.id,
+        name: resolvedUser.name,
+        email: resolvedUser.email,
+        role: resolvedUser.role,
+        profile_pic_url: resolvedUser.profile_pic_url
+    };
     return {
         user: userObj,
         accessToken: generateAccessToken(user),
@@ -86,7 +94,15 @@ export const register = async (userData, options = {}) => {
         transaction ? { transaction } : undefined
     );
 
-    const userObj = { id: user.id, name: user.name, email: user.email, role: user.role, client_id: user.client_id };
+    const resolvedUser = await fileAccessService.resolveEntity(user);
+    const userObj = {
+        id: resolvedUser.id,
+        name: resolvedUser.name,
+        email: resolvedUser.email,
+        role: resolvedUser.role,
+        client_id: resolvedUser.client_id,
+        profile_pic_url: resolvedUser.profile_pic_url
+    };
     return {
         user: userObj,
         accessToken: generateAccessToken(user),
@@ -111,7 +127,16 @@ export const refreshToken = async (refreshTokenPayload) => {
         }
         const user = await User.findByPk(decoded.id);
         if (!user || user.status !== 'ACTIVE') throw new Error('User not found or inactive');
-        const userObj = { id: user.id, name: user.name, email: user.email, role: user.role, client_id: user.client_id };
+
+        const resolvedUser = await fileAccessService.resolveEntity(user);
+        const userObj = {
+            id: resolvedUser.id,
+            name: resolvedUser.name,
+            email: resolvedUser.email,
+            role: resolvedUser.role,
+            client_id: resolvedUser.client_id,
+            profile_pic_url: resolvedUser.profile_pic_url
+        };
         return {
             user: userObj,
             accessToken: generateAccessToken(user),

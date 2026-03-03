@@ -17,10 +17,12 @@ export const getUsers = async (query, excludeId) => {
         where.role = role;
     }
 
-    return await User.findAll({
+    const users = await User.findAll({
         where,
         attributes: { exclude: ['password_hash'] }
     });
+
+    return await fileAccessService.resolveEntity(users);
 };
 
 export const getProfile = async (id, role) => {
@@ -30,10 +32,13 @@ export const getProfile = async (id, role) => {
     } else if (role === 'SURVEYOR') {
         include.push({ model: db.SurveyorProfile });
     }
-    return await User.findByPk(id, {
+    const user = await User.findByPk(id, {
         include,
         attributes: { exclude: ['password_hash'] }
     });
+
+    if (!user) return null;
+    return await fileAccessService.resolveEntity(user);
 };
 
 export const createUser = async (data) => {
