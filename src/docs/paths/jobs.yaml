@@ -1128,6 +1128,7 @@
             required: [content]
             properties:
               content: { type: string, example: "Vessel is ready for inspection." }
+              attachmentKey: { type: string, description: "S3 key for attachment" }
     responses:
       "201":
         description: Message sent successfully.
