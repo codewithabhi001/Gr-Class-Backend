@@ -14,6 +14,9 @@ import './models/index.js'; // Initialize DB
 
 const app = express();
 
+// Trust proxy for rate limiting behind Nginx/CloudFront
+app.set('trust proxy', 1);
+
 // Security Headers
 app.use(helmet({
     contentSecurityPolicy: {
