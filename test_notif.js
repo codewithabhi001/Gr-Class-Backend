@@ -24,7 +24,7 @@ async function testVariousNotifications() {
     const events = [
         { type: 'JOB_ASSIGNED', data: { vesselName: 'Ocean Explorer', port: 'Singapore' } },
         { type: 'JOB_SENT_BACK', data: { vesselName: 'Ocean Explorer', remarks: 'Checklist incomplete' } },
-        { type: 'JOB_APPROVED', data: { vesselName: 'Ocean Explorer' } }
+        { type: 'JOB_APPROVED', data: { vesselName: 'Ocean Explorer ' } }
     ];
 
     for (const event of events) {
