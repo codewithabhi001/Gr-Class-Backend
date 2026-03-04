@@ -143,13 +143,30 @@ export const deleteEnquiry = async (id) => {
 // ADMIN / GM – Stats summary (e.g. for a dashboard widget)
 // ─────────────────────────────────────────────────────────────────────────────
 export const getEnquiryStats = async () => {
-    const statuses = ['NEW', 'READ', 'REPLIED', 'ARCHIVED'];
-    const results = {};
+    const stats = await WebsiteContact.findAll({
+        attributes: [
+            'status',
+            [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count']
+        ],
+        group: ['status']
+    });
 
-    for (const s of statuses) {
-        results[s] = await WebsiteContact.count({ where: { status: s } });
-    }
+    const results = {
+        NEW: 0,
+        READ: 0,
+        REPLIED: 0,
+        ARCHIVED: 0,
+        TOTAL: 0
+    };
 
-    results.TOTAL = await WebsiteContact.count();
+    let total = 0;
+    stats.forEach(s => {
+        const statusName = s.status;
+        const count = parseInt(s.getDataValue('count'), 10);
+        results[statusName] = count;
+        total += count;
+    });
+
+    results.TOTAL = total;
     return results;
 };

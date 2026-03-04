@@ -51,20 +51,16 @@ export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null
 
     const signedUrl = await s3Service.getSignedFileUrl(cleanKey, expiresInSeconds);
 
-    // Audit Log
+    // Audit Log (non-blocking)
     if (user) {
-        try {
-            await AuditLog.create({
-                user_id: user.id,
-                action: 'GENERATE_SIGNED_URL',
-                entity_name: 'File',
-                entity_id: null, // No specific ID for a file usually, or could use Document ID if available context
-                old_values: null,
-                new_values: { key: cleanKey, expires_in: expiresInSeconds }
-            });
-        } catch (err) {
-            console.warn('Audit log failed for signed URL generation', err);
-        }
+        AuditLog.create({
+            user_id: user.id,
+            action: 'GENERATE_SIGNED_URL',
+            entity_name: 'File',
+            entity_id: null,
+            old_values: null,
+            new_values: { key: cleanKey, expires_in: expiresInSeconds }
+        }).catch(err => console.warn('Audit log failed for signed URL generation', err));
     }
 
     return signedUrl;

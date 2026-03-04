@@ -32,68 +32,67 @@ export const sendNotification = async (userId, eventType, data = {}, userObj = n
         data.title = data.title || formatted.title;
         data.message = data.message || formatted.message;
 
+        const promises = [];
+
         // 1. In-App Notification (Database)
         if (appAllowed) {
-            await Notification.create({
+            promises.push(Notification.create({
                 user_id: user.id,
                 title: data.title,
                 message: data.message,
                 type: eventType
-            });
+            }));
         }
 
         // 2. Push Notification (Firebase FCM)
         if (appAllowed && user.fcm_token && firebaseApp) {
-            try {
-                const message = {
+            const fcmMessage = {
+                notification: {
+                    title: data.title,
+                    body: data.message,
+                    ...(data.imageUrl && { image: data.imageUrl })
+                },
+                data: {
+                    eventType: eventType,
+                    ...Object.fromEntries(
+                        Object.entries(data).map(([k, v]) => [k, String(v)])
+                    )
+                },
+                android: {
                     notification: {
-                        title: data.title,
-                        body: data.message,
-                        ...(data.imageUrl && { image: data.imageUrl })
-                    },
-                    data: {
-                        eventType: eventType,
-                        ...Object.fromEntries(
-                            Object.entries(data).map(([k, v]) => [k, String(v)])
-                        )
-                    },
-                    android: {
-                        notification: {
-                            ...(data.imageUrl && { image: data.imageUrl }),
-                            priority: 'high',
+                        ...(data.imageUrl && { image: data.imageUrl }),
+                        priority: 'high',
+                        sound: 'default'
+                    }
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            'mutable-content': 1,
                             sound: 'default'
                         }
                     },
-                    apns: {
-                        payload: {
-                            aps: {
-                                'mutable-content': 1,
-                                sound: 'default'
-                            }
-                        },
-                        fcm_options: {
-                            ...(data.imageUrl && { image: data.imageUrl })
-                        }
-                    },
-                    token: user.fcm_token,
-                };
-
-                await firebaseApp.messaging().send(message);
-                logger.debug(`FCM notification sent to user ${user.id}`);
-            } catch (fcmError) {
+                    fcm_options: {
+                        ...(data.imageUrl && { image: data.imageUrl })
+                    }
+                },
+                token: user.fcm_token,
+            };
+            promises.push(firebaseApp.messaging().send(fcmMessage).catch(fcmError => {
                 logger.error(`Failed to send FCM notification to user ${user.id}:`, fcmError);
-                // If token is invalid/expired, we might want to clear it
                 if (fcmError.code === 'messaging/registration-token-not-registered' ||
                     fcmError.code === 'messaging/invalid-registration-token') {
-                    await user.update({ fcm_token: null });
+                    user.update({ fcm_token: null }).catch(e => logger.error('Clear FCM token fail:', e));
                 }
-            }
+            }));
         }
 
         // 3. Email Notification
         if (emailAllowed && user.email) {
-            await emailService.sendTemplateEmail(user.email, eventType, data);
+            promises.push(emailService.sendTemplateEmail(user.email, eventType, data).catch(e => logger.error('Email fail:', e)));
         }
+
+        await Promise.allSettled(promises);
 
     } catch (err) {
         logger.error(`Failed to send notification to user ${userId}`, err);
@@ -113,13 +112,75 @@ export const createNotification = async (userId, title, message, type = 'INFO') 
 export const notifyRoles = async (roles, title, message, type = 'INFO') => {
     try {
         const users = await User.findAll({
-            where: {
-                role: roles
-            }
+            where: { role: roles },
+            include: [{ model: NotificationPreference, as: 'NotificationPreference' }]
         });
 
-        // Send notifications in parallel
-        await Promise.all(users.map(user => sendNotification(user.id, type, { title, message }, user)));
+        if (users.length === 0) return;
+
+        const notificationsToCreate = [];
+        const pushPromises = [];
+        const emailPromises = [];
+
+        for (const user of users) {
+            const pref = user.NotificationPreference;
+            const matchesType = !pref || pref.alert_types.length === 0 || pref.alert_types.includes(type);
+            const emailAllowed = !pref || (pref.email_enabled && matchesType);
+            const appAllowed = !pref || (pref.app_enabled && matchesType);
+
+            if (appAllowed) {
+                notificationsToCreate.push({
+                    user_id: user.id,
+                    title: title,
+                    message: message,
+                    type: type
+                });
+            }
+
+            // Push Notification (Firebase FCM)
+            if (appAllowed && user.fcm_token && firebaseApp) {
+                const fcmMsg = {
+                    notification: { title, body: message },
+                    data: { eventType: type, title, message },
+                    android: {
+                        notification: {
+                            priority: 'high',
+                            sound: 'default'
+                        }
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                'mutable-content': 1,
+                                sound: 'default'
+                            }
+                        }
+                    },
+                    token: user.fcm_token
+                };
+                pushPromises.push(
+                    firebaseApp.messaging().send(fcmMsg)
+                        .catch(err => logger.error(`FCM error for user ${user.id}:`, err))
+                );
+            }
+
+            // Email Notification
+            if (emailAllowed && user.email) {
+                emailPromises.push(
+                    emailService.sendTemplateEmail(user.email, type, { title, message })
+                        .catch(err => logger.error(`Email error for user ${user.id}:`, err))
+                );
+            }
+        }
+
+        // 1. Bulk Insert Database Notifications (Single Query)
+        if (notificationsToCreate.length > 0) {
+            await Notification.bulkCreate(notificationsToCreate);
+        }
+
+        // 2. Trigger Push & Email concurrently
+        await Promise.allSettled([...pushPromises, ...emailPromises]);
+
     } catch (error) {
         logger.error('Error in notifyRoles:', error);
     }

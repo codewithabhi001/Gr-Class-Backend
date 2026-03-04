@@ -42,14 +42,40 @@ export const createNotification = async (userId, title, message, type = 'INFO') 
 export const notifyRoles = async (roles, title, message, type = 'INFO') => {
     try {
         const users = await User.findAll({
-            where: {
-                role: roles
-            }
+            where: { role: roles }
         });
 
+        if (users.length === 0) return;
+
+        const notificationsToCreate = [];
+        const emailPromises = [];
+
+        // Note: For consistency with the primary service, we could fetch preferences here too.
+        // For now, let's at least bulk create the database records.
         for (const user of users) {
-            await sendNotification(user.id, type, { title, message });
+            notificationsToCreate.push({
+                user_id: user.id,
+                title: title,
+                message: message,
+                type: type
+            });
+
+            if (user.email) {
+                emailPromises.push(
+                    emailService.sendTemplateEmail(user.email, type, { title, message })
+                        .catch(err => logger.error(`Email error for user ${user.id}:`, err))
+                );
+            }
         }
+
+        // 1. Bulk Insert Database Notifications
+        if (notificationsToCreate.length > 0) {
+            Notification.bulkCreate(notificationsToCreate).catch(err => logger.error('Bulk notification error:', err));
+        }
+
+        // 2. Trigger Emails concurrently in background
+        Promise.allSettled(emailPromises);
+
     } catch (error) {
         logger.error('Error in notifyRoles:', error);
     }

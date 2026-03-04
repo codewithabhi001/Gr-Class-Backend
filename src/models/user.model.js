@@ -57,6 +57,7 @@ export default (sequelize, DataTypes) => {
         User.hasMany(models.JobRequest, { foreignKey: 'requested_by_user_id', as: 'ClientJobs' });
         User.hasMany(models.JobRequest, { foreignKey: 'assigned_surveyor_id', as: 'AssignedJobs' });
         User.hasMany(models.SupportTicket, { foreignKey: 'user_id', as: 'Tickets' });
+        User.hasOne(models.NotificationPreference, { foreignKey: 'user_id', as: 'NotificationPreference' });
     };
 
     return User;
