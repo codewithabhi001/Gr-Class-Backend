@@ -60,7 +60,7 @@
         application/json:
           schema:
             type: object
-            required: [job_id, submit_latitude, submit_longitude]
+            required: [job_id, submit_latitude, submit_longitude, photoKey, signatureKey]
             properties:
               job_id: { type: string, format: uuid }
               submit_latitude: { type: number }
