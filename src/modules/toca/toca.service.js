@@ -14,7 +14,7 @@ export const updateStatus = async (id, status, userId) => {
 
     await toca.update({ status, decision_date: new Date(), decided_by: userId });
 
-    await notificationService.notifyRoles(['GM'], 'TOCA Status Update', `TOCA ${id} is now ${status}`);
+    notificationService.notifyRoles(['GM'], 'TOCA Status Update', `TOCA ${id} is now ${status}`);
 
     return toca;
 };

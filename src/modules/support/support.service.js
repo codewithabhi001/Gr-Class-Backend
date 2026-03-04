@@ -19,7 +19,7 @@ export const createTicket = async (data, user) => {
         user_id: user.id,
         status: 'OPEN'
     });
-    await AuditLog.create({
+    AuditLog.create({
         user_id: user.id,
         action: 'CREATE_SUPPORT_TICKET',
         entity_name: 'SupportTicket',
@@ -31,9 +31,9 @@ export const createTicket = async (data, user) => {
             priority: ticket.priority,
             category: ticket.category,
         }
-    });
+    }).catch(err => console.error('Background AuditLog error:', err));
 
-    await notificationService.notifyRoles(['ADMIN', 'GM'], 'New Support Ticket', `Ticket #${ticket.ticket_number || ticket.id} created by ${user.name}`);
+    notificationService.notifyRoles(['ADMIN', 'GM'], 'New Support Ticket', `Ticket #${ticket.ticket_number || ticket.id} created by ${user.name}`);
 
     return ticket;
 };
@@ -108,12 +108,12 @@ export const updateTicketStatus = async (id, status, internalNote, user) => {
     });
 
     if (status === 'RESOLVED' || status === 'CLOSED') {
-        await notificationService.createNotification(
+        notificationService.createNotification(
             ticket.user_id,
             'Support Ticket Update',
             `Your ticket #${ticket.ticket_number || ticket.id} has been marked as ${status.toLowerCase()}.`,
             'INFO'
-        );
+        ).catch(err => console.error('Background notification error:', err));
     }
 
     return ticket;

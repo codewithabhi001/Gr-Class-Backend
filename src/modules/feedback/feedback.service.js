@@ -32,7 +32,7 @@ export const submitFeedback = async (data, userId, clientId) => {
     });
 
     if (feedback.rating < 3) {
-        await notificationService.notifyRoles(['GM', 'ADMIN'], 'Customer Dissatisfaction Alert', `Low rating (${feedback.rating}/5) received for Job ${job.job_number || job.id}.`);
+        notificationService.notifyRoles(['GM', 'ADMIN'], 'Customer Dissatisfaction Alert', `Low rating (${feedback.rating}/5) received for Job ${job.job_number || job.id}.`);
     }
 
     return feedback;

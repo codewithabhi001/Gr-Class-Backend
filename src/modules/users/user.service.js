@@ -87,7 +87,10 @@ export const updateProfilePic = async (userId, file, data = {}) => {
 
     let profilePicUrl = data.profilePicKey || null;
     if (file) {
-        profilePicUrl = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, s3Service.UPLOAD_FOLDERS.USER_DOCS || 'users/docs');
+        const folder = s3Service.UPLOAD_FOLDERS.USER_DOCS || 'users/docs';
+        profilePicUrl = s3Service.generateKey(file.originalname, folder);
+        s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', profilePicUrl)
+            .catch(err => console.error('Background S3 upload error (updateProfilePic):', err));
     }
 
     if (!profilePicUrl) {

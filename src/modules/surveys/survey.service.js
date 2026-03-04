@@ -103,7 +103,7 @@ export const startSurvey = async (data, userId) => {
 
         // Notify ADMIN/TM/TO
         const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'] });
-        await notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_STARTED', {
+        notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_STARTED', {
             jobId: job_id, vesselName: jobWithVessel.Vessel.vessel_name, surveyorName: (await User.findByPk(userId)).name
         }).catch(() => { });
 
@@ -138,10 +138,13 @@ export const uploadProof = async (jobId, file, data, userId) => {
         throw { statusCode: 400, message: `Please complete the inspection checklist before uploading evidence proof.` };
     }
 
-    // S3 upload (outside transaction — idempotent/reversible)
+    // S3 upload (Moved to background if file provided)
     let url = data.fileKey; // Support pre-signed upload key
     if (file) {
-        url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        url = s3Service.generateKey(file.originalname, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        // Start upload in background
+        s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', url)
+            .catch(err => logger.error('Background S3 upload error (uploadProof):', err));
     }
 
     if (!url) throw { statusCode: 400, message: 'No file or fileKey provided' };
@@ -154,7 +157,7 @@ export const uploadProof = async (jobId, file, data, userId) => {
 
         // Notify ADMIN/TM/TO
         const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
-        await notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_PROOF_UPLOADED', {
+        notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_PROOF_UPLOADED', {
             jobId, vesselName: jobWithVessel.Vessel.vessel_name
         }).catch(() => { });
 
@@ -210,7 +213,9 @@ export const submitSurveyReport = async (data, files, userId) => {
     if (data.photoKey) {
         photoUrl = data.photoKey;
     } else if (photoFile) {
-        photoUrl = await s3Service.uploadFile(photoFile.buffer, photoFile.originalname, photoFile.mimetype, s3Service.UPLOAD_FOLDERS.SURVEYS_PHOTO);
+        photoUrl = s3Service.generateKey(photoFile.originalname, s3Service.UPLOAD_FOLDERS.SURVEYS_PHOTO);
+        s3Service.uploadFile(photoFile.buffer, photoFile.originalname, photoFile.mimetype, '', photoUrl)
+            .catch(err => logger.error('Background S3 upload error (photo):', err));
     }
 
     if (!photoUrl) {
@@ -221,7 +226,9 @@ export const submitSurveyReport = async (data, files, userId) => {
     if (data.signatureKey) {
         signatureUrl = data.signatureKey;
     } else if (signatureFile) {
-        signatureUrl = await s3Service.uploadFile(signatureFile.buffer, signatureFile.originalname, signatureFile.mimetype, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        signatureUrl = s3Service.generateKey(signatureFile.originalname, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        s3Service.uploadFile(signatureFile.buffer, signatureFile.originalname, signatureFile.mimetype, '', signatureUrl)
+            .catch(err => logger.error('Background S3 upload error (signature):', err));
     }
 
     const txn = await db.sequelize.transaction();
@@ -270,7 +277,7 @@ export const submitSurveyReport = async (data, files, userId) => {
 
         // Notify ADMIN/TM/TO
         const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'] });
-        await notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_SUBMITTED', {
+        notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_SUBMITTED', {
             jobId: job_id, vesselName: jobWithVessel.Vessel.vessel_name
         }).catch(() => { });
 
@@ -304,7 +311,7 @@ export const finalizeSurvey = async (jobId, userId) => {
 
     const job = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
     if (job?.assigned_surveyor_id) {
-        await notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_FINALIZED', {
+        notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_FINALIZED', {
             vesselName: job.Vessel?.vessel_name
         }).catch(() => { }); // non-critical
     }
@@ -338,7 +345,7 @@ export const requestRework = async (jobId, reason, userId) => {
     // Notify Surveyor
     const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
     if (job.assigned_surveyor_id) {
-        await notificationService.sendNotification(job.assigned_surveyor_id, 'SURVEY_REWORK_REQUESTED', {
+        notificationService.sendNotification(job.assigned_surveyor_id, 'SURVEY_REWORK_REQUESTED', {
             jobId, vesselName: jobWithVessel.Vessel.vessel_name, reason
         }).catch(() => { });
     }
@@ -369,7 +376,9 @@ export const issueSurveyStatement = async (jobId, file, data, userId) => {
 
     let url = data.fileKey;
     if (file) {
-        url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        url = s3Service.generateKey(file.originalname, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', url)
+            .catch(err => logger.error('Background S3 upload error (issueSurveyStatement):', err));
     }
 
     if (!url) throw { statusCode: 400, message: 'Please upload the signed Survey Statement PDF or provide a fileKey.' };
@@ -472,7 +481,7 @@ export const streamLocation = async (jobId, { latitude, longitude }, userId) => 
 
 export const flagViolation = async (jobId, userId) => {
     await assertJobAccessible(jobId, userId, { checkSurveyor: false });
-    await notificationService.notifyRoles(['ADMIN', 'TM', 'GM'], 'Survey Violation Flagged',
+    notificationService.notifyRoles(['ADMIN', 'TM', 'GM'], 'Survey Violation Flagged',
         `Suspicious behavior flagged for Job ${jobId}.`, 'CRITICAL');
     await AuditLog.create({
         user_id: userId, action: 'FLAG_VIOLATION',

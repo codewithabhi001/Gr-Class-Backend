@@ -99,14 +99,14 @@ export const createJob = async (data, userId) => {
         await txn.commit();
 
         const jobWithVessel = await JobRequest.findByPk(job.id, { include: ['Vessel'] });
-        await notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_CREATED', {
+        notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_CREATED', {
             vesselName: jobWithVessel.Vessel.vessel_name,
             port: jobWithVessel.target_port
         });
 
         const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
         if (clientUser) {
-            await notificationService.sendNotification(clientUser.id, 'JOB_CREATED', {
+            notificationService.sendNotification(clientUser.id, 'JOB_CREATED', {
                 vesselName: jobWithVessel.Vessel.vessel_name, port: jobWithVessel.target_port
             });
         }
@@ -275,7 +275,7 @@ export const verifyJobDocuments = async (id, userId) => {
 
     // Notify ADMIN/GM/TM
     const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
-    await notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_DOCUMENT_VERIFIED', {
+    notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_DOCUMENT_VERIFIED', {
         jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
     }).catch(() => { });
 
@@ -298,7 +298,7 @@ export const approveRequest = async (id, remarks, user) => {
     const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
     const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
     if (clientUser) {
-        await notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
+        notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
             jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
         }).catch(() => { });
     }
@@ -338,7 +338,7 @@ export const assignSurveyor = async (jobId, surveyorId, userId) => {
     const updated = await lifecycleService.updateJobStatus(jobId, 'ASSIGNED', userId, `Surveyor ${surveyorId} assigned`);
 
     const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
-    await notificationService.sendNotification(surveyorId, 'JOB_ASSIGNED', {
+    notificationService.sendNotification(surveyorId, 'JOB_ASSIGNED', {
         jobId, vesselName: jobWithVessel.Vessel.vessel_name, port: jobWithVessel.target_port
     });
     return updated;
@@ -384,12 +384,12 @@ export const authorizeSurvey = async (id, remarks, user) => {
     await updated.update({ approved_by_user_id: user.id });
 
     const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
-    await notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
+    notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
         jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: jobWithVessel.Vessel.vessel_name
     });
     const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
     if (clientUser) {
-        await notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
+        notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
             jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
         });
     }
@@ -412,7 +412,7 @@ export const reviewJob = async (id, remarks, user) => {
 
     // Notify ADMIN/TM
     const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
-    await notificationService.notifyRoles(['ADMIN', 'TM'], 'JOB_REVIEWED', {
+    notificationService.notifyRoles(['ADMIN', 'TM'], 'JOB_REVIEWED', {
         jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
     }).catch(() => { });
 
@@ -481,7 +481,7 @@ export const rescheduleJob = async (id, data, userId) => {
         // Notify surveyor if assigned
         if (job.assigned_surveyor_id) {
             const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
-            await notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_RESCHEDULED', {
+            notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_RESCHEDULED', {
                 jobId: id,
                 vesselName: jobWithVessel.Vessel.vessel_name,
                 newDate: new_target_date,
@@ -519,7 +519,7 @@ export const sendBackJob = async (id, remarks, user) => {
 
     const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
     if (job.assigned_surveyor_id) {
-        await notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_SENT_BACK', {
+        notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_SENT_BACK', {
             jobId: id, vesselName: jobWithVessel.Vessel.vessel_name, remarks: remarks || 'Rework requested'
         });
     }

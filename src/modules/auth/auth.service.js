@@ -166,7 +166,7 @@ export const forgotPassword = async (email) => {
     const baseUrl = (env.frontendUrl || '').replace(/\/$/, '');
     const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
     const { subject, text, html } = passwordResetTemplate({ userName: user.name, resetLink });
-    await emailService.sendEmail(user.email, subject, text, html);
+    emailService.sendEmail(user.email, subject, text, html).catch(err => console.error('Background Email error:', err));
 };
 
 export const resetPassword = async (token, newPassword) => {

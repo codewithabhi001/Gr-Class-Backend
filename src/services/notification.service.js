@@ -14,12 +14,12 @@ const User = db.User;
  * @param {string} eventType - e.g. SLA_BREACH, INFO, JOB_ASSIGNMENT
  * @param {object} data - { title, message, ...otherDetails }
  */
-export const sendNotification = async (userId, eventType, data = {}) => {
+export const sendNotification = async (userId, eventType, data = {}, userObj = null) => {
     try {
-        const user = await User.findByPk(userId);
+        const user = userObj || await User.findByPk(userId);
         if (!user) return;
 
-        const pref = await NotificationPreference.findOne({ where: { user_id: userId } });
+        const pref = await NotificationPreference.findOne({ where: { user_id: user.id } });
 
         // Logic: Enabled if no preference set, or if explicitly enabled
         const matchesType = !pref || pref.alert_types.length === 0 || pref.alert_types.includes(eventType);
@@ -29,13 +29,13 @@ export const sendNotification = async (userId, eventType, data = {}) => {
 
         // Populate title and message if not present
         const formatted = formatNotification(eventType, data);
-        data.title = formatted.title;
-        data.message = formatted.message;
+        data.title = data.title || formatted.title;
+        data.message = data.message || formatted.message;
 
         // 1. In-App Notification (Database)
         if (appAllowed) {
             await Notification.create({
-                user_id: userId,
+                user_id: user.id,
                 title: data.title,
                 message: data.message,
                 type: eventType
@@ -49,6 +49,7 @@ export const sendNotification = async (userId, eventType, data = {}) => {
                     notification: {
                         title: data.title,
                         body: data.message,
+                        ...(data.imageUrl && { image: data.imageUrl })
                     },
                     data: {
                         eventType: eventType,
@@ -56,13 +57,31 @@ export const sendNotification = async (userId, eventType, data = {}) => {
                             Object.entries(data).map(([k, v]) => [k, String(v)])
                         )
                     },
+                    android: {
+                        notification: {
+                            ...(data.imageUrl && { image: data.imageUrl }),
+                            priority: 'high',
+                            sound: 'default'
+                        }
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                'mutable-content': 1,
+                                sound: 'default'
+                            }
+                        },
+                        fcm_options: {
+                            ...(data.imageUrl && { image: data.imageUrl })
+                        }
+                    },
                     token: user.fcm_token,
                 };
 
                 await firebaseApp.messaging().send(message);
-                logger.debug(`FCM notification sent to user ${userId}`);
+                logger.debug(`FCM notification sent to user ${user.id}`);
             } catch (fcmError) {
-                logger.error(`Failed to send FCM notification to user ${userId}:`, fcmError);
+                logger.error(`Failed to send FCM notification to user ${user.id}:`, fcmError);
                 // If token is invalid/expired, we might want to clear it
                 if (fcmError.code === 'messaging/registration-token-not-registered' ||
                     fcmError.code === 'messaging/invalid-registration-token') {
@@ -99,9 +118,8 @@ export const notifyRoles = async (roles, title, message, type = 'INFO') => {
             }
         });
 
-        for (const user of users) {
-            await sendNotification(user.id, type, { title, message });
-        }
+        // Send notifications in parallel
+        await Promise.all(users.map(user => sendNotification(user.id, type, { title, message }, user)));
     } catch (error) {
         logger.error('Error in notifyRoles:', error);
     }

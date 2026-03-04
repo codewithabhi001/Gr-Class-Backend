@@ -5,22 +5,30 @@ import env from '../config/env.js';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
+ * Generate a unique S3 key
+ */
+export const generateKey = (fileName, folder = '') => {
+    const prefix = folder ? folder.replace(/\/$/, '') + '/' : '';
+    return `${prefix}${uuidv4()}-${fileName}`;
+};
+
+/**
  * Upload file to S3 with optional folder prefix.
  * @param {Buffer} fileBuffer - File content
  * @param {string} fileName - Original filename
  * @param {string} mimeType - MIME type
  * @param {string} [folder] - Folder prefix (e.g. 'certificates', 'surveyor', 'documents/job')
+ * @param {string} [providedKey] - Optional pre-generated key
  */
-export const uploadFile = async (fileBuffer, fileName, mimeType, folder = '') => {
+export const uploadFile = async (fileBuffer, fileName, mimeType, folder = '', providedKey = null) => {
     if (!env.aws.bucketName || !env.aws.accessKeyId) {
         if (env.nodeEnv === 'production') throw new Error('FATAL: AWS credentials not configured in production environment.');
         console.warn('AWS Credentials missing, returning mock URL');
-        const path = folder ? `${folder}/${fileName}` : fileName;
-        return `https://mock-s3.com/${path}`;
+        const path = providedKey || (folder ? `${folder}/${fileName}` : fileName);
+        return path;
     }
 
-    const prefix = folder ? folder.replace(/\/$/, '') + '/' : '';
-    const key = `${prefix}${uuidv4()}-${fileName}`;
+    const key = providedKey || generateKey(fileName, folder);
     const command = new PutObjectCommand({
         Bucket: env.aws.bucketName,
         Key: key,
@@ -29,7 +37,6 @@ export const uploadFile = async (fileBuffer, fileName, mimeType, folder = '') =>
     });
 
     await s3Client.send(command);
-    // Return only the key as requested, not the full URL.
     return key;
 };
 

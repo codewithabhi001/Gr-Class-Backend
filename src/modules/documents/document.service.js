@@ -21,13 +21,17 @@ export const getDocumentById = async (id) => {
 
 export const uploadStandaloneFile = async (file, folderName = 'temp') => {
     const folder = `${s3Service.UPLOAD_FOLDERS.DOCUMENTS}/${folderName}`;
-    const url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, folder);
+    const url = s3Service.generateKey(file.originalname, folder);
+    s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', url)
+        .catch(err => console.error('Background S3 upload error (uploadStandaloneFile):', err));
     return { file_url: url };
 };
 
 export const uploadEntityDocument = async (entityType, entityId, file, userId, documentType, description) => {
     const folder = `${s3Service.UPLOAD_FOLDERS.DOCUMENTS}/${String(entityType).toLowerCase()}`;
-    const url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, folder);
+    const url = s3Service.generateKey(file.originalname, folder);
+    s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', url)
+        .catch(err => console.error('Background S3 upload error (uploadEntityDocument):', err));
 
     const doc = await Document.create({
         entity_type: entityType,
