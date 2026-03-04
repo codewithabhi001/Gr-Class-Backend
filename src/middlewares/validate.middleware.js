@@ -61,7 +61,9 @@ export const schemas = {
         job_id: Joi.string().guid().required(),
         submit_latitude: Joi.number().required(),
         submit_longitude: Joi.number().required(),
-        survey_statement: Joi.string().required(),
+        survey_statement: Joi.string().allow('').optional(),
+        photoKey: Joi.string().optional(),
+        signatureKey: Joi.string().optional(),
     }),
     draftSurveyStatement: Joi.object({
         survey_statement: Joi.string().required(),
