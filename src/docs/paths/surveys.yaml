@@ -46,15 +46,17 @@
         multipart/form-data:
           schema:
             type: object
-            required: [job_id, submit_latitude, submit_longitude, survey_statement]
+            required: [job_id, submit_latitude, submit_longitude]
             properties:
               job_id: { type: string, format: uuid }
               submit_latitude: { type: number, description: "Latitude at submission (check-out)" }
               submit_longitude: { type: number, description: "Longitude at submission (check-out)" }
-              survey_statement: { type: string }
+              survey_statement: { type: string, description: "Final statement (optional if already drafted)" }
               reason_if_outside: { type: string }
               photo: { type: string, format: binary, description: "Attendance photo" }
               signature: { type: string, format: binary, description: "Surveyor digital signature" }
+              photoKey: { type: string, description: "S3 key for attendance photo (if already uploaded)" }
+              signatureKey: { type: string, description: "S3 key for surveyor signature (if already uploaded)" }
         application/json:
           schema:
             type: object
@@ -63,7 +65,7 @@
               job_id: { type: string, format: uuid }
               submit_latitude: { type: number }
               submit_longitude: { type: number }
-              survey_statement: { type: string }
+              survey_statement: { type: string, description: "Final statement (optional if already drafted)" }
               photoKey: { type: string, description: "S3 key for attendance photo" }
               signatureKey: { type: string, description: "S3 key for surveyor signature" }
     responses:
