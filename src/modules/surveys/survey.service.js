@@ -6,7 +6,7 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import logger from '../../utils/logger.js';
 
-const { Survey, JobRequest, GpsTracking, ActivityPlanning, AuditLog } = db;
+const { Survey, JobRequest, GpsTracking, ActivityPlanning, AuditLog, User } = db;
 
 /**
  * Enforces immutability for finalized surveys.
@@ -76,6 +76,7 @@ export const startSurvey = async (data, userId) => {
     });
 
     const txn = await db.sequelize.transaction();
+    let surveyResult;
     try {
         const [survey, created] = await Survey.findOrCreate({
             where: { job_id },
@@ -99,19 +100,25 @@ export const startSurvey = async (data, userId) => {
         await GpsTracking.create({ surveyor_id: userId, job_id, latitude, longitude }, { transaction: txn });
 
         await txn.commit();
-        logger.info({ entity: 'SURVEY', event: 'CHECKIN', jobId: job_id, surveyId: survey.id, triggeredBy: userId });
-
-        // Notify ADMIN/TM/TO
-        const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'] });
-        notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_STARTED', {
-            jobId: job_id, vesselName: jobWithVessel.Vessel.vessel_name, surveyorName: (await User.findByPk(userId)).name
-        }).catch(() => { });
-
-        return { message: 'Survey started.', survey_id: survey.id, job_id };
+        surveyResult = { survey_id: survey.id, job_id };
     } catch (error) {
-        await txn.rollback();
+        if (!txn.finished) await txn.rollback();
         throw error;
     }
+
+    // ── Post-commit notifications (non-transactional, fire-and-forget) ──
+    logger.info({ entity: 'SURVEY', event: 'CHECKIN', jobId: job_id, surveyId: surveyResult.survey_id, triggeredBy: userId });
+    try {
+        const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'] });
+        const actor = await User.findByPk(userId);
+        notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_STARTED', {
+            jobId: job_id, vesselName: jobWithVessel?.Vessel?.vessel_name, surveyorName: actor?.name
+        }).catch(() => { });
+    } catch (notifErr) {
+        logger.error('Non-critical: notification error in startSurvey', notifErr);
+    }
+
+    return { message: 'Survey started.', ...surveyResult };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -436,7 +443,7 @@ export const getSurveyReports = async (query) => {
 };
 
 export const getSurveyDetails = async (jobId) => {
-    const survey = await Survey.findOne({
+    let survey = await Survey.findOne({
         where: { job_id: jobId },
         include: [
             { model: JobRequest, include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }] },
@@ -445,7 +452,9 @@ export const getSurveyDetails = async (jobId) => {
             { model: db.SurveyStatusHistory, order: [['created_at', 'DESC']] }
         ]
     });
-    if (!survey) throw { statusCode: 404, message: 'Survey not found for this job.' };
+
+    if (!survey) throw { statusCode: 404, message: 'Survey report not found for this job. Please ensure the job is assigned and authorized.' };
+
     return await fileAccessService.resolveEntity(survey);
 };
 
