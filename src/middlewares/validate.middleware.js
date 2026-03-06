@@ -351,6 +351,11 @@ export const schemas = {
         current_class_society: Joi.string().optional().allow(''),
         engine_type: Joi.string().optional().allow(''),
         builder_name: Joi.string().optional().allow(''),
+        uploaded_documents: Joi.array().items(Joi.object({
+            file_url: Joi.string().required(),
+            document_type: Joi.string().required(),
+            description: Joi.string().optional().allow('')
+        })).optional()
     }),
     updateUser: Joi.object({
         name: Joi.string().optional(),

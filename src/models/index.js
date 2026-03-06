@@ -22,7 +22,7 @@ const sequelize = new Sequelize(dbConfig.name, dbConfig.username, dbConfig.passw
             ca: fs.readFileSync(path.resolve(dbConfig.sslCa))
         }
     } : {},
-    logging: console.log, // set to console.log to see SQL queries
+    logging: process.env.DB_LOGGING === 'true' ? console.log : false, // set to true via env to see SQL queries
 });
 
 const db = {};

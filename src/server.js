@@ -26,7 +26,7 @@ const startServer = async () => {
 
 
         const isProduction = env.nodeEnv === 'production';
-        const host = env.serverHost || (isProduction || process.env.USE_SERVER_IP === 'true' ? '13.239.63.143' : 'localhost');
+        const host = env.serverHost || (isProduction || process.env.USE_SERVER_IP === 'true' ? '[IP_ADDRESS]' : 'localhost');
         const baseUrl = `http://${host}:${PORT}`;
 
         app.listen(PORT, () => {

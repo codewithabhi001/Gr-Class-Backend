@@ -210,11 +210,21 @@ export const getJobById = async (id, scopeFilters = {}) => {
     const job = await JobRequest.findOne({
         where: { id, ...scopeFilters },
         include: [
-            'Vessel', 'CertificateType', 'JobStatusHistories', 'JobDocuments', 'JobReschedules',
+            'Vessel', 'CertificateType',
+            {
+                model: db.JobStatusHistory,
+                as: 'JobStatusHistories',
+                include: [{ model: db.User, attributes: ['id', 'name', 'email', 'role'] }]
+            },
+            'JobDocuments', 'JobReschedules',
             {
                 model: Survey,
                 as: 'survey',
-                include: [{ model: db.SurveyStatusHistory, as: 'SurveyStatusHistories', include: [{ model: db.User, as: 'User', attributes: ['name'] }] }]
+                include: [{
+                    model: db.SurveyStatusHistory,
+                    as: 'SurveyStatusHistories',
+                    include: [{ model: db.User, as: 'User', attributes: ['id', 'name', 'email', 'role'] }]
+                }]
             },
             { model: Certificate, as: 'Certificate', attributes: ['id', 'certificate_number', 'pdf_file_url'] },
             { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
@@ -224,17 +234,26 @@ export const getJobById = async (id, scopeFilters = {}) => {
     });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
+    const jobPlain = job.get({ plain: true });
+
+    // Expose survey history at top level for convenience
+    if (jobPlain.survey && jobPlain.survey.SurveyStatusHistories) {
+        jobPlain.survey_history = jobPlain.survey.SurveyStatusHistories;
+    } else {
+        jobPlain.survey_history = [];
+    }
+
     if (job.Certificate?.pdf_file_url) {
         const key = fileAccessService.getKeyFromUrl(job.Certificate.pdf_file_url);
         const url = key?.startsWith('public/certificates/')
             ? fileAccessService.generatePublicCdnUrl(key)
             : await fileAccessService.generateSignedUrl(key, 3600);
-        job.setDataValue('certificate_url', url);
-        job.setDataValue('certificate_number', job.Certificate.certificate_number);
-        job.setDataValue('certificate_id', job.Certificate.id);
+        jobPlain.certificate_url = url;
+        jobPlain.certificate_number = job.Certificate.certificate_number;
+        jobPlain.certificate_id = job.Certificate.id;
     }
 
-    return await fileAccessService.resolveEntity(job);
+    return await fileAccessService.resolveEntity(jobPlain);
 };
 
 // ─────────────────────────────────────────────
