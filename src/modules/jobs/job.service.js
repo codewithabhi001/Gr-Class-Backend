@@ -217,7 +217,9 @@ export const getJobById = async (id, scopeFilters = {}) => {
                 include: [{ model: db.SurveyStatusHistory, as: 'SurveyStatusHistories', include: [{ model: db.User, as: 'User', attributes: ['name'] }] }]
             },
             { model: Certificate, as: 'Certificate', attributes: ['id', 'certificate_number', 'pdf_file_url'] },
-            { model: User, as: 'approver', attributes: ['id', 'name', 'role'] }
+            { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
+            { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
+            { model: User, as: 'surveyor', attributes: ['id', 'name', 'email'] }
         ]
     });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
@@ -335,6 +337,7 @@ export const assignSurveyor = async (jobId, surveyorId, userId) => {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
     }
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
+
     const updated = await lifecycleService.updateJobStatus(jobId, 'ASSIGNED', userId, `Surveyor ${surveyorId} assigned`);
 
     const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
@@ -360,10 +363,22 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, userId) => {
     }
     const oldSurveyor = job.assigned_surveyor_id;
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
+
+    // Status sync is now handled by lifecycle.updateJobStatus
+    // We just need to trigger a status update to current status if we want to force a refresh (or rely on next transition)
+    // Actually, for reassignment specifically, we update the job and add history. The lifecycle will see the new surveyor on next transition.
+    // If we want immediate survey sync, we'd trigger a dummy 'updateJobStatus' but better to just call it reassignment history.
+
     await JobStatusHistory.create({
         job_id: jobId, previous_status: job.job_status, new_status: job.job_status,
         changed_by: userId, reason: `Reassigned from ${oldSurveyor} to ${surveyorId}: ${reason}`
     });
+
+    // Explicitly sync survey in reassignment case since it doesn't change job status
+    if (job.is_survey_required) {
+        const survey = await Survey.findOne({ where: { job_id: jobId } });
+        if (survey) await survey.update({ surveyor_id: surveyorId });
+    }
     return job;
 };
 
@@ -379,6 +394,7 @@ export const authorizeSurvey = async (id, remarks, user) => {
     if (!job.assigned_surveyor_id) {
         throw { statusCode: 400, message: 'Cannot authorize survey: please assign a surveyor first.' };
     }
+
     const updated = await lifecycleService.updateJobStatus(id, 'SURVEY_AUTHORIZED', user.id,
         remarks || `${user.role} authorized survey`);
     await updated.update({ approved_by_user_id: user.id });

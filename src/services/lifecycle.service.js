@@ -131,13 +131,26 @@ export const updateJobStatus = async (jobId, newStatus, userId, reason = null, o
             triggeredBy: userId, reason: reason ?? undefined,
         });
 
-        // ── 8. Automatic Survey sync (reverse path) ──
-        if (newStatus === 'REWORK_REQUESTED') {
+        // ── 8. Automatic Survey sync & Provisioning ──
+        if (job.is_survey_required) {
             const survey = await Survey.findOne({ where: { job_id: jobId }, transaction: txn });
-            if (survey && survey.survey_status !== 'REWORK_REQUIRED') {
-                // We use a simpler update here to avoid circular calls to updateSurveyStatus if we were to add more complex logic there
-                // However, since we want full auditing, we'll actually import and call updateSurveyStatus but with a guard or just update the survey.
-                // Best approach: If we are in Job update, and it's rework, the survey MUST follow.
+
+            // Provisioning: Create survey if assigned and missing
+            if (['ASSIGNED', 'SURVEY_AUTHORIZED', 'IN_PROGRESS'].includes(newStatus)) {
+                if (!survey && job.assigned_surveyor_id) {
+                    await Survey.create({
+                        job_id: jobId,
+                        surveyor_id: job.assigned_surveyor_id,
+                        survey_status: 'NOT_STARTED',
+                    }, { transaction: txn });
+                } else if (survey && survey.surveyor_id !== job.assigned_surveyor_id) {
+                    // Sync surveyor if job was reassigned
+                    await survey.update({ surveyor_id: job.assigned_surveyor_id }, { transaction: txn });
+                }
+            }
+
+            // Sync Status: If Job moves to REWORK, Survey must follow
+            if (newStatus === 'REWORK_REQUESTED' && survey && survey.survey_status !== 'REWORK_REQUIRED') {
                 await survey.update({ survey_status: 'REWORK_REQUIRED' }, { transaction: txn });
                 await SurveyStatusHistory.create({
                     survey_id: survey.id,

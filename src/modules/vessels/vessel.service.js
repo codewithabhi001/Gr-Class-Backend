@@ -128,7 +128,11 @@ export const getVesselById = async (id, scopeFilters = {}, user = null) => {
         include: [
             { model: Client, as: 'Client' },
             { model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] },
-            { model: db.VesselDocument, as: 'Documents' }
+            {
+                model: db.VesselDocument,
+                as: 'Documents',
+                include: [{ model: db.User, as: 'Uploader', attributes: ['id', 'name'] }]
+            }
         ]
     });
     if (!vessel) throw { statusCode: 404, message: 'Vessel not found' };
@@ -193,10 +197,17 @@ export const getVesselsByClientId = async (clientId) => {
     };
 };
 
-export const updateVessel = async (id, data, scopeFilters = {}) => {
-    const vessel = await getVesselById(id, scopeFilters);
+export const updateVessel = async (id, data, scopeFilters = {}, userId = null) => {
+    // We use Vessel.findOne to get the Sequelize instance for .update()
+    const vesselQuery = await Vessel.findOne({
+        where: { id, ...scopeFilters }
+    });
 
-    if (data.imo_number && data.imo_number !== vessel.imo_number) {
+    if (!vesselQuery) {
+        throw { statusCode: 404, message: 'Vessel not found' };
+    }
+
+    if (data.imo_number && data.imo_number !== vesselQuery.imo_number) {
         const existing = await Vessel.findOne({ where: { imo_number: data.imo_number } });
         if (existing) {
             throw { statusCode: 400, message: 'Another vessel with this IMO number already exists' };
@@ -206,5 +217,27 @@ export const updateVessel = async (id, data, scopeFilters = {}) => {
         await ensureValidFlag(data.flag_administration_id);
     }
 
-    return await vessel.update(data);
+    const { uploaded_documents, ...updateData } = data;
+    const txn = await db.sequelize.transaction();
+
+    try {
+        await vesselQuery.update(updateData, { transaction: txn });
+
+        if (uploaded_documents && uploaded_documents.length > 0) {
+            const docsToCreate = uploaded_documents.map(doc => ({
+                vessel_id: vesselQuery.id,
+                file_url: doc.file_url,
+                document_type: doc.document_type || 'OTHER',
+                description: doc.description || '',
+                uploaded_by: userId
+            }));
+            await db.VesselDocument.bulkCreate(docsToCreate, { transaction: txn });
+        }
+
+        await txn.commit();
+        return vesselQuery;
+    } catch (error) {
+        await txn.rollback();
+        throw error;
+    }
 };

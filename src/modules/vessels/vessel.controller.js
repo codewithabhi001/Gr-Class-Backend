@@ -57,7 +57,7 @@ export const getVesselsByClientId = async (req, res, next) => {
 export const updateVessel = async (req, res, next) => {
     try {
         const scopeFilters = getScopeFilters(req.user);
-        const vessel = await vesselService.updateVessel(req.params.id, req.body, scopeFilters);
+        const vessel = await vesselService.updateVessel(req.params.id, req.body, scopeFilters, req.user.id);
         res.json({
             success: true,
             message: 'Vessel updated successfully',
