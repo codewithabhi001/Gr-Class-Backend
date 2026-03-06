@@ -20,7 +20,7 @@ router.post('/', authorizeRoles('CLIENT', 'ADMIN', 'GM'), validate(schemas.creat
 
 // ─── Explicit Semantic Workflow Transitions ───────────────
 // CREATED → DOCUMENT_VERIFIED  (TO)
-router.put('/:id/verify-documents', authorizeRoles('TO'), jobController.verifyJobDocuments);
+router.put('/:id/verify-documents', authorizeRoles('ADMIN', 'TO'), jobController.verifyJobDocuments);
 
 // DOCUMENT_VERIFIED → APPROVED   (GM / ADMIN)
 router.put('/:id/approve-request', authorizeRoles('ADMIN', 'GM'), jobController.approveRequest);
@@ -31,7 +31,7 @@ router.put('/:id/finalize', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.f
 // APPROVED → ASSIGNED  (ADMIN / GM — requires surveyorId in body)
 router.put('/:id/assign', authorizeRoles('ADMIN', 'GM'), jobController.assignSurveyor);
 // Re-assign surveyor without status change (GM / TM)
-router.put('/:id/reassign', authorizeRoles('GM', 'TM'), validate(schemas.reassignJob), jobController.reassignSurveyor);
+router.put('/:id/reassign', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.reassignJob), jobController.reassignSurveyor);
 
 // Reschedule
 router.put('/:id/reschedule', authorizeRoles('ADMIN', 'GM'), validate(schemas.rescheduleJob), jobController.rescheduleJob);
@@ -42,7 +42,7 @@ router.put('/:id/authorize-survey', authorizeRoles('ADMIN', 'TM'), jobController
 // IN_PROGRESS / REWORK_REQUESTED → automatically handled by survey lifecycle
 
 // SURVEY_DONE → REVIEWED   (TO — technical review)
-router.put('/:id/review', authorizeRoles('TO'), jobController.reviewJob);
+router.put('/:id/review', authorizeRoles('ADMIN', 'TO'), jobController.reviewJob);
 
 // REVIEWED → REWORK_REQUESTED  (ADMIN / TM / TO — requests surveyor correction)
 // NOTE: preferred path is PUT /api/v1/surveys/:id/rework
