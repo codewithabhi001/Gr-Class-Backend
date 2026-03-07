@@ -127,13 +127,37 @@ export const getPayments = async (query, scopeFilters = {}) => {
     const ALLOWED_KEYS = ['payment_status', 'job_id', 'invoice_number'];
     ALLOWED_KEYS.forEach(key => { if (filters[key]) allowedFilters[key] = filters[key]; });
 
-    return await Payment.findAndCountAll({
+    const result = await Payment.findAndCountAll({
         where: { ...allowedFilters, ...scopeFilters },
         limit: parseInt(limit),
         offset: (page - 1) * limit,
         include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }],
         order: [['payment_date', 'DESC']]
     });
+
+    const paymentIds = result.rows.map(r => r.id);
+    const ledgers = paymentIds.length > 0 ? await FinancialLedger.findAll({ where: { invoice_id: paymentIds } }) : [];
+
+    const enrichedRows = result.rows.map(row => {
+        const plain = row.get({ plain: true });
+        const pLedgers = ledgers.filter(l => l.invoice_id === plain.id);
+
+        const refunded = pLedgers.filter(l => l.transaction_type === 'REFUND').reduce((sum, l) => sum + Math.abs(parseFloat(l.amount)), 0);
+        const partialPaid = pLedgers.filter(l => l.transaction_type === 'PARTIAL_PAYMENT').reduce((sum, l) => sum + parseFloat(l.amount), 0);
+
+        plain.refunded_amount = refunded > 0 ? refunded.toFixed(2) : "0.00";
+
+        if (plain.payment_status === 'PAID') {
+            plain.amount_paid = (partialPaid > 0 ? partialPaid : parseFloat(plain.amount)).toFixed(2);
+        } else {
+            plain.amount_paid = partialPaid.toFixed(2);
+        }
+
+        plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
+        return plain;
+    });
+
+    return { count: result.count, rows: enrichedRows };
 };
 
 export const getPaymentById = async (id, scopeFilters = {}) => {
@@ -142,8 +166,24 @@ export const getPaymentById = async (id, scopeFilters = {}) => {
         include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
     });
     if (!payment) throw { statusCode: 404, message: 'Payment record not found' };
-    return payment;
+
+    const plain = payment.get({ plain: true });
+    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: id } });
+
+    const refunded = ledgers.filter(l => l.transaction_type === 'REFUND').reduce((sum, l) => sum + Math.abs(parseFloat(l.amount)), 0);
+    const partialPaid = ledgers.filter(l => l.transaction_type === 'PARTIAL_PAYMENT').reduce((sum, l) => sum + parseFloat(l.amount), 0);
+
+    plain.refunded_amount = refunded > 0 ? refunded.toFixed(2) : "0.00";
+    if (plain.payment_status === 'PAID') {
+        plain.amount_paid = (partialPaid > 0 ? partialPaid : parseFloat(plain.amount)).toFixed(2);
+    } else {
+        plain.amount_paid = partialPaid.toFixed(2);
+    }
+    plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
+
+    return plain;
 };
+
 
 export const getFinancialSummary = async (scopeFilters = {}) => {
     const payments = await Payment.findAll({ where: scopeFilters });
