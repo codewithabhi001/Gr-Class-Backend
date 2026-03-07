@@ -32,13 +32,17 @@ router.post('/apply',
 router.use(authenticate);
 
 // Admin/Management
-router.post('/', authorizeRoles('ADMIN', 'TM'), validate(schemas.createUser), surveyorController.createSurveyor);
+router.get('/', authorizeRoles('ADMIN', 'GM', 'TM'), surveyorController.getSurveyors);
+router.post('/', authorizeRoles('ADMIN', 'TM'), validate(schemas.createSurveyor), surveyorController.createSurveyor);
 router.get('/applications', authorizeRoles('ADMIN', 'TM'), surveyorController.getApplications);
 router.put('/applications/:id/review', authorizeRoles('TM', 'ADMIN'), validate(schemas.reviewSurveyor), surveyorController.reviewApplication);
 
+// Status Management (Suspend/Activate)
+router.put('/:id/status', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateUserStatus), surveyorController.updateStatus);
+
 // Profile
 router.get('/:id/profile', authorizeRoles('ADMIN', 'TM', 'SURVEYOR'), surveyorController.getProfile);
-router.put('/:id/profile', authorizeRoles('ADMIN', 'TM'), surveyorController.updateProfile);
+router.put('/:id/profile', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateSurveyorProfile), surveyorController.updateProfile);
 
 // Surveyor self-operations
 router.post('/availability', authorizeRoles('SURVEYOR'), surveyorController.updateAvailability);

@@ -79,6 +79,24 @@ export const schemas = {
         nationality: Joi.string().required(),
         qualification: Joi.string().required(),
         years_of_experience: Joi.number().integer().required(),
+        cvKey: Joi.string().optional(),
+        idProofKey: Joi.string().optional(),
+        certificateKeys: Joi.array().items(Joi.string()).optional(),
+    }),
+    updateSurveyorProfile: Joi.object({
+        full_name: Joi.string().optional(),
+        name: Joi.string().optional(),
+        phone: Joi.string().optional().allow(''),
+        nationality: Joi.string().optional().allow(''),
+        qualification: Joi.string().optional().allow(''),
+        years_of_experience: Joi.number().integer().optional(),
+        license_number: Joi.string().optional().allow(''),
+        authorized_ship_types: Joi.array().items(Joi.string()).optional(),
+        authorized_certificates: Joi.array().items(Joi.string()).optional(),
+        valid_to: Joi.date().iso().optional(),
+        cv_url: Joi.string().optional().allow('', null),
+        license_copy_url: Joi.string().optional().allow('', null),
+        is_available: Joi.boolean().optional(),
     }),
     reviewSurveyor: Joi.object({
         status: Joi.string().valid('APPROVED', 'REJECTED', 'DOCUMENTS_REQUIRED').required(),
@@ -147,8 +165,27 @@ export const schemas = {
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
         role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').required(),
-        phone: Joi.string().optional(),
+        phone: Joi.string().optional().allow(''),
         client_id: Joi.string().guid().optional().allow(null),
+        // Allow surveyor extra fields if role is SURVEYOR (though safer to use specialized schema)
+        license_number: Joi.string().optional().allow(''),
+        authorized_ship_types: Joi.array().items(Joi.string()).optional(),
+        authorized_certificates: Joi.array().items(Joi.string()).optional(),
+        valid_from: Joi.date().iso().optional(),
+    }),
+    createSurveyor: Joi.object({
+        name: Joi.string().required(),
+        email: Joi.string().email().required(),
+        password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
+        phone: Joi.string().optional().allow(''),
+        license_number: Joi.string().optional().allow(''),
+        authorized_ship_types: Joi.array().items(Joi.string()).optional(),
+        authorized_certificates: Joi.array().items(Joi.string()).optional(),
+        valid_from: Joi.date().iso().optional(),
+        nationality: Joi.string().optional().allow(''),
+        qualification: Joi.string().optional().allow(''),
+        qualifications: Joi.string().optional().allow(''), // Support both
+        years_of_experience: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/).custom(v => parseInt(v))).optional(), // More flexible
     }),
     updateUserStatus: Joi.object({
         status: Joi.string().valid('ACTIVE', 'SUSPENDED', 'INACTIVE').required(),
@@ -205,10 +242,16 @@ export const schemas = {
     rejectJob: Joi.object({
         reason: Joi.string().required(),
     }),
+    assignJob: Joi.object({
+        surveyorId: Joi.string().guid().optional(),
+        surveyor_id: Joi.string().guid().optional(),
+        remarks: Joi.string().optional().allow(''),
+    }).or('surveyorId', 'surveyor_id'),
     reassignJob: Joi.object({
-        surveyorId: Joi.string().guid().required(),
+        surveyorId: Joi.string().guid().optional(),
+        surveyor_id: Joi.string().guid().optional(),
         reason: Joi.string().required(),
-    }),
+    }).or('surveyorId', 'surveyor_id'),
     rescheduleJob: Joi.object({
         new_target_date: Joi.date().iso().required(),
         new_target_port: Joi.string().required(),

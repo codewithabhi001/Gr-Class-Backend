@@ -88,3 +88,26 @@ export const getGPSHistory = async (req, res, next) => {
         res.json({ success: true, data: history });
     } catch (e) { next(e); }
 };
+
+export const getSurveyors = async (req, res, next) => {
+    try {
+        const result = await surveyorService.getSurveyors(req.query, req.user);
+        res.json({
+            success: true,
+            message: 'Surveyors fetched successfully',
+            data: result
+        });
+    } catch (error) { next(error); }
+};
+
+export const updateStatus = async (req, res, next) => {
+    try {
+        const { status } = req.body;
+        const result = await surveyorService.updateStatus(req.params.id, status);
+        res.json({
+            success: true,
+            message: `Surveyor status updated to ${status}`,
+            data: result
+        });
+    } catch (error) { next(error); }
+};

@@ -27,8 +27,20 @@ export const authenticate = async (req, res, next) => {
 
         const user = await db.User.findByPk(decoded.id);
 
-        if (!user || user.status !== 'ACTIVE') {
-            return res.status(401).json({ message: 'User not found or inactive' });
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'User not found.' });
+        }
+
+        if (user.status === 'SUSPENDED') {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account has been suspended. Please contact the GIRIK Administration for assistance.',
+                error_code: 'ACCOUNT_SUSPENDED'
+            });
+        }
+
+        if (user.status !== 'ACTIVE') {
+            return res.status(401).json({ success: false, message: 'Your account is currently inactive.' });
         }
 
         req.user = user;

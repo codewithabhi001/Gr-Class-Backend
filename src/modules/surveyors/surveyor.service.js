@@ -76,7 +76,13 @@ export const reviewApplication = async (id, status, remarks, reviewerUserId) => 
     if (!app) throw { statusCode: 404, message: 'Application not found' };
 
     if (status === 'APPROVED') {
-        const randomPassword = uuidv4().substring(0, 10);
+        const passwordMatch = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+        let randomPassword = uuidv4().substring(0, 10);
+        // Ensure password meets complexity requirements
+        if (!passwordMatch.test(randomPassword)) {
+            randomPassword += "A1a!";
+        }
+
         const { user } = await authService.register({
             name: app.full_name,
             email: app.email,
@@ -90,7 +96,12 @@ export const reviewApplication = async (id, status, remarks, reviewerUserId) => 
             surveyor_application_id: app.id,
             license_number: `SURV-${uuidv4().substring(0, 6).toUpperCase()}`,
             valid_from: new Date(),
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            nationality: app.nationality,
+            qualification: app.qualification,
+            years_of_experience: app.years_of_experience,
+            cv_url: app.cv_file_url,
+            id_proof_url: app.id_proof_url
         });
 
         await app.update({ status, reviewer_remarks: remarks, approved_user_id: user.id });
@@ -119,7 +130,12 @@ export const createSurveyor = async (data) => {
         authorized_ship_types: data.authorized_ship_types,
         authorized_certificates: data.authorized_certificates,
         valid_from: data.valid_from || new Date(),
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        nationality: data.nationality,
+        qualification: data.qualification || data.qualifications,
+        years_of_experience: data.years_of_experience,
+        cv_url: data.cv_url,
+        id_proof_url: data.id_proof_url
     });
 
     return { user, profile };
@@ -127,7 +143,7 @@ export const createSurveyor = async (data) => {
 
 export const getProfile = async (id, user = null) => {
     const profile = await SurveyorProfile.findOne({
-        where: { user_id: id },
+        where: { [db.Sequelize.Op.or]: [{ id: id }, { user_id: id }] },
         include: [
             { model: User, attributes: ['id', 'name', 'email', 'phone', 'role', 'status'] },
             {
@@ -143,9 +159,43 @@ export const getProfile = async (id, user = null) => {
 };
 
 export const updateProfile = async (id, data) => {
-    const profile = await SurveyorProfile.findOne({ where: { user_id: id } });
+    const profile = await SurveyorProfile.findOne({
+        where: { [db.Sequelize.Op.or]: [{ id: id }, { user_id: id }] },
+        include: [{ model: User }]
+    });
     if (!profile) throw { statusCode: 404, message: 'Profile not found' };
-    return await profile.update(data);
+
+    // Update User details if provided
+    const userUpdate = {};
+    if (data.name || data.full_name) userUpdate.name = data.name || data.full_name;
+    if (data.phone) userUpdate.phone = data.phone;
+    if (data.email) userUpdate.email = data.email;
+    if (data.profile_pic_url) userUpdate.profile_pic_url = data.profile_pic_url;
+
+    if (Object.keys(userUpdate).length > 0) {
+        await profile.User.update(userUpdate);
+    }
+
+    // Update Profile details
+    const profileFields = [
+        'license_number', 'authorized_ship_types', 'authorized_certificates',
+        'valid_from', 'valid_to', 'is_available', 'nationality',
+        'qualification', 'years_of_experience', 'cv_url', 'id_proof_url'
+    ];
+
+    const profileUpdate = {};
+    profileFields.forEach(field => {
+        if (data[field] !== undefined) {
+            profileUpdate[field] = data[field];
+        }
+    });
+
+    // Handle "qualifications" alias if "qualification" is missing
+    if (data.qualifications !== undefined && data.qualification === undefined) {
+        profileUpdate.qualification = data.qualifications;
+    }
+
+    return await profile.update(profileUpdate);
 };
 
 export const updateAvailability = async (userId, isAvailable) => {
@@ -177,4 +227,51 @@ export const getGPSHistory = async (userId) => {
         order: [['timestamp', 'DESC']],
         limit: 100
     });
+};
+
+export const updateStatus = async (id, status) => {
+    // Search user by provided id (might be userId or profileId)
+    let user = await User.findByPk(id);
+    if (!user) {
+        // If not found by PK, check if it's a profile ID
+        const profile = await SurveyorProfile.findByPk(id);
+        if (profile) {
+            user = await User.findByPk(profile.user_id);
+        }
+    }
+
+    if (!user || user.role !== 'SURVEYOR') throw { statusCode: 404, message: 'Surveyor not found' };
+
+    await user.update({ status });
+
+    // Also update profile status if it exists
+    const profile = await SurveyorProfile.findOne({ where: { user_id: user.id } });
+    if (profile) {
+        // Sync profile status (ACTIVE, INACTIVE, SUSPENDED)
+        const profileStatusMap = { 'ACTIVE': 'ACTIVE', 'INACTIVE': 'INACTIVE', 'SUSPENDED': 'SUSPENDED' };
+        await profile.update({ status: profileStatusMap[status] || 'INACTIVE' });
+    }
+
+    return user;
+};
+
+export const getSurveyors = async (query = {}, user = null) => {
+    const { status, is_available } = query;
+    const where = {};
+    if (status) where.status = status;
+    if (is_available !== undefined) where.is_available = is_available === 'true';
+
+    const surveyors = await SurveyorProfile.findAll({
+        where,
+        attributes: ['id', 'user_id', 'license_number', 'status', 'is_available'],
+        include: [
+            {
+                model: User,
+                attributes: ['id', 'name', 'email', 'phone', 'role', 'status', 'profile_pic_url']
+            }
+        ],
+        order: [[User, 'name', 'ASC']]
+    });
+
+    return await fileAccessService.resolveEntity(surveyors, user);
 };

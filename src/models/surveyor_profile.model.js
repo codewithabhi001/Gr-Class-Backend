@@ -10,6 +10,11 @@ export default (sequelize, DataTypes) => {
         valid_to: DataTypes.DATEONLY,
         status: { type: DataTypes.ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED'), defaultValue: 'ACTIVE' },
         is_available: { type: DataTypes.BOOLEAN, defaultValue: false },
+        nationality: { type: DataTypes.STRING, allowNull: true },
+        qualification: { type: DataTypes.STRING, allowNull: true },
+        years_of_experience: { type: DataTypes.INTEGER, allowNull: true },
+        cv_url: { type: DataTypes.STRING, allowNull: true },
+        id_proof_url: { type: DataTypes.STRING, allowNull: true },
     }, {
         tableName: 'surveyor_profiles',
         underscored: true,

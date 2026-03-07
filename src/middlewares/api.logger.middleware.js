@@ -37,12 +37,18 @@ export const apiLogger = (req, res, next) => {
     const originalJson = res.json;
 
     res.send = function (data) {
-        logResponse(req, res, data, startTime);
+        if (!res.headersSent && !res._logged) {
+            logResponse(req, res, data, startTime);
+            res._logged = true;
+        }
         originalSend.call(this, data);
     };
 
     res.json = function (data) {
-        logResponse(req, res, data, startTime);
+        if (!res.headersSent && !res._logged) {
+            logResponse(req, res, data, startTime);
+            res._logged = true;
+        }
         originalJson.call(this, data);
     };
 

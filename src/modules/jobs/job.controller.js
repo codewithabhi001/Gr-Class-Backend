@@ -78,7 +78,8 @@ export const finalizeJob = async (req, res, next) => {
 /** APPROVED → ASSIGNED  (ADMIN / GM) */
 export const assignSurveyor = async (req, res, next) => {
     try {
-        const job = await jobService.assignSurveyor(req.params.id, req.body.surveyorId, req.user.id);
+        const surveyorId = req.body.surveyorId || req.body.surveyor_id;
+        const job = await jobService.assignSurveyor(req.params.id, surveyorId, req.user.id);
         res.json({ success: true, message: 'Surveyor assigned.', data: job });
     } catch (error) { next(error); }
 };
@@ -86,7 +87,8 @@ export const assignSurveyor = async (req, res, next) => {
 /** Re-assign surveyor without status change  (GM / TM) */
 export const reassignSurveyor = async (req, res, next) => {
     try {
-        const job = await jobService.reassignSurveyor(req.params.id, req.body.surveyorId, req.body.reason, req.user.id);
+        const surveyorId = req.body.surveyorId || req.body.surveyor_id;
+        const job = await jobService.reassignSurveyor(req.params.id, surveyorId, req.body.reason, req.user.id);
         res.json({ success: true, message: 'Surveyor reassigned.', data: job });
     } catch (error) { next(error); }
 };

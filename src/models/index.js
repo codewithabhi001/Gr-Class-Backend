@@ -22,7 +22,14 @@ const sequelize = new Sequelize(dbConfig.name, dbConfig.username, dbConfig.passw
             ca: fs.readFileSync(path.resolve(dbConfig.sslCa))
         }
     } : {},
-    logging: process.env.DB_LOGGING === 'true' ? console.log : false, // set to true via env to see SQL queries
+    logging: process.env.DB_LOGGING === 'true' ? console.log : false,
+    // Add connection pool settings to avoid frequent handshakes with remote RDS
+    pool: {
+        max: 20,
+        min: 2,
+        idle: 300000,   // Wait 5 minutes before closing idle connections (default 10s)
+        acquire: 60000,
+    },
 });
 
 const db = {};

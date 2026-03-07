@@ -6,8 +6,23 @@ const { User, Client, Vessel, JobRequest, SurveyorProfile, Certificate, FlagAdmi
 const vesselAttrs = ['id', 'vessel_name', 'imo_number', 'flag_administration_id', 'class_status'];
 
 export const getAdminDashboard = async () => {
-    const [usersByRole, clientsWithVessels, vesselsCount, jobsCount, certificatesCount, surveyorProfiles] = await Promise.all([
-        User.findAll({ attributes: ['role'], raw: true }),
+    // 1. Parallel counts and grouping (Dramatically faster for remote DBs)
+    const [
+        roleCountsRaw,
+        clientsWithVessels,
+        vesselsCount,
+        jobsCount,
+        certificatesCount,
+        surveyorProfilesCount,
+        jobStatusCountsRaw,
+        certStatusCountsRaw,
+        surveyStatusCountsRaw
+    ] = await Promise.all([
+        User.findAll({
+            attributes: ['role', [db.sequelize.fn('COUNT', 'role'), 'count']],
+            group: ['role'],
+            raw: true
+        }),
         Client.findAll({
             where: { status: 'ACTIVE' },
             include: [{
@@ -23,10 +38,44 @@ export const getAdminDashboard = async () => {
         JobRequest.count(),
         Certificate.count(),
         SurveyorProfile.count({ where: { status: 'ACTIVE' } }),
+        JobRequest.findAll({
+            attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
+            group: ['job_status'],
+            raw: true
+        }),
+        Certificate.findAll({
+            attributes: ['status', [db.sequelize.fn('COUNT', 'status'), 'count']],
+            group: ['status'],
+            raw: true
+        }),
+        Survey.findAll({
+            attributes: ['survey_status', [db.sequelize.fn('COUNT', 'survey_status'), 'count']],
+            group: ['survey_status'],
+            raw: true
+        }),
     ]);
 
-    const roleCounts = usersByRole.reduce((acc, u) => {
-        acc[u.role] = (acc[u.role] || 0) + 1;
+    // 2. Map grouped results back to simple objects
+    const roleCounts = roleCountsRaw.reduce((acc, r) => {
+        acc[r.role] = parseInt(r.count, 10);
+        return acc;
+    }, {});
+
+    const jobsByStatus = jobStatusCountsRaw.reduce((acc, j) => {
+        const status = j.job_status || 'CREATED';
+        acc[status] = (acc[status] || 0) + parseInt(j.count, 10);
+        return acc;
+    }, {});
+
+    const certsByStatus = certStatusCountsRaw.reduce((acc, c) => {
+        const status = c.status || 'VALID';
+        acc[status] = (acc[status] || 0) + parseInt(c.count, 10);
+        return acc;
+    }, {});
+
+    const surveysByStatus = surveyStatusCountsRaw.reduce((acc, s) => {
+        const status = s.survey_status || 'NOT_STARTED';
+        acc[status] = (acc[status] || 0) + parseInt(s.count, 10);
         return acc;
     }, {});
 
@@ -45,44 +94,25 @@ export const getAdminDashboard = async () => {
         })),
     }));
 
-    const [jobStatusCounts, certStatusCounts, surveyStatusCounts] = await Promise.all([
-        JobRequest.findAll({ attributes: ['job_status'], raw: true }),
-        Certificate.findAll({ attributes: ['status'], raw: true }),
-        Survey.findAll({ attributes: ['survey_status'], raw: true }),
-    ]);
-
-    const jobsByStatus = jobStatusCounts.reduce((acc, j) => {
-        acc[j.job_status || 'CREATED'] = (acc[j.job_status || 'CREATED'] || 0) + 1;
-        return acc;
-    }, {});
-    const certsByStatus = certStatusCounts.reduce((acc, c) => {
-        acc[c.status || 'VALID'] = (acc[c.status || 'VALID'] || 0) + 1;
-        return acc;
-    }, {});
-    const surveysByStatus = surveyStatusCounts.reduce((acc, s) => {
-        acc[s.survey_status || 'NOT_STARTED'] = (acc[s.survey_status || 'NOT_STARTED'] || 0) + 1;
-        return acc;
-    }, {});
-
     return {
         role: 'ADMIN',
         summary: {
             users: {
-                total: usersByRole.length,
+                total: roleCountsRaw.reduce((sum, r) => sum + parseInt(r.count, 10), 0),
                 by_role: roleCounts,
                 admin: roleCounts.ADMIN || 0,
                 gm: roleCounts.GM || 0,
                 tm: roleCounts.TM || 0,
                 to: roleCounts.TO || 0,
                 ta: roleCounts.TA || 0,
-                surveyors: surveyorProfiles,
+                surveyors: surveyorProfilesCount,
                 clients: roleCounts.CLIENT || 0,
                 flag_admin: roleCounts.FLAG_ADMIN || 0,
             },
             clients: clients.length,
             vessels: vesselsCount,
             jobs: { total: jobsCount, by_status: jobsByStatus },
-            surveys: { total: surveyStatusCounts.length, by_status: surveysByStatus },
+            surveys: { total: surveyStatusCountsRaw.reduce((sum, s) => sum + parseInt(s.count, 10), 0), by_status: surveysByStatus },
             certificates: { total: certificatesCount, by_status: certsByStatus },
         },
         client_with_vessels: clients,

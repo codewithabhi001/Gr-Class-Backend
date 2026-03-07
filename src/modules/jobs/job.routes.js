@@ -29,7 +29,7 @@ router.put('/:id/approve-request', authorizeRoles('ADMIN', 'GM'), jobController.
 router.put('/:id/finalize', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.finalizeJob);
 
 // APPROVED → ASSIGNED  (ADMIN / GM — requires surveyorId in body)
-router.put('/:id/assign', authorizeRoles('ADMIN', 'GM'), jobController.assignSurveyor);
+router.put('/:id/assign', authorizeRoles('ADMIN', 'GM'), validate(schemas.assignJob), jobController.assignSurveyor);
 // Re-assign surveyor without status change (GM / TM)
 router.put('/:id/reassign', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.reassignJob), jobController.reassignSurveyor);
 

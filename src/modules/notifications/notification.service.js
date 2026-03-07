@@ -27,7 +27,9 @@ export const sendNotification = async (userId, eventType, data) => {
         }
 
         if (emailAllowed && user.email) {
-            await emailService.sendTemplateEmail(user.email, eventType, data);
+            // Don't await email - send in background
+            emailService.sendTemplateEmail(user.email, eventType, data)
+                .catch(err => logger.error(`Background Email error for user ${userId}:`, err));
         }
 
     } catch (err) {
