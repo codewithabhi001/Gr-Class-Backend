@@ -41,7 +41,7 @@ router.put('/applications/:id/review', authorizeRoles('TM', 'ADMIN'), validate(s
 router.put('/:id/status', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateUserStatus), surveyorController.updateStatus);
 
 // Profile
-router.get('/:id/profile', authorizeRoles('ADMIN', 'TM', 'SURVEYOR'), surveyorController.getProfile);
+router.get('/:id/profile', authorizeRoles('ADMIN', 'TM', 'SURVEYOR','GM'), surveyorController.getProfile);
 router.put('/:id/profile', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateSurveyorProfile), surveyorController.updateProfile);
 
 // Surveyor self-operations
@@ -49,6 +49,6 @@ router.post('/availability', authorizeRoles('SURVEYOR'), surveyorController.upda
 router.post('/location', authorizeRoles('SURVEYOR'), surveyorController.reportLocation);
 
 // GPS History
-router.get('/:id/location-history', authorizeRoles('ADMIN', 'TM'), surveyorController.getGPSHistory);
+router.get('/:id/location-history', authorizeRoles('ADMIN', 'TM','GM'), surveyorController.getGPSHistory);
 
 export default router;
