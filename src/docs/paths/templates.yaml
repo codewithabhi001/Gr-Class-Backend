@@ -1,8 +1,9 @@
 /api/v1/certificate-templates:
   post:
     tags: [Certificate Templates]
-    summary: Create template
+    summary: Create certificate template
     operationId: createTemplate
+    description: Create a new HTML/text template for generating certificates
     x-roles: [ADMIN]
     requestBody:
       required: true
@@ -10,33 +11,40 @@
         application/json:
           schema:
             type: object
-            required: [name, code, sections]
+            required: [template_name, certificate_type_id, template_content]
             properties:
-              name: { type: string }
-              code: { type: string }
-              description: { type: string }
-              sections: { type: array }
-              status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
-          example:
-            name: "Safety Certificate Template"
-            code: "SAFETY_CERT_001"
-            description: "Template for safety certificates"
-            sections:
-              - title: "Equipment"
+              template_name: { type: string, description: "Name of the certificate template" }
+              certificate_type_id: { type: string, format: uuid, description: "ID of the associated certificate type" }
+              template_content: { type: string, description: "HTML or string layout containing placeholders" }
+              variables: 
+                type: array
                 items:
-                  - code: "EQ001"
-                    text: "Fire extinguishers"
-                    type: "YES_NO_NA"
-            status: "ACTIVE"
+                  type: string
+                description: "Array of variable names expected to be filled during certificate generation"
+              is_active: { type: boolean, default: true, description: "Status of the template" }
+          example:
+            template_name: "IOPP Certificate v1"
+            certificate_type_id: "019ccdfb-e89b-12d3-a456-426614174000"
+            template_content: "<html><body><h1>IOPP CERTIFICATE</h1><p>Vessel: {{vesselName}}</p><p>Issued by: {{authority}}</p></body></html>"
+            variables: ["vesselName", "authority"]
+            is_active: true
     responses:
       "201": { description: Template created }
+      "400": { description: Bad request }
       "403": { description: Forbidden }
 
   get:
     tags: [Certificate Templates]
-    summary: Get templates
+    summary: Get certificate templates
     operationId: getTemplates
     x-roles: [ADMIN, GM, TM]
+    parameters:
+      - name: is_active
+        in: query
+        schema: { type: boolean }
+      - name: certificate_type_id
+        in: query
+        schema: { type: string, format: uuid }
     responses:
       "200": { description: List of templates }
       "403": { description: Forbidden }
@@ -55,6 +63,7 @@
     responses:
       "200": { description: Template details }
       "403": { description: Forbidden }
+      "404": { description: Template not found }
 
   put:
     tags: [Certificate Templates]
@@ -71,9 +80,20 @@
         application/json:
           schema:
             type: object
+            properties:
+              template_name: { type: string }
+              certificate_type_id: { type: string, format: uuid }
+              template_content: { type: string }
+              variables: 
+                type: array
+                items:
+                  type: string
+              is_active: { type: boolean }
     responses:
       "200": { description: Template updated }
+      "400": { description: Bad request }
       "403": { description: Forbidden }
+      "404": { description: Template not found }
 
   delete:
     tags: [Certificate Templates]
@@ -88,3 +108,4 @@
     responses:
       "200": { description: Template deleted }
       "403": { description: Forbidden }
+      "404": { description: Template not found }

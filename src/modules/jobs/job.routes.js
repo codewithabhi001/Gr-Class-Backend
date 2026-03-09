@@ -13,6 +13,7 @@ router.use(authenticate);
 // ─── List & Detail ───────────────────────────────────────
 router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'TA', 'FLAG_ADMIN', 'SURVEYOR'), jobController.getJobs);
 router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobById);
+router.get('/:id/eligible-surveyors', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.getEligibleSurveyors);
 
 // ─── Create ───────────────────────────────────────────────
 // CREATED

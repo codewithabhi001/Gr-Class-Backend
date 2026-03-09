@@ -324,12 +324,12 @@ export const schemas = {
             items: Joi.array().items(Joi.object({
                 code: Joi.string().required(),
                 text: Joi.string().required(),
-                type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER').default('YES_NO_NA')
+                type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER', 'PASS_FAIL', 'YES_NO', 'PASS_FAIL_NA').default('YES_NO_NA')
             })).required()
         })).required(),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'DRAFT').optional(),
         metadata: Joi.object().optional()
-    }),
+    }).unknown(true),
     updateChecklistTemplate: Joi.object({
         name: Joi.string().optional(),
         code: Joi.string().optional(),
@@ -340,12 +340,12 @@ export const schemas = {
             items: Joi.array().items(Joi.object({
                 code: Joi.string().required(),
                 text: Joi.string().required(),
-                type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER').default('YES_NO_NA')
+                type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER', 'PASS_FAIL', 'YES_NO', 'PASS_FAIL_NA').default('YES_NO_NA')
             })).required()
         })).optional(),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'DRAFT').optional(),
         metadata: Joi.object().optional()
-    }),
+    }).unknown(true),
     createVessel: Joi.object({
         client_id: Joi.string().guid().required(),
         vessel_name: Joi.string().required(),

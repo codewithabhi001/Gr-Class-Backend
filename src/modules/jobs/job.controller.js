@@ -47,6 +47,13 @@ export const getJobById = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const getEligibleSurveyors = async (req, res, next) => {
+    try {
+        const surveyors = await jobService.getEligibleSurveyors(req.params.id, req.query);
+        res.json({ success: true, data: surveyors });
+    } catch (error) { next(error); }
+};
+
 // ─────────────────────────────────────────────
 // Workflow Transitions (each maps to exactly one transition)
 // ─────────────────────────────────────────────

@@ -15,6 +15,7 @@ const CertificateRequiredDocument = db.CertificateRequiredDocument;
 const JobDocument = db.JobDocument;
 const JobReschedule = db.JobReschedule;
 const Survey = db.Survey;
+const SurveyorProfile = db.SurveyorProfile;
 
 // ─────────────────────────────────────────────
 // INTERNAL HELPERS
@@ -28,6 +29,55 @@ const requireJob = async (id) => {
     const job = await JobRequest.findByPk(id);
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
     return job;
+};
+
+/**
+ * Validate that the assigned surveyor has the required authorizations
+ * for the vessel type and certificate type of the job.
+ */
+const validateSurveyorAuthority = async (job, surveyorId) => {
+    const profile = await SurveyorProfile.findOne({ where: { user_id: surveyorId } });
+    if (!profile) {
+        throw { statusCode: 400, message: 'Surveyor profile not found. Cannot verify authorizations.' };
+    }
+
+    let vesselType = null;
+    let certName = null;
+
+    if (job.vessel_id) {
+        const vessel = await Vessel.findByPk(job.vessel_id);
+        vesselType = vessel?.ship_type;
+    }
+
+    if (job.certificate_type_id) {
+        const certType = await CertificateType.findByPk(job.certificate_type_id);
+        certName = certType?.name;
+    }
+
+    if (vesselType) {
+        // Ensure it's an array or handle string cases just in case
+        let authorizedShips = profile.authorized_ship_types;
+        if (typeof authorizedShips === 'string') {
+            try { authorizedShips = JSON.parse(authorizedShips); } catch (e) { authorizedShips = []; }
+        }
+        if (!Array.isArray(authorizedShips)) authorizedShips = [];
+
+        if (!authorizedShips.includes(vesselType)) {
+            throw { statusCode: 400, message: `Surveyor is not authorized for vessel type: ${vesselType}` };
+        }
+    }
+
+    if (certName) {
+        let authorizedCerts = profile.authorized_certificates;
+        if (typeof authorizedCerts === 'string') {
+            try { authorizedCerts = JSON.parse(authorizedCerts); } catch (e) { authorizedCerts = []; }
+        }
+        if (!Array.isArray(authorizedCerts)) authorizedCerts = [];
+
+        if (!authorizedCerts.includes(certName)) {
+            throw { statusCode: 400, message: `Surveyor is not authorized for certificate: ${certName}` };
+        }
+    }
 };
 
 // ─────────────────────────────────────────────
@@ -62,8 +112,24 @@ export const createJob = async (data, userId) => {
     }
 
     if (data.vessel_id) {
-        const vessel = await Vessel.findByPk(data.vessel_id);
+        const vessel = await Vessel.findByPk(data.vessel_id, {
+            include: [{ model: db.Client, as: 'Client' }]
+        });
         if (!vessel) throw { statusCode: 400, message: 'The selected vessel is invalid.' };
+
+        if (vessel.class_status !== 'ACTIVE') {
+            throw {
+                statusCode: 400,
+                message: `Cannot create job: Vessel status is '${vessel.class_status}'. Only ACTIVE vessels are eligible for survey.`
+            };
+        }
+
+        if (vessel.Client && vessel.Client.status !== 'ACTIVE') {
+            throw {
+                statusCode: 400,
+                message: 'Cannot create job: The associated client company is currently INACTIVE.'
+            };
+        }
     }
 
     const { job_status: _omit, uploaded_documents, ...safeData } = data;
@@ -256,6 +322,102 @@ export const getJobById = async (id, scopeFilters = {}) => {
     return await fileAccessService.resolveEntity(jobPlain);
 };
 
+export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
+    const job = await requireJob(jobId);
+
+    let vesselType = null;
+    let certName = null;
+
+    if (job.vessel_id) {
+        const vessel = await Vessel.findByPk(job.vessel_id);
+        vesselType = vessel?.ship_type;
+    }
+
+    if (job.certificate_type_id) {
+        const certType = await CertificateType.findByPk(job.certificate_type_id);
+        certName = certType?.name;
+    }
+
+    const { search } = queryParams;
+
+    const profileWhere = { status: 'ACTIVE' };
+    const userWhere = { status: 'ACTIVE', role: 'SURVEYOR' };
+
+    if (search) {
+        profileWhere[Op.or] = [
+            { license_number: { [Op.like]: `%${search}%` } },
+            db.sequelize.where(db.sequelize.col('User.name'), { [Op.like]: `%${search}%` })
+        ];
+    }
+
+    // Fetch all active surveyors matching the search
+    const allSurveyors = await SurveyorProfile.findAll({
+        where: profileWhere,
+        include: [{
+            model: User,
+            where: userWhere,
+            attributes: ['id', 'name', 'email', 'phone', 'profile_pic_url']
+        }]
+    });
+
+    const eligible = [];
+    const not_eligible = [];
+
+    for (const profile of allSurveyors) {
+        let isEligible = true;
+        const missing_reasons = [];
+
+        if (vesselType) {
+            let authorizedShips = profile.authorized_ship_types;
+            if (typeof authorizedShips === 'string') {
+                try { authorizedShips = JSON.parse(authorizedShips); } catch (e) { authorizedShips = []; }
+            }
+            if (!Array.isArray(authorizedShips)) authorizedShips = [];
+
+            if (!authorizedShips.includes(vesselType)) {
+                isEligible = false;
+                missing_reasons.push(`Missing Vessel Authority (${vesselType})`);
+            }
+        }
+
+        if (certName) {
+            let authorizedCerts = profile.authorized_certificates;
+            if (typeof authorizedCerts === 'string') {
+                try { authorizedCerts = JSON.parse(authorizedCerts); } catch (e) { authorizedCerts = []; }
+            }
+            if (!Array.isArray(authorizedCerts)) authorizedCerts = [];
+
+            if (!authorizedCerts.includes(certName)) {
+                isEligible = false;
+                missing_reasons.push(`Missing Certificate Authority (${certName})`);
+            }
+        }
+
+        const surveyorData = {
+            id: profile.User.id,
+            name: profile.User.name,
+            email: profile.User.email,
+            phone: profile.User.phone,
+            profile_pic_url: profile.User.profile_pic_url,
+            is_available: profile.is_available,
+            license_number: profile.license_number,
+            years_of_experience: profile.years_of_experience,
+            missing_reasons
+        };
+
+        if (isEligible) {
+            eligible.push(surveyorData);
+        } else {
+            not_eligible.push(surveyorData);
+        }
+    }
+
+    return {
+        eligible,
+        not_eligible
+    };
+};
+
 // ─────────────────────────────────────────────
 // WORKFLOW TRANSITIONS — one function per transition
 // All transitions delegate to lifecycle.service to maintain single source of truth.
@@ -355,6 +517,10 @@ export const assignSurveyor = async (jobId, surveyorId, userId) => {
     if (!surveyor || surveyor.role !== 'SURVEYOR') {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
     }
+
+    // Validate surveyor authority
+    await validateSurveyorAuthority(job, surveyorId);
+
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
 
     const updated = await lifecycleService.updateJobStatus(jobId, 'ASSIGNED', userId, `Surveyor ${surveyorId} assigned`);
@@ -380,6 +546,10 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, userId) => {
     if (!surveyor || surveyor.role !== 'SURVEYOR') {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
     }
+
+    // Validate new surveyor authority
+    await validateSurveyorAuthority(job, surveyorId);
+
     const oldSurveyor = job.assigned_surveyor_id;
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
 

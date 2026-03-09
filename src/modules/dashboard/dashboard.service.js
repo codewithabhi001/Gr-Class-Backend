@@ -28,11 +28,10 @@ export const getAdminDashboard = async () => {
             include: [{
                 model: Vessel,
                 as: 'Vessels',
-                required: false,
+                required: false, // Keep false to see all, we will filter in JS
                 attributes: vesselAttrs,
                 include: [{ model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }]
             }],
-            order: [['company_name', 'ASC']],
         }),
         Vessel.count(),
         JobRequest.count(),
@@ -94,6 +93,14 @@ export const getAdminDashboard = async () => {
         })),
     }));
 
+    // 3. Filter clients who actually have vessels
+    const clientsWithVesselList = clients.filter(c => c.vessels && c.vessels.length > 0);
+
+    // Sort by vessel count descending
+    const sortedClients = (clientsWithVesselList.length > 0 ? clientsWithVesselList : clients)
+        .sort((a, b) => b.vessels.length - a.vessels.length)
+        .slice(0, 5);
+
     return {
         role: 'ADMIN',
         summary: {
@@ -115,7 +122,7 @@ export const getAdminDashboard = async () => {
             surveys: { total: surveyStatusCountsRaw.reduce((sum, s) => sum + parseInt(s.count, 10), 0), by_status: surveysByStatus },
             certificates: { total: certificatesCount, by_status: certsByStatus },
         },
-        client_with_vessels: clients,
+        client_with_vessels: sortedClients,
     };
 }
 
