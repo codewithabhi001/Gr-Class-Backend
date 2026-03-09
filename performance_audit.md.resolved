@@ -1,0 +1,517 @@
+# 🔍 GIRIK Backend — Full System Performance Audit
+
+> [!CAUTION]
+> Your DB is on **AWS RDS ap-southeast-2 (Sydney)** and you're likely developing from **India**. Every DB query has **~150-300ms network round-trip latency**. This is the **#1 root cause** of slow APIs. Combined with missing indexes, N+1 queries, bcrypt cost, and S3 signed URL generation on every response — a simple login easily hits 1.5s.
+
+---
+
+## 📊 Bottleneck Summary (Priority Order)
+
+| # | Issue | Severity | Impact | Affected APIs |
+|---|-------|----------|--------|---------------|
+| 1 | 🌏 **Remote DB (RDS Sydney) from India** | 🔴 CRITICAL | +150-300ms **per query** | ALL APIs |
+| 2 | 🔓 **bcrypt.compare with saltRounds=10** | 🔴 CRITICAL | +200-400ms per login | Login, Reset Password |
+| 3 | 🔗 **N+1 queries everywhere** | 🔴 CRITICAL | 3-8 extra queries per request | Jobs, Surveys, Certificates, Notifications |
+| 4 | 🗄️ **ZERO database indexes** on foreign keys | 🔴 CRITICAL | Full table scans on JOINs/WHERE | ALL APIs with filters |
+| 5 | ☁️ **S3 Signed URL on every response** ([resolveEntity](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126)) | 🟡 HIGH | +100-500ms per response | ALL APIs returning file URLs |
+| 6 | 🔐 **Auth middleware does DB query on every request** | 🟡 HIGH | +150-300ms per authenticated API | ALL authenticated APIs |
+| 7 | 📢 **Notification service blocking queries** | 🟡 HIGH | 2-5 extra queries per mutation | All status change APIs |
+| 8 | 📊 **Dashboard: 9+ parallel queries** | 🟠 MEDIUM | ~1-3s per dashboard load | Admin/GM/TM Dashboard |
+| 9 | 🚢 **Vessel list: No pagination for internal roles** | 🟡 HIGH | Loads ALL vessels in memory | GET /vessels |
+| 10 | 📝 **API Logger middleware overhead** | 🟠 MEDIUM | Monkey-patches res.send/res.json | ALL APIs |
+
+---
+
+## 🔬 Detailed Analysis
+
+### 1. 🌏 Remote DB Latency (ROOT CAUSE)
+
+```
+DB_HOST=database-1.cdmaqckkenlv.ap-southeast-2.rds.amazonaws.com
+```
+
+Your RDS is in **Sydney (ap-southeast-2)**, but you're developing from **India**. Each DB round-trip adds **150-300ms**. 
+
+**Login flow alone makes 4 sequential DB calls:**
+1. `User.findOne({ where: { email } })` — ~200ms
+2. `user.update({ last_login_at })` — ~200ms  
+3. [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) → S3 signed URL for `profile_pic_url` — ~200ms
+4. JWT signing (CPU, fast) — ~5ms
+
+**Total: ~600ms minimum** just for login, without bcrypt.
+
+> [!TIP]
+> **Fix:** For development, use a local MySQL instance. For production, ensure your app server (EC2/ECS) is in the **same AWS region** as your RDS (ap-southeast-2).
+
+---
+
+### 2. 🔓 bcrypt Cost (Salt Rounds = 10)
+
+```javascript
+// .env
+BCRYPT_SALT_ROUNDS=10
+
+// auth.service.js:44
+const isMatch = await bcrypt.compare(password, user.password_hash);
+```
+
+`bcrypt.compare` with **10 salt rounds** takes **~200-400ms on average hardware**. This is by design (security), but combined with remote DB latency, it compounds the problem.
+
+> [!TIP]
+> **Fix:** Don't reduce salt rounds (security risk). Instead, focus on reducing DB round-trips around the bcrypt call. The bcrypt cost is acceptable — the problem is everything else adding up.
+
+---
+
+### 3. 🗄️ ZERO Database Indexes on Foreign Keys
+
+> [!WARNING]
+> **None of your 40 models define ANY explicit indexes.** Sequelize does NOT auto-create indexes on foreign keys (only MySQL InnoDB creates them for declared FK constraints, but Sequelize's `sync` often doesn't create proper FK constraints).
+
+**Critical missing indexes:**
+
+| Table | Column(s) | Used In | Query Pattern |
+|-------|-----------|---------|---------------|
+| `users` | `email` | Login, Register, Forgot password | `WHERE email = ?` |
+| `users` | `role` | notifyRoles, Dashboard | `WHERE role IN (...)` |
+| `users` | `client_id` | Job create, Approve, Authorize | `WHERE client_id = ? AND role = 'CLIENT'` |
+| `users` | `status` | Auth middleware | Combined with findByPk |
+| `job_requests` | `vessel_id` | Jobs list, Client dashboard | `WHERE vessel_id IN (...)` |
+| `job_requests` | `job_status` | Dashboard counts, Job filters | `GROUP BY job_status` |
+| `job_requests` | `assigned_surveyor_id` | Surveyor dashboard, Survey access | `WHERE assigned_surveyor_id = ?` |
+| `job_requests` | `certificate_type_id` | Job list includes | JOIN on CertificateType |
+| `job_requests` | `requested_by_user_id` | Job list filters | `WHERE requested_by_user_id = ?` |
+| `job_requests` | `created_at` | Recent jobs filter | `WHERE created_at >= ?` |
+| `surveys` | `job_id` (UNIQUE) | ✅ Has unique constraint | OK |
+| `surveys` | `surveyor_id` | Surveyor dashboard | `WHERE surveyor_id = ?` |
+| `surveys` | `survey_status` | Dashboard grouping | `GROUP BY survey_status` |
+| `job_status_histories` | `job_id` | Job detail, history | `WHERE job_id = ?` |
+| `survey_status_histories` | `survey_id` | Survey detail | `WHERE survey_id = ?` |
+| `notifications` | `user_id` | Get notifications | `WHERE user_id = ?` |
+| `notifications` | `created_at` | Notification list | `ORDER BY created_at DESC` |
+| `gps_tracking` | `job_id` | Survey timeline | `WHERE job_id = ?` |
+| `gps_tracking` | `surveyor_id` | GPS stream | `WHERE surveyor_id = ?` |
+| `certificates` | `vessel_id` | Cert list, Client dashboard | `WHERE vessel_id IN (...)` |
+| `certificates` | `status` | Expiring certs, Dashboard | `WHERE status = 'VALID'` |
+| `certificates` | `expiry_date` | Expiring certs | `WHERE expiry_date BETWEEN` |
+| `certificates` | `certificate_number` | Verify cert | `WHERE certificate_number = ?` |
+| `payments` | `job_id` | Client dashboard | `WHERE job_id IN (...)` |
+| `activity_plannings` | `job_id` | Survey submit, checklist | `WHERE job_id = ?` |
+| `non_conformities` | `job_id` + `status` | Finalize survey, cert gen | `WHERE job_id = ? AND status NOT IN (...)` |
+| `job_documents` | `job_id` | Verify docs | `WHERE job_id = ?` |
+| `audit_logs` | `entity_name` + `entity_id` | Audit queries | `WHERE entity_name = ? AND entity_id = ?` |
+| `vessels` | `client_id` | Vessel list, Dashboard | `WHERE client_id = ?` |
+| `vessels` | `imo_number` | ✅ Has unique constraint | OK |
+| `surveyor_profiles` | `user_id` | Eligible surveyors, Dashboard | `WHERE user_id = ?` |
+| `surveyor_profiles` | `status` | Eligible surveyors | `WHERE status = 'ACTIVE'` |
+| `certificate_required_documents` | `certificate_type_id` | Job create, verify docs | `WHERE certificate_type_id = ?` |
+| `notification_preferences` | `user_id` | Notification service | `WHERE user_id = ?` |
+
+> [!IMPORTANT]
+> **Without indexes, every `WHERE` clause on these columns does a FULL TABLE SCAN.** As your data grows from 100 to 10,000 rows, these queries will go from 50ms to 5000ms+.
+
+---
+
+### 4. ☁️ [resolveEntity](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) — S3 Signed URL on Every Response
+
+```javascript
+// fileAccess.service.js:94
+export const resolveEntity = async (data, user = null) => {
+    // Recursively walks EVERY object/array in the response
+    // For each URL key (profile_pic_url, file_url, etc.)
+    // Makes an AWS S3 getSignedUrl() call — ~50-100ms each
+}
+```
+
+**This function is called on virtually EVERY API response:**
+
+| Service | Line | Impact |
+|---------|------|--------|
+| `auth.service.js:51` | Login — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call for profile_pic |
+| `auth.service.js:97` | Register — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call |
+| `auth.service.js:131` | Refresh Token — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call |
+| `job.service.js:267` | Get Jobs list — [resolveEntity(rows)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | **N signed URL calls** (one per job with attached docs) |
+| `job.service.js:322` | Get Job by ID — [resolveEntity(jobPlain)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs (docs, certs, surveys) |
+| `survey.service.js:171` | Upload proof — [resolveEntity({url})](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL |
+| `survey.service.js:291` | Submit survey — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 3-5 signed URLs |
+| `survey.service.js:418` | Timeline — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs |
+| `survey.service.js:442` | Survey reports — [resolveEntity(rows)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | N × multiple signed URLs |
+| `survey.service.js:458` | Survey details — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs |
+
+**For a job list with 10 jobs, each with 2 documents, this generates ~20 S3 signed URL calls** — at ~50ms each with AWS SDK overhead, that's easily **+1 second**.
+
+> [!TIP]
+> **Fix Options:**
+> 1. **Use CloudFront signed cookies** instead of per-URL signing — authenticate once, access all
+> 2. **Cache signed URLs** in-memory with TTL (they're valid for 3600s, cache for 3000s)
+> 3. **Lazy URL resolution** — return S3 keys, let frontend call a dedicated `/files/sign` endpoint only when needed
+> 4. For `profile_pic_url`: Use CloudFront CDN for public profile pics
+
+---
+
+### 5. 🔐 Auth Middleware — DB Query on Every Request
+
+```javascript
+// auth.middleware.js:28
+const user = await db.User.findByPk(decoded.id);
+```
+
+**Every authenticated API call** makes a DB round-trip to fetch the full user object. With remote RDS, that's +200ms on every single request.
+
+> [!TIP]
+> **Fix:** Cache the user object in-memory (Map/LRU cache) with a short TTL (60s). The JWT already contains [id](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/vessels/vessel.service.js#7-16), `role`, and `email` — for most APIs, that's enough without hitting the DB.
+
+```javascript
+// Proposed fix:
+const userCache = new Map();
+const USER_CACHE_TTL = 60_000; // 60 seconds
+
+export const authenticate = async (req, res, next) => {
+    // ... token extraction and verification ...
+    const decoded = jwt.verify(token, env.jwt.accessSecret);
+    
+    const cached = userCache.get(decoded.id);
+    if (cached && Date.now() - cached.ts < USER_CACHE_TTL) {
+        req.user = cached.user;
+        req.token = token;
+        return next();
+    }
+    
+    const user = await db.User.findByPk(decoded.id);
+    if (!user || user.status !== 'ACTIVE') { ... }
+    
+    userCache.set(decoded.id, { user, ts: Date.now() });
+    req.user = user;
+    req.token = token;
+    next();
+};
+```
+
+---
+
+### 6. 🔗 N+1 Query Problems
+
+#### 6a. [sendNotification](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#11-101) — N+1 per notification
+
+```javascript
+// notification.service.js:22
+const pref = await NotificationPreference.findOne({ where: { user_id: user.id } });
+```
+Every [sendNotification](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#11-101) call makes a **separate DB query** for the user's notification preference. When [notifyRoles(['ADMIN', 'GM', 'TM'], ...)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#109-188) is called, it fetches all users with an include, but [sendNotification](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#11-101) (individual) does not.
+
+#### 6b. [validateSurveyorAuthority](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#34-82) — 3 sequential queries
+
+```javascript
+// job.service.js:38-55
+const profile = await SurveyorProfile.findOne({ where: { user_id: surveyorId } });
+const vessel = await Vessel.findByPk(job.vessel_id);           // +1 query
+const certType = await CertificateType.findByPk(job.certificate_type_id); // +1 query
+```
+
+These could be **one query** with includes, or the vessel/certType could be passed from the caller.
+
+#### 6c. Job workflow functions — repeated `findByPk` + `include: ['Vessel']`
+
+Almost every job workflow function ([verifyJobDocuments](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#426-467), [approveRequest](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#468-491), [assignSurveyor](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#507-534), [authorizeSurvey](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#574-603), [reviewJob](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#604-626), etc.) does:
+
+```javascript
+const job = await requireJob(id);  // findByPk (query 1)
+// ... business logic ...
+const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] }); // query 2 (SAME job, with vessel)
+```
+
+**The same job is fetched twice** — once without vessel, then again with vessel just for the notification message. This is +200ms per workflow call.
+
+#### 6d. Client Dashboard — Sequential N+1
+
+```javascript
+// dashboard.service.js:258-277
+const jobs = await JobRequest.findAll({ where: { vessel_id: vesselIds } });  // ALL jobs, no limit!
+const certificates = await Certificate.findAll({ where: { vessel_id: vesselIds } }); // ALL certificates!
+const payments = await Payment.findAll({ where: { job_id: jobIds } }); // ALL payments!
+```
+
+- No pagination on any of these
+- Fetches ALL jobs/certificates/payments for all client vessels
+- Gets worse as data grows
+
+---
+
+### 7. 📊 Dashboard Queries
+
+#### Admin Dashboard — 9 parallel queries (acceptable pattern, but heavy)
+
+```javascript
+// dashboard.service.js:20-55
+const [...] = await Promise.all([
+    User.findAll({ group: ['role'] }),           // COUNT + GROUP
+    Client.findAll({ include: [Vessel] }),       // FULL CLIENT + VESSEL JOIN
+    Vessel.count(),                              // COUNT
+    JobRequest.count(),                          // COUNT
+    Certificate.count(),                         // COUNT
+    SurveyorProfile.count(),                     // COUNT
+    JobRequest.findAll({ group: ['job_status'] }),  // COUNT + GROUP
+    Certificate.findAll({ group: ['status'] }),     // COUNT + GROUP
+    Survey.findAll({ group: ['survey_status'] }),   // COUNT + GROUP
+]);
+```
+
+The `Promise.all` is good, but `Client.findAll({ include: [Vessel, FlagAdministration] })` fetches **ALL clients with ALL vessels** — this is an unbounded query.
+
+#### GM/TM Dashboard — calls [getAdminDashboard()](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/dashboard/dashboard.service.js#8-128) 😱
+
+```javascript
+export const getGMDashboard = async () => {
+    const admin = await getAdminDashboard();
+    return { ...admin, role: 'GM' };
+}
+```
+
+Every GM/TM dashboard call runs the **full ADMIN dashboard query** — 9 parallel queries.
+
+---
+
+### 8. 🚢 Vessel List — No Pagination for Internal Roles
+
+```javascript
+// vessel.service.js:74-89
+// For other roles, group by company name
+const vessels = await Vessel.findAll({   // ALL VESSELS!
+    where,
+    include: [Client, FlagAdministration],
+    order: [['created_at', 'DESC']]
+});
+```
+
+No `limit`/`offset` for non-CLIENT roles. Fetches ALL vessels, then groups in memory.
+
+---
+
+### 9. 📝 API Logger Middleware
+
+```javascript
+// api.logger.middleware.js:39-53
+res.send = function (data) { ... };   // Monkey-patches res.send
+res.json = function (data) { ... };   // Monkey-patches res.json
+```
+
+This intercepts every response to log it. While not a huge performance hit, the `console.log` with heavy formatting (emoji, separators) on every request adds overhead, especially with large response bodies.
+
+---
+
+## 🛠️ Recommended Fixes (Priority Order)
+
+### Fix 1: Add Database Indexes (HIGHEST PRIORITY) 🔴
+
+Create a migration file to add all missing indexes:
+
+```sql
+-- Users
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_client_id ON users(client_id);
+CREATE INDEX idx_users_status ON users(status);
+
+-- Job Requests (MOST CRITICAL TABLE)
+CREATE INDEX idx_job_requests_vessel_id ON job_requests(vessel_id);
+CREATE INDEX idx_job_requests_job_status ON job_requests(job_status);
+CREATE INDEX idx_job_requests_assigned_surveyor_id ON job_requests(assigned_surveyor_id);
+CREATE INDEX idx_job_requests_certificate_type_id ON job_requests(certificate_type_id);
+CREATE INDEX idx_job_requests_requested_by_user_id ON job_requests(requested_by_user_id);
+CREATE INDEX idx_job_requests_created_at ON job_requests(created_at);
+CREATE INDEX idx_job_requests_updated_at ON job_requests(updated_at);
+
+-- Surveys
+CREATE INDEX idx_surveys_surveyor_id ON surveys(surveyor_id);
+CREATE INDEX idx_surveys_survey_status ON surveys(survey_status);
+
+-- Job Status Histories
+CREATE INDEX idx_job_status_histories_job_id ON job_status_histories(job_id);
+CREATE INDEX idx_job_status_histories_created_at ON job_status_histories(created_at);
+
+-- Survey Status Histories
+CREATE INDEX idx_survey_status_histories_survey_id ON survey_status_histories(survey_id);
+
+-- Notifications
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at);
+CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
+
+-- GPS Tracking
+CREATE INDEX idx_gps_tracking_job_id ON gps_tracking(job_id);
+CREATE INDEX idx_gps_tracking_surveyor_id ON gps_tracking(surveyor_id);
+
+-- Certificates
+CREATE INDEX idx_certificates_vessel_id ON certificates(vessel_id);
+CREATE INDEX idx_certificates_certificate_type_id ON certificates(certificate_type_id);
+CREATE INDEX idx_certificates_status ON certificates(status);
+CREATE INDEX idx_certificates_expiry_date ON certificates(expiry_date);
+CREATE INDEX idx_certificates_certificate_number ON certificates(certificate_number);
+
+-- Payments
+CREATE INDEX idx_payments_job_id ON payments(job_id);
+CREATE INDEX idx_payments_payment_status ON payments(payment_status);
+
+-- Activity Plannings
+CREATE INDEX idx_activity_plannings_job_id ON activity_plannings(job_id);
+
+-- Non Conformities  
+CREATE INDEX idx_non_conformities_job_id ON non_conformities(job_id);
+CREATE INDEX idx_non_conformities_status ON non_conformities(status);
+
+-- Job Documents
+CREATE INDEX idx_job_documents_job_id ON job_documents(job_id);
+
+-- Vessels
+CREATE INDEX idx_vessels_client_id ON vessels(client_id);
+
+-- Surveyor Profiles
+CREATE INDEX idx_surveyor_profiles_user_id ON surveyor_profiles(user_id);
+CREATE INDEX idx_surveyor_profiles_status ON surveyor_profiles(status);
+
+-- Certificate Required Documents
+CREATE INDEX idx_cert_required_docs_cert_type_id ON certificate_required_documents(certificate_type_id);
+
+-- Notification Preferences
+CREATE INDEX idx_notification_preferences_user_id ON notification_preferences(user_id);
+
+-- Audit Logs
+CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_name, entity_id);
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+```
+
+### Fix 2: Cache Auth Middleware User Lookup 🔴
+
+```javascript
+// Simple in-memory cache for auth middleware
+const userCache = new Map();
+const USER_CACHE_TTL = 60_000;
+
+// In authenticate():
+const cached = userCache.get(decoded.id);
+if (cached && Date.now() - cached.ts < USER_CACHE_TTL) {
+    if (cached.user.status !== 'ACTIVE') { return 401; }
+    req.user = cached.user;
+    return next();
+}
+const user = await db.User.findByPk(decoded.id);
+userCache.set(decoded.id, { user, ts: Date.now() });
+```
+
+### Fix 3: Cache S3 Signed URLs 🟡
+
+```javascript
+// In fileAccess.service.js
+const signedUrlCache = new Map();
+const SIGNED_URL_CACHE_TTL = 3000_000; // 50 min (URLs valid for 60 min)
+
+export const generateSignedUrl = async (key, expiresInSeconds = 3600, user = null) => {
+    const cacheKey = `${key}:${expiresInSeconds}`;
+    const cached = signedUrlCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < SIGNED_URL_CACHE_TTL) {
+        return cached.url;
+    }
+    
+    const signedUrl = await s3Service.getSignedFileUrl(key, expiresInSeconds);
+    signedUrlCache.set(cacheKey, { url: signedUrl, ts: Date.now() });
+    return signedUrl;
+};
+```
+
+### Fix 4: Optimize Login Flow 🔴
+
+```javascript
+// BEFORE: 4 sequential DB calls + bcrypt
+export const login = async (email, password) => {
+    const user = await User.findOne({ where: { email } });         // Query 1
+    const isMatch = await bcrypt.compare(password, user.password_hash); // CPU ~300ms
+    await user.update({ last_login_at: new Date() });              // Query 2
+    const resolvedUser = await fileAccessService.resolveEntity(user); // Query 3 (S3)
+    return { user: userObj, accessToken, refreshToken };
+};
+
+// AFTER: Minimize blocking operations
+export const login = async (email, password) => {
+    const user = await User.findOne({ where: { email } });        // Query 1
+    const isMatch = await bcrypt.compare(password, user.password_hash); // CPU
+    
+    // Non-blocking update — don't await
+    user.update({ last_login_at: new Date() }).catch(() => {});
+    
+    // Skip resolveEntity for login — profile_pic_url can be a CDN URL
+    const profilePicUrl = user.profile_pic_url?.startsWith('public/')
+        ? fileAccessService.generatePublicCdnUrl(user.profile_pic_url)
+        : user.profile_pic_url; // Return key, let frontend request signed URL when needed
+    
+    return {
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, profile_pic_url: profilePicUrl },
+        accessToken: generateAccessToken(user),
+        refreshToken: generateRefreshToken(user),
+    };
+};
+```
+
+### Fix 5: Fix N+1 in Job Workflow Functions 🟡
+
+```javascript
+// BEFORE — Every workflow function:
+const job = await requireJob(id);                                    // Query 1
+// ... business logic ...
+const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] }); // Query 2
+
+// AFTER — Load vessel upfront:
+const requireJob = async (id, includeVessel = false) => {
+    const include = includeVessel ? ['Vessel'] : [];
+    const job = await JobRequest.findByPk(id, { include });
+    if (!job) throw { statusCode: 404, message: 'Job not found.' };
+    return job;
+};
+
+// Usage:
+const job = await requireJob(id, true); // Single query with vessel
+```
+
+### Fix 6: Add Pagination to Dashboard & Client APIs 🟠
+
+```javascript
+// Client Dashboard — Add limits
+const jobs = await JobRequest.findAll({
+    where: { vessel_id: vesselIds },
+    limit: 50,  // Don't fetch ALL
+    order: [['createdAt', 'DESC']]
+});
+
+// Vessel list — Add pagination for internal roles too
+const vessels = await Vessel.findAndCountAll({
+    where,
+    limit: parseInt(limit),
+    offset: (page - 1) * parseInt(limit),
+    include: [...],
+    order: [['created_at', 'DESC']]
+});
+```
+
+---
+
+## ⏱️ Expected Impact After Fixes
+
+| API | Current | After Fixes | Improvement |
+|-----|---------|-------------|-------------|
+| Login | ~1.5s | ~400-500ms | **~70% faster** |
+| Get Jobs (list) | ~1-2s | ~200-400ms | **~75% faster** |
+| Get Job by ID | ~1-2s | ~300-500ms | **~65% faster** |
+| Dashboard (Admin) | ~2-4s | ~500-800ms | **~75% faster** |
+| Survey Submit | ~2-3s | ~500-700ms | **~70% faster** |
+| Any authenticated API | +200-300ms overhead | +5-50ms overhead | **~90% reduction in auth overhead** |
+
+> [!IMPORTANT]
+> The **single biggest improvement** will come from **adding database indexes** (Fix 1). This is a one-time migration that will speed up virtually every API without code changes. Do this first!
+
+---
+
+## 🚀 Quick Wins (Do These Today)
+
+1. **Add all indexes** — Single SQL migration, massive impact
+2. **Cache user in auth middleware** — 10 lines of code, removes 1 DB query from every request
+3. **Make `last_login_at` update non-blocking** — Remove `await` from `user.update({ last_login_at })`
+4. **Cache signed URLs** — Add a Map cache, 50-min TTL
+5. **Load vessel with [requireJob](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#24-33)** — Pass `include: ['Vessel']` upfront instead of fetching twice

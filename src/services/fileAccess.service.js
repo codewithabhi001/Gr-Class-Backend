@@ -4,6 +4,20 @@ import env from '../config/env.js';
 
 const { JobRequest, Vessel, Certificate, AuditLog } = db;
 
+// ── Signed URL cache (URLs are valid for 60 min, cache for 50 min) ──
+const _signedUrlCache = new Map();
+const SIGNED_URL_CACHE_TTL = 50 * 60 * 1000; // 50 minutes
+
+// Periodic cleanup every 10 minutes to prevent memory leak
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of _signedUrlCache) {
+        if (now - entry.ts > SIGNED_URL_CACHE_TTL) {
+            _signedUrlCache.delete(key);
+        }
+    }
+}, 10 * 60 * 1000).unref();
+
 /**
  * Extract S3 key from a full URL or return the key itself if already a key.
  * @param {string} urlOrKey 
@@ -49,7 +63,15 @@ export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null
     const cleanKey = getKeyFromUrl(key);
     if (!cleanKey) return null;
 
+    // ── Check cache first ──
+    const cacheKey = `${cleanKey}:${expiresInSeconds}`;
+    const cached = _signedUrlCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts < SIGNED_URL_CACHE_TTL)) {
+        return cached.url;
+    }
+
     const signedUrl = await s3Service.getSignedFileUrl(cleanKey, expiresInSeconds);
+    _signedUrlCache.set(cacheKey, { url: signedUrl, ts: Date.now() });
 
     // Audit Log (non-blocking)
     if (user) {

@@ -3,6 +3,15 @@ import env from '../config/env.js';
 import db from '../models/index.js';
 import { tokenBlacklist } from '../modules/auth/auth.service.js';
 
+// ── In-memory user cache to avoid DB hit on every authenticated request ──
+const _userCache = new Map();
+const USER_CACHE_TTL = 60_000; // 60 seconds
+
+/** Call this when a user's status/role changes to force re-fetch */
+export const invalidateUserCache = (userId) => {
+    _userCache.delete(userId);
+};
+
 export const authenticate = async (req, res, next) => {
     try {
         let token;
@@ -25,13 +34,24 @@ export const authenticate = async (req, res, next) => {
             return res.status(401).json({ message: 'Use access token for API calls. Use refresh token only at POST /auth/refresh-token.' });
         }
 
-        const user = await db.User.findByPk(decoded.id);
+        // ── Check cache first ──
+        const cached = _userCache.get(decoded.id);
+        let user;
+        if (cached && (Date.now() - cached.ts < USER_CACHE_TTL)) {
+            user = cached.user;
+        } else {
+            user = await db.User.findByPk(decoded.id);
+            if (user) {
+                _userCache.set(decoded.id, { user, ts: Date.now() });
+            }
+        }
 
         if (!user) {
             return res.status(401).json({ success: false, message: 'User not found.' });
         }
 
         if (user.status === 'SUSPENDED') {
+            _userCache.delete(decoded.id);
             return res.status(403).json({
                 success: false,
                 message: 'Your account has been suspended. Please contact the GIRIK Administration for assistance.',
@@ -40,6 +60,7 @@ export const authenticate = async (req, res, next) => {
         }
 
         if (user.status !== 'ACTIVE') {
+            _userCache.delete(decoded.id);
             return res.status(401).json({ success: false, message: 'Your account is currently inactive.' });
         }
 

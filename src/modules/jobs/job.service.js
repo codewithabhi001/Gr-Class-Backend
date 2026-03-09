@@ -24,9 +24,12 @@ const SurveyorProfile = db.SurveyorProfile;
 /**
  * Assert a job exists, is not terminal, and optionally that the job belongs
  * to the caller's client scope. Returns the job.
+ * @param {string} id
+ * @param {{ includeVessel?: boolean }} options
  */
-const requireJob = async (id) => {
-    const job = await JobRequest.findByPk(id);
+const requireJob = async (id, { includeVessel = false } = {}) => {
+    const include = includeVessel ? ['Vessel'] : [];
+    const job = await JobRequest.findByPk(id, { include });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
     return job;
 };
@@ -428,7 +431,7 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
  * Roles: TO
  */
 export const verifyJobDocuments = async (id, userId) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'CREATED') {
         throw { statusCode: 400, message: `Documents can only be verified when the job is in CREATED status.` };
     }
@@ -456,10 +459,9 @@ export const verifyJobDocuments = async (id, userId) => {
 
     const updated = await lifecycleService.updateJobStatus(id, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified documents');
 
-    // Notify ADMIN/GM/TM
-    const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
+    // Notify ADMIN/GM/TM (vessel already loaded)
     notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_DOCUMENT_VERIFIED', {
-        jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
+        jobId: id, vesselName: job.Vessel.vessel_name
     }).catch(() => { });
 
     return updated;
@@ -470,19 +472,18 @@ export const verifyJobDocuments = async (id, userId) => {
  * Roles: ADMIN, GM
  */
 export const approveRequest = async (id, remarks, user) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'DOCUMENT_VERIFIED') {
         throw { statusCode: 400, message: `Jobs can only be approved after documents have been verified.` };
     }
     const updated = await lifecycleService.updateJobStatus(id, 'APPROVED', user.id, remarks || `${user.role} approved request`);
     await updated.update({ approved_by_user_id: user.id });
 
-    // Notify Client
-    const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
-    const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
+    // Notify Client (vessel already loaded)
+    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' } });
     if (clientUser) {
         notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
-            jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
+            jobId: id, vesselName: job.Vessel.vessel_name
         }).catch(() => { });
     }
 
@@ -509,7 +510,7 @@ export const finalizeJob = async (id, remarks, user) => {
  * Roles: ADMIN, GM
  */
 export const assignSurveyor = async (jobId, surveyorId, userId) => {
-    const job = await requireJob(jobId);
+    const job = await requireJob(jobId, { includeVessel: true });
     if (job.job_status !== 'APPROVED') {
         throw { statusCode: 400, message: 'A surveyor can only be assigned after the job has been approved.' };
     }
@@ -525,9 +526,9 @@ export const assignSurveyor = async (jobId, surveyorId, userId) => {
 
     const updated = await lifecycleService.updateJobStatus(jobId, 'ASSIGNED', userId, `Surveyor ${surveyorId} assigned`);
 
-    const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
+    // Vessel already loaded
     notificationService.sendNotification(surveyorId, 'JOB_ASSIGNED', {
-        jobId, vesselName: jobWithVessel.Vessel.vessel_name, port: jobWithVessel.target_port
+        jobId, vesselName: job.Vessel.vessel_name, port: job.target_port
     });
     return updated;
 };
@@ -576,7 +577,7 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, userId) => {
  * Roles: ADMIN, TM
  */
 export const authorizeSurvey = async (id, remarks, user) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'ASSIGNED') {
         throw { statusCode: 400, message: `Survey authorization is possible only after a surveyor has been assigned.` };
     }
@@ -588,14 +589,14 @@ export const authorizeSurvey = async (id, remarks, user) => {
         remarks || `${user.role} authorized survey`);
     await updated.update({ approved_by_user_id: user.id });
 
-    const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
+    // Vessel already loaded
     notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
-        jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: jobWithVessel.Vessel.vessel_name
+        jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel.vessel_name
     });
-    const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
+    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' } });
     if (clientUser) {
         notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
-            jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
+            jobId: id, vesselName: job.Vessel.vessel_name
         });
     }
     return updated;
@@ -609,16 +610,15 @@ export const reviewJob = async (id, remarks, user) => {
     if (user.role !== 'TO') {
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to mark a job as reviewed.' };
     }
-    const job = await requireJob(id);
+    const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'SURVEY_DONE') {
         throw { statusCode: 400, message: `Jobs can only be reviewed after the survey has been completed.` };
     }
     const updated = await lifecycleService.updateJobStatus(id, 'REVIEWED', user.id, remarks || 'TO technical review passed.');
 
-    // Notify ADMIN/TM
-    const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
+    // Notify ADMIN/TM (vessel already loaded)
     notificationService.notifyRoles(['ADMIN', 'TM'], 'JOB_REVIEWED', {
-        jobId: id, vesselName: jobWithVessel.Vessel.vessel_name
+        jobId: id, vesselName: job.Vessel.vessel_name
     }).catch(() => { });
 
     return updated;
@@ -707,7 +707,7 @@ export const rescheduleJob = async (id, data, userId) => {
  * Roles: ADMIN, TM, TO
  */
 export const sendBackJob = async (id, remarks, user) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { includeVessel: true });
     if (!job.is_survey_required) {
         throw { statusCode: 400, message: 'Rework requests are only applicable for jobs that require a survey.' };
     }
@@ -722,10 +722,10 @@ export const sendBackJob = async (id, remarks, user) => {
     const updated = await lifecycleService.updateJobStatus(id, 'REWORK_REQUESTED', user.id,
         remarks || `${user.role} requested rework`);
 
-    const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
+    // Vessel already loaded
     if (job.assigned_surveyor_id) {
         notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_SENT_BACK', {
-            jobId: id, vesselName: jobWithVessel.Vessel.vessel_name, remarks: remarks || 'Rework requested'
+            jobId: id, vesselName: job.Vessel.vessel_name, remarks: remarks || 'Rework requested'
         });
     }
     return updated;

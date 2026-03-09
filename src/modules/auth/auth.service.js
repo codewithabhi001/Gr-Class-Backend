@@ -46,15 +46,21 @@ export const login = async (email, password) => {
         throw { statusCode: 401, message: 'Invalid credentials' };
     }
 
-    await user.update({ last_login_at: new Date() });
+    // Non-blocking — don't wait for this DB write
+    user.update({ last_login_at: new Date() }).catch(() => { });
 
-    const resolvedUser = await fileAccessService.resolveEntity(user);
+    // Resolve only profile_pic_url directly instead of full recursive resolveEntity
+    let profilePicUrl = user.profile_pic_url || null;
+    if (profilePicUrl && !profilePicUrl.startsWith('http')) {
+        profilePicUrl = await fileAccessService.resolveUrl(profilePicUrl);
+    }
+
     const userObj = {
-        id: resolvedUser.id,
-        name: resolvedUser.name,
-        email: resolvedUser.email,
-        role: resolvedUser.role,
-        profile_pic_url: resolvedUser.profile_pic_url
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profile_pic_url: profilePicUrl
     };
     return {
         user: userObj,
