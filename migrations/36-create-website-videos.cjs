@@ -23,7 +23,7 @@ module.exports = {
             },
             video_url: {
                 type: Sequelize.STRING,
-                allowNull: false
+                allowNull: true
             },
             thumbnail_url: {
                 type: Sequelize.STRING,

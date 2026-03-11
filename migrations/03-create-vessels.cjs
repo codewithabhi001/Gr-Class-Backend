@@ -25,7 +25,8 @@ module.exports = {
             },
             imo_number: {
                 type: Sequelize.STRING,
-                allowNull: false
+                allowNull: false,
+                unique: true
             },
             call_sign: {
                 type: Sequelize.STRING,
@@ -35,9 +36,15 @@ module.exports = {
                 type: Sequelize.STRING,
                 allowNull: true
             },
-            flag_state: {
-                type: Sequelize.STRING,
-                allowNull: true
+            flag_administration_id: {
+                type: Sequelize.CHAR(36).BINARY,
+                allowNull: false,
+                references: {
+                    model: 'flag_administrations',
+                    key: 'id'
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'RESTRICT'
             },
             port_of_registry: {
                 type: Sequelize.STRING,
@@ -52,15 +59,15 @@ module.exports = {
                 allowNull: true
             },
             gross_tonnage: {
-                type: Sequelize.FLOAT,
+                type: Sequelize.DECIMAL(12, 2),
                 allowNull: true
             },
             net_tonnage: {
-                type: Sequelize.FLOAT,
+                type: Sequelize.DECIMAL(12, 2),
                 allowNull: true
             },
             deadweight: {
-                type: Sequelize.FLOAT,
+                type: Sequelize.DECIMAL(12, 2),
                 allowNull: true
             },
             class_status: {
@@ -83,11 +90,15 @@ module.exports = {
             created_at: {
                 allowNull: false,
                 type: Sequelize.DATE
+            },
+            updated_at: {
+                allowNull: false,
+                type: Sequelize.DATE
             }
         });
 
         await queryInterface.addIndex('vessels', ['client_id']);
-        await queryInterface.addIndex('vessels', ['imo_number']);
+        await queryInterface.addIndex('vessels', ['imo_number'], { unique: true, name: 'vessels_imo_number_unique' });
     },
 
     async down(queryInterface, Sequelize) {

@@ -58,11 +58,32 @@ module.exports = {
                 type: Sequelize.BOOLEAN,
                 defaultValue: false,
                 allowNull: false
+            },
+            nationality: {
+                type: Sequelize.STRING,
+                allowNull: true
+            },
+            qualification: {
+                type: Sequelize.STRING,
+                allowNull: true
+            },
+            years_of_experience: {
+                type: Sequelize.INTEGER,
+                allowNull: true
+            },
+            cv_url: {
+                type: Sequelize.STRING,
+                allowNull: true
+            },
+            id_proof_url: {
+                type: Sequelize.STRING,
+                allowNull: true
             }
         });
 
         await queryInterface.addIndex('surveyor_profiles', ['user_id']);
         await queryInterface.addIndex('surveyor_profiles', ['license_number']);
+        await queryInterface.addIndex('surveyor_profiles', ['status']);
     },
 
     async down(queryInterface, Sequelize) {

@@ -53,7 +53,7 @@ module.exports = {
             },
             job_status: {
                 type: Sequelize.ENUM(
-                    'CREATED', 'APPROVED', 'ASSIGNED', 'SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE',
+                    'CREATED', 'DOCUMENT_VERIFIED', 'APPROVED', 'ASSIGNED', 'SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE',
                     'REVIEWED', 'FINALIZED', 'REWORK_REQUESTED', 'PAYMENT_DONE', 'CERTIFIED', 'REJECTED'
                 ),
                 defaultValue: 'CREATED',
@@ -102,12 +102,30 @@ module.exports = {
             created_at: {
                 allowNull: false,
                 type: Sequelize.DATE
+            },
+            updated_at: {
+                allowNull: false,
+                type: Sequelize.DATE
+            },
+            is_survey_required: {
+                type: Sequelize.BOOLEAN,
+                defaultValue: true,
+                allowNull: false
+            },
+            reschedule_count: {
+                type: Sequelize.INTEGER,
+                defaultValue: 0,
+                allowNull: false
             }
         });
 
         await queryInterface.addIndex('job_requests', ['vessel_id']);
         await queryInterface.addIndex('job_requests', ['requested_by_user_id']);
         await queryInterface.addIndex('job_requests', ['job_status']);
+        await queryInterface.addIndex('job_requests', ['assigned_surveyor_id']);
+        await queryInterface.addIndex('job_requests', ['certificate_type_id']);
+        await queryInterface.addIndex('job_requests', ['created_at']);
+        await queryInterface.addIndex('job_requests', ['updated_at']);
     },
 
     async down(queryInterface, Sequelize) {

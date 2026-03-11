@@ -29,6 +29,11 @@ module.exports = {
             description: {
                 type: Sequelize.TEXT,
                 allowNull: true
+            },
+            requires_survey: {
+                type: Sequelize.BOOLEAN,
+                defaultValue: true,
+                allowNull: false
             }
         });
 

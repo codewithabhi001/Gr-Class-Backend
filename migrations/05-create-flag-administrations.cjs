@@ -9,7 +9,7 @@ module.exports = {
                 primaryKey: true,
                 allowNull: false
             },
-            flag_name: {
+            flag_state_name: {
                 type: Sequelize.STRING,
                 allowNull: false,
                 unique: true
@@ -34,10 +34,19 @@ module.exports = {
                 type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),
                 defaultValue: 'ACTIVE',
                 allowNull: false
+            },
+            created_at: {
+                allowNull: false,
+                type: Sequelize.DATE
+            },
+            updated_at: {
+                allowNull: false,
+                type: Sequelize.DATE
             }
         });
 
-        await queryInterface.addIndex('flag_administrations', ['flag_name']);
+        await queryInterface.addIndex('flag_administrations', ['flag_state_name'], { unique: true });
+        await queryInterface.addIndex('flag_administrations', ['status']);
     },
 
     async down(queryInterface, Sequelize) {

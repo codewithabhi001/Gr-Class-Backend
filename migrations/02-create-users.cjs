@@ -54,6 +54,14 @@ module.exports = {
                 type: Sequelize.DATE,
                 allowNull: true
             },
+            fcm_token: {
+                type: Sequelize.STRING,
+                allowNull: true
+            },
+            profile_pic_url: {
+                type: Sequelize.STRING,
+                allowNull: true
+            },
             created_at: {
                 allowNull: false,
                 type: Sequelize.DATE
@@ -67,6 +75,7 @@ module.exports = {
         await queryInterface.addIndex('users', ['email']);
         await queryInterface.addIndex('users', ['role']);
         await queryInterface.addIndex('users', ['client_id']);
+        await queryInterface.addIndex('users', ['status']);
     },
 
     async down(queryInterface, Sequelize) {
