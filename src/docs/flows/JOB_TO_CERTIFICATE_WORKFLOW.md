@@ -7,7 +7,7 @@ This document outlines the complete workflow from Job Creation to Certificate Ge
 The process involves moving a `JobRequest` through a series of approval and execution stages until it reaches a "FINALIZED" state. Once payment is confirmed (`PAYMENT_DONE`), the system triggers the generation of a digital certificate.
 
 **Workflow Stages:**
-`CREATED` -> `APPROVED` -> `ASSIGNED` -> `SURVEY_AUTHORIZED` -> `IN_PROGRESS` -> `SURVEY_DONE` -> `REVIEWED` -> `FINALIZED` -> `PAYMENT_DONE` -> `CERTIFIED`
+`CREATED` -> `APPROVED` -> `ASSIGNED` -> `SURVEY_AUTHORIZED` -> `IN_PROGRESS` -> `SURVEY_DONE` -> `REVIEWED` -> `FINALIZED` -> `CERTIFIED`
 
 ---
 
@@ -45,10 +45,10 @@ admin>gm>tm>to>
 - **Action**: Technical Manager (TM) grants final approval.
 - **Status Change**: `REVIEWED` -> `FINALIZED`.
 
-### Step 6: Payment Processing
-- **Action**: Finance/Admin confirms payment for the job.
-- **Status Change**: `FINALIZED` -> `PAYMENT_DONE`.
-- **Trigger**: Only jobs in `PAYMENT_DONE` status are eligible for certificate generation.
+### Step 6: Payment Processing (Parallel Track)
+- **Action**: Finance/Admin confirms payment for the job at any stage after Approval.
+- **Payment Status Change**: `UNPAID` -> `PAID`.
+- **Constraint**: Certificate generation is blocked until payment is `PAID`.
 
 ---
 
@@ -60,7 +60,8 @@ The certificate generation logic is encapsulated in `src/modules/certificates/ce
 
 1.  **Validation**:
     - Verifies the job exists.
-    - **Crucial Check**: Enforces `job.job_status === 'PAYMENT_DONE'`.
+    - **Crucial Check**: Enforces `job.job_status === 'FINALIZED'`.
+    - **Financial Check**: Enforces `payment.payment_status === 'PAID'`.
     - Fetches associated `Vessel` and `CertificateType` data.
 
 2.  **Data Preparation**:
@@ -110,5 +111,5 @@ The certificate generation logic is encapsulated in `src/modules/certificates/ce
 
 | Trigger | Condition | Action |
 | :--- | :--- | :--- |
-| **Admin/Finance** marks `PAYMENT_DONE` | Manual API Call | Status updates to `PAYMENT_DONE`. |
-| **Admin** requests "Generate Certificate" | Job is `PAYMENT_DONE` | 1. `Certificate` created.<br>2. PDF generated & uploaded.<br>3. Job becomes `CERTIFIED`. |
+| **Admin/Finance** marks `PAID` | Invoice exists | Payment record updated to `PAID`. Job status remains unchanged. |
+| **Admin** requests "Generate Certificate" | Job is `FINALIZED` AND Payment is `PAID` | 1. `Certificate` created.<br>2. PDF generated & uploaded.<br>3. Job becomes `CERTIFIED`. |

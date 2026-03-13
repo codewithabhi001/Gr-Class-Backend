@@ -11,7 +11,7 @@ export const JOB_TERMINAL_STATES = ['CERTIFIED', 'REJECTED'];
 export const SURVEY_TERMINAL_STATES = ['FINALIZED'];
 
 // States after which PAYMENT / REWORK / SURVEY actions are permanently blocked.
-export const JOB_POST_FINALIZATION_STATES = ['FINALIZED', 'PAYMENT_DONE', 'CERTIFIED'];
+export const JOB_POST_FINALIZATION_STATES = ['FINALIZED', 'CERTIFIED'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STRICT TRANSITION MAPS
@@ -34,9 +34,8 @@ export const JOB_TRANSITIONS = {
     IN_PROGRESS: ['SURVEY_DONE', 'REWORK_REQUESTED', 'REJECTED'],
     SURVEY_DONE: ['REVIEWED', 'REWORK_REQUESTED', 'FINALIZED', 'REJECTED'],
     REVIEWED: ['REWORK_REQUESTED', 'FINALIZED', 'REJECTED'],
-    FINALIZED: ['PAYMENT_DONE'],
+    FINALIZED: ['CERTIFIED'],
     REWORK_REQUESTED: ['IN_PROGRESS', 'SURVEY_DONE', 'REJECTED'],
-    PAYMENT_DONE: ['CERTIFIED'],
     CERTIFIED: [],   // terminal
     REJECTED: [],   // terminal
 };
@@ -210,11 +209,11 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
         // ── 3. Transition map validation ──
         validateTransition(previousStatus, newStatus, SURVEY_TRANSITIONS);
 
-        // ── 4. FINALIZED: TM-only, must be SUBMITTED ──
+        // ── 4. FINALIZED: ALLOW TM / ADMIN ONLY; must be SUBMITTED ──
         if (newStatus === 'FINALIZED') {
             const actor = await User.findByPk(userId, { transaction: txn });
-            if (!actor || actor.role !== 'TM') {
-                throw { statusCode: 403, message: 'Only Technical Managers (TM) have permission to finalize surveys.' };
+            if (!actor || !['ADMIN', 'TM'].includes(actor.role)) {
+                throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to finalize surveys.' };
             }
             if (previousStatus !== 'SUBMITTED') {
                 throw { statusCode: 400, message: 'Only submitted surveys can be finalized.' };

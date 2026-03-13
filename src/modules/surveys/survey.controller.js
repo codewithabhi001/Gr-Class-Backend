@@ -39,7 +39,7 @@ export const submitSurveyReport = async (req, res, next) => {
 // PUT /surveys/jobs/:jobId/finalize
 export const finalizeSurvey = async (req, res, next) => {
     try {
-        const result = await surveyService.finalizeSurvey(req.params.jobId, req.user.id);
+        const result = await surveyService.finalizeSurvey(req.params.jobId, req.user);
         res.json({ success: true, message: 'Survey finalized. Job is now FINALIZED.', data: result });
     } catch (error) { next(error); }
 };
@@ -94,7 +94,7 @@ export const draftStatement = async (req, res, next) => {
 // POST /surveys/jobs/:jobId/statement/issue
 export const issueStatement = async (req, res, next) => {
     try {
-        const result = await surveyService.issueSurveyStatement(req.params.jobId, req.file, req.body, req.user.id);
+        const result = await surveyService.issueSurveyStatement(req.params.jobId, req.file, req.body, req.user);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };

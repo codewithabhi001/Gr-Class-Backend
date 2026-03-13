@@ -2,7 +2,7 @@ import * as certService from './certificate.service.js';
 
 export const generateCertificate = async (req, res, next) => {
     try {
-        const cert = await certService.generateCertificate(req.body, req.user.id);
+        const cert = await certService.generateCertificate(req.body, req.user);
         res.status(201).json({
             success: true,
             message: 'Certificate generated successfully',

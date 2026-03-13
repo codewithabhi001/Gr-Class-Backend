@@ -6,6 +6,7 @@ import { buildCertificateScopeWhere } from './certificate-scope.js';
 import { buildFallbackCertificateHtml } from './templates/fallback-certificate.template.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
+import QRCode from 'qrcode';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -119,7 +120,11 @@ export const updateCertificateType = async (id, data) => {
     }
 };
 
-export const generateCertificate = async (data, userId) => {
+export const generateCertificate = async (data, user) => {
+    if (!['ADMIN', 'GM', 'TM'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
+    }
+    const userId = user.id;
     const { job_id, validity_years } = data;
 
     const transaction = await db.sequelize.transaction();
@@ -135,9 +140,17 @@ export const generateCertificate = async (data, userId) => {
         });
         if (!job) throw { statusCode: 404, message: 'Job not found' };
 
-        // ── Guard 1: Job must be PAYMENT_DONE ──
-        if (job.job_status !== 'PAYMENT_DONE') {
-            throw { statusCode: 400, message: `Certificate can only be generated when job is PAYMENT_DONE. Current: ${job.job_status}` };
+        // ── Guard 1: Job status and Payment Compliance ──
+        if (job.job_status !== 'FINALIZED') {
+            throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED. Current: ${job.job_status}` };
+        }
+
+        const payment = await db.Payment.findOne({
+            where: { job_id: job.id, payment_status: 'PAID' },
+            transaction
+        });
+        if (!payment) {
+            throw { statusCode: 400, message: 'Compliance Violation: No verified PAID payment found for this job.' };
         }
 
         // ── Guard 2: Survey Compliance (if required) ──
@@ -227,18 +240,39 @@ export const generateCertificate = async (data, userId) => {
         };
         let qrDataUrl = null;
         try {
-            const baseUrl = (process.env.APP_BASE_URL || 'api.girikship.com').replace(/\/$/, '');
-            const QR = await import('qrcode');
-            qrDataUrl = await QR.toDataURL(`${baseUrl}/api/v1/certificates/verify/${certificateNumber}`, { margin: 1, width: 300 });
-        } catch (e) { logger?.warn('QR generation failed', { err: e?.message }); }
+            let baseUrl = process.env.APP_BASE_URL || 'https://api.grclass.com';
+            if (!baseUrl.startsWith('http')) baseUrl = `https://${baseUrl}`;
+            baseUrl = baseUrl.replace(/\/$/, '');
+
+            qrDataUrl = await QRCode.toDataURL(`${baseUrl}/api/v1/certificates/verify/${certificateNumber}`, {
+                margin: 1,
+                width: 300,
+                errorCorrectionLevel: 'H'
+            });
+        } catch (e) {
+            logger?.warn('QR generation failed', { err: e?.message });
+        }
 
         variables.qr_image = qrDataUrl
             ? `<img src="${qrDataUrl}" alt="QR" style="width:140px;height:140px;"/>`
             : null;
+        variables.qr_data_url = qrDataUrl;
+
+        if (qrDataUrl) {
+            logger.info({ entity: 'CERTIFICATE', event: 'QR_GENERATED', jobId: job_id, qrLength: qrDataUrl.length });
+        } else {
+            logger.warn({ entity: 'CERTIFICATE', event: 'QR_FAILED', jobId: job_id });
+        }
 
         let fullHtml;
         if (template?.template_content) {
-            fullHtml = certificatePdfService.wrapHtmlForPdf(certificatePdfService.fillTemplate(template.template_content, variables));
+            let content = template.template_content;
+            // Check if QR placeholder exists
+            if (!content.includes('{{qr_image}}') && !content.includes('{{qr_data_url}}')) {
+                // If missing, append it at the bottom with some styling
+                content += `\n<div style="margin-top: 40px; text-align: center;">{{qr_image}}<br/><span style="font-size: 10px; color: #666;">Scan to verify</span></div>`;
+            }
+            fullHtml = certificatePdfService.wrapHtmlForPdf(certificatePdfService.fillTemplate(content, variables));
         } else {
             fullHtml = certificatePdfService.wrapHtmlForPdf(buildFallbackCertificateHtml({
                 variables, issuingAuthority: job.CertificateType?.issuing_authority ?? '', qrDataUrl
@@ -252,12 +286,20 @@ export const generateCertificate = async (data, userId) => {
             logger?.warn('Certificate PDF generation/upload failed', { certId: cert.id, err: err?.message });
         }
 
-        return await Certificate.findByPk(cert.id, {
+        const finalCert = await Certificate.findByPk(cert.id, {
             include: [
                 { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] },
                 { model: db.CertificateType, attributes: ['name'] }
             ]
         });
+
+        if (finalCert && finalCert.pdf_file_url) {
+            const key = fileAccessService.getKeyFromUrl(finalCert.pdf_file_url);
+            const signedUrl = await fileAccessService.generateSignedUrl(key, 3600, user);
+            finalCert.setDataValue('pdf_url', signedUrl);
+        }
+
+        return finalCert;
     } catch (error) {
         await transaction.rollback();
         throw error;

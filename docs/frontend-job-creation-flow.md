@@ -1,6 +1,6 @@
 # Job Request Creation — Complete Frontend Developer Guide
 
-> **Base URL:** `http://localhost:3000/api/v1` (dev) / `https://api.girikship.com/api/v1` (prod)  
+> **Base URL:** `http://localhost:3000/api/v1` (dev) / `https://api.grclass.com/api/v1` (prod)  
 > **Auth:** All API calls (except `/auth/login`) require `Authorization: Bearer <token>` header.  
 > **Who can create a job:** `CLIENT`, `ADMIN`, `GM` roles only.
 
@@ -193,7 +193,7 @@ async function uploadDocument(file, documentName) {
 {
   "success": true,
   "data": {
-    "file_url": "https://cdn.girikship.com/documents/abc-xyz-123.pdf",
+    "file_url": "https://cdn.grclass.com/documents/abc-xyz-123.pdf",
     "document_type": "Registry Certificate",
     "entity_type": "job"
   }
@@ -243,11 +243,11 @@ Content-Type: application/json
   "uploaded_documents": [
     {
       "required_document_id": "019c79a4-0001-0000-0000-000000000001",
-      "file_url": "https://cdn.girikship.com/documents/registry-cert.pdf"
+      "file_url": "https://cdn.grclass.com/documents/registry-cert.pdf"
     },
     {
       "required_document_id": "019c79a4-0001-0000-0000-000000000003",
-      "file_url": "https://cdn.girikship.com/documents/class-renewal.pdf"
+      "file_url": "https://cdn.grclass.com/documents/class-renewal.pdf"
     }
   ]
 }

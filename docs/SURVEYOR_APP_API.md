@@ -1,6 +1,6 @@
 # Girik — Surveyor App API Reference
 ### Complete Guide for Frontend / Mobile Developers
-**Last updated:** 2026-02-20 | **Base URL:** `https://api.girikship.com/api/v1`
+**Last updated:** 2026-02-20 | **Base URL:** `https://api.grclass.com/api/v1`
 
 ---
 
@@ -42,7 +42,7 @@ Content-Type: application/json
 ```
 ```json
 {
-  "email": "surveyor@girikship.com",
+  "email": "surveyor@grclass.com",
   "password": "your_password"
 }
 ```
@@ -57,7 +57,7 @@ Content-Type: application/json
     "user": {
       "id": "019c7a11-aaaa-7000-b000-000000000001",
       "name": "Rajan Mehta",
-      "email": "surveyor@girikship.com",
+      "email": "surveyor@grclass.com",
       "role": "SURVEYOR",
       "status": "ACTIVE"
     }
@@ -96,7 +96,7 @@ Content-Type: application/json
     "id": "uuid",
     "name": "Rajan Mehta",
     "role": "SURVEYOR",
-    "email": "surveyor@girikship.com"
+    "email": "surveyor@grclass.com"
   }
 }
 ```
@@ -383,7 +383,7 @@ Form:
   "success": true,
   "message": "Proof uploaded successfully.",
   "data": {
-    "url": "https://cdn.girikship.com/surveys/proof/2026-02/proof_abc123.jpg"
+    "url": "https://cdn.grclass.com/surveys/proof/2026-02/proof_abc123.jpg"
   }
 }
 ```
@@ -577,7 +577,7 @@ Content-Type: multipart/form-data
   "success": true,
   "data": {
     "id": "uuid",
-    "file_url": "https://cdn.girikship.com/documents/...",
+    "file_url": "https://cdn.grclass.com/documents/...",
     "document_type": "INSPECTION_REPORT"
   }
 }

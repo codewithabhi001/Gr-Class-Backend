@@ -47,7 +47,7 @@ export const generatePublicCdnUrl = (key) => {
     if (!cleanKey || !cleanKey.startsWith('public/')) {
         return null;
     }
-    const cdnDomain = env.aws.cloudfrontDomain || 'cdn.girikship.com'; // Fallback or env
+    const cdnDomain = env.aws.cloudfrontDomain || 'cdn.grclass.com'; // Fallback or env
     // Ensure https
     return `https://${cdnDomain}/${cleanKey}`;
 };

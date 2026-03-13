@@ -304,7 +304,11 @@ export const submitSurveyReport = async (data, files, userId) => {
  * Survey must be SUBMITTED.
  * No open Non-Conformities (checked inside lifecycle.service).
  */
-export const finalizeSurvey = async (jobId, userId) => {
+export const finalizeSurvey = async (jobId, user) => {
+    if (!['TM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to finalize surveys.' };
+    }
+    const userId = user.id;
     await assertJobAccessible(jobId, userId, { checkSurveyor: false });
 
     const survey = await requireSurvey(jobId);
@@ -376,7 +380,11 @@ export const draftSurveyStatement = async (jobId, data, user) => {
     return { message: 'Survey statement drafted.', status: 'DRAFTED', survey_statement: data.survey_statement };
 };
 
-export const issueSurveyStatement = async (jobId, file, data, userId) => {
+export const issueSurveyStatement = async (jobId, file, data, user) => {
+    if (!['TM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to issue survey statements.' };
+    }
+    const userId = user.id;
     await assertJobAccessible(jobId, userId, { checkSurveyor: false });
     const survey = await requireSurvey(jobId);
     assertSurveyNotFinalized(survey);

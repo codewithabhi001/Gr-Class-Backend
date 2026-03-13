@@ -96,9 +96,7 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             receipt_url: receiptUrl
         }, { transaction: txn });
 
-        // ── Advance Job to PAYMENT_DONE via lifecycle (history included) ──
-        await lifecycleService.updateJobStatus(payment.job_id, 'PAYMENT_DONE', userId,
-            remarks || 'Payment verified and cleared', { transaction: txn });
+        // Status update removed as payment is now a parallel track guard.
 
         await AuditLog.create({
             user_id: userId, action: 'MARK_PAYMENT_PAID',
@@ -252,7 +250,7 @@ export const recordPartialPayment = async (paymentId, amount, userId) => {
     // Auto mark PAID if balance is 0
     if (remaining <= 0 && payment.payment_status !== 'PAID') {
         await payment.update({ payment_status: 'PAID', payment_date: new Date(), verified_by_user_id: userId });
-        await lifecycleService.updateJobStatus(payment.job_id, 'PAYMENT_DONE', userId, 'Paid in full via partial payments');
+        // Status update removed as payment is now a parallel track guard.
     }
 
     return { id: payment.id, amount_paid: totalPaid.toFixed(2), remaining };

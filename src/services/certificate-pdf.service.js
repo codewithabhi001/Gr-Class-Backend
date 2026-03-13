@@ -42,6 +42,8 @@ export const htmlToPdfBuffer = async (html) => {
         try {
             const page = await browser.newPage();
             await page.setContent(html, { waitUntil: 'networkidle0' });
+            // Small delay to ensure Base64 images (QR) are rendered
+            await new Promise(r => setTimeout(r, 500));
             const pdfBuffer = await page.pdf({
                 format: 'A4',
                 printBackground: true,

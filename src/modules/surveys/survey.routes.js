@@ -55,10 +55,10 @@ router.post(
 // MANAGEMENT ACTIONS (TM / GM)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Finalize survey — TM ONLY (also finalizes job in same transaction)
+// Finalize survey — TM / ADMIN ONLY
 router.put(
     '/jobs/:jobId/finalize',
-    authorizeRoles('TM'),
+    authorizeRoles('ADMIN', 'TM'),
     surveyController.finalizeSurvey
 );
 
@@ -76,18 +76,18 @@ router.post(
     surveyController.flagViolation
 );
 
-// Draft Survey Statement (Surveyor / TM)
+// Draft Survey Statement (Surveyor / TM / GM / ADMIN)
 router.post(
     '/jobs/:jobId/statement/draft',
-    authorizeRoles('SURVEYOR', 'TM'),
+    authorizeRoles('SURVEYOR', 'ADMIN', 'TM'),
     validate(schemas.draftSurveyStatement),
     surveyController.draftStatement
 );
 
-// Issue Survey Statement (TM only - requires signed PDF)
+// Issue Survey Statement (TM / ADMIN ONLY - requires signed PDF)
 router.post(
     '/jobs/:jobId/statement/issue',
-    authorizeRoles('TM'),
+    authorizeRoles('ADMIN', 'TM'),
     upload.single('statement'),
     surveyController.issueStatement
 );

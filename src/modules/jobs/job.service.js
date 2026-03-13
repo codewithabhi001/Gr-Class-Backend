@@ -3,6 +3,7 @@ import * as notificationService from '../../services/notification.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import { Op } from 'sequelize';
+import { finalizeSurvey } from '../surveys/survey.service.js';
 
 const JobRequest = db.JobRequest;
 const JobStatusHistory = db.JobStatusHistory;
@@ -42,6 +43,15 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
     const profile = await SurveyorProfile.findOne({ where: { user_id: surveyorId } });
     if (!profile) {
         throw { statusCode: 400, message: 'Surveyor profile not found. Cannot verify authorizations.' };
+    }
+
+    // ── Availability Guard ──
+    if (profile.status !== 'ACTIVE') {
+        throw { statusCode: 400, message: `This surveyor is currently ${profile.status}. Only ACTIVE surveyors can be assigned to jobs.` };
+    }
+
+    if (profile.is_available === false) {
+        throw { statusCode: 400, message: 'This surveyor is currently OFFLINE or UNAVAILABLE. Please select an online surveyor.' };
     }
 
     let vesselType = null;
@@ -399,6 +409,7 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             phone: profile.User.phone,
             profile_pic_url: profile.User.profile_pic_url,
             is_available: profile.is_available,
+            status: profile.status,
             license_number: profile.license_number,
             years_of_experience: profile.years_of_experience,
             missing_reasons
@@ -426,7 +437,11 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
  * CREATED → DOCUMENT_VERIFIED
  * Roles: TO
  */
-export const verifyJobDocuments = async (id, userId) => {
+export const verifyJobDocuments = async (id, user) => {
+    if (!['TO', 'GM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO), General Managers (GM) or Admins have permission to verify documents.' };
+    }
+    const userId = user.id;
     const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'CREATED') {
         throw { statusCode: 400, message: `Documents can only be verified when the job is in CREATED status.` };
@@ -468,6 +483,9 @@ export const verifyJobDocuments = async (id, userId) => {
  * Roles: ADMIN, GM
  */
 export const approveRequest = async (id, remarks, user) => {
+    if (!['GM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to approve job requests.' };
+    }
     const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'DOCUMENT_VERIFIED') {
         throw { statusCode: 400, message: `Jobs can only be approved after documents have been verified.` };
@@ -493,7 +511,11 @@ export const approveRequest = async (id, remarks, user) => {
 export const finalizeJob = async (id, remarks, user) => {
     const job = await requireJob(id);
     if (job.is_survey_required) {
-        throw { statusCode: 400, message: 'This job requires a survey report. Please finalize the survey instead.' };
+        if (!['REVIEWED', 'SURVEY_DONE'].includes(job.job_status)) {
+            throw { statusCode: 400, message: 'This job requires a survey report. It must be Reviewed before finalization.' };
+        }
+        // Redirect to survey finalization logic
+        return await finalizeSurvey(id, user.id);
     }
     if (job.job_status !== 'APPROVED') {
         throw { statusCode: 400, message: `Only approved jobs can be finalized.` };
@@ -505,7 +527,11 @@ export const finalizeJob = async (id, remarks, user) => {
  * APPROVED → ASSIGNED (sets surveyor)
  * Roles: ADMIN, GM
  */
-export const assignSurveyor = async (jobId, surveyorId, userId) => {
+export const assignSurveyor = async (jobId, surveyorId, user) => {
+    if (!['GM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to assign surveyors.' };
+    }
+    const userId = user.id;
     const job = await requireJob(jobId, { includeVessel: true });
     if (job.job_status !== 'APPROVED') {
         throw { statusCode: 400, message: 'A surveyor can only be assigned after the job has been approved.' };
@@ -533,16 +559,11 @@ export const assignSurveyor = async (jobId, surveyorId, userId) => {
  * Surveyor update without status change (ASSIGNED or later)
  * Roles: GM, TM
  */
-export const reassignSurveyor = async (jobId, surveyorId, reason, userId) => {
-    const job = await requireJob(jobId);
-    // Guard: cannot reassign a terminal job
-    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
-        throw { statusCode: 400, message: `Surveyor reassignment is not possible as the job is already in ${job.job_status} status.` };
+export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
+    if (!['GM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to reassign surveyors.' };
     }
-    const surveyor = await User.findByPk(surveyorId);
-    if (!surveyor || surveyor.role !== 'SURVEYOR') {
-        throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
-    }
+    const userId = user.id;
 
     // Validate new surveyor authority
     await validateSurveyorAuthority(job, surveyorId);
@@ -573,6 +594,9 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, userId) => {
  * Roles: ADMIN, TM
  */
 export const authorizeSurvey = async (id, remarks, user) => {
+    if (!['TM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to authorize surveys.' };
+    }
     const job = await requireJob(id, { includeVessel: true });
     if (job.job_status !== 'ASSIGNED') {
         throw { statusCode: 400, message: `Survey authorization is possible only after a surveyor has been assigned.` };

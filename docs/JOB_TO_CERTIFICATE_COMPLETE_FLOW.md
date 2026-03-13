@@ -425,7 +425,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 ```json
 {
   "success": true,
-  "data": { "url": "https://cdn.girikship.com/surveys/proof/..." }
+  "data": { "url": "https://cdn.grclass.com/surveys/proof/..." }
 }
 ```
 
@@ -748,7 +748,7 @@ Two options. Use **Option A** when the issue is in the survey; **Option B** for 
     "issue_date": "2026-02-20",
     "expiry_date": "2027-02-20",
     "status": "VALID",
-    "pdf_url": "https://cdn.girikship.com/certificates/CERT-A1B2C3D4.pdf"
+    "pdf_url": "https://cdn.grclass.com/certificates/CERT-A1B2C3D4.pdf"
   }
 }
 ```

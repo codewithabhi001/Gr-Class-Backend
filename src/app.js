@@ -24,7 +24,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "cdn.girikship.com"],
+            imgSrc: ["'self'", "data:", "cdn.grclass.com"],
         }
     },
     crossOriginResourcePolicy: { policy: "same-site" },
