@@ -57,9 +57,10 @@ export const generatePublicCdnUrl = (key) => {
  * @param {string} key 
  * @param {number} expiresInSeconds 
  * @param {Object} user - User requesting the URL (for audit)
+ * @param {boolean} skipAudit - Whether to skip individual audit logging
  * @returns {Promise<string>} Signed URL
  */
-export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null) => {
+export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null, skipAudit = false) => {
     const cleanKey = getKeyFromUrl(key);
     if (!cleanKey) return null;
 
@@ -73,8 +74,8 @@ export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null
     const signedUrl = await s3Service.getSignedFileUrl(cleanKey, expiresInSeconds);
     _signedUrlCache.set(cacheKey, { url: signedUrl, ts: Date.now() });
 
-    // Audit Log (non-blocking)
-    if (user) {
+    // Audit Log (non-blocking) - Only if not skipped
+    if (user && !skipAudit) {
         AuditLog.create({
             user_id: user.id,
             action: 'GENERATE_SIGNED_URL',
@@ -92,9 +93,10 @@ export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null
  * Resolve a key/url into a CDN URL or a signed URL based on its prefix.
  * @param {string} keyOrUrl 
  * @param {Object} user - Optional user for audit logging
+ * @param {boolean} skipAudit - Whether to skip individual audit logging
  * @returns {Promise<string>}
  */
-export const resolveUrl = async (keyOrUrl, user = null) => {
+export const resolveUrl = async (keyOrUrl, user = null, skipAudit = false) => {
     if (!keyOrUrl) return null;
     const key = getKeyFromUrl(keyOrUrl);
 
@@ -104,7 +106,7 @@ export const resolveUrl = async (keyOrUrl, user = null) => {
     }
 
     // Otherwise return a signed URL (default 1 hour expiry)
-    return await generateSignedUrl(key, 3600, user);
+    return await generateSignedUrl(key, 3600, user, skipAudit);
 };
 
 /**
@@ -116,34 +118,72 @@ export const resolveUrl = async (keyOrUrl, user = null) => {
 export const resolveEntity = async (data, user = null) => {
     if (!data) return data;
 
-    if (Array.isArray(data)) {
-        return await Promise.all(data.map(item => resolveEntity(item, user)));
-    }
+    const auditEntries = [];
 
-    if (data instanceof Date) return data;
-    if (typeof data === 'object') {
-        // If it's a Sequelize model instance, convert to plain object
-        let plain = (typeof data.get === 'function') ? data.get({ plain: true }) : { ...data };
+    const recurse = async (item) => {
+        if (!item) return item;
+        if (Array.isArray(item)) {
+            return await Promise.all(item.map(i => recurse(i)));
+        }
 
-        const urlKeys = ['url', 'file_url', 'attachment_url', 'attendance_photo_url', 'signature_url', 'evidence_proof_url', 'survey_statement_pdf_url', 'pdf_file_url', 'qr_code_url', 'document_url', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'profile_pic_url'];
+        if (item instanceof Date) return item;
+        if (typeof item === 'object') {
+            // If it's a Sequelize model instance, convert to plain object
+            let plain = (typeof item.get === 'function') ? item.get({ plain: true }) : { ...item };
 
-        const fieldPromises = Object.entries(plain).map(async ([key, value]) => {
-            if (urlKeys.includes(key)) {
-                if (typeof value === 'string' && value && !value.startsWith('http')) {
-                    plain[key] = await resolveUrl(value, user);
-                } else if (Array.isArray(value)) {
-                    plain[key] = await Promise.all(value.map(async v => (typeof v === 'string' && v && !v.startsWith('http')) ? await resolveUrl(v, user) : v));
+            const urlKeys = ['url', 'file_url', 'attachment_url', 'attendance_photo_url', 'signature_url', 'evidence_proof_url', 'survey_statement_pdf_url', 'pdf_file_url', 'qr_code_url', 'document_url', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'profile_pic_url'];
+
+            const fieldPromises = Object.entries(plain).map(async ([key, value]) => {
+                if (urlKeys.includes(key)) {
+                    if (typeof value === 'string' && value && !value.startsWith('http')) {
+                        const resolved = await resolveUrl(value, user, true); // skip individual audit
+                        plain[key] = resolved;
+                        if (user && !value.startsWith('public/')) {
+                            auditEntries.push({
+                                user_id: user.id,
+                                action: 'GENERATE_SIGNED_URL',
+                                entity_name: 'File',
+                                new_values: { key: value, field: key }
+                            });
+                        }
+                    } else if (Array.isArray(value)) {
+                        plain[key] = await Promise.all(value.map(async v => {
+                            if (typeof v === 'string' && v && !v.startsWith('http')) {
+                                const resolved = await resolveUrl(v, user, true);
+                                if (user && !v.startsWith('public/')) {
+                                    auditEntries.push({
+                                        user_id: user.id,
+                                        action: 'GENERATE_SIGNED_URL',
+                                        entity_name: 'File',
+                                        new_values: { key: v, field: key }
+                                    });
+                                }
+                                return resolved;
+                            }
+                            return v;
+                        }));
+                    }
+                } else if (value && (typeof value === 'object' || Array.isArray(value))) {
+                    plain[key] = await recurse(value);
                 }
-            } else if (value && (typeof value === 'object' || Array.isArray(value))) {
-                plain[key] = await resolveEntity(value, user);
-            }
-        });
+            });
 
-        await Promise.all(fieldPromises);
-        return plain;
+            await Promise.all(fieldPromises);
+            return plain;
+        }
+        return item;
+    };
+
+    const result = await recurse(data);
+
+    // Perform bulk audit logging if any entries were collected
+    if (auditEntries.length > 0) {
+        AuditLog.bulkCreate(auditEntries).catch(err => {
+            console.warn(`Bulk audit logging failed for ${auditEntries.length} entries:`, err);
+        });
     }
 
-    return data;
+    return result;
 };
 
 /**

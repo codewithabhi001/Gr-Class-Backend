@@ -21,26 +21,39 @@ export const applySurveyor = async (data, files) => {
     const folder = s3Service.UPLOAD_FOLDERS.SURVEYOR;
 
     // Support keys in body or files in request
+    // Parallelize all uploads
+    const uploadTasks = [];
+    
     let cvUrl = data.cvKey || null;
     if (files?.cv) {
-        cvUrl = await s3Service.uploadFile(files.cv[0].buffer, files.cv[0].originalname, files.cv[0].mimetype, `${folder}/cv`);
+        uploadTasks.push((async () => {
+            cvUrl = await s3Service.uploadFile(files.cv[0].buffer, files.cv[0].originalname, files.cv[0].mimetype, `${folder}/cv`);
+        })());
     }
 
     let idProofUrl = data.idProofKey || null;
     if (files?.id_proof) {
-        idProofUrl = await s3Service.uploadFile(files.id_proof[0].buffer, files.id_proof[0].originalname, files.id_proof[0].mimetype, `${folder}/id-proof`);
-    }
-
-    if (!cvUrl || !idProofUrl) {
-        throw { statusCode: 400, message: 'CV and ID Proof are required (files or keys).' };
+        uploadTasks.push((async () => {
+            idProofUrl = await s3Service.uploadFile(files.id_proof[0].buffer, files.id_proof[0].originalname, files.id_proof[0].mimetype, `${folder}/id-proof`);
+        })());
     }
 
     let certUrls = data.certificateKeys || [];
     if (files?.certificates) {
-        for (const file of files.certificates) {
-            const url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, `${folder}/certificates`);
-            certUrls.push(url);
-        }
+        files.certificates.forEach(file => {
+            uploadTasks.push((async () => {
+                const url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, `${folder}/certificates`);
+                certUrls.push(url);
+            })());
+        });
+    }
+
+    if (uploadTasks.length > 0) {
+        await Promise.all(uploadTasks);
+    }
+
+    if (!cvUrl || !idProofUrl) {
+        throw { statusCode: 400, message: 'CV and ID Proof are required (files or keys).' };
     }
 
     const app = await SurveyorApplication.create({

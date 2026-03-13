@@ -47,15 +47,13 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
     let vesselType = null;
     let certName = null;
 
-    if (job.vessel_id) {
-        const vessel = await Vessel.findByPk(job.vessel_id);
-        vesselType = vessel?.ship_type;
-    }
+    const [vessel, certType] = await Promise.all([
+        job.vessel_id ? Vessel.findByPk(job.vessel_id) : Promise.resolve(null),
+        job.certificate_type_id ? CertificateType.findByPk(job.certificate_type_id) : Promise.resolve(null)
+    ]);
 
-    if (job.certificate_type_id) {
-        const certType = await CertificateType.findByPk(job.certificate_type_id);
-        certName = certType?.name;
-    }
+    vesselType = vessel?.ship_type;
+    certName = certType?.name;
 
     if (vesselType) {
         // Ensure it's an array or handle string cases just in case
@@ -89,20 +87,21 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
 
 export const createJob = async (data, userId) => {
     let isSurveyRequired = true;
+    const [certType, requiredDocs, vessel] = await Promise.all([
+        data.certificate_type_id ? CertificateType.findByPk(data.certificate_type_id) : Promise.resolve(null),
+        data.certificate_type_id ? CertificateRequiredDocument.findAll({
+            where: { certificate_type_id: data.certificate_type_id, is_mandatory: true }
+        }) : Promise.resolve([]),
+        data.vessel_id ? Vessel.findByPk(data.vessel_id, { include: [{ model: db.Client, as: 'Client' }] }) : Promise.resolve(null)
+    ]);
+
     if (data.certificate_type_id) {
-        const certType = await CertificateType.findByPk(data.certificate_type_id);
         if (!certType) throw { statusCode: 400, message: 'The selected certificate type is invalid.' };
         isSurveyRequired = certType.requires_survey;
-
-        // Fetch required documents for this certificate type
-        const requiredDocs = await CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: data.certificate_type_id, is_mandatory: true }
-        });
 
         if (requiredDocs.length > 0) {
             const uploadedDocIds = data.uploaded_documents?.map(d => d.required_document_id) || [];
             const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
-
 
             if (missingDocs.length > 0) {
                 throw {
@@ -115,9 +114,6 @@ export const createJob = async (data, userId) => {
     }
 
     if (data.vessel_id) {
-        const vessel = await Vessel.findByPk(data.vessel_id, {
-            include: [{ model: db.Client, as: 'Client' }]
-        });
         if (!vessel) throw { statusCode: 400, message: 'The selected vessel is invalid.' };
 
         if (vessel.class_status !== 'ACTIVE') {

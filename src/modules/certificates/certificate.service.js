@@ -525,15 +525,16 @@ export const getExpiringCertificates = async (days, user) => {
 };
 
 export const bulkRenew = async (ids, validityYears, reason, userId) => {
-    const results = [];
-    for (const id of ids) {
+    const renewalPromises = ids.map(async (id) => {
         try {
             const cert = await renewCertificate(id, validityYears, reason, userId);
-            results.push({ id, status: 'SUCCESS', cert });
+            return { id, status: 'SUCCESS', cert };
         } catch (e) {
-            results.push({ id, status: 'FAILED', error: e.message });
+            return { id, status: 'FAILED', error: e.message };
         }
-    }
+    });
+
+    const results = await Promise.all(renewalPromises);
     return results;
 };
 

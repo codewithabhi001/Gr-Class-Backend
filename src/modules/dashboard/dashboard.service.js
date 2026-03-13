@@ -137,18 +137,13 @@ export const getTMDashboard = async () => {
 }
 
 export const getTODashboard = async (user) => {
-    // user argument kept for potential future filtering logic if needed, although current implementation doesn't strictly depend on user.id heavily for count beyond role logic? 
-    // Wait, getTODashboard logic uses JobRequest.count() globally? 
-    // "JobRequest.count({ where: { job_status: { [Op.notIn]: ... } } })"
-    // It seems global. If TO sees everything, that is fine.
-    const [jobsCount, myInvolvedJobs, vesselsCount, clientsCount] = await Promise.all([
+    const [jobsCount, myInvolvedJobs, vesselsCount, clientsCount, surveys] = await Promise.all([
         JobRequest.count(),
         JobRequest.count({ where: { job_status: { [Op.notIn]: ['CERTIFIED', 'REJECTED', 'CANCELLED'] } } }),
         Vessel.count(),
         Client.count({ where: { status: 'ACTIVE' } }),
+        Survey.count({ where: { survey_status: { [Op.in]: ['SUBMITTED', 'FINALIZED'] } } })
     ]);
-
-    const surveys = await Survey.count({ where: { survey_status: { [Op.in]: ['SUBMITTED', 'FINALIZED'] } } });
 
     return {
         role: 'TO',
@@ -250,36 +245,45 @@ export const getSurveyorDashboard = async (user) => {
 export const getClientDashboard = async (clientId) => {
     if (!clientId) throw { statusCode: 403, message: 'User is not associated with a client' };
 
-    // Get all vessels for this client
-    const vessels = await Vessel.findAll({ where: { client_id: clientId } });
+    // 1. Get vessel IDs first
+    const vessels = await Vessel.findAll({ where: { client_id: clientId }, attributes: ['id', 'vessel_name'] });
     const vesselIds = vessels.map(v => v.id);
 
-    // Get jobs for all vessels of this client
-    const jobs = await JobRequest.findAll({
-        where: { vessel_id: vesselIds },
-        include: [
-            { model: Vessel, attributes: ['vessel_name'] },
-            { model: CertificateType, attributes: ['name'] }
-        ],
-        order: [['createdAt', 'DESC']]
-    });
+    if (vesselIds.length === 0) {
+        return {
+            role: 'CLIENT',
+            stats: { total_vessels: 0, active_jobs: 0, expiring_soon: 0, pending_payments: 0 },
+            recent_jobs: [],
+            expiring_certificates: []
+        };
+    }
 
-    // Get certificates for all vessels
-    const certificates = await Certificate.findAll({
-        where: { vessel_id: vesselIds },
-        include: [{ model: Vessel, attributes: ['vessel_name'] }]
-    });
+    // 2. Parallel fetch jobs and certificates
+    const [jobs, certificates] = await Promise.all([
+        JobRequest.findAll({
+            where: { vessel_id: vesselIds },
+            include: [
+                { model: Vessel, attributes: ['vessel_name'] },
+                { model: CertificateType, attributes: ['name'] }
+            ],
+            order: [['createdAt', 'DESC']]
+        }),
+        Certificate.findAll({
+            where: { vessel_id: vesselIds },
+            include: [{ model: Vessel, attributes: ['vessel_name'] }]
+        })
+    ]);
 
-    // Get payments for these jobs
+    // 3. Get payments for these jobs
     const jobIds = jobs.map(j => j.id);
-    const payments = await Payment.findAll({
-        where: { job_id: jobIds }
-    });
+    const payments = jobIds.length > 0 
+        ? await Payment.findAll({ where: { job_id: jobIds } })
+        : [];
 
     // Calculate statistics
     const stats = {
         total_vessels: vessels.length,
-        active_jobs: jobs.filter(j => !['CERTIFIED', 'REJECTED'].includes(j.job_status)).length,
+        active_jobs: jobs.filter(j => !['CERTIFIED', 'REJECTED', 'CANCELLED'].includes(j.job_status)).length,
         expiring_soon: certificates.filter(c => {
             const daysToExpiry = Math.floor((new Date(c.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
             return daysToExpiry <= 60 && daysToExpiry > 0;
