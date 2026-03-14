@@ -17,6 +17,7 @@ const JobDocument = db.JobDocument;
 const JobReschedule = db.JobReschedule;
 const Survey = db.Survey;
 const SurveyorProfile = db.SurveyorProfile;
+const Payment = db.Payment;
 
 // ─────────────────────────────────────────────
 // INTERNAL HELPERS
@@ -259,7 +260,8 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     const include = [
         { model: Vessel, attributes: isSurveyor ? ['id', 'vessel_name', 'imo_number'] : ['id', 'vessel_name', 'imo_number', 'client_id'] },
         { model: CertificateType, attributes: ['id', 'name', 'issuing_authority'] },
-        { model: Survey, as: 'survey', attributes: ['id', 'survey_status', 'survey_statement_status', 'started_at', 'submitted_at'] }
+        { model: Survey, as: 'survey', attributes: ['id', 'survey_status', 'survey_statement_status', 'started_at', 'submitted_at'] },
+        { model: Payment, attributes: ['id', 'payment_status', 'amount', 'currency'] }
     ];
     if (!isSurveyor) include.push(
         { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
@@ -273,7 +275,10 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
         order: [['updatedAt', 'DESC']], include
     });
 
-    const jobs = await fileAccessService.resolveEntity(rows);
+    const jobs = (await fileAccessService.resolveEntity(rows)).map(j => ({
+        ...j,
+        payment_status: j.Payments?.[0]?.payment_status || 'N/A'
+    }));
     return {
         total: count, page: parseInt(page), limit: parseInt(limit),
         totalPages: Math.ceil(count / pageLimit),
@@ -304,7 +309,8 @@ export const getJobById = async (id, scopeFilters = {}) => {
             { model: Certificate, as: 'Certificate', attributes: ['id', 'certificate_number', 'pdf_file_url'] },
             { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
             { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
-            { model: User, as: 'surveyor', attributes: ['id', 'name', 'email'] }
+            { model: User, as: 'surveyor', attributes: ['id', 'name', 'email'] },
+            { model: Payment, attributes: ['id', 'payment_status', 'amount', 'currency', 'invoice_number', 'payment_date', 'receipt_url'] }
         ]
     });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
@@ -317,6 +323,9 @@ export const getJobById = async (id, scopeFilters = {}) => {
     } else {
         jobPlain.survey_history = [];
     }
+
+    // Expose payment status at top level
+    jobPlain.payment_status = jobPlain.Payments?.[0]?.payment_status || 'N/A';
 
     if (job.Certificate?.pdf_file_url) {
         const key = fileAccessService.getKeyFromUrl(job.Certificate.pdf_file_url);
