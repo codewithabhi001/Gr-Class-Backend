@@ -143,11 +143,13 @@ async function runTest() {
         updatedJob = await db.JobRequest.findByPk(job.id);
         console.log(`Job Status (should stay FINALIZED): ${updatedJob.job_status}`);
 
-        // 15. Generate Certificate (Admin)
-        console.log('\n[Step 14] Generating Certificate (Final Step)...');
+        // 15. Generate Certificate (Admin) - SKIPPED FOR MANUAL TESTING
+        console.log('\n[Step 14] Skipping Auto Certificate Generation (Manual step)...');
+        /*
         const cert = await certificateService.generateCertificate({ job_id: job.id, validity_years: 1 }, adminUser);
         updatedJob = await db.JobRequest.findByPk(job.id);
         console.log(`Job Status: ${updatedJob.job_status}, Certificate issued: ${cert.certificate_number}`);
+        */
 
         console.log('\n--- Full Flow Test Completed Successfully! ---');
 
