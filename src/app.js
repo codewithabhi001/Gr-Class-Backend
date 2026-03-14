@@ -15,7 +15,31 @@ import './models/index.js'; // Initialize DB
 const app = express();
 
 // Trust proxy for rate limiting behind Nginx/CloudFront
-app.set('trust proxy', 1);
+app.set('trust proxy', 1); 
+
+// CORS
+const allowedOrigins = [
+    'https://grclass.com',
+    'https://www.grclass.com',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173'
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+            return callback(null, true);
+        } else {
+            return callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
 
 // Security Headers
 app.use(helmet({
@@ -24,18 +48,11 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "cdn.grclass.com"],
+            imgSrc: ["'self'", "data:", "cdn.grclass.com", "https://*.s3.amazonaws.com"],
         }
     },
-    crossOriginResourcePolicy: { policy: "same-site" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" }
-}));
-
-// CORS
-// CORS
-app.use(cors({
-    origin: true,
-    credentials: true
 }));
 
 // Request Logging
