@@ -19,7 +19,10 @@ const AuditLog = db.AuditLog;
 const { Op } = db.Sequelize;
 
 const buildCertificateQrTargetUrl = (certificateNumber) => {
-    const configuredBase = process.env.CERTIFICATE_VERIFY_PUBLIC_URL || env.frontendUrl || process.env.APP_BASE_URL || 'https://api.grclass.com/api/v1/certificates/verify';
+    const configuredBase = process.env.CERTIFICATE_VERIFY_PUBLIC_URL
+        || (env.frontendUrl ? `${env.frontendUrl.replace(/\/$/, '')}/certificate/verify` : null)
+        || (process.env.APP_BASE_URL ? `${process.env.APP_BASE_URL.replace(/\/$/, '')}/api/v1/certificates/verify` : null)
+        || 'https://api.grclass.com/api/v1/certificates/verify';
     let baseUrl = configuredBase.startsWith('http') ? configuredBase : `https://${configuredBase}`;
     baseUrl = baseUrl.replace(/\/$/, '');
 
