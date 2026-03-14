@@ -6,6 +6,7 @@ import { buildCertificateScopeWhere } from './certificate-scope.js';
 import { buildFallbackCertificateHtml } from './templates/fallback-certificate.template.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
+import env from '../../config/env.js';
 import QRCode from 'qrcode';
 
 const Certificate = db.Certificate;
@@ -16,6 +17,22 @@ const Vessel = db.Vessel;
 const JobStatusHistory = db.JobStatusHistory;
 const AuditLog = db.AuditLog;
 const { Op } = db.Sequelize;
+
+const buildCertificateQrTargetUrl = (certificateNumber) => {
+    const configuredBase = process.env.CERTIFICATE_VERIFY_PUBLIC_URL || env.frontendUrl || process.env.APP_BASE_URL || 'https://api.grclass.com/api/v1/certificates/verify';
+    let baseUrl = configuredBase.startsWith('http') ? configuredBase : `https://${configuredBase}`;
+    baseUrl = baseUrl.replace(/\/$/, '');
+
+    if (baseUrl.includes('{number}')) {
+        return baseUrl.replace('{number}', encodeURIComponent(certificateNumber));
+    }
+
+    if (baseUrl.endsWith('/verify')) {
+        return `${baseUrl}/${encodeURIComponent(certificateNumber)}`;
+    }
+
+    return `${baseUrl}/${encodeURIComponent(certificateNumber)}`;
+};
 
 /** Reusable scope filter for certificate list/get by role. Used in getCertificates, getCertificateById, getExpiringCertificates, preview, getHistory, download. */
 export const getCertificateScopeFilter = async (user) => {
@@ -240,11 +257,9 @@ export const generateCertificate = async (data, user) => {
         };
         let qrDataUrl = null;
         try {
-            let baseUrl = process.env.APP_BASE_URL || 'https://api.grclass.com';
-            if (!baseUrl.startsWith('http')) baseUrl = `https://${baseUrl}`;
-            baseUrl = baseUrl.replace(/\/$/, '');
+            const qrTargetUrl = buildCertificateQrTargetUrl(certificateNumber);
 
-            qrDataUrl = await QRCode.toDataURL(`${baseUrl}/api/v1/certificates/verify/${certificateNumber}`, {
+            qrDataUrl = await QRCode.toDataURL(qrTargetUrl, {
                 margin: 1,
                 width: 300,
                 errorCorrectionLevel: 'H'
