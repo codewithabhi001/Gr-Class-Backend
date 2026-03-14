@@ -109,8 +109,23 @@ export const createNotification = async (userId, title, message, type = 'INFO') 
 /**
  * Notify all users with specific roles
  */
-export const notifyRoles = async (roles, title, message, type = 'INFO') => {
+export const notifyRoles = async (roles, eventOrTitle, dataOrMessage = {}, extraType = 'INFO') => {
     try {
+        let title, message, type;
+
+        if (typeof dataOrMessage === 'object' && dataOrMessage !== null) {
+            // New Event-driven pattern: (roles, eventType, data)
+            const formatted = formatNotification(eventOrTitle, dataOrMessage);
+            title = dataOrMessage.title || formatted.title;
+            message = dataOrMessage.message || formatted.message;
+            type = eventOrTitle;
+        } else {
+            // Legacy pattern: (roles, title, message, type)
+            title = eventOrTitle;
+            message = dataOrMessage;
+            type = extraType;
+        }
+
         const users = await User.findAll({
             where: { role: roles },
             include: [{ model: NotificationPreference, as: 'NotificationPreference' }]

@@ -54,8 +54,11 @@ export const htmlToPdfBuffer = async (html) => {
             await browser.close();
         }
     } catch (err) {
-        console.warn('Certificate PDF generation (puppeteer) failed:', err.message);
-        throw { statusCode: 500, message: 'Failed to generate certificate PDF. Ensure Puppeteer/Chromium is available.' };
+        console.error('Certificate PDF generation (puppeteer) CRITICAL ERROR:', err);
+        throw { 
+            statusCode: 500, 
+            message: `Failed to generate certificate PDF: ${err.message}. Ensure Chromium is installed.` 
+        };
     }
 };
 
