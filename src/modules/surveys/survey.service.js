@@ -140,8 +140,9 @@ export const uploadProof = async (jobId, file, data, userId) => {
     const survey = await requireSurvey(jobId);
     assertSurveyNotFinalized(survey);
 
-    // Guard: must have submitted checklist first
-    if (!['CHECKLIST_SUBMITTED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
+    // Guard: must have submitted checklist first OR already uploaded proof OR rework
+    const allowedProofStatuses = ['CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];
+    if (!allowedProofStatuses.includes(survey.survey_status)) {
         throw { statusCode: 400, message: `Please complete the inspection checklist before uploading evidence proof.` };
     }
 
@@ -159,7 +160,11 @@ export const uploadProof = async (jobId, file, data, userId) => {
     const txn = await db.sequelize.transaction();
     try {
         await survey.update({ evidence_proof_url: url }, { transaction: txn });
-        await lifecycleService.updateSurveyStatus(survey.id, 'PROOF_UPLOADED', userId, 'Evidence proof uploaded', { transaction: txn });
+
+        // Advance survey status ONLY if it's in a previous state (CHECKLIST_SUBMITTED or REWORK_REQUIRED)
+        if (survey.survey_status !== 'PROOF_UPLOADED') {
+            await lifecycleService.updateSurveyStatus(survey.id, 'PROOF_UPLOADED', userId, 'Evidence proof uploaded', { transaction: txn });
+        }
         await txn.commit();
 
         // Notify ADMIN/TM/TO
@@ -364,20 +369,99 @@ export const requestRework = async (jobId, reason, userId) => {
     return { message: 'Rework requested.' };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SURVEY STATEMENT MANAGEMENT
-// ─────────────────────────────────────────────────────────────────────────────
+import { buildSurveyReportHtml } from './templates/survey-report.template.js';
+import * as certificatePdfService from '../../services/certificate-pdf.service.js';
+
+import QRCode from 'qrcode';
+
+/**
+ * Internal: Generates a Survey Report PDF and uploads it to S3.
+ * Automatically handles watermarking and QR codes.
+ */
+const generateSurveyReportPdf = async (survey, user) => {
+    // 1. Fetch Comprehensive Data
+    const job = await JobRequest.findByPk(survey.job_id, {
+        include: [
+            { 
+                model: db.Vessel, 
+                include: [{ model: db.FlagAdministration, as: 'FlagAdministration' }] 
+            },
+            { model: db.User, as: 'requester', attributes: ['name', 'email'] }
+        ]
+    });
+    
+    const surveyor = await User.findByPk(survey.surveyor_id, { attributes: ['name'] });
+    const checklist = await ActivityPlanning.findAll({
+        where: { job_id: survey.job_id },
+        attributes: ['question_text', 'answer', 'remarks']
+    });
+
+    // 2. Build HTML (QR removed as per user request for SOF)
+    const isIssued = survey.survey_statement_status === 'ISSUED';
+    const html = buildSurveyReportHtml({
+        job,
+        vessel: job.Vessel,
+        surveyor,
+        survey: { 
+            ...survey.get(), 
+            is_draft: !isIssued 
+        },
+        checklist,
+        client: job.requester
+    });
+
+    // 3. Convert to PDF
+    const fullHtml = certificatePdfService.wrapHtmlForPdf(html);
+    const pdfBuffer = await certificatePdfService.htmlToPdfBuffer(fullHtml);
+    
+    // 4. Upload to S3
+    const prefix = isIssued ? 'survey-report' : 'survey-draft';
+    const fileName = `${prefix}-${survey.id.substring(0, 8)}.pdf`;
+    
+    const url = await s3Service.uploadFile(
+        pdfBuffer,
+        fileName,
+        'application/pdf',
+        s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF
+    );
+    return url;
+};
 
 export const draftSurveyStatement = async (jobId, data, user) => {
     await assertJobAccessible(jobId, user.id, { checkSurveyor: user.role === 'SURVEYOR' });
     const survey = await requireSurvey(jobId);
     assertSurveyNotFinalized(survey);
 
-    await survey.update({
-        survey_statement: data.survey_statement,
-        survey_statement_status: 'DRAFTED'
-    });
-    return { message: 'Survey statement drafted.', status: 'DRAFTED', survey_statement: data.survey_statement };
+    const isManagement = ['TM', 'ADMIN'].includes(user.role);
+    const updateData = {};
+
+    if (data.survey_statement) {
+        updateData.survey_statement = data.survey_statement;
+        updateData.survey_statement_status = 'DRAFTED';
+    } else if (!isManagement) {
+        throw { statusCode: 400, message: 'Survey statement text is required.' };
+    }
+
+    if (Object.keys(updateData).length > 0) {
+        await survey.update(updateData);
+    }
+
+    // Role-based PDF generation trigger (NON-BLOCKING)
+    if (isManagement) {
+        if (!survey.survey_statement && !updateData.survey_statement) {
+            throw { statusCode: 400, message: 'No survey statement text found. Surveyor must provide findings first.' };
+        }
+        
+        // FIRE AND FORGET: Start generation in background
+        generateSurveyReportPdf(survey, user)
+            .then(draftUrl => survey.update({ survey_statement_pdf_url: draftUrl }))
+            .catch(err => logger.error('Background Draft PDF generation failed:', err));
+    }
+
+    return { 
+        message: isManagement ? 'Draft request received. Report is being generated in background.' : 'Survey statement saved.', 
+        status: 'DRAFTED'
+    };
 };
 
 export const issueSurveyStatement = async (jobId, file, data, user) => {
@@ -389,28 +473,44 @@ export const issueSurveyStatement = async (jobId, file, data, user) => {
     const survey = await requireSurvey(jobId);
     assertSurveyNotFinalized(survey);
 
-    let url = data.fileKey;
+    let finalUrl = null;
+
     if (file) {
-        url = s3Service.generateKey(file.originalname, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
-        s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', url)
-            .catch(err => logger.error('Background S3 upload error (issueSurveyStatement):', err));
+        // A: Custom file upload (Fast)
+        finalUrl = s3Service.generateKey(file.originalname, s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF);
+        s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, '', finalUrl)
+            .catch(err => logger.error('Issue Statement File Upload Failed:', err));
+    } else if (survey.survey_statement) {
+        // B: Automated promotion (Background)
+        const updatedSurveyStatus = { survey_statement_status: 'ISSUED' };
+        await survey.update(updatedSurveyStatus);
+        
+        generateSurveyReportPdf(survey, user)
+            .then(url => survey.update({ survey_statement_pdf_url: url }))
+            .catch(err => logger.error('Background Official PDF generation failed:', err));
+    } else {
+        throw { statusCode: 400, message: 'No survey statement has been drafted. Please provide text before issuing.' };
     }
 
-    if (!url) throw { statusCode: 400, message: 'Please upload the signed Survey Statement PDF or provide a fileKey.' };
+    // Update status immediately so UI changes
+    if (finalUrl) {
+        await survey.update({
+            survey_statement_status: 'ISSUED',
+            survey_statement_pdf_url: finalUrl
+        });
+    }
 
-    await survey.update({
-        survey_statement_pdf_url: url,
-        survey_statement_status: 'ISSUED'
-    });
-
-    return { message: 'Survey statement issued.', status: 'ISSUED', pdf_url: await fileAccessService.resolveUrl(url, { id: userId }) };
+    return { 
+        message: 'Issuance process started. The final report will be available shortly.', 
+        status: 'ISSUED'
+    };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // READ-ONLY
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getTimeline = async (id) => {
+export const getTimeline = async (id, user) => {
     const job = await JobRequest.findByPk(id);
     if (!job) throw { statusCode: 404, message: 'Job not found' };
     if (job.is_survey_required === false) {
@@ -423,10 +523,10 @@ export const getTimeline = async (id) => {
         include: [{ model: db.SurveyStatusHistory, as: 'SurveyStatusHistories' }],
         order: [[{ model: db.SurveyStatusHistory, as: 'SurveyStatusHistories' }, 'created_at', 'ASC']]
     });
-    return { job_id: id, gps_trace: gps, survey_details: await fileAccessService.resolveEntity(survey) };
+    return { job_id: id, gps_trace: gps, survey_details: await fileAccessService.resolveEntity(survey, { id: user?.id }) };
 };
 
-export const getSurveyReports = async (query) => {
+export const getSurveyReports = async (query, user) => {
     const { page = 1, limit = 10, ...filters } = query;
     const allowedFilters = {};
     if (filters.survey_status) allowedFilters.survey_status = filters.survey_status;
@@ -439,7 +539,7 @@ export const getSurveyReports = async (query) => {
         offset: (page - 1) * limit,
         attributes: [
             'id', 'job_id', 'surveyor_id', 'survey_status', 'submission_count',
-            'started_at', 'submitted_at', 'finalized_at', 'survey_statement_status'
+            'started_at', 'submitted_at', 'finalized_at', 'survey_statement_status', 'survey_statement_pdf_url'
         ],
         include: [
             { model: JobRequest, attributes: ['id', 'job_status'], include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }] },
@@ -447,23 +547,24 @@ export const getSurveyReports = async (query) => {
         ],
         order: [['submitted_at', 'DESC']]
     });
-    return { count, rows: await fileAccessService.resolveEntity(rows) };
+    return { count, rows: await fileAccessService.resolveEntity(rows, { id: user?.id }) };
 };
 
-export const getSurveyDetails = async (jobId) => {
+export const getSurveyDetails = async (jobId, user) => {
     let survey = await Survey.findOne({
         where: { job_id: jobId },
         include: [
-            { model: JobRequest, include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }] },
+            { model: JobRequest, attributes: ['id', 'job_status'] },
             { model: db.User, attributes: ['name', 'email'] },
             { model: db.User, as: 'Declarer', attributes: ['name', 'email'] },
-            { model: db.SurveyStatusHistory, order: [['created_at', 'DESC']] }
-        ]
+            { model: db.SurveyStatusHistory, attributes: ['previous_status', 'new_status', 'reason', 'createdAt'] }
+        ],
+        order: [[db.SurveyStatusHistory, 'createdAt', 'ASC']]
     });
 
-    if (!survey) throw { statusCode: 404, message: 'Survey report not found for this job. Please ensure the job is assigned and authorized.' };
+    if (!survey) throw { statusCode: 404, message: 'Survey report not found for this job.' };
 
-    return await fileAccessService.resolveEntity(survey);
+    return await fileAccessService.resolveEntity(survey, { id: user?.id });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

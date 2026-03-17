@@ -63,7 +63,7 @@ export const flagViolation = async (req, res, next) => {
 // GET /surveys
 export const getSurveyReports = async (req, res, next) => {
     try {
-        const reports = await surveyService.getSurveyReports(req.query);
+        const reports = await surveyService.getSurveyReports(req.query, req.user);
         res.json({ success: true, message: 'Survey reports fetched successfully.', data: reports });
     } catch (error) { next(error); }
 };
@@ -71,7 +71,7 @@ export const getSurveyReports = async (req, res, next) => {
 // GET /surveys/jobs/:jobId
 export const getSurveyDetails = async (req, res, next) => {
     try {
-        const details = await surveyService.getSurveyDetails(req.params.jobId);
+        const details = await surveyService.getSurveyDetails(req.params.jobId, req.user);
         res.json({ success: true, message: 'Survey details fetched successfully.', data: details });
     } catch (error) { next(error); }
 };
@@ -79,7 +79,7 @@ export const getSurveyDetails = async (req, res, next) => {
 // GET /surveys/jobs/:jobId/timeline
 export const getTimeline = async (req, res, next) => {
     try {
-        const result = await surveyService.getTimeline(req.params.jobId);
+        const result = await surveyService.getTimeline(req.params.jobId, req.user);
         res.json({ success: true, message: 'Survey timeline fetched successfully.', data: result });
     } catch (error) { next(error); }
 };

@@ -57,15 +57,10 @@ export const submitChecklist = async (jobId, items, userId) => {
     const survey = await Survey.findOne({ where: { job_id: jobId } });
     if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet. Please check-in first.' };
 
-    // ── Guard 4: Survey must be STARTED or REWORK_REQUIRED (not before, not after) ──
-    if (survey.survey_status === 'FINALIZED') {
-        throw { statusCode: 400, message: 'Survey is finalized and cannot be modified.' };
-    }
-    if (lifecycleService.SURVEY_TERMINAL_STATES.includes(survey.survey_status)) {
-        throw { statusCode: 400, message: 'This survey has already been finalized and cannot be modified.' };
-    }
-    if (!['STARTED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
-        throw { statusCode: 400, message: `The checklist can only be submitted after starting the survey or when rework is requested.` };
+    // ── Guard 4: Survey must be in an active state (not before, not after) ──
+    const activeStatuses = ['STARTED', 'CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];
+    if (!activeStatuses.includes(survey.survey_status)) {
+        throw { statusCode: 400, message: `The checklist cannot be modified as the survey is in ${survey.survey_status} status.` };
     }
 
     const txn = await db.sequelize.transaction();
@@ -76,9 +71,12 @@ export const submitChecklist = async (jobId, items, userId) => {
         const entries = items.map(item => ({ job_id: jobId, ...item }));
         const results = await ActivityPlanning.bulkCreate(entries, { transaction: txn });
 
-        // Advance survey status
-        await lifecycleService.updateSurveyStatus(survey.id, 'CHECKLIST_SUBMITTED', userId,
-            'Checklist items submitted', { transaction: txn });
+        // Advance survey status ONLY if it's in a previous state (STARTED or REWORK_REQUIRED)
+        // If it's already CHECKLIST_SUBMITTED or PROOF_UPLOADED, we keep the current status.
+        if (['STARTED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
+            await lifecycleService.updateSurveyStatus(survey.id, 'CHECKLIST_SUBMITTED', userId,
+                'Checklist items submitted', { transaction: txn });
+        }
 
         await txn.commit();
         return await fileAccessService.resolveEntity(results, { id: userId });

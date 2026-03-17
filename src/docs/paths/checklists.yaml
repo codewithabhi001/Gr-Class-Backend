@@ -68,7 +68,7 @@
     tags:
       - Checklists
     summary: Submit checklist for a job
-    description: Submit or update the checklist items for a job. Only the assigned SURVEYOR can perform this action when the job is IN_PROGRESS.
+    description: Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (STARTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).
     operationId: submitChecklist
     security:
       - bearerAuth: []

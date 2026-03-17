@@ -209,7 +209,7 @@
   post:
     tags: [Surveys]
     summary: Upload survey evidence
-    description: Supplemental photos or documents for the survey. Moves job to PROOF_UPLOADED once done.
+    description: Supplemental photos or documents for the survey. Multiple uploads are allowed until final submission. Moves survey status to PROOF_UPLOADED if in a previous state.
     operationId: uploadProof
     x-roles: [SURVEYOR]
     parameters:
@@ -272,31 +272,49 @@
 /api/v1/surveys/jobs/{jobId}/statement/draft:
   post:
     tags: [Surveys]
-    summary: Draft survey statement
+    summary: Draft survey statement / Generate Preview
+    description: |
+      Saves the survey statement text and/or triggers report generation.
+      - **SURVEYOR**: Required to provide `survey_statement` text. Cannot see the PDF.
+      - **TM/ADMIN**: Can provide new text OR leave it empty to trigger/refresh the branded "**DRAFT**" PDF using existing findings.
     operationId: draftSurveyStatement
-    x-roles: [SURVEYOR, TM]
+    x-roles: [SURVEYOR, TM, ADMIN]
     parameters:
       - name: jobId
         in: path
         required: true
         schema: { type: string, format: uuid }
     requestBody:
-      required: true
+      required: false
       content:
         application/json:
           schema:
             type: object
-            required: [survey_statement]
             properties:
-              survey_statement: { type: string }
+              survey_statement:
+                type: string
+                description: Text findings. Required for surveyors; optional for management to trigger PDF.
     responses:
-      "200": { description: Drafted }
+      "200":
+        description: Success. Returns message and, for management, the signed PDF URL.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    message: { type: string }
+                    status: { type: string, example: "DRAFTED" }
+                    pdf_url: { type: string, format: uri, description: "Only returned for TM/ADMIN" }
 
 /api/v1/surveys/jobs/{jobId}/statement/issue:
   post:
     tags: [Surveys]
     summary: Issue signed survey statement (PDF)
-    description: Finalizes and issues the statement with a signed PDF.
+    description: Finalizes and issues the statement as an official document. Removes the "DRAFT" watermark. If no file is uploaded, the system automatically uses the most recent automated draft.
     operationId: issueSurveyStatement
     x-roles: [TM]
     parameters:

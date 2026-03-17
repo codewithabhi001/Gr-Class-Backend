@@ -66,7 +66,7 @@ export const schemas = {
         signatureKey: Joi.string().required(),
     }),
     draftSurveyStatement: Joi.object({
-        survey_statement: Joi.string().required(),
+        survey_statement: Joi.string().optional(),
     }),
     generateCertificate: Joi.object({
         job_id: Joi.string().guid().required(),
