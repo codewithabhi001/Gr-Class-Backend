@@ -1,15 +1,10 @@
 import express from 'express';
-import multer from 'multer';
+import { docUpload } from '../../utils/upload.util.js';
 import * as documentController from './document.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 
-const fileFilter = (req, file, cb) => {
-    const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-    if (allowed.includes(file.mimetype)) cb(null, true);
-    else cb(new Error(`File type ${file.mimetype} not allowed`));
-};
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 }, fileFilter });
+const upload = docUpload;
 const router = express.Router();
 router.use(authenticate);
 

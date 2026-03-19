@@ -67,7 +67,9 @@ export const deleteDocument = async (id) => {
 };
 
 export const generatePresignedUrl = async (fileName, fileType, folderName = 'misc') => {
-    const folder = `${s3Service.UPLOAD_FOLDERS.DOCUMENTS}/${folderName}`;
+    // If folderName is provided, use it. If it doesn't already have a recognized path, 
+    // it can be prefixed, but let's prioritize direct folder names for better control.
+    const folder = folderName; 
     const key = `${folder}/${uuidv4()}-${fileName}`;
     const uploadUrl = await s3Service.getUploadSignedUrl(key, fileType);
     return { uploadUrl, fileKey: key };

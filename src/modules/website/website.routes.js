@@ -1,10 +1,10 @@
 import express from 'express';
-import multer from 'multer';
+import { videoUpload } from '../../utils/upload.util.js';
 import * as websiteController from './website.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = videoUpload;
 const router = express.Router();
 
 // Public GET

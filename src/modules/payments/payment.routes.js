@@ -1,11 +1,11 @@
 import express from 'express';
-import multer from 'multer';
+import { docUpload } from '../../utils/upload.util.js';
 import * as paymentController from './payment.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = docUpload;
 
 router.use(authenticate);
 
