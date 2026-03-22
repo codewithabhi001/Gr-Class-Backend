@@ -255,13 +255,9 @@
           schema:
             type: object
             properties:
-              available_from: { type: string, format: date }
-              available_to: { type: string, format: date }
-              status: { type: string, enum: [AVAILABLE, UNAVAILABLE, ON_LEAVE] }
+              is_available: { type: boolean }
           example:
-            available_from: "2026-03-01"
-            available_to: "2026-03-31"
-            status: "AVAILABLE"
+            is_available: true
     responses:
       "200": { description: Availability updated }
       "403": { description: Forbidden }

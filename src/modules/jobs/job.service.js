@@ -51,7 +51,7 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
         throw { statusCode: 400, message: `This surveyor is currently ${profile.status}. Only ACTIVE surveyors can be assigned to jobs.` };
     }
 
-    if (profile.is_available === false) {
+    if (!profile.is_available) {
         throw { statusCode: 400, message: 'This surveyor is currently OFFLINE or UNAVAILABLE. Please select an online surveyor.' };
     }
 
@@ -398,6 +398,11 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             }
         }
 
+        if (!profile.is_available) {
+            isEligible = false;
+            missing_reasons.push('Surveyor is currently UNAVAILABLE/OFFLINE');
+        }
+
         if (certName) {
             let authorizedCerts = profile.authorized_certificates;
             if (typeof authorizedCerts === 'string') {
@@ -546,7 +551,7 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
         throw { statusCode: 400, message: 'A surveyor can only be assigned after the job has been approved.' };
     }
     const surveyor = await User.findByPk(surveyorId);
-    if (!surveyor || surveyor.role !== 'SURVEYOR') {
+    if (!surveyor || surveyor.role !== 'SURVEYOR' || !surveyor.is_available) {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
     }
 
@@ -573,6 +578,7 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
         throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to reassign surveyors.' };
     }
     const userId = user.id;
+    const job = await requireJob(jobId, { includeVessel: true });
 
     // Validate new surveyor authority
     await validateSurveyorAuthority(job, surveyorId);
