@@ -41,10 +41,3 @@ export const applyDataScope = (scopeFn) => {
 };
 
 export const hasRole = authorizeRoles;
-
-// Deprecated: No more DB-driven permissions
-export const checkPermission = (permissionName) => {
-    return (req, res, next) => {
-        return res.status(500).json({ success: false, message: 'Internal Server Error: checkPermission is deprecated. Use authorizeRoles.' });
-    };
-};

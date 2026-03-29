@@ -423,6 +423,31 @@ export const schemas = {
         status: Joi.string().valid('NEW', 'READ', 'REPLIED', 'ARCHIVED').required(),
         internal_note: Joi.string().max(2000).optional().allow('', null),
     }),
+
+    // ── Portfolio / CMS static pages (FAQ, terms, about, etc.) ─────────────
+    createSiteStaticContent: Joi.object({
+        slug: Joi.string().pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(64).required(),
+        title: Joi.string().min(1).max(200).required(),
+        content_type: Joi.string().valid('PAGE', 'FAQ').required(),
+        body_html: Joi.string().allow('', null).optional(),
+        faq_items: Joi.array().items(Joi.object({
+            question: Joi.string().max(2000).required(),
+            answer: Joi.string().max(50000).required(),
+            sort_order: Joi.number().integer().min(0).optional(),
+        })).optional(),
+        is_published: Joi.boolean().optional(),
+    }),
+    updateSiteStaticContent: Joi.object({
+        title: Joi.string().min(1).max(200).optional(),
+        content_type: Joi.string().valid('PAGE', 'FAQ').optional(),
+        body_html: Joi.string().allow('', null).optional(),
+        faq_items: Joi.array().items(Joi.object({
+            question: Joi.string().max(2000).required(),
+            answer: Joi.string().max(50000).required(),
+            sort_order: Joi.number().integer().min(0).optional(),
+        })).optional(),
+        is_published: Joi.boolean().optional(),
+    }).min(1),
     updateFcmToken: Joi.object({
         fcmToken: Joi.string().required(),
     }),

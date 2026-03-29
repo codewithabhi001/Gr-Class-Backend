@@ -85,6 +85,7 @@ async function run() {
 
     const fx = await createFixtures();
     const { surveyorId, tmId, requesterId, vesselId, certTypeId } = fx;
+    const tmUser = { id: tmId, role: 'TM' };
 
     // ─── 1. Happy Path: full flow to FINALIZED ────────────────────────────────
     console.log('\n── Section 1: Happy Path ────────────────────────────────────────────');
@@ -183,7 +184,7 @@ async function run() {
         await makeSurvey(jobId, surveyorId, 'FINALIZED');
 
         await expectError('Certificate blocked: job not PAYMENT_DONE', 400, async () => {
-            await certService.generateCertificate({ job_id: jobId }, tmId);
+            await certService.generateCertificate({ job_id: jobId }, tmUser);
         });
     }
 
@@ -193,7 +194,7 @@ async function run() {
         await makeSurvey(jobId, surveyorId, 'SUBMITTED'); // Not finalized
 
         await expectError('Certificate blocked: survey not FINALIZED', 400, async () => {
-            await certService.generateCertificate({ job_id: jobId }, tmId);
+            await certService.generateCertificate({ job_id: jobId }, tmUser);
         });
     }
 
@@ -214,7 +215,7 @@ async function run() {
         await db.JobRequest.update({ generated_certificate_id: fakeCert.id }, { where: { id: jobId2 } });
 
         await expectError('Duplicate certificate blocked (409)', 409, async () => {
-            await certService.generateCertificate({ job_id: jobId2 }, tmId);
+            await certService.generateCertificate({ job_id: jobId2 }, tmUser);
         });
     }
 
@@ -268,6 +269,30 @@ async function run() {
 
         await expectError('Job cannot go SURVEY_DONE → SURVEY_AUTHORIZED', 400, async () => {
             await lifecycle.updateJobStatus(jobId, 'SURVEY_AUTHORIZED', tmId, 'backward');
+        });
+    }
+
+    // ─── 13. Job REWORK sync — SurveyStatusHistory audit correctness ───────────
+    console.log('\n── Section 13: Survey history on job REWORK_REQUESTED ─────────────');
+    {
+        const jobId = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'SURVEY_DONE');
+        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId } });
+        const surveyId = await makeSurvey(jobId, surveyorId, 'SUBMITTED');
+
+        await test('SurveyStatusHistory previous_status is pre-update survey state', async () => {
+            await lifecycle.updateJobStatus(jobId, 'REWORK_REQUESTED', tmId, 'Send back');
+            const rows = await db.SurveyStatusHistory.findAll({
+                where: { survey_id: surveyId },
+                order: [['created_at', 'DESC']]
+            });
+            const last = rows[0];
+            if (!last) throw new Error('No survey status history');
+            if (last.previous_status !== 'SUBMITTED') {
+                throw new Error(`Expected previous_status SUBMITTED, got ${last.previous_status}`);
+            }
+            if (last.new_status !== 'REWORK_REQUIRED') {
+                throw new Error(`Expected new_status REWORK_REQUIRED, got ${last.new_status}`);
+            }
         });
     }
 

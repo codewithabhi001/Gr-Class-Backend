@@ -63,10 +63,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Rate Limiting
+// Rate Limiting (global — keep stricter limits on /auth/* in auth.routes.js)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // limit each IP to 1000 requests per windowMs
+    max: Number(process.env.GLOBAL_RATE_LIMIT_MAX) || 400,
 });
 app.use(limiter);
 

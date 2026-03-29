@@ -13,6 +13,12 @@ export const SURVEY_TERMINAL_STATES = ['FINALIZED'];
 // States after which PAYMENT / REWORK / SURVEY actions are permanently blocked.
 export const JOB_POST_FINALIZATION_STATES = ['FINALIZED', 'CERTIFIED'];
 
+/**
+ * PAYMENT_DONE (MySQL ENUM): May still exist on legacy schemas. The application does **not**
+ * drive job lifecycle through PAYMENT_DONE — payment truth is `payments.payment_status` (e.g. PAID).
+ * Certification moves the job FINALIZED → CERTIFIED via `updateJobStatus` after payment + compliance guards.
+ */
+
 // ─────────────────────────────────────────────────────────────────────────────
 // STRICT TRANSITION MAPS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,10 +156,11 @@ export const updateJobStatus = async (jobId, newStatus, userId, reason = null, o
 
             // Sync Status: If Job moves to REWORK, Survey must follow
             if (newStatus === 'REWORK_REQUESTED' && survey && survey.survey_status !== 'REWORK_REQUIRED') {
+                const prevSurveyStatus = survey.survey_status;
                 await survey.update({ survey_status: 'REWORK_REQUIRED' }, { transaction: txn });
                 await SurveyStatusHistory.create({
                     survey_id: survey.id,
-                    previous_status: survey.survey_status,
+                    previous_status: prevSurveyStatus,
                     new_status: 'REWORK_REQUIRED',
                     changed_by: userId,
                     reason: `Auto-sync: Job → ${newStatus} (Reason: ${reason || 'N/A'})`,

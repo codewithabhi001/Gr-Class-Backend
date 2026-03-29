@@ -13,17 +13,27 @@ async function runTest() {
         // 1. Get Seed Data
         const vessel = await db.Vessel.findOne({ where: { class_status: 'ACTIVE' } });
         const certType = await db.CertificateType.findOne({ where: { status: 'ACTIVE', requires_survey: true } });
-        const surveyor = await db.User.findOne({ where: { role: 'SURVEYOR', status: 'ACTIVE' } });
+        const surveyorProfile = await db.SurveyorProfile.findOne({
+            where: { status: 'ACTIVE', is_available: true },
+            include: [{
+                model: db.User,
+                required: true,
+                attributes: ['id', 'name'],
+                where: { role: 'SURVEYOR', status: 'ACTIVE' ,email: 'abhisheksingh9709844475@gmail.com'}
+            }]
+        });
+        console.log(surveyorProfile);
+        const surveyorUserId = surveyorProfile?.user_id;
         const toUser = await db.User.findOne({ where: { role: 'TO', status: 'ACTIVE' } });
         const gmUser = await db.User.findOne({ where: { role: 'GM', status: 'ACTIVE' } });
         const tmUser = await db.User.findOne({ where: { role: 'TM', status: 'ACTIVE' } });
         const adminUser = await db.User.findOne({ where: { role: 'ADMIN', status: 'ACTIVE' } });
 
-        if (!vessel || !certType || !surveyor || !toUser || !gmUser || !tmUser || !adminUser) {
-            throw new Error('Missing seed data (Vessel, CertType, or Users)');
+        if (!vessel || !certType || !surveyorProfile || !surveyorUserId || !toUser || !gmUser || !tmUser || !adminUser) {
+            throw new Error('Missing seed data (Vessel, CertType, available Surveyor, or Users)');
         }
 
-        console.log(`Using Vessel: ${vessel.vessel_name}, CertType: ${certType.name}, Surveyor: ${surveyor.name}`);
+        console.log(`Using Vessel: ${vessel.vessel_name}, CertType: ${certType.name}, Surveyor: ${surveyorProfile.User.name}`);
 
         // 2. Create Job
         console.log('\n[Step 1] Creating Job...');
@@ -61,15 +71,16 @@ async function runTest() {
 
         // 5. Assign Surveyor (GM)
         console.log('\n[Step 4] Assigning Surveyor (GM)...');
-        // Ensure surveyor is eligible (check Ship Types/Certs)
-        // For testing we will just force update the profile if needed or assume active/available
-        const profile = await db.SurveyorProfile.findOne({ where: { user_id: surveyor.id } });
-        if (profile) {
-            await profile.update({ status: 'ACTIVE', is_available: true, authorized_ship_types: JSON.stringify([vessel.ship_type]), authorized_certificates: JSON.stringify([certType.name]) });
-        }
-        await jobService.assignSurveyor(job.id, surveyor.id, gmUser);
+        // Ensure profile authorizations match this vessel/cert; assignSurveyor expects User.id, not SurveyorProfile.id
+        await surveyorProfile.update({
+            status: 'ACTIVE',
+            is_available: true,
+            authorized_ship_types: JSON.stringify([vessel.ship_type]),
+            authorized_certificates: JSON.stringify([certType.name])
+        });
+        await jobService.assignSurveyor(job.id, surveyorUserId, gmUser);
         updatedJob = await db.JobRequest.findByPk(job.id);
-        console.log(`Job Status: ${updatedJob.job_status}, Surveyor: ${surveyor.name}`);
+        console.log(`Job Status: ${updatedJob.job_status}, Surveyor: ${surveyorProfile.User.name}`);
 
         // 6. Authorize Survey (TM)
         console.log('\n[Step 5] Authorizing Survey (TM)...');
@@ -79,7 +90,7 @@ async function runTest() {
 
         // 7. Start Survey (Surveyor)
         console.log('\n[Step 6] Starting Survey (Surveyor Check-in)...');
-        await surveyService.startSurvey({ job_id: job.id, latitude: 18.92, longitude: 72.83 }, surveyor.id);
+        await surveyService.startSurvey({ job_id: job.id, latitude: 18.92, longitude: 72.83 }, surveyorUserId);
         const survey = await db.Survey.findOne({ where: { job_id: job.id } });
         updatedJob = await db.JobRequest.findByPk(job.id);
         console.log(`Job Status: ${updatedJob.job_status}, Survey Status: ${survey.survey_status}`);
@@ -89,13 +100,13 @@ async function runTest() {
         const checklistItems = [
             { question_code: 'V01', question_text: 'Hull Condition', answer: 'SATISFACTORY', remarks: 'All good' }
         ];
-        await checklistService.submitChecklist(job.id, checklistItems, surveyor.id);
+        await checklistService.submitChecklist(job.id, checklistItems, surveyorUserId);
         await survey.reload();
         console.log(`Survey Status: ${survey.survey_status}`);
 
         // 9. Upload Proof (Surveyor)
         console.log('\n[Step 8] Uploading Evidence Proof...');
-        await surveyService.uploadProof(job.id, null, { fileKey: 'proofs/test-evidence.jpg' }, surveyor.id);
+        await surveyService.uploadProof(job.id, null, { fileKey: 'proofs/test-evidence.jpg' }, surveyorUserId);
         await survey.reload();
         console.log(`Survey Status: ${survey.survey_status}`);
 
@@ -107,7 +118,7 @@ async function runTest() {
             submit_longitude: 72.83,
             survey_statement: 'Vessel is in good condition.',
             photoKey: 'photos/attendance.jpg'
-        }, {}, surveyor.id);
+        }, {}, surveyorUserId);
         await survey.reload();
         updatedJob = await db.JobRequest.findByPk(job.id);
         console.log(`Job Status: ${updatedJob.job_status}, Survey Status: ${survey.survey_status}`);

@@ -188,6 +188,27 @@ export const sendMessage = async (jobId, senderId, data, file) => {
     return await jobMessagingService.sendMessage(jobId, senderId, data, file);
 };
 
+export const listExternalJobMessages = async (req, res, next) => {
+    try {
+        const messages = await getJobMessages(req.params.id, false);
+        res.json({ success: true, data: messages, message: '' });
+    } catch (e) { next(e); }
+};
+
+export const listInternalJobMessages = async (req, res, next) => {
+    try {
+        const messages = await getJobMessages(req.params.id, true);
+        res.json({ success: true, data: messages, message: '' });
+    } catch (e) { next(e); }
+};
+
+export const createJobMessage = async (req, res, next) => {
+    try {
+        const message = await sendMessage(req.params.id, req.user.id, req.body, req.file);
+        res.status(201).json({ success: true, data: message, message: '' });
+    } catch (e) { next(e); }
+};
+
 // ─────────────────────────────────────────────
 // Deprecated / Removed
 // ─────────────────────────────────────────────

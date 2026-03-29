@@ -1,11 +1,15 @@
 import express from 'express';
 import { videoUpload } from '../../utils/upload.util.js';
 import * as websiteController from './website.controller.js';
+import siteStaticRoutes from '../site_static/site_static.routes.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 
 const upload = videoUpload;
 const router = express.Router();
+
+// Public portfolio CMS (FAQ, terms, about, …) + admin CRUD
+router.use('/static-content', siteStaticRoutes);
 
 // Public GET
 router.get('/videos', websiteController.getVideos);

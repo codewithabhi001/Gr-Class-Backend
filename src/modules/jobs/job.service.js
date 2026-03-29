@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
 import * as notificationService from '../../services/notification.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
@@ -551,7 +552,7 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
         throw { statusCode: 400, message: 'A surveyor can only be assigned after the job has been approved.' };
     }
     const surveyor = await User.findByPk(surveyorId);
-    if (!surveyor || surveyor.role !== 'SURVEYOR' || !surveyor.is_available) {
+    if (!surveyor || surveyor.role !== 'SURVEYOR') {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
     }
 
@@ -609,7 +610,7 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
  * Roles: ADMIN, TM
  */
 export const authorizeSurvey = async (id, remarks, user) => {
-    if (!['TM', 'ADMIN'].includes(user.role)) {
+    if (!isRoleAllowed(RBAC.AUTHORIZE_SURVEY, user.role)) {
         throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to authorize surveys.' };
     }
     const job = await requireJob(id, { includeVessel: true });

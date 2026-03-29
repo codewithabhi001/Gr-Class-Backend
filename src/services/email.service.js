@@ -1,114 +1,183 @@
-
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import { SendEmailCommand } from '@aws-sdk/client-ses';
+import sesClient, { SENDER_MAP } from '../config/emailConfig.js';
+import { renderEmailTemplate } from '../email-templates/index.js';
+import { buildTransactionalNotificationEmail } from '../email-templates/notification-html.js';
 import logger from '../utils/logger.js';
 
-dotenv.config();
+/**
+ * Validates the email parameters
+ * @param {string | string[]} to 
+ * @param {string} subject 
+ * @param {string} body 
+ */
+const validateEmailParams = (to, subject, body) => {
+    const recipients = Array.isArray(to) ? to : [to];
+    const validRecipients = recipients.filter(email => email && typeof email === 'string' && email.trim() !== '');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-});
+    if (validRecipients.length === 0) throw new Error('Recipient list cannot be empty.');
+    if (!subject || subject.trim() === '') throw new Error('Subject cannot be empty.');
+    if (!body || body.trim() === '') throw new Error('Email body cannot be empty.');
 
-export const sendEmail = async (to, subject, text, html) => {
-    try {
-        if (!process.env.SMTP_HOST) {
-            logger.warn('SMTP_HOST not configured. Email not sent:', { to, subject });
-            return false;
+    return validRecipients;
+};
+
+/**
+ * Retries a function multiple times on failure.
+ * @param {Function} operation 
+ * @param {number} retries 
+ */
+const withRetry = async (operation, retries = 2) => {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error;
+            if (attempt < retries) {
+                logger.info(`[EmailService] SES send failed. Retry attempt ${attempt + 1}/${retries}...`);
+            }
         }
+    }
+    throw lastError;
+};
 
-        const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"GIRIK System" <no-reply@girik.com>',
-            to,
-            subject,
-            text,
-            html
-        });
+/**
+ * Main function to send transactional emails via AWS SES API
+ * 
+ * @param {string | string[]} to - Recipient(s)
+ * @param {string} subject - Email subject
+ * @param {string} body - Email HTML/Text body
+ * @param {'alert' | 'notification' | 'system'} type - Module type for sender selection
+ * @returns {Promise<boolean>}
+ */
+export const sendEmail = async (to, subject, body, type = 'system') => {
+    try {
+        const recipients = validateEmailParams(to, subject, body);
+        const fromEmail = SENDER_MAP[type] || SENDER_MAP.system;
 
-        logger.info('Email sent: %s', info.messageId);
+        const input = {
+            Source: fromEmail,
+            Destination: { ToAddresses: recipients },
+            Message: {
+                Subject: { Data: subject, Charset: 'UTF-8' },
+                Body: { Html: { Data: body, Charset: 'UTF-8' } },
+            },
+        };
+
+        const command = new SendEmailCommand(input);
+
+        // Attempt send with retries
+        const response = await withRetry(() => sesClient.send(command), 2);
+
+        logger.info(`[EmailService] Email sent to ${recipients.join(',')} from ${fromEmail}. MessageId: ${response.MessageId}`);
         return true;
     } catch (error) {
-        logger.error('Error sending email:', error);
+        logger.error(`[EmailService] Error sending email: ${error.message}`, {
+            to, subject, type, error: error.stack
+        });
         return false;
     }
 };
 
+/**
+ * Handles legacy template-based emails but sends via SES API
+ * 
+ * @param {string} to 
+ * @param {string} templateName 
+ * @param {Object} data 
+ * @returns {Promise<boolean>}
+ */
 export const sendTemplateEmail = async (to, templateName, data) => {
-    // Placeholder for template engine logic (e.g. EJS or Handlebars)
-    // For now, construct simple strings based on templateName
-    let subject = '';
-    let text = '';
+    const rendered = renderEmailTemplate(templateName, data);
+    if (rendered) {
+        return await sendEmail(to, rendered.subject, rendered.html, rendered.type);
+    }
+
+    let fallbackSubject = '';
+    let fallbackBody = '';
+    let type = 'notification';
 
     switch (templateName) {
         case 'SLA_BREACH':
-            subject = `URGENT: SLA Breach Detected - Job ${data.jobId}`;
-            text = `A breach was detected for Job ${data.jobId}. Rule: ${data.rule}. Time: ${data.time}`;
+            fallbackSubject = `URGENT: SLA breach — Job ${data.jobId}`;
+            fallbackBody = `A service-level breach was detected for job ${data.jobId}. Rule: ${data.rule}. Time: ${data.time}`;
+            type = 'alerts';
             break;
         case 'CERTIFICATE_EXPIRY':
-            subject = `Certificate Expiring: ${data.certificateNumber}`;
-            text = `Certificate ${data.certificateNumber} for ${data.vesselName} is expiring on ${data.expiryDate}.`;
+            fallbackSubject = `Certificate expiring: ${data.certificateNumber}`;
+            fallbackBody = `Certificate ${data.certificateNumber} for ${data.vesselName} expires on ${data.expiryDate}.`;
             break;
         case 'LEGAL_HOLD':
-            subject = `Legal Hold Activated: ${data.entityId}`;
-            text = `A Legal Hold has been placed on ${data.type} ID ${data.entityId} by ${data.actor}.`;
+            fallbackSubject = `Legal hold: ${data.entityId}`;
+            fallbackBody = `A legal hold has been placed on ${data.type} ID ${data.entityId} by ${data.actor}.`;
+            type = 'alerts';
             break;
         case 'JOB_CREATED':
-            subject = `New Job Request: ${data.vesselName}`;
-            text = `A new job request has been created for vessel ${data.vesselName} at ${data.port}.`;
+            fallbackSubject = `New job request: ${data.vesselName}`;
+            fallbackBody = `A new job request was created for vessel ${data.vesselName} at ${data.port}.`;
             break;
         case 'JOB_ASSIGNED':
-            subject = `New Assignment: ${data.vesselName}`;
-            text = `You have been assigned to survey ${data.vesselName} at ${data.port}. Log in to view details.`;
+            fallbackSubject = `New assignment: ${data.vesselName}`;
+            fallbackBody = `You have been assigned to survey ${data.vesselName} at ${data.port}. Sign in to the GR Class app to view details.`;
             break;
         case 'JOB_APPROVED':
-            subject = `Job Approved: ${data.vesselName}`;
-            text = `Job ${data.jobId} status has been updated to ${data.status}. You may now proceed.`;
+            fallbackSubject = data.vesselName ? `Job update: ${data.vesselName}` : 'Job status update';
+            fallbackBody = data.jobId && data.status
+                ? `Job ${data.jobId} status is now ${data.status}. You may proceed in the app.`
+                : `Your job request has been updated.`;
             break;
         case 'JOB_SENT_BACK':
-            subject = `Action Required: Job ${data.jobId} Sent Back`;
-            text = `Your survey report for ${data.vesselName} was sent back. Remarks: ${data.remarks}`;
+            fallbackSubject = `Action required: Job ${data.jobId}`;
+            fallbackBody = `Your survey report for ${data.vesselName} was sent back for changes. Remarks: ${data.remarks}`;
             break;
         case 'JOB_FINALIZED':
-            subject = `Job Finalized: ${data.vesselName}`;
-            text = `The survey for ${data.vesselName} has been finalized.`;
+            fallbackSubject = `Job finalized: ${data.vesselName}`;
+            fallbackBody = `The survey for ${data.vesselName} has been finalized.`;
             break;
         case 'JOB_DOCUMENT_VERIFIED':
-            subject = `Documents Verified: ${data.vesselName}`;
-            text = `Technical Officer has verified the documents for job on ${data.vesselName}.`;
+            fallbackSubject = `Documents verified: ${data.vesselName}`;
+            fallbackBody = `The Technical Officer has verified documents for the job on ${data.vesselName}.`;
             break;
         case 'JOB_REVIEWED':
-            subject = `Technical Review Passed: ${data.vesselName}`;
-            text = `The technical review for ${data.vesselName} has been passed.`;
+            fallbackSubject = `Technical review: ${data.vesselName}`;
+            fallbackBody = `Technical review for ${data.vesselName} has been completed.`;
             break;
         case 'SURVEY_STARTED':
-            subject = `Survey Started: ${data.vesselName}`;
-            text = `Surveyor ${data.surveyorName} has started the survey inspection on ${data.vesselName}.`;
+            fallbackSubject = `Survey in progress: ${data.vesselName}`;
+            fallbackBody = `Surveyor ${data.surveyorName} has started the inspection on ${data.vesselName}.`;
             break;
         case 'SURVEY_PROOF_UPLOADED':
-            subject = `Evidence Uploaded: ${data.vesselName}`;
-            text = `The evidence proof has been uploaded for the survey on ${data.vesselName}.`;
+            fallbackSubject = `Evidence uploaded: ${data.vesselName}`;
+            fallbackBody = `Evidence proof has been uploaded for the survey on ${data.vesselName}.`;
             break;
         case 'SURVEY_SUBMITTED':
-            subject = `Survey Report Submitted: ${data.vesselName}`;
-            text = `The final survey report for ${data.vesselName} has been submitted and is ready for review.`;
+            fallbackSubject = `Survey report submitted: ${data.vesselName}`;
+            fallbackBody = `The final survey report for ${data.vesselName} has been submitted and is ready for review.`;
             break;
         case 'SURVEY_REWORK_REQUESTED':
-            subject = `Rework Requested: ${data.vesselName}`;
-            text = `A rework has been requested for the survey report on ${data.vesselName}. Reason: ${data.reason}`;
+            fallbackSubject = `Rework requested: ${data.vesselName}`;
+            fallbackBody = `A rework has been requested for the survey report on ${data.vesselName}. Reason: ${data.reason}`;
             break;
         case 'JOB_RESCHEDULED':
-            subject = `Job Rescheduled: ${data.vesselName}`;
-            text = `The job for ${data.vesselName} has been rescheduled to ${data.newDate} at ${data.newPort}. Reason: ${data.reason}`;
+            fallbackSubject = `Job rescheduled: ${data.vesselName}`;
+            fallbackBody = `The job for ${data.vesselName} has been rescheduled to ${data.newDate} at ${data.newPort}. Reason: ${data.reason}`;
             break;
         default:
-            subject = 'Notification from GIRIK';
-            text = JSON.stringify(data, null, 2);
+            fallbackSubject = data.title || 'GR Class notification';
+            fallbackBody = data.message || (typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data));
     }
 
-    return await sendEmail(to, subject, text);
+    const { subject, html } = buildTransactionalNotificationEmail({
+        templateName,
+        data: data || {},
+        fallbackSubject,
+        fallbackBody
+    });
+
+    return await sendEmail(to, subject, html, type);
+};
+
+export default {
+    sendEmail,
+    sendTemplateEmail
 };

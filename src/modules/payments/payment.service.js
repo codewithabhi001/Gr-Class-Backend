@@ -198,60 +198,81 @@ export const getLedger = async (paymentId) =>
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const writeOffPayment = async (paymentId, reason, userId) => {
-    const payment = await Payment.findByPk(paymentId);
-    if (!payment) throw { statusCode: 404, message: 'Payment not found' };
-    // ENUM only supports UNPAID, PAID, ON_HOLD
-    await payment.update({ payment_status: 'ON_HOLD' });
-    await FinancialLedger.create({
-        invoice_id: paymentId, job_id: payment.job_id,
-        transaction_type: 'WRITEOFF', amount: payment.amount,
-        performed_by: userId, remarks: reason, balance_after: 0
-    });
-    return payment;
+    const txn = await db.sequelize.transaction();
+    try {
+        const payment = await Payment.findByPk(paymentId, { transaction: txn, lock: txn.LOCK.UPDATE });
+        if (!payment) throw { statusCode: 404, message: 'Payment not found' };
+        await payment.update({ payment_status: 'ON_HOLD' }, { transaction: txn });
+        await FinancialLedger.create({
+            invoice_id: paymentId, job_id: payment.job_id,
+            transaction_type: 'WRITEOFF', amount: payment.amount,
+            performed_by: userId, remarks: reason, balance_after: 0
+        }, { transaction: txn });
+        await txn.commit();
+        return payment;
+    } catch (e) {
+        await txn.rollback();
+        throw e;
+    }
 };
 
 export const processRefund = async (paymentId, amount, reason, userId) => {
-    const payment = await Payment.findByPk(paymentId);
-    if (!payment) throw { statusCode: 404, message: 'Payment not found' };
+    const txn = await db.sequelize.transaction();
+    try {
+        const payment = await Payment.findByPk(paymentId, { transaction: txn, lock: txn.LOCK.UPDATE });
+        if (!payment) throw { statusCode: 404, message: 'Payment not found' };
 
-    const refundAmount = Math.abs(parseFloat(amount)).toFixed(2);
+        const refundAmount = Math.abs(parseFloat(amount)).toFixed(2);
 
-    await FinancialLedger.create({
-        invoice_id: paymentId, job_id: payment.job_id,
-        transaction_type: 'REFUND', amount: -refundAmount,
-        performed_by: userId, remarks: reason, balance_after: 0
-    });
+        await FinancialLedger.create({
+            invoice_id: paymentId, job_id: payment.job_id,
+            transaction_type: 'REFUND', amount: -refundAmount,
+            performed_by: userId, remarks: reason, balance_after: 0
+        }, { transaction: txn });
 
-    // Also mark the payment on hold or adjust status if needed
-    // await payment.update({ payment_status: 'ON_HOLD' });
-
-    return { id: payment.id, refunded_amount: refundAmount };
+        await txn.commit();
+        return { id: payment.id, refunded_amount: refundAmount };
+    } catch (e) {
+        await txn.rollback();
+        throw e;
+    }
 };
 
 export const recordPartialPayment = async (paymentId, amount, userId) => {
-    const payment = await Payment.findByPk(paymentId);
-    if (!payment) throw { statusCode: 404, message: 'Payment not found' };
+    const txn = await db.sequelize.transaction();
+    try {
+        const payment = await Payment.findByPk(paymentId, { transaction: txn, lock: txn.LOCK.UPDATE });
+        if (!payment) throw { statusCode: 404, message: 'Payment not found' };
 
-    const payingNow = parseFloat(amount);
+        const payingNow = parseFloat(amount);
 
-    // Find previous partial payments
-    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: paymentId, transaction_type: 'PARTIAL_PAYMENT' } });
-    const previouslyPaid = ledgers.reduce((sum, l) => sum + parseFloat(l.amount), 0);
+        const ledgers = await FinancialLedger.findAll({
+            where: { invoice_id: paymentId, transaction_type: 'PARTIAL_PAYMENT' },
+            transaction: txn
+        });
+        const previouslyPaid = ledgers.reduce((sum, l) => sum + parseFloat(l.amount), 0);
 
-    await FinancialLedger.create({
-        invoice_id: paymentId, job_id: payment.job_id,
-        transaction_type: 'PARTIAL_PAYMENT', amount: payingNow,
-        performed_by: userId, remarks: 'Partial payment recorded', balance_after: 0
-    });
+        await FinancialLedger.create({
+            invoice_id: paymentId, job_id: payment.job_id,
+            transaction_type: 'PARTIAL_PAYMENT', amount: payingNow,
+            performed_by: userId, remarks: 'Partial payment recorded', balance_after: 0
+        }, { transaction: txn });
 
-    const totalPaid = previouslyPaid + payingNow;
-    const remaining = Math.max(0, parseFloat(payment.amount) - totalPaid).toFixed(2);
+        const totalPaid = previouslyPaid + payingNow;
+        const remaining = Math.max(0, parseFloat(payment.amount) - totalPaid).toFixed(2);
 
-    // Auto mark PAID if balance is 0
-    if (remaining <= 0 && payment.payment_status !== 'PAID') {
-        await payment.update({ payment_status: 'PAID', payment_date: new Date(), verified_by_user_id: userId });
-        // Status update removed as payment is now a parallel track guard.
+        if (remaining <= 0 && payment.payment_status !== 'PAID') {
+            await payment.update({
+                payment_status: 'PAID',
+                payment_date: new Date(),
+                verified_by_user_id: userId
+            }, { transaction: txn });
+        }
+
+        await txn.commit();
+        return { id: payment.id, amount_paid: totalPaid.toFixed(2), remaining };
+    } catch (e) {
+        await txn.rollback();
+        throw e;
     }
-
-    return { id: payment.id, amount_paid: totalPaid.toFixed(2), remaining };
 };

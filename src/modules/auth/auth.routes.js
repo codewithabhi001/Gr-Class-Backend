@@ -11,6 +11,12 @@ const authLimiter = rateLimit({
     message: { success: false, message: 'Too many attempts, please try again later.' }
 });
 
+const refreshLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: { success: false, message: 'Too many refresh attempts, please try again later.' }
+});
+
 const router = express.Router();
 
 // Login with credentials (email/password)
@@ -25,7 +31,7 @@ router.post('/logout', authenticate, authController.logout);
 
 // Refresh access token using refresh token
 // Access: Public (requires valid refresh token)
-router.post('/refresh-token', validate(schemas.refreshToken), authController.refreshToken);
+router.post('/refresh-token', refreshLimiter, validate(schemas.refreshToken), authController.refreshToken);
 
 // Request password reset (Send OTP/Link)
 // Access: Public

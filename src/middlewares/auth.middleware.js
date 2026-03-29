@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import env from '../config/env.js';
 import db from '../models/index.js';
-import { tokenBlacklist } from '../modules/auth/auth.service.js';
+import * as tokenBlacklistService from '../services/tokenBlacklist.service.js';
 
 // ── In-memory user cache to avoid DB hit on every authenticated request ──
 const _userCache = new Map();
@@ -24,7 +24,7 @@ export const authenticate = async (req, res, next) => {
             return res.status(401).json({ message: 'Authentication token missing or invalid' });
         }
 
-        if (tokenBlacklist.has(token)) {
+        if (await tokenBlacklistService.isTokenBlacklisted(token)) {
             return res.status(401).json({ message: 'Token has been revoked' });
         }
 
@@ -70,6 +70,38 @@ export const authenticate = async (req, res, next) => {
     } catch (error) {
         return res.status(401).json({ message: 'Invalid token' });
     }
+};
+
+/**
+ * Sets req.user when a valid access token is present; otherwise continues without auth.
+ * Used for routes that behave differently for anonymous vs admin (e.g. preview unpublished CMS).
+ */
+export const optionalAuthenticate = async (req, res, next) => {
+    try {
+        let token;
+        if (req.cookies && req.cookies.token) {
+            token = req.cookies.token;
+        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        if (!token || await tokenBlacklistService.isTokenBlacklisted(token)) {
+            return next();
+        }
+
+        const decoded = jwt.verify(token, env.jwt.accessSecret);
+        if (decoded.type === 'refresh') {
+            return next();
+        }
+
+        const user = await db.User.findByPk(decoded.id);
+        if (user && user.status === 'ACTIVE') {
+            req.user = user;
+            req.token = token;
+        }
+    } catch {
+        // Invalid or expired token — treat as anonymous
+    }
+    next();
 };
 
 export const authorize = (...roles) => {

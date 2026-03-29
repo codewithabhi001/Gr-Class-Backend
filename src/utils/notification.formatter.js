@@ -14,10 +14,18 @@ const formats = {
         title: 'Documents Verified ✅',
         message: `Documents for job on "${data.vesselName}" have been verified by the Technical Officer.`
     }),
-    'JOB_APPROVED': (data) => ({
-        title: 'Job Approved 👍',
-        message: `The job request for "${data.vesselName}" has been approved.`
-    }),
+    'JOB_APPROVED': (data) => {
+        if (data.status === 'SURVEY_AUTHORIZED') {
+            return {
+                title: 'Survey authorized',
+                message: `The survey for "${data.vesselName}" is authorized. You may begin the inspection in the GR Class app.`
+            };
+        }
+        return {
+            title: 'Job approved',
+            message: `The job request for "${data.vesselName}" has been approved.`
+        };
+    },
     'JOB_ASSIGNED': (data) => ({
         title: 'New Assignment 🚢',
         message: `You have been assigned to a new survey for "${data.vesselName}" at "${data.port}".`

@@ -77,6 +77,7 @@ async function makeFakeCert(fx) {
 async function run() {
     console.log('\n════ Final Production Hardening — Integration Tests ════\n');
     const fx = await seedBase();
+    const tmUser = { id: fx.tmId, role: 'TM' };
 
     // ══════════════════════════════════════════════════════════
     // SECTION 1: Happy Path (sanity check)
@@ -135,7 +136,7 @@ async function run() {
         await makeSurvey(jobId, fx.surveyorId, 'FINALIZED');
 
         await expectStatus('Certificate before PAYMENT_DONE → 400', 400, async () => {
-            await certSvc.generateCertificate({ job_id: jobId }, fx.tmId);
+            await certSvc.generateCertificate({ job_id: jobId }, tmUser);
         });
     }
 
@@ -145,7 +146,7 @@ async function run() {
         await makeSurvey(jobId, fx.surveyorId, 'SUBMITTED'); // not finalized
 
         await expectStatus('Certificate with survey not FINALIZED → 400', 400, async () => {
-            await certSvc.generateCertificate({ job_id: jobId }, fx.tmId);
+            await certSvc.generateCertificate({ job_id: jobId }, tmUser);
         });
     }
 
@@ -157,7 +158,7 @@ async function run() {
         await db.JobRequest.update({ generated_certificate_id: certId }, { where: { id: jobId } });
 
         await expectStatus('Double certificate → 409', 409, async () => {
-            await certSvc.generateCertificate({ job_id: jobId }, fx.tmId);
+            await certSvc.generateCertificate({ job_id: jobId }, tmUser);
         });
     }
 

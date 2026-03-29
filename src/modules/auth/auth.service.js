@@ -4,6 +4,7 @@ import db from '../../models/index.js';
 import env from '../../config/env.js';
 import * as emailService from '../../services/email.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
+import * as tokenBlacklistService from '../../services/tokenBlacklist.service.js';
 import { passwordReset as passwordResetTemplate } from '../../email-templates/index.js';
 
 const User = db.User;
@@ -116,10 +117,8 @@ export const register = async (userData, options = {}) => {
     };
 };
 
-export const tokenBlacklist = new Set();
-
 export const logout = async (userId, token) => {
-    if (token) tokenBlacklist.add(token);
+    if (token) await tokenBlacklistService.blacklistToken(token);
     return true;
 };
 
@@ -171,8 +170,10 @@ export const forgotPassword = async (email) => {
     const resetToken = generatePasswordResetToken(user);
     const baseUrl = (env.frontendUrl || '').replace(/\/$/, '');
     const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
-    const { subject, text, html } = passwordResetTemplate({ userName: user.name, resetLink });
-    emailService.sendEmail(user.email, subject, text, html).catch(err => console.error('Background Email error:', err));
+    const { subject, html } = passwordResetTemplate({ userName: user.name, resetLink });
+    emailService.sendEmail(user.email, subject, html, 'system').catch((err) =>
+        console.error('Background Email error:', err)
+    );
 };
 
 export const resetPassword = async (token, newPassword) => {

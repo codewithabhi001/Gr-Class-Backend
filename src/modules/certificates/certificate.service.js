@@ -7,6 +7,7 @@ import { buildFallbackCertificateHtml } from './templates/fallback-certificate.t
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import env from '../../config/env.js';
+import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
 import QRCode from 'qrcode';
 
 const Certificate = db.Certificate;
@@ -141,7 +142,7 @@ export const updateCertificateType = async (id, data) => {
 };
 
 export const generateCertificate = async (data, user) => {
-    if (!['ADMIN', 'GM', 'TM'].includes(user.role)) {
+    if (!isRoleAllowed(RBAC.GENERATE_CERTIFICATE, user.role)) {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
     }
     const userId = user.id;
