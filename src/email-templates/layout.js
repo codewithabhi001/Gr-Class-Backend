@@ -1,26 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-let _logoDataUriCache = null;
-
-/**
- * Inline logo for email clients (no external URL required). Cached after first read.
- * @returns {string | null}
- */
-export const getLogoDataUri = () => {
-    if (_logoDataUriCache !== null) return _logoDataUriCache;
-    try {
-        const logoPath = path.join(__dirname, 'assets', 'logo.png');
-        const buf = fs.readFileSync(logoPath);
-        _logoDataUriCache = `data:image/png;base64,${buf.toString('base64')}`;
-    } catch {
-        _logoDataUriCache = '';
-    }
-    return _logoDataUriCache || null;
-};
+// (getLogoPath and getLogoCid removed — using CSS logo instead)
 
 /**
  * Escapes text for safe use inside HTML body content.
@@ -43,13 +22,12 @@ export const escapeHtml = (value) => {
  * @returns {string}
  */
 export const wrapGrclassEmail = ({ title, innerHtml, preheader = '' }) => {
-    const logoUri = getLogoDataUri();
     const safeTitle = escapeHtml(title);
     const pre = escapeHtml(preheader).slice(0, 200);
 
-    const logoBlock = logoUri
-        ? `<img src="${logoUri}" alt="GR Class" width="56" height="56" style="display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid #e2e8f0;" />`
-        : `<div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#1e3a5f 0%,#0f172a 100%);color:#fff;font-weight:700;font-size:18px;line-height:56px;text-align:center;">GR</div>`;
+    const logoBlock = `
+    <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#38bdf8 0%,#1d4ed8 100%);color:#ffffff;font-family:'Outfit',system-ui,sans-serif;font-weight:700;font-size:20px;line-height:56px;text-align:center;box-shadow:0 4px 12px rgba(29,78,216,0.2);">GR</div>
+    `;
 
     return `<!DOCTYPE html>
 <html lang="en">

@@ -19,7 +19,7 @@ async function runTest() {
                 model: db.User,
                 required: true,
                 attributes: ['id', 'name'],
-                where: { role: 'SURVEYOR', status: 'ACTIVE' ,email: 'abhisheksingh9709844475@gmail.com'}
+                where: { role: 'SURVEYOR', status: 'ACTIVE' ,email: 'abhivishwkarmaa52@gmail.com'}
             }]
         });
         console.log(surveyorProfile);

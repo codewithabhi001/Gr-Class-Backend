@@ -1,5 +1,4 @@
-import { SendEmailCommand } from '@aws-sdk/client-ses';
-import sesClient, { SENDER_MAP } from '../config/emailConfig.js';
+import { mailTransporter, SENDER_MAP } from '../config/emailConfig.js';
 import { renderEmailTemplate } from '../email-templates/index.js';
 import { buildTransactionalNotificationEmail } from '../email-templates/notification-html.js';
 import logger from '../utils/logger.js';
@@ -42,7 +41,7 @@ const withRetry = async (operation, retries = 2) => {
 };
 
 /**
- * Main function to send transactional emails via AWS SES API
+ * Main function to send transactional emails via AWS SES (using Nodemailer transport)
  * 
  * @param {string | string[]} to - Recipient(s)
  * @param {string} subject - Email subject
@@ -55,21 +54,17 @@ export const sendEmail = async (to, subject, body, type = 'system') => {
         const recipients = validateEmailParams(to, subject, body);
         const fromEmail = SENDER_MAP[type] || SENDER_MAP.system;
 
-        const input = {
-            Source: fromEmail,
-            Destination: { ToAddresses: recipients },
-            Message: {
-                Subject: { Data: subject, Charset: 'UTF-8' },
-                Body: { Html: { Data: body, Charset: 'UTF-8' } },
-            },
+        const mailOptions = {
+            from: fromEmail,
+            to: recipients.join(','),
+            subject: subject,
+            html: body
         };
 
-        const command = new SendEmailCommand(input);
+        // Attempt send via Nodemailer (using our SES transporter) with retries
+        const response = await withRetry(() => mailTransporter.sendMail(mailOptions), 2);
 
-        // Attempt send with retries
-        const response = await withRetry(() => sesClient.send(command), 2);
-
-        logger.info(`[EmailService] Email sent to ${recipients.join(',')} from ${fromEmail}. MessageId: ${response.MessageId}`);
+        logger.info(`[EmailService] Email sent to ${recipients.join(',')} from ${fromEmail}. MessageId: ${response.messageId}`);
         return true;
     } catch (error) {
         logger.error(`[EmailService] Error sending email: ${error.message}`, {
