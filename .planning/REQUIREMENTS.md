@@ -15,4 +15,8 @@
 - Native Mobile App Module — The immediate API scope covers web portal endpoints (as outlined by the monolith restructuring).
 
 ## Traceability
-<!-- Filled down by roadmap -->
+
+- **CORE-01** → Phase 1
+- **CORE-02** → Phase 3
+- **CORE-03** → Phase 2
+- **CORE-04** → Phase 4
