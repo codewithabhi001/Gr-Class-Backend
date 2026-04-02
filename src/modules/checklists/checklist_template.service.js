@@ -129,6 +129,10 @@ export const updateChecklistTemplate = async (id, data, userId) => {
         throw { statusCode: 404, message: 'Checklist template not found' };
     }
 
+    if (template.status !== 'DRAFT') {
+        throw { statusCode: 400, message: 'Cannot modify a finalized Checklist Template. Please clone and version increment instead.' };
+    }
+
     return await template.update({
         ...data,
         updated_by: userId
@@ -177,14 +181,20 @@ export const cloneChecklistTemplate = async (id, userId) => {
         throw { statusCode: 404, message: 'Checklist template not found' };
     }
 
+    const metadata = { ...(originalTemplate.metadata || {}) };
+    metadata.version = metadata.version ? (parseFloat(metadata.version) + 1.0).toFixed(1) : "2.0";
+
+    const baseCode = originalTemplate.code.split('_V')[0]; // Strip old version suffix if present
+    const newVersionSuffix = `_V${metadata.version.replace('.', '_')}`;
+
     const newTemplate = await ChecklistTemplate.create({
-        name: `${originalTemplate.name} (Copy)`,
-        code: `${originalTemplate.code}_COPY_${Date.now()}`,
+        name: originalTemplate.name, // Keep the same name to align visually as subsequent version
+        code: `${baseCode}${newVersionSuffix}`,
         description: originalTemplate.description,
         sections: originalTemplate.sections,
         certificate_type_id: originalTemplate.certificate_type_id,
         status: 'DRAFT',
-        metadata: originalTemplate.metadata,
+        metadata: metadata,
         created_by: userId,
         updated_by: userId
     });
