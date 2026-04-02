@@ -41,3 +41,53 @@ export const applyDataScope = (scopeFn) => {
 };
 
 export const hasRole = authorizeRoles;
+
+/**
+ * Middleware to enforce separation of duties.
+ * Prevents a user from acting on an entity they previously owned/assigned.
+ * @param {string} modelName - The Sequelize model name (e.g., 'JobRequest')
+ * @param {string} matchField - The field on the entity to compare against req.user.id (e.g., 'assigned_by_user_id')
+ * @param {string} paramNames - Comma separated possible req.params to check for entity ID (default: 'jobId,id')
+ */
+export const preventSelfApproval = (modelName, matchField, paramNames = 'jobId,id') => {
+    return async (req, res, next) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ success: false, message: 'User not authenticated' });
+            }
+
+            const db = (await import('../models/index.js')).default;
+            const Model = db[modelName];
+            
+            if (!Model) {
+                return next();
+            }
+
+            // Find the first matching param
+            const possibleParams = paramNames.split(',');
+            let entityId = null;
+            for (const param of possibleParams) {
+                if (req.params[param]) {
+                    entityId = req.params[param];
+                    break;
+                }
+            }
+
+            if (!entityId) return next();
+
+            const entity = await Model.findByPk(entityId);
+            if (!entity) return next();
+
+            if (entity[matchField] === req.user.id) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Separation of duties violation: You cannot verify/approve an entity you created or assigned.'
+                });
+            }
+
+            next();
+        } catch (err) {
+            next(err);
+        }
+    };
+};

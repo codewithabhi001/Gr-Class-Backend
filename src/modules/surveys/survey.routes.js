@@ -2,7 +2,7 @@ import express from 'express';
 import { docUpload } from '../../utils/upload.util.js';
 import * as surveyController from './survey.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
-import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
+import { authorizeRoles, preventSelfApproval } from '../../middlewares/rbac.middleware.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
 
 const upload = docUpload;
@@ -59,6 +59,7 @@ router.post(
 router.put(
     '/jobs/:jobId/finalize',
     authorizeRoles('ADMIN', 'TM'),
+    preventSelfApproval('JobRequest', 'assigned_by_user_id'),
     surveyController.finalizeSurvey
 );
 
