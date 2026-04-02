@@ -47,5 +47,9 @@ export default (sequelize, DataTypes) => {
         AuditLog.belongsTo(models.User, { foreignKey: 'user_id' });
     };
 
+    AuditLog.addHook('beforeDestroy', () => {
+        throw new Error('Immutable Audit Trail cannot be deleted.');
+    });
+
     return AuditLog;
 };

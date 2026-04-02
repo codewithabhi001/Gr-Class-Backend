@@ -52,6 +52,32 @@ const loadModels = async () => {
         }
     });
 
+    // Attach Immutable Audit Trail hooks to Critical Workflow states
+    const auditableModels = ['JobRequest', 'Survey', 'Certificate'];
+    auditableModels.forEach(modelName => {
+        const Model = db[modelName];
+        if (!Model) return;
+
+        const auditAction = async (instance, options, action) => {
+            if (!db.AuditLog) return;
+            const auditData = {
+                action,
+                entity_name: modelName,
+                entity_id: instance.id,
+                old_values: action === 'CREATE' ? null : (instance._previousDataValues || null),
+                new_values: action === 'DELETE' ? null : (instance.dataValues || null),
+                user_id: options?.user_id || null, // Passed in queries: { user_id: req.user.id }
+                ip_address: options?.ip_address || null,
+                user_agent: options?.user_agent || null
+            };
+            await db.AuditLog.create(auditData, { transaction: options?.transaction });
+        };
+
+        Model.addHook('afterCreate', async (instance, options) => auditAction(instance, options, 'CREATE'));
+        Model.addHook('afterUpdate', async (instance, options) => auditAction(instance, options, 'UPDATE'));
+        Model.addHook('afterDestroy', async (instance, options) => auditAction(instance, options, 'DELETE'));
+    });
+
     db.sequelize = sequelize;
     db.Sequelize = Sequelize;
 };
