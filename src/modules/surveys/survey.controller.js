@@ -98,3 +98,12 @@ export const issueStatement = async (req, res, next) => {
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };
+
+// POST /surveys/jobs/:jobId/sync
+export const syncOfflineData = async (req, res, next) => {
+    try {
+        const result = await surveyService.syncOfflineData(req.params.jobId, req.body, req.user.id);
+        res.json({ success: true, ...result });
+    } catch (error) { next(error); }
+};
+

@@ -608,3 +608,85 @@ export const flagViolation = async (jobId, userId) => {
     });
     return { message: 'Violation flagged and admins notified.' };
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OFFLINE SYNC — Batch replay field-captured data
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * SURVEYOR action.
+ * Accepts a batched payload captured offline (checklist answers, GPS points).
+ * Re-plays all items inside a single transaction for atomicity.
+ *
+ * Payload shape:
+ * {
+ *   checklist: [{ question_code, question_text, answer, remarks }],
+ *   gps_points: [{ latitude, longitude, captured_at }]
+ * }
+ */
+export const syncOfflineData = async (jobId, { checklist = [], gps_points = [] }, userId) => {
+    // Guard: job must be accessible and surveyor must match
+    const job = await assertJobAccessible(jobId, userId, {
+        checkSurveyor: true,
+        allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE']
+    });
+
+    const survey = await requireSurvey(jobId);
+    assertSurveyNotFinalized(survey);
+
+    const txn = await db.sequelize.transaction();
+    try {
+        // 1. Upsert checklist answers (ActivityPlanning rows)
+        let checklistSynced = 0;
+        if (checklist.length > 0) {
+            for (const item of checklist) {
+                await ActivityPlanning.upsert({
+                    job_id: jobId,
+                    question_code: item.question_code,
+                    question_text: item.question_text,
+                    answer: item.answer,
+                    remarks: item.remarks || null
+                }, { transaction: txn });
+            }
+            checklistSynced = checklist.length;
+        }
+
+        // 2. Bulk create GPS points (historical replay)
+        let gpsSynced = 0;
+        if (gps_points.length > 0) {
+            const gpsRows = gps_points.map(p => ({
+                surveyor_id: userId,
+                job_id: jobId,
+                latitude: p.latitude,
+                longitude: p.longitude,
+                timestamp: p.captured_at ? new Date(p.captured_at) : new Date()
+            }));
+            await GpsTracking.bulkCreate(gpsRows, { transaction: txn });
+            gpsSynced = gps_points.length;
+        }
+
+        await txn.commit();
+
+        logger.info({
+            entity: 'SURVEY',
+            event: 'OFFLINE_SYNC',
+            jobId,
+            surveyId: survey.id,
+            checklistSynced,
+            gpsSynced,
+            triggeredBy: userId
+        });
+
+        return {
+            message: 'Offline data synced successfully.',
+            synced: {
+                checklist_items: checklistSynced,
+                gps_points: gpsSynced
+            }
+        };
+    } catch (error) {
+        if (!txn.finished) await txn.rollback();
+        throw error;
+    }
+};
+

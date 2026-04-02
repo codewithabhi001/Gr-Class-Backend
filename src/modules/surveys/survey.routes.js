@@ -42,6 +42,13 @@ router.post(
     surveyController.streamLocation
 );
 
+// Step 3c: Offline sync — replay batched checklist answers and GPS points
+router.post(
+    '/jobs/:jobId/sync',
+    authorizeRoles('SURVEYOR'),
+    surveyController.syncOfflineData
+);
+
 // Step 4: Check-out / submit final survey report (survey must be PROOF_UPLOADED)
 router.post(
     '/',
