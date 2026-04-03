@@ -4,21 +4,21 @@ SiteStaticContent:
     id:
       type: string
       format: uuid
-      example: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+      example: "018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h"
     slug:
       type: string
-      example: "about-us"
+      example: "vessel-inspection-faq"
     title:
       type: string
-      example: "About Girik Class"
+      example: "Vessel Inspection Frequently Asked Questions"
     content_type:
       type: string
       enum: [PAGE, FAQ]
-      example: "PAGE"
+      example: "FAQ"
     body_html:
       type: string
       nullable: true
-      example: "<h1>About Us</h1><p>Girik Class is a leading classification society...</p>"
+      example: "<h1>Inspection Guidelines</h1><p>Rules for inspection...</p>"
     faq_items:
       type: array
       nullable: true
@@ -27,10 +27,10 @@ SiteStaticContent:
         properties:
           question:
             type: string
-            example: "What is your certification process?"
+            example: "What documents are required for the survey?"
           answer:
             type: string
-            example: "Our process involves an initial application, document review, and physical inspection."
+            example: "You need the previous certification, safety management manual, and technical specifications."
           sort_order:
             type: integer
             example: 0
@@ -40,9 +40,11 @@ SiteStaticContent:
     updated_at:
       type: string
       format: date-time
+      example: "2026-04-03T12:00:00Z"
     created_at:
       type: string
       format: date-time
+      example: "2026-04-01T09:30:00Z"
 
 SiteStaticContentInput:
   type: object
@@ -50,34 +52,55 @@ SiteStaticContentInput:
     - slug
     - title
     - content_type
-  properties:
-    slug:
-      type: string
-      example: "terms-and-conditions"
-    title:
-      type: string
-      example: "Terms and Conditions"
-    content_type:
-      type: string
-      enum: [PAGE, FAQ]
-      example: "PAGE"
-    body_html:
-      type: string
-      example: "<p>These are the terms...</p>"
-    faq_items:
-      type: array
-      items:
-        type: object
-        properties:
-          question:
-            type: string
-            example: "Is this dynamic?"
-          answer:
-            type: string
-            example: "Yes, fully managed from admin."
-          sort_order:
-            type: integer
-            example: 1
-    is_published:
-      type: boolean
-      example: false
+  oneOf:
+    - title: PAGE Content
+      required: [body_html]
+      properties:
+        slug:
+          type: string
+          example: "about-girik"
+        title:
+          type: string
+          example: "About Girik Class"
+        content_type:
+          type: string
+          enum: [PAGE]
+          example: "PAGE"
+        body_html:
+          type: string
+          example: "<article><h2>Our Mission</h2><p>To ensure global maritime safety through rigorous standards.</p></article>"
+        is_published:
+          type: boolean
+          example: true
+    - title: FAQ Content
+      required: [faq_items]
+      properties:
+        slug:
+          type: string
+          example: "service-faq"
+        title:
+          type: string
+          example: "Service FAQ"
+        content_type:
+          type: string
+          enum: [FAQ]
+          example: "FAQ"
+        faq_items:
+          type: array
+          items:
+            type: object
+            required: [question, answer]
+            properties:
+              question:
+                type: string
+                example: "How long does a survey take?"
+              answer:
+                type: string
+                example: "Typically 1-3 working days depending on the vessel size."
+              sort_order:
+                type: integer
+                example: 1
+        is_published:
+          type: boolean
+          example: true
+
