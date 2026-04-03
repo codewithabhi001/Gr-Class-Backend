@@ -1,0 +1,83 @@
+SiteStaticContent:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      example: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+    slug:
+      type: string
+      example: "about-us"
+    title:
+      type: string
+      example: "About Girik Class"
+    content_type:
+      type: string
+      enum: [PAGE, FAQ]
+      example: "PAGE"
+    body_html:
+      type: string
+      nullable: true
+      example: "<h1>About Us</h1><p>Girik Class is a leading classification society...</p>"
+    faq_items:
+      type: array
+      nullable: true
+      items:
+        type: object
+        properties:
+          question:
+            type: string
+            example: "What is your certification process?"
+          answer:
+            type: string
+            example: "Our process involves an initial application, document review, and physical inspection."
+          sort_order:
+            type: integer
+            example: 0
+    is_published:
+      type: boolean
+      example: true
+    updated_at:
+      type: string
+      format: date-time
+    created_at:
+      type: string
+      format: date-time
+
+SiteStaticContentInput:
+  type: object
+  required:
+    - slug
+    - title
+    - content_type
+  properties:
+    slug:
+      type: string
+      example: "terms-and-conditions"
+    title:
+      type: string
+      example: "Terms and Conditions"
+    content_type:
+      type: string
+      enum: [PAGE, FAQ]
+      example: "PAGE"
+    body_html:
+      type: string
+      example: "<p>These are the terms...</p>"
+    faq_items:
+      type: array
+      items:
+        type: object
+        properties:
+          question:
+            type: string
+            example: "Is this dynamic?"
+          answer:
+            type: string
+            example: "Yes, fully managed from admin."
+          sort_order:
+            type: integer
+            example: 1
+    is_published:
+      type: boolean
+      example: false
