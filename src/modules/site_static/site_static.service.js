@@ -89,7 +89,7 @@ export const list = async (opts = {}) => {
     const where = forAdmin ? {} : { is_published: true };
     const rows = await SiteStaticContent.findAll({
         where,
-        attributes: ['id', 'slug', 'title', 'content_type', 'is_published', 'thumbnail_url', 'published_at', 'updated_at'],
+        attributes: ['id', 'slug', 'title', 'content_type', 'is_published', 'thumbnail_url', 'published_at', 'updated_at', 'created_at'],
         order: [['published_at', 'DESC'], ['slug', 'ASC']]
     });
     return rows.map((r) => {
