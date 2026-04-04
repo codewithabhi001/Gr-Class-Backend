@@ -57,16 +57,17 @@ const formatThumbnailUrl = (url) => {
 
 const toPublicRow = (row) => {
     if (!row) return null;
+    const lastUpdated = row.updated_at || row.updatedAt;
     return {
         id: row.id,
         slug: row.slug,
+        last_updated_at: lastUpdated,
         title: row.title,
         content_type: row.content_type,
         body_html: row.body_html,
         thumbnail_url: formatThumbnailUrl(row.thumbnail_url),
         faq_items: row.faq_items,
         published_at: row.published_at,
-        updated_at: row.updated_at || row.updatedAt,
         created_at: row.created_at || row.createdAt
     };
 };
@@ -93,14 +94,15 @@ export const list = async (opts = {}) => {
         order: [['published_at', 'DESC'], ['slug', 'ASC']]
     });
     return rows.map((r) => {
+        const lastUpdated = r.updated_at || r.updatedAt;
         const base = {
             id: r.id,
             slug: r.slug,
+            last_updated_at: lastUpdated, // Key renamed and moved up
             title: r.title,
             content_type: r.content_type,
             thumbnail_url: formatThumbnailUrl(r.thumbnail_url),
             published_at: r.published_at,
-            updated_at: r.updated_at || r.updatedAt,
             created_at: r.created_at || r.createdAt
         };
         if (forAdmin) base.is_published = r.is_published;
