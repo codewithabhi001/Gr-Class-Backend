@@ -28,3 +28,13 @@ export const listSubscribers = async (req, res, next) => {
         next(error);
     }
 };
+
+export const broadcast = async (req, res, next) => {
+    try {
+        const { emails, subject, message } = req.body;
+        const result = await NewsletterService.broadcastMessage(emails, subject, message);
+        res.status(200).json({ success: true, ...result });
+    } catch (error) {
+        next(error);
+    }
+};
