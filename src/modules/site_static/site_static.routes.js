@@ -15,14 +15,12 @@ router.post(
     '/',
     authenticate,
     authorizeRoles('ADMIN'),
-    validate(schemas.createSiteStaticContent),
     siteStaticController.create
 );
 router.put(
     '/:slug',
     authenticate,
     authorizeRoles('ADMIN'),
-    validate(schemas.updateSiteStaticContent),
     siteStaticController.update
 );
 router.delete(

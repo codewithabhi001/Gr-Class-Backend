@@ -21,6 +21,7 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
     'https://grclass.com',
     'https://www.grclass.com',
+    'https://grclass.com',
     'https://ops.grclass.com',
     'https://www.ops.grclass.com',
     'http://localhost:3000',
