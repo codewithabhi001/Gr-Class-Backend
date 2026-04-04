@@ -65,6 +65,11 @@ export function setupSwagger(app) {
 
   // Swagger UI: serve static first, then custom HTML for index paths
   const customHandler = (req, res, next) => {
+    // If it's a static file request (.css, .js, .png, etc.), let swaggerUi.serve handle it
+    if (req.path.includes('.') || req.path.endsWith('.css') || req.path.endsWith('.js')) {
+      return next();
+    }
+
     // Determine role from path: /api-docs/admin -> admin, /api-docs -> all
     const pathParts = req.path.replace(/^\//, '').split('/').filter(Boolean);
     const roleSlug = pathParts[0] && ROLE_SLUGS.includes(pathParts[0].toLowerCase())
@@ -72,7 +77,9 @@ export function setupSwagger(app) {
       : null;
 
     const role = roleSlug ? ROLE_MAP[roleSlug] : 'all';
-    const isRootDocs = req.path === '/' || req.path === '';
+    
+    // Check if we are at the root or a role-specific root
+    const isRootDocs = req.path === '/' || req.path === '' || (roleSlug && pathParts.length === 1);
 
     const html = isRootDocs
       ? swaggerUi.generateHTML(null, {
