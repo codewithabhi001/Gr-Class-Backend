@@ -1,7 +1,8 @@
 import express from 'express';
 import * as NewsletterController from './newsletter.controller.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
-import { authenticate, authorizeRoles } from '../../middlewares/auth.middleware.js';
+import { authenticate } from '../../middlewares/auth.middleware.js';
+import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 
 const router = express.Router();
 
@@ -11,5 +12,6 @@ router.post('/unsubscribe', validate(schemas.newsletterUnsubscribe), NewsletterC
 
 // Admin routes
 router.get('/subscribers', authenticate, authorizeRoles('ADMIN'), NewsletterController.listSubscribers);
+router.post('/send', authenticate, authorizeRoles('ADMIN'), validate(schemas.newsletterSend), NewsletterController.broadcast);
 
 export default router;
