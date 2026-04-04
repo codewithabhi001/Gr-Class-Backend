@@ -101,6 +101,19 @@ export const register = async (userData, options = {}) => {
         transaction ? { transaction } : undefined
     );
 
+    // Send Welcome Email
+    try {
+        await emailService.sendTemplateEmail(user.email, 'WELCOME_USER', {
+            name: user.name,
+            email: user.email,
+            password: userData.password,
+            loginUrl: 'https://grclass.com'
+        });
+        console.log(`[AuthService] Welcome email sent to ${user.email}`);
+    } catch (emailError) {
+        console.error(`[AuthService] Failed to send welcome email:`, emailError);
+    }
+
     const resolvedUser = await fileAccessService.resolveEntity(user);
     const userObj = {
         id: resolvedUser.id,

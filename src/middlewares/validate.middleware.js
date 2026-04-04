@@ -45,7 +45,9 @@ export const schemas = {
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
         role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').required(),
         company_name: Joi.string().optional(),
-    }),
+        client_id: Joi.string().guid().optional().allow(null, ''),
+        phone: Joi.string().optional().allow('', null)
+    }).unknown(true),
     createJob: Joi.object({
         vessel_id: Joi.string().guid().required(),
         certificate_type_id: Joi.string().guid().required(),
@@ -165,14 +167,13 @@ export const schemas = {
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
         role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').required(),
-        phone: Joi.string().optional().allow(''),
-        client_id: Joi.string().guid().optional().allow(null),
-        // Allow surveyor extra fields if role is SURVEYOR (though safer to use specialized schema)
+        phone: Joi.string().optional().allow('', null),
+        client_id: Joi.string().guid().optional().allow(null, ''),
         license_number: Joi.string().optional().allow(''),
         authorized_ship_types: Joi.array().items(Joi.string()).optional(),
         authorized_certificates: Joi.array().items(Joi.string()).optional(),
         valid_from: Joi.date().iso().optional(),
-    }),
+    }).unknown(true),
     createSurveyor: Joi.object({
         name: Joi.string().required(),
         email: Joi.string().email().required(),
