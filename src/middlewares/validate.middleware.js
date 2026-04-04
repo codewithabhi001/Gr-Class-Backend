@@ -430,26 +430,28 @@ export const schemas = {
         title: Joi.string().min(1).max(200).required(),
         content_type: Joi.string().valid('PAGE', 'FAQ', 'NEWS').required(),
         body_html: Joi.string().allow('', null).optional(),
-        thumbnail_url: Joi.string().uri().allow('', null).optional(),
+        thumbnail_url: Joi.string().allow('', null).optional(),
         faq_items: Joi.array().items(Joi.object({
             question: Joi.string().max(2000).required(),
             answer: Joi.string().max(50000).required(),
             sort_order: Joi.number().integer().min(0).optional(),
         })).optional(),
         is_published: Joi.boolean().optional(),
-    }),
+    }).unknown(true),
     updateSiteStaticContent: Joi.object({
-        title: Joi.string().min(1).max(200).optional(),
+        slug: Joi.string().pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(64).optional(),
+        title: Joi.string().min(1).max(2000).optional(),
         content_type: Joi.string().valid('PAGE', 'FAQ', 'NEWS').optional(),
         body_html: Joi.string().allow('', null).optional(),
-        thumbnail_url: Joi.string().uri().allow('', null).optional(),
+        thumbnail_url: Joi.string().allow('', null).optional(),
         faq_items: Joi.array().items(Joi.object({
             question: Joi.string().max(2000).required(),
             answer: Joi.string().max(50000).required(),
             sort_order: Joi.number().integer().min(0).optional(),
         })).optional(),
         is_published: Joi.boolean().optional(),
-    }).min(1),
+        published_at: Joi.date().iso().allow(null).optional()
+    }).unknown(true),
     updateFcmToken: Joi.object({
         fcmToken: Joi.string().required(),
     }),
@@ -459,5 +461,10 @@ export const schemas = {
     }),
     newsletterUnsubscribe: Joi.object({
         email: Joi.string().email().required()
+    }),
+    newsletterSend: Joi.object({
+        emails: Joi.array().items(Joi.string().email()).required(),
+        subject: Joi.string().min(3).max(500).required(),
+        message: Joi.string().min(10).required()
     }),
 };
