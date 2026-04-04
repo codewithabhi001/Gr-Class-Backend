@@ -49,20 +49,25 @@ const mapFaqItems = (items) => {
     }));
 };
 
+const formatThumbnailUrl = (url) => {
+    if (!url || url.startsWith('http')) return url;
+    const cdnBase = process.env.CDN_URL || 'https://cdn.grclass.com/';
+    return `${cdnBase.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+};
+
 const toPublicRow = (row) => {
     if (!row) return null;
-    const out = {
+    return {
         id: row.id,
         slug: row.slug,
         title: row.title,
         content_type: row.content_type,
         body_html: row.body_html,
-        thumbnail_url: row.thumbnail_url,
+        thumbnail_url: formatThumbnailUrl(row.thumbnail_url),
         faq_items: row.faq_items,
         published_at: row.published_at,
         updated_at: row.updated_at
     };
-    return out;
 };
 
 const toAdminRow = (row) => {
@@ -92,7 +97,7 @@ export const list = async (opts = {}) => {
             slug: r.slug,
             title: r.title,
             content_type: r.content_type,
-            thumbnail_url: r.thumbnail_url,
+            thumbnail_url: formatThumbnailUrl(r.thumbnail_url),
             published_at: r.published_at,
             updated_at: r.updated_at
         };
