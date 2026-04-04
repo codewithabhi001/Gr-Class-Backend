@@ -453,4 +453,11 @@ export const schemas = {
     updateFcmToken: Joi.object({
         fcmToken: Joi.string().required(),
     }),
+    newsletterSubscribe: Joi.object({
+        email: Joi.string().email().required(),
+        source: Joi.string().max(100).optional().allow('', null)
+    }),
+    newsletterUnsubscribe: Joi.object({
+        email: Joi.string().email().required()
+    }),
 };

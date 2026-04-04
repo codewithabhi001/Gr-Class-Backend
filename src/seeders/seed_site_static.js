@@ -117,7 +117,55 @@ const seedStaticContent = async () => {
             `,
             is_published: true
         });
-        console.log('Seeded: "Privacy and Compliance" page');
+        // 4. News Articles (Newsroom)
+        await db.SiteStaticContent.create({
+            slug: 'girik-class-expands-network-middle-east',
+            title: 'Expansion: Girik Class Opens New Survey Hub in Dubai',
+            content_type: 'NEWS',
+            body_html: `
+                <article>
+                    <h2>Boosting Services in the GCC Region</h2>
+                    <p>To better serve our growing fleet in the Middle East, Girik Class is excited to announce the opening of its latest technical hub in Dubai, UAE.</p>
+                    <p>This new facility will house five senior surveyors and a dedicated technical team for rapid response to vessel inspection requests in Port Rashid, Jebel Ali, and surrounding regions.</p>
+                </article>
+            `,
+            thumbnail_url: 'https://cdn.grclass.com/news/dubai-expansion.jpg',
+            is_published: true,
+            published_at: new Date('2026-03-20')
+        });
+
+        await db.SiteStaticContent.create({
+            slug: 'blockchain-certificate-verification-launch',
+            title: 'Technology: Immutable Blockchain Verification Now Live',
+            content_type: 'NEWS',
+            body_html: `
+                <article>
+                    <h2>Ending Maritime Fraud</h2>
+                    <p>Girik Class has successfully integrated blockchain technology into its digital certification pipeline.</p>
+                    <p>Every certificate issued from today onwards will be permanently anchored to a secure ledger, allowing Port State Control and shipowners to verify authenticity in seconds without contacting our head office.</p>
+                </article>
+            `,
+            thumbnail_url: 'https://cdn.grclass.com/news/blockchain-verify.jpg',
+            is_published: true,
+            published_at: new Date('2026-04-01')
+        });
+
+        await db.SiteStaticContent.create({
+            slug: 'marine-sustainability-report-2026',
+            title: 'Sustainability: 2026 Environmental Compliance Report Released',
+            content_type: 'NEWS',
+            body_html: `
+                <article>
+                    <h2>Exceeding MARPOL Standards</h2>
+                    <p>Our annual report on global vessel compliance reveals a 15% improvement in emission reduction among the Girik-classed fleet.</p>
+                    <p>We continue to advise our clients on technical upgrades to meet upcoming IMO greenhouse gas reduction targets.</p>
+                </article>
+            `,
+            thumbnail_url: 'https://cdn.grclass.com/news/sustainability-2026.jpg',
+            is_published: true,
+            published_at: new Date('2026-04-04')
+        });
+        console.log('Seeded: 3 Professional NewsRoom articles');
 
         console.log('--- Relevant Maritime Content Seeding Completed Successfully ---');
         process.exit(0);

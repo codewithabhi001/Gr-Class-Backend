@@ -124,3 +124,39 @@
         description: Deleted successfully
     x-roles:
       - ADMIN
+
+/api/v1/website/newsletter/subscribe:
+  post:
+    tags:
+      - Website
+    summary: Subscribe to newsletter
+    description: Join the mailing list.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties:
+              email: { type: string, example: "mariner@example.com" }
+              source: { type: string, example: "footer" }
+    responses:
+      200:
+        description: Subscribed successfully
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/newsletter/subscribers:
+  get:
+    tags:
+      - Website
+    summary: List Newsletter Subscribers (Admin Only)
+    security:
+      - bearerAuth: []
+    responses:
+      200:
+        description: Subscriber list
+    x-roles:
+      - ADMIN
+
