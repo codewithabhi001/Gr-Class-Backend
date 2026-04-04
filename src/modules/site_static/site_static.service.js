@@ -15,9 +15,9 @@ const assertSlug = (slug) => {
 };
 
 const validatePayload = (content_type, body_html, faq_items, is_published) => {
-    if (content_type === 'PAGE') {
+    if (content_type === 'PAGE' || content_type === 'NEWS') {
         if (is_published && (!body_html || String(body_html).trim() === '')) {
-            throw { statusCode: 400, message: 'body_html is required for a published PAGE.' };
+            throw { statusCode: 400, message: `body_html is required for a published ${content_type}.` };
         }
         return;
     }
@@ -37,7 +37,7 @@ const validatePayload = (content_type, body_html, faq_items, is_published) => {
         }
         return;
     }
-    throw { statusCode: 400, message: 'content_type must be PAGE or FAQ.' };
+    throw { statusCode: 400, message: 'content_type must be PAGE, FAQ or NEWS.' };
 };
 
 const mapFaqItems = (items) => {
@@ -57,7 +57,9 @@ const toPublicRow = (row) => {
         title: row.title,
         content_type: row.content_type,
         body_html: row.body_html,
+        thumbnail_url: row.thumbnail_url,
         faq_items: row.faq_items,
+        published_at: row.published_at,
         updated_at: row.updated_at
     };
     return out;
@@ -81,8 +83,8 @@ export const list = async (opts = {}) => {
     const where = forAdmin ? {} : { is_published: true };
     const rows = await SiteStaticContent.findAll({
         where,
-        attributes: ['id', 'slug', 'title', 'content_type', 'is_published', 'updated_at'],
-        order: [['slug', 'ASC']]
+        attributes: ['id', 'slug', 'title', 'content_type', 'is_published', 'thumbnail_url', 'published_at', 'updated_at'],
+        order: [['published_at', 'DESC'], ['slug', 'ASC']]
     });
     return rows.map((r) => {
         const base = {
@@ -90,6 +92,8 @@ export const list = async (opts = {}) => {
             slug: r.slug,
             title: r.title,
             content_type: r.content_type,
+            thumbnail_url: r.thumbnail_url,
+            published_at: r.published_at,
             updated_at: r.updated_at
         };
         if (forAdmin) base.is_published = r.is_published;
@@ -128,9 +132,11 @@ export const create = async (payload, userId) => {
         slug,
         title: String(payload.title).trim(),
         content_type,
-        body_html: content_type === 'PAGE' ? body_html : null,
+        body_html: (content_type === 'PAGE' || content_type === 'NEWS') ? body_html : null,
+        thumbnail_url: payload.thumbnail_url || null,
         faq_items: content_type === 'FAQ' ? faq_items : null,
         is_published,
+        published_at: payload.published_at || (is_published ? new Date() : null),
         updated_by: userId || null
     });
 
@@ -159,9 +165,11 @@ export const updateBySlug = async (slug, payload, userId) => {
     await row.update({
         title: payload.title !== undefined ? String(payload.title).trim() : row.title,
         content_type,
-        body_html: content_type === 'PAGE' ? body_html : null,
+        body_html: (content_type === 'PAGE' || content_type === 'NEWS') ? body_html : null,
         faq_items: content_type === 'FAQ' ? faq_items : null,
+        thumbnail_url: payload.thumbnail_url !== undefined ? payload.thumbnail_url : row.thumbnail_url,
         is_published,
+        published_at: payload.published_at || (is_published ? new Date() : null),
         updated_by: userId || null
     });
 

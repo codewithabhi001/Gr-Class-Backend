@@ -22,6 +22,10 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.TEXT('long'),
             allowNull: true
         },
+        thumbnail_url: {
+            type: DataTypes.STRING(500),
+            allowNull: true
+        },
         faq_items: {
             type: DataTypes.JSON,
             allowNull: true
@@ -30,6 +34,10 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true
+        },
+        published_at: {
+            type: DataTypes.DATE,
+            allowNull: true
         },
         updated_by: {
             type: DataTypes.UUID,

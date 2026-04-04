@@ -27,6 +27,10 @@ module.exports = {
                 type: Sequelize.TEXT('long'),
                 allowNull: true
             },
+            thumbnail_url: {
+                type: Sequelize.STRING(500),
+                allowNull: true
+            },
             faq_items: {
                 type: Sequelize.JSON,
                 allowNull: true,
@@ -36,6 +40,10 @@ module.exports = {
                 type: Sequelize.BOOLEAN,
                 allowNull: false,
                 defaultValue: true
+            },
+            published_at: {
+                type: Sequelize.DATE,
+                allowNull: true
             },
             updated_by: {
                 type: Sequelize.CHAR(36).BINARY,

@@ -7,44 +7,45 @@ SiteStaticContent:
       example: "018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h"
     slug:
       type: string
-      example: "vessel-inspection-faq"
+      example: "new-vessel-launch-2026"
     title:
       type: string
-      example: "Vessel Inspection Frequently Asked Questions"
+      example: "Girik Class Launches Next-Gen Survey Platform"
     content_type:
       type: string
-      enum: [PAGE, FAQ]
-      example: "FAQ"
+      enum: [PAGE, FAQ, NEWS]
+      example: "NEWS"
     body_html:
       type: string
       nullable: true
-      example: "<h1>Inspection Guidelines</h1><p>Rules for inspection...</p>"
+      example: "<h1>Strategic Launch</h1><p>Girik Class sets new industry benchmarks...</p>"
+    thumbnail_url:
+      type: string
+      format: uri
+      nullable: true
+      example: "https://grclass.com/assets/news-thumb-001.jpg"
     faq_items:
       type: array
       nullable: true
       items:
         type: object
         properties:
-          question:
-            type: string
-            example: "What documents are required for the survey?"
-          answer:
-            type: string
-            example: "You need the previous certification, safety management manual, and technical specifications."
-          sort_order:
-            type: integer
-            example: 0
+          question: { type: string }
+          answer: { type: string }
+          sort_order: { type: integer }
     is_published:
       type: boolean
       example: true
-    updated_at:
+    published_at:
       type: string
       format: date-time
       example: "2026-04-03T12:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
     created_at:
       type: string
       format: date-time
-      example: "2026-04-01T09:30:00Z"
 
 SiteStaticContentInput:
   type: object
@@ -56,51 +57,36 @@ SiteStaticContentInput:
     - title: PAGE Content
       required: [body_html]
       properties:
-        slug:
-          type: string
-          example: "about-girik"
-        title:
-          type: string
-          example: "About Girik Class"
-        content_type:
-          type: string
-          enum: [PAGE]
-          example: "PAGE"
-        body_html:
-          type: string
-          example: "<article><h2>Our Mission</h2><p>To ensure global maritime safety through rigorous standards.</p></article>"
-        is_published:
-          type: boolean
-          example: true
+        slug: { type: string, example: "about-us" }
+        title: { type: string, example: "About Us" }
+        content_type: { type: string, enum: [PAGE], example: "PAGE" }
+        body_html: { type: string, example: "<p>About content...</p>" }
+        is_published: { type: boolean, example: true }
+    - title: NEWS Content
+      required: [body_html]
+      properties:
+        slug: { type: string, example: "news-1" }
+        title: { type: string, example: "Recent Industry Update" }
+        content_type: { type: string, enum: [NEWS], example: "NEWS" }
+        body_html: { type: string, example: "<p>News article...</p>" }
+        thumbnail_url: { type: string, example: "https://example.com/thumb.jpg" }
+        published_at: { type: string, format: date-time, example: "2026-04-03T10:00:00Z" }
+        is_published: { type: boolean, example: true }
     - title: FAQ Content
       required: [faq_items]
       properties:
-        slug:
-          type: string
-          example: "service-faq"
-        title:
-          type: string
-          example: "Service FAQ"
-        content_type:
-          type: string
-          enum: [FAQ]
-          example: "FAQ"
+        slug: { type: string, example: "faq-vessel" }
+        title: { type: string, example: "Vessel FAQ" }
+        content_type: { type: string, enum: [FAQ], example: "FAQ" }
         faq_items:
           type: array
           items:
             type: object
             required: [question, answer]
             properties:
-              question:
-                type: string
-                example: "How long does a survey take?"
-              answer:
-                type: string
-                example: "Typically 1-3 working days depending on the vessel size."
-              sort_order:
-                type: integer
-                example: 1
-        is_published:
-          type: boolean
-          example: true
+              question: { type: string, example: "Q?" }
+              answer: { type: string, example: "A." }
+              sort_order: { type: integer, example: 0 }
+        is_published: { type: boolean, example: true }
+
 

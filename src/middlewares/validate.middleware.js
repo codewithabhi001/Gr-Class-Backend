@@ -428,8 +428,9 @@ export const schemas = {
     createSiteStaticContent: Joi.object({
         slug: Joi.string().pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(64).required(),
         title: Joi.string().min(1).max(200).required(),
-        content_type: Joi.string().valid('PAGE', 'FAQ').required(),
+        content_type: Joi.string().valid('PAGE', 'FAQ', 'NEWS').required(),
         body_html: Joi.string().allow('', null).optional(),
+        thumbnail_url: Joi.string().uri().allow('', null).optional(),
         faq_items: Joi.array().items(Joi.object({
             question: Joi.string().max(2000).required(),
             answer: Joi.string().max(50000).required(),
@@ -439,8 +440,9 @@ export const schemas = {
     }),
     updateSiteStaticContent: Joi.object({
         title: Joi.string().min(1).max(200).optional(),
-        content_type: Joi.string().valid('PAGE', 'FAQ').optional(),
+        content_type: Joi.string().valid('PAGE', 'FAQ', 'NEWS').optional(),
         body_html: Joi.string().allow('', null).optional(),
+        thumbnail_url: Joi.string().uri().allow('', null).optional(),
         faq_items: Joi.array().items(Joi.object({
             question: Joi.string().max(2000).required(),
             answer: Joi.string().max(50000).required(),
