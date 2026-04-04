@@ -171,6 +171,15 @@ export const updateBySlug = async (slug, payload, userId) => {
 
     validatePayload(content_type, body_html, faq_items, is_published);
 
+    let published_at = payload.published_at;
+    if (published_at === undefined) {
+        if (is_published && !row.is_published) {
+            published_at = new Date();
+        } else {
+            published_at = row.published_at;
+        }
+    }
+
     await row.update({
         title: payload.title !== undefined ? String(payload.title).trim() : row.title,
         content_type,
@@ -178,7 +187,7 @@ export const updateBySlug = async (slug, payload, userId) => {
         faq_items: content_type === 'FAQ' ? faq_items : null,
         thumbnail_url: payload.thumbnail_url !== undefined ? payload.thumbnail_url : row.thumbnail_url,
         is_published,
-        published_at: payload.published_at || (is_published ? new Date() : null),
+        published_at,
         updated_by: userId || null
     });
 
