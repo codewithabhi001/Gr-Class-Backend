@@ -52,3 +52,36 @@ export const remove = async (req, res, next) => {
         next(error);
     }
 };
+
+export const getOneById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const row = await siteStaticService.getById(id);
+        if (!row) {
+            return res.status(404).json({ success: false, message: 'Not found.' });
+        }
+        res.status(200).json({ success: true, data: row });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const row = await siteStaticService.updateById(id, req.body, req.user.id);
+        res.status(200).json({ success: true, message: 'Updated.', data: row });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const removeById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await siteStaticService.removeById(id);
+        res.status(200).json({ success: true, message: 'Deleted.' });
+    } catch (error) {
+        next(error);
+    }
+};

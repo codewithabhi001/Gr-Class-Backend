@@ -30,4 +30,25 @@ router.delete(
     siteStaticController.remove
 );
 
+// Admin only (ID based)
+router.get(
+    '/admin/:id',
+    authenticate,
+    authorizeRoles('ADMIN'),
+    siteStaticController.getOneById
+);
+router.put(
+    '/admin/:id',
+    authenticate,
+    authorizeRoles('ADMIN'),
+    validate(schemas.updateSiteStaticContent),
+    siteStaticController.updateById
+);
+router.delete(
+    '/admin/:id',
+    authenticate,
+    authorizeRoles('ADMIN'),
+    siteStaticController.removeById
+);
+
 export default router;

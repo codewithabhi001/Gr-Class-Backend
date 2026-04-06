@@ -205,3 +205,68 @@ export const removeBySlug = async (slug) => {
     await row.destroy();
     return true;
 };
+
+export const getById = async (id) => {
+    const row = await SiteStaticContent.findByPk(id);
+    if (!row) return null;
+    return toAdminRow(row);
+};
+
+export const updateById = async (id, payload, userId) => {
+    const row = await SiteStaticContent.findByPk(id);
+    if (!row) {
+        throw { statusCode: 404, message: 'Static content not found.' };
+    }
+
+    const content_type = payload.content_type ?? row.content_type;
+    const is_published = payload.is_published !== undefined ? payload.is_published : row.is_published;
+    const body_html = payload.body_html !== undefined ? (payload.body_html != null ? String(payload.body_html) : null) : row.body_html;
+    const faq_items =
+        payload.faq_items !== undefined
+            ? content_type === 'FAQ'
+                ? mapFaqItems(payload.faq_items)
+                : null
+            : row.faq_items;
+
+    validatePayload(content_type, body_html, faq_items, is_published);
+
+    if (payload.slug && normalizeSlug(payload.slug) !== row.slug) {
+        const newSlug = assertSlug(payload.slug);
+        const existing = await SiteStaticContent.findOne({ where: { slug: newSlug } });
+        if (existing) {
+            throw { statusCode: 409, message: `Content with slug "${newSlug}" already exists.` };
+        }
+        row.slug = newSlug;
+    }
+
+    let published_at = payload.published_at;
+    if (published_at === undefined) {
+        if (is_published && !row.is_published) {
+            published_at = new Date();
+        } else {
+            published_at = row.published_at;
+        }
+    }
+
+    await row.update({
+        title: payload.title !== undefined ? String(payload.title).trim() : row.title,
+        content_type,
+        body_html: (content_type === 'PAGE' || content_type === 'NEWS') ? body_html : null,
+        faq_items: content_type === 'FAQ' ? faq_items : null,
+        thumbnail_url: payload.thumbnail_url !== undefined ? payload.thumbnail_url : row.thumbnail_url,
+        is_published,
+        published_at,
+        updated_by: userId || null
+    });
+
+    return toAdminRow(row);
+};
+
+export const removeById = async (id) => {
+    const row = await SiteStaticContent.findByPk(id);
+    if (!row) {
+        throw { statusCode: 404, message: 'Static content not found.' };
+    }
+    await row.destroy();
+    return true;
+};
