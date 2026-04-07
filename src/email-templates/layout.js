@@ -39,49 +39,51 @@ export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribe
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle}</title>
 </head>
-<body style="margin:0;padding:0;background:${theme.colors.background};font-family:${theme.typography.sans};">
+<body style="margin:0;padding:0;background:${theme.colors.neutral[100]};font-family:${theme.typography.sans};">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0">${pre}</span>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${theme.colors.background};padding:32px 16px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${theme.colors.neutral[100]};padding:40px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:${theme.radius.lg};overflow:hidden;border:1px solid ${theme.colors.neutral[200]};box-shadow:0 4px 24px rgba(0,0,0,0.04);">
+        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:${theme.radius.lg};overflow:hidden;border:1px solid ${theme.colors.neutral[200]};box-shadow:0 10px 25px rgba(0,0,0,0.05);">
+          <!-- Header -->
           <tr>
-            <td style="background:#ffffff; padding:28px 32px 24px; border-bottom:1px solid ${theme.colors.neutral[200]};">
+            <td style="background:linear-gradient(135deg, ${theme.colors.brand[50]} 0%, ${theme.colors.brand[100]} 100%); padding:32px 32px 32px; border-bottom:3px solid ${theme.colors.brand[400]};">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td valign="middle" style="padding-right:16px;">
+                  <td valign="middle" style="padding-right:20px; width:100px;">
                     <a href="https://grclass.com" target="_blank" style="display:inline-block; text-decoration:none;">
-                      <img src="cid:grclass-logo" alt="GR Class" style="display:block; border:none; outline:none; height:85px; width:auto; max-width:260px;" />
+                      <img src="cid:grclass-logo" alt="GR Class" style="display:block; border:none; outline:none; height:70px; width:auto; max-width:180px;" />
                     </a>
                   </td>
-                  <td valign="middle">
+                  <td valign="middle" style="border-left:2px solid ${theme.colors.brand[200]}; padding-left:20px;">
                     <div style="font-size:24px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;color:${theme.colors.navy[900]};">GR Class</div>
-                    <div style="font-size:14px;color:${theme.colors.neutral[500]};margin-top:4px;font-weight:500;">Classification &amp; certification</div>
-                    <a href="https://grclass.com" style="font-size:13px;color:${theme.colors.brand[600]};text-decoration:none;margin-top:6px;display:inline-block;font-weight:600;">grclass.com</a>
+                    <div style="font-size:14px;color:${theme.colors.navy[800]};margin-top:4px;font-weight:500;">Classification &amp; certification</div>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
+          <!-- Content -->
           <tr>
-            <td style="padding:32px 32px 28px;font-size:16px;line-height:1.6;color:${theme.colors.neutral[700]};">
+            <td style="padding:40px 32px;font-size:16px;line-height:1.6;color:${theme.colors.neutral[700]};">
               ${innerHtml}
             </td>
           </tr>
           ${unsubscribeBlock}
+          <!-- Footer -->
           <tr>
-            <td style="padding:0 32px 28px;">
-              <table role="presentation" width="100%" style="border-top:1px solid ${theme.colors.neutral[200]};padding-top:20px;">
+            <td style="padding:0 32px 32px;">
+              <table role="presentation" width="100%" style="border-top:1px solid ${theme.colors.neutral[100]};padding-top:24px;">
                 <tr>
-                  <td style="font-size:12px;color:${theme.colors.neutral[500]};line-height:1.5;text-align:center;">
-                    This is an automated message from <strong style="color:${theme.colors.neutral[700]};">GR Class</strong> (grclass.com). Please do not reply to this email.
+                  <td style="font-size:13px;color:${theme.colors.neutral[500]};line-height:1.6;text-align:center;">
+                    This is an automated message from <strong style="color:${theme.colors.navy[900]};">GR Class</strong> (<a href="https://grclass.com" style="color:${theme.colors.brand[600]};text-decoration:none;">grclass.com</a>).<br> Please do not reply to this email.
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
         </table>
-        <p style="max-width:600px;margin:16px auto 0;font-size:11px;color:${theme.colors.neutral[400]};text-align:center;">&copy; ${new Date().getFullYear()} GR Class. All rights reserved.</p>
+        <p style="max-width:600px;margin:24px auto 0;font-size:12px;color:${theme.colors.neutral[400]};text-align:center;">&copy; ${new Date().getFullYear()} GR Class. All rights reserved.</p>
       </td>
     </tr>
   </table>
