@@ -32,4 +32,4 @@ jobs:
              git fetch origin main && \
              git reset --hard origin/main && \
              npm install --omit=dev && \
-             pm2 reload girik --update-env || pm2 start src/server.js --name girik --update-env && pm2 save"
+             pm2 reload girik --update-env || pm2 start src/server.js --name girik --update-env && pm2 save && pm2 startup"
