@@ -25,12 +25,6 @@ export const escapeHtml = (value) => {
 export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribeUrl }) => {
     const safeTitle = escapeHtml(title);
     const pre = escapeHtml(preheader).slice(0, 200);
-    const unsubscribeBlock = unsubscribeUrl ? `
-          <tr>
-            <td style="padding:0 32px 20px; text-align: center;">
-              <a href="${unsubscribeUrl}" style="display:inline-block; font-size:13px; color:${theme.colors.brand[600]}; text-decoration:none; margin-top: 10px;">Unsubscribe from these emails</a>
-            </td>
-          </tr>` : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -69,7 +63,6 @@ export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribe
               ${innerHtml}
             </td>
           </tr>
-          ${unsubscribeBlock}
           <!-- Footer -->
           <tr>
             <td style="padding:0 32px 32px;">

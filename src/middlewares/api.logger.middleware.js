@@ -1,4 +1,5 @@
 import logger from '../utils/logger.js';
+import chalk from 'chalk';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -24,6 +25,28 @@ export const apiLogger = (req, res, next) => {
         if (res._logged) return;
         res._logged = true;
         const duration = Date.now() - startTime;
+        
+        const statusCode = res.statusCode;
+        let scColor;
+        if (statusCode >= 500) scColor = chalk.bold.red;
+        else if (statusCode >= 400) scColor = chalk.yellow;
+        else if (statusCode >= 300) scColor = chalk.cyan;
+        else scColor = chalk.green;
+
+        const methodColor = {
+            'GET': chalk.blue,
+            'POST': chalk.green,
+            'PUT': chalk.yellow,
+            'DELETE': chalk.red,
+            'PATCH': chalk.magenta
+        }[req.method] || chalk.white;
+
+        const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+
+        const message = isProd
+            ? `${req.method} ${req.originalUrl} - ${statusCode} [${ip}]`
+            : `${methodColor(req.method.padEnd(6))} ${chalk.white(req.originalUrl.split('?')[0])} ${scColor(statusCode)} ${chalk.gray(`${duration}ms`)} ${chalk.dim(`(${ip})`)}`;
+
         const line = {
             event: 'api_request',
             method: req.method,
@@ -31,15 +54,13 @@ export const apiLogger = (req, res, next) => {
             statusCode: res.statusCode,
             durationMs: duration,
             user: req.user?.id || null,
-            ip: req.ip || req.connection?.remoteAddress,
+            ip,
         };
-        if (!isProd && req.method !== 'GET' && req.body && Object.keys(req.body).length) {
-            line.requestBody = sanitizeBody(req.body);
-        }
+        
         if (res.statusCode >= 500) {
-            logger.error('API', line);
+            logger.error(message, line);
         } else {
-            logger.info('API', line);
+            logger.info(message, line);
         }
     };
 
