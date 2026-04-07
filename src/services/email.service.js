@@ -2,6 +2,11 @@ import { mailTransporter, SENDER_MAP } from '../config/emailConfig.js';
 import { renderEmailTemplate } from '../email-templates/index.js';
 import { buildTransactionalNotificationEmail } from '../email-templates/notification-html.js';
 import logger from '../utils/logger.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Validates the email parameters
@@ -47,7 +52,7 @@ const withRetry = async (operation, retries = 2) => {
  * @param {string} subject - Email subject
  * @param {string} body - Email HTML/Text body
  * @param {'alert' | 'notification' | 'system' | 'subscribe'} type - Module type for sender selection
- * @param {{ headers?: Record<string, string> }} [options] - Extra RFC headers (e.g. List-Unsubscribe)
+ * @param {{ headers?: Record<string, string>, attachments?: any[] }} [options] - Extra RFC headers or attachments
  * @returns {Promise<boolean>}
  */
 export const sendEmail = async (to, subject, body, type = 'system', options = {}) => {
@@ -65,6 +70,20 @@ export const sendEmail = async (to, subject, body, type = 'system', options = {}
         const extra = options.headers;
         if (extra && typeof extra === 'object' && Object.keys(extra).length > 0) {
             mailOptions.headers = { ...extra };
+        }
+
+        if (options.attachments && Array.isArray(options.attachments)) {
+            mailOptions.attachments = options.attachments;
+        }
+
+        // Auto-attach logo if the template uses it
+        if (body.includes('cid:grclass-logo')) {
+            mailOptions.attachments = mailOptions.attachments || [];
+            mailOptions.attachments.push({
+                filename: 'Gr-class.png',
+                path: path.join(__dirname, '../email-templates/Gr-class.png'),
+                cid: 'grclass-logo'
+            });
         }
 
         // Attempt send via Nodemailer (using our SES transporter) with retries

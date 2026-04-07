@@ -105,16 +105,23 @@ export const broadcastMessage = async (emails, subject, message) => {
         }
 
         const oneClickUrl = buildOneClickUnsubscribeUrl(email);
-        const htmlBody = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
-            <h2 style="color: #1a365d;">Girik Class Updates</h2>
-            <div style="line-height: 1.6; color: #333;">
-                ${message.replace(/\n/g, '<br>')}
-            </div>
-        </div>
-    `;
+        
+        // Use wrapGrclassEmail to ensure newsletters look consistent with other transactional emails
+        // Import must be dynamic or we just require it. Wait, we can import it at the top. 
+        // Oh, wait, I can't import inside loop easily. Let me import it.
+        // Actually I should just use `import { wrapGrclassEmail } from '../../email-templates/layout.js';` at the top of the file.
+        // Wait, I will use `const { wrapGrclassEmail } = await import('../../email-templates/layout.js');` inside the broadcastMessage function.
+        const { wrapGrclassEmail } = await import('../../email-templates/layout.js');
 
-        const ok = await emailService.sendEmail(email, subject, htmlBody, 'subscribe', {
+        const htmlBody = wrapGrclassEmail({
+            title: subject,
+            innerHtml: `
+            <div style="font-family: inherit; line-height: 1.6;">
+                ${message.replace(/\n/g, '<br>')}
+            </div>`
+        });
+
+        const ok = emailService.sendEmail(email, subject, htmlBody, 'subscribe', {
             headers: {
                 // RFC 2919 — Gmail uses this for the list name in the unsubscribe popup (not "(Unknown)")
                 'List-Id': env.newsletterListId,

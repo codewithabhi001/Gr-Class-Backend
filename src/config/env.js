@@ -64,9 +64,9 @@ export default {
     /**
      * RFC 2919 List-Id header value (not including "List-Id:").
      * Gmail shows this name in the Unsubscribe dialog; without it you often see "(Unknown)".
-     * Example: Girik Class Newsletter <newsletter.grclass.com>
-     */
-    newsletterListId: (process.env.NEWSLETTER_LIST_ID || 'Girik Class Newsletter <newsletter.grclass.com>').trim(),
+     * Example: Girik Class Newsletter
+     */ 
+    newsletterListId: (process.env.NEWSLETTER_LIST_ID || 'Girik Class Newsletter').trim(),
     get newsletterUnsubscribeSecret() {
         const s = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
         if (process.env.NODE_ENV === 'production' && (!s || String(s).length < 32)) {

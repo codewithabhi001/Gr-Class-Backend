@@ -1,15 +1,18 @@
 import * as NewsletterService from './newsletter.service.js';
 import { extractUnsubscribeTokenFromRequest } from './newsletter-unsubscribe.util.js';
+import env from '../../config/env.js';
 
 /** Same as POST: no HTML page — Gmail uses POST; GET is for rare client follow-ups. */
 export const unsubscribeOneClickGet = async (req, res, next) => {
     try {
         const token = extractUnsubscribeTokenFromRequest(req);
         const result = await NewsletterService.unsubscribeByToken(token);
+        
+        const redirectBase = env.newsletterUnsubscribeUrl;
         if (!result.ok) {
-            return res.status(400).end();
+            return res.redirect(`${redirectBase}?status=error&message=invalid_token`);
         }
-        return res.status(204).end();
+        return res.redirect(`${redirectBase}?status=success`);
     } catch (error) {
         next(error);
     }

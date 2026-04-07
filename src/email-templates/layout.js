@@ -1,3 +1,4 @@
+import { emailTheme as theme } from './theme.js';
 
 // (getLogoPath and getLogoCid removed — using CSS logo instead)
 
@@ -18,16 +19,18 @@ export const escapeHtml = (value) => {
 
 /**
  * GR Class branded transactional shell (table layout for email clients).
- * @param {{ title: string, innerHtml: string, preheader?: string }} opts
+ * @param {{ title: string, innerHtml: string, preheader?: string, unsubscribeUrl?: string }} opts
  * @returns {string}
  */
-export const wrapGrclassEmail = ({ title, innerHtml, preheader = '' }) => {
+export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribeUrl }) => {
     const safeTitle = escapeHtml(title);
     const pre = escapeHtml(preheader).slice(0, 200);
-
-    const logoBlock = `
-    <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#38bdf8 0%,#1d4ed8 100%);color:#ffffff;font-family:'Outfit',system-ui,sans-serif;font-weight:700;font-size:20px;line-height:56px;text-align:center;box-shadow:0 4px 12px rgba(29,78,216,0.2);">GR</div>
-    `;
+    const unsubscribeBlock = unsubscribeUrl ? `
+          <tr>
+            <td style="padding:0 32px 20px; text-align: center;">
+              <a href="${unsubscribeUrl}" style="display:inline-block; font-size:13px; color:${theme.colors.brand[600]}; text-decoration:none; margin-top: 10px;">Unsubscribe from these emails</a>
+            </td>
+          </tr>` : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -36,44 +39,49 @@ export const wrapGrclassEmail = ({ title, innerHtml, preheader = '' }) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle}</title>
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;">
+<body style="margin:0;padding:0;background:${theme.colors.background};font-family:${theme.typography.sans};">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0">${pre}</span>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f5f9;padding:32px 16px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${theme.colors.background};padding:32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 24px rgba(15,23,42,0.06);">
+        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:${theme.radius.lg};overflow:hidden;border:1px solid ${theme.colors.neutral[200]};box-shadow:0 4px 24px rgba(0,0,0,0.04);">
           <tr>
-            <td style="background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:28px 32px 24px;">
+            <td style="background:#ffffff; padding:28px 32px 24px; border-bottom:1px solid ${theme.colors.neutral[200]};">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td width="72" valign="middle" style="padding-right:16px;">${logoBlock}</td>
-                  <td valign="middle" style="color:#f8fafc;">
-                    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;">GR Class</div>
-                    <div style="font-size:13px;color:#94a3b8;margin-top:4px;">Classification &amp; certification</div>
-                    <a href="https://grclass.com" style="font-size:12px;color:#38bdf8;text-decoration:none;margin-top:6px;display:inline-block;">grclass.com</a>
+                  <td valign="middle" style="padding-right:16px;">
+                    <a href="https://grclass.com" target="_blank" style="display:inline-block; text-decoration:none;">
+                      <img src="cid:grclass-logo" alt="GR Class" style="display:block; border:none; outline:none; height:85px; width:auto; max-width:260px;" />
+                    </a>
+                  </td>
+                  <td valign="middle">
+                    <div style="font-size:24px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;color:${theme.colors.navy[900]};">GR Class</div>
+                    <div style="font-size:14px;color:${theme.colors.neutral[500]};margin-top:4px;font-weight:500;">Classification &amp; certification</div>
+                    <a href="https://grclass.com" style="font-size:13px;color:${theme.colors.brand[600]};text-decoration:none;margin-top:6px;display:inline-block;font-weight:600;">grclass.com</a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td style="padding:32px 32px 28px;font-size:16px;line-height:1.6;color:#334155;">
+            <td style="padding:32px 32px 28px;font-size:16px;line-height:1.6;color:${theme.colors.neutral[700]};">
               ${innerHtml}
             </td>
           </tr>
+          ${unsubscribeBlock}
           <tr>
             <td style="padding:0 32px 28px;">
-              <table role="presentation" width="100%" style="border-top:1px solid #e2e8f0;padding-top:20px;">
+              <table role="presentation" width="100%" style="border-top:1px solid ${theme.colors.neutral[200]};padding-top:20px;">
                 <tr>
-                  <td style="font-size:12px;color:#94a3b8;line-height:1.5;">
-                    This is an automated message from <strong style="color:#64748b;">GR Class</strong> (grclass.com). Please do not reply to this email.
+                  <td style="font-size:12px;color:${theme.colors.neutral[500]};line-height:1.5;text-align:center;">
+                    This is an automated message from <strong style="color:${theme.colors.neutral[700]};">GR Class</strong> (grclass.com). Please do not reply to this email.
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
         </table>
-        <p style="max-width:600px;margin:16px auto 0;font-size:11px;color:#94a3b8;text-align:center;">&copy; ${new Date().getFullYear()} GR Class. All rights reserved.</p>
+        <p style="max-width:600px;margin:16px auto 0;font-size:11px;color:${theme.colors.neutral[400]};text-align:center;">&copy; ${new Date().getFullYear()} GR Class. All rights reserved.</p>
       </td>
     </tr>
   </table>
