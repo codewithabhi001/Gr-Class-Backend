@@ -118,10 +118,11 @@ export const broadcastMessage = async (emails, subject, message) => {
             innerHtml: `
             <div style="font-family: inherit; line-height: 1.6;">
                 ${message.replace(/\n/g, '<br>')}
-            </div>`
+            </div>`,
+            unsubscribeUrl: oneClickUrl
         });
 
-        const ok = emailService.sendEmail(email, subject, htmlBody, 'subscribe', {
+        const ok = await emailService.sendEmail(email, subject, htmlBody, 'notification', {
             headers: {
                 // RFC 2919 — Gmail uses this for the list name in the unsubscribe popup (not "(Unknown)")
                 'List-Id': env.newsletterListId,

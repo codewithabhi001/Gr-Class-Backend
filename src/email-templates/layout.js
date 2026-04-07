@@ -39,15 +39,15 @@ export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribe
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle}</title>
 </head>
-<body style="margin:0;padding:0;background:${theme.colors.neutral[100]};font-family:${theme.typography.sans};">
+<body style="margin:0;padding:0;background:${theme.colors.navy[900]};font-family:${theme.typography.sans};">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0">${pre}</span>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${theme.colors.neutral[100]};padding:40px 16px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${theme.colors.navy[900]};padding:40px 16px;">
     <tr>
-      <td align="center">
-        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:${theme.radius.lg};overflow:hidden;border:1px solid ${theme.colors.neutral[200]};box-shadow:0 10px 25px rgba(0,0,0,0.05);">
+        <td align="center">
+        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:${theme.radius.lg};overflow:hidden;border:1px solid ${theme.colors.navy[800]};box-shadow:0 10px 40px rgba(0,0,0,0.4);">
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg, ${theme.colors.brand[50]} 0%, ${theme.colors.brand[100]} 100%); padding:32px 32px 32px; border-bottom:3px solid ${theme.colors.brand[400]};">
+            <td style="background:linear-gradient(135deg, ${theme.colors.brand[50]} 0%, #e0f2fe 100%); padding:32px 32px 32px; border-bottom:3px solid ${theme.colors.brand[500]};">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td valign="middle" style="padding-right:20px; width:100px;">
@@ -73,7 +73,7 @@ export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribe
           <!-- Footer -->
           <tr>
             <td style="padding:0 32px 32px;">
-              <table role="presentation" width="100%" style="border-top:1px solid ${theme.colors.neutral[100]};padding-top:24px;">
+              <table role="presentation" width="100%" style="border-top:1px solid ${theme.colors.neutral[200]};padding-top:24px;">
                 <tr>
                   <td style="font-size:13px;color:${theme.colors.neutral[500]};line-height:1.6;text-align:center;">
                     This is an automated message from <strong style="color:${theme.colors.navy[900]};">GR Class</strong> (<a href="https://grclass.com" style="color:${theme.colors.brand[600]};text-decoration:none;">grclass.com</a>).<br> Please do not reply to this email.
