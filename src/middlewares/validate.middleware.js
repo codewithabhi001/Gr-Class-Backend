@@ -463,9 +463,9 @@ export const schemas = {
     newsletterUnsubscribe: Joi.object({
         email: Joi.string().email().required()
     }),
-    newsletterSend: Joi.object({
-        emails: Joi.array().items(Joi.string().email()).required(),
-        subject: Joi.string().min(3).max(500).required(),
-        message: Joi.string().min(10).required()
-    }),
+    // newsletterSend: Joi.object({
+    //     // emails: Joi.array().items(Joi.string(.email()).optional(),
+    //     // subject: Joi.string().min(3).max(500).required(),
+    //     // message: Joi.string().min(10).required()
+    // }),
 };

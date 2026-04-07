@@ -28,7 +28,9 @@ export const mailTransporter = nodemailer.createTransport({
 export const SENDER_MAP = {
     alerts: 'alerts@grclass.com',
     notifications: 'notify@grclass.com',
+    notification: 'notify@grclass.com',
     system: 'no-reply@grclass.com',
+    subscribe: 'subscribe@grclass.com'
 };
 
 export default sesClient;

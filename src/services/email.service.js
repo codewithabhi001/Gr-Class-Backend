@@ -46,10 +46,11 @@ const withRetry = async (operation, retries = 2) => {
  * @param {string | string[]} to - Recipient(s)
  * @param {string} subject - Email subject
  * @param {string} body - Email HTML/Text body
- * @param {'alert' | 'notification' | 'system'} type - Module type for sender selection
+ * @param {'alert' | 'notification' | 'system' | 'subscribe'} type - Module type for sender selection
+ * @param {{ headers?: Record<string, string> }} [options] - Extra RFC headers (e.g. List-Unsubscribe)
  * @returns {Promise<boolean>}
  */
-export const sendEmail = async (to, subject, body, type = 'system') => {
+export const sendEmail = async (to, subject, body, type = 'system', options = {}) => {
     try {
         const recipients = validateEmailParams(to, subject, body);
         const fromEmail = SENDER_MAP[type] || SENDER_MAP.system;
@@ -60,6 +61,11 @@ export const sendEmail = async (to, subject, body, type = 'system') => {
             subject: subject,
             html: body
         };
+
+        const extra = options.headers;
+        if (extra && typeof extra === 'object' && Object.keys(extra).length > 0) {
+            mailOptions.headers = { ...extra };
+        }
 
         // Attempt send via Nodemailer (using our SES transporter) with retries
         const response = await withRetry(() => mailTransporter.sendMail(mailOptions), 2);

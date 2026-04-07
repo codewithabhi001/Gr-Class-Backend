@@ -9,9 +9,12 @@ const router = express.Router();
 // Public routes
 router.post('/subscribe', validate(schemas.newsletterSubscribe), NewsletterController.subscribe);
 router.post('/unsubscribe', validate(schemas.newsletterUnsubscribe), NewsletterController.unsubscribe);
+// RFC 8058 one-click (Gmail modal — POST + List-Unsubscribe-Post header on outbound mail)
+router.get('/unsubscribe-one-click', NewsletterController.unsubscribeOneClickGet);
+router.post('/unsubscribe-one-click', NewsletterController.unsubscribeOneClickPost);
 
 // Admin routes
 router.get('/subscribers', authenticate, authorizeRoles('ADMIN'), NewsletterController.listSubscribers);
-router.post('/send', authenticate, authorizeRoles('ADMIN'), validate(schemas.newsletterSend), NewsletterController.broadcast);
+router.post('/send', authenticate, authorizeRoles('ADMIN'), NewsletterController.broadcast);
 
 export default router;

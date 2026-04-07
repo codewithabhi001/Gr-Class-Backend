@@ -6,6 +6,9 @@
 - [ ] **CORE-03**: Immutable Audit Trails - The system must persistently log all state transitions (Job created, Survey assigned, Cert issued) without the ability for standard users to hard-delete these history traces.
 - [ ] **CORE-04**: Offline Capable Data Capture Sync - The backend must support payload syncing flows designed to handle offline data entries submitted retroactively by surveyors working without internet.
 
+## Infrastructure (v1)
+- [ ] **INFRA-01**: Secure Credential Management - Deploy Passbolt CE with SSL + SMTP for team credential sharing (GR Class team).
+
 ## Phase 2 (Deferred)
 - [ ] **CORE-05**: IoT & Vessel Telemetry Integration
 - [ ] **CORE-06**: Smart Non-Conformity Tracking (ML/Heuristics for previous resolutions)
@@ -20,3 +23,4 @@
 - **CORE-02** → Phase 3
 - **CORE-03** → Phase 2
 - **CORE-04** → Phase 4
+- **INFRA-01** → Phase 5

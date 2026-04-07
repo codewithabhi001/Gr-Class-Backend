@@ -56,6 +56,37 @@ export default {
         }
     },
     frontendUrl: process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000',
+    /**
+     * Public base URL of this API (no trailing slash). Used for List-Unsubscribe / one-click links.
+     * Example: https://api.grclass.com — must match where Express is reachable over HTTPS in production.
+     */
+    publicApiBaseUrl: (process.env.PUBLIC_API_BASE_URL || process.env.API_PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, ''),
+    /**
+     * RFC 2919 List-Id header value (not including "List-Id:").
+     * Gmail shows this name in the Unsubscribe dialog; without it you often see "(Unknown)".
+     * Example: Girik Class Newsletter <newsletter.grclass.com>
+     */
+    newsletterListId: (process.env.NEWSLETTER_LIST_ID || 'Girik Class Newsletter <newsletter.grclass.com>').trim(),
+    get newsletterUnsubscribeSecret() {
+        const s = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
+        if (process.env.NODE_ENV === 'production' && (!s || String(s).length < 32)) {
+            throw new Error('NEWSLETTER_UNSUBSCRIBE_SECRET must be set to a strong value (32+ chars) in production');
+        }
+        return s || 'dev-newsletter-unsubscribe-secret-change-me-not-for-production';
+    },
+    /**
+     * Public page URL for newsletter opt-out (footer link + List-Unsubscribe header).
+     * Defaults to {FRONTEND_URL}/newsletter/unsubscribe — set NEWSLETTER_UNSUBSCRIBE_URL to override.
+     */
+    newsletterUnsubscribeUrl: (() => {
+        const explicit = process.env.NEWSLETTER_UNSUBSCRIBE_URL;
+        if (explicit && String(explicit).trim()) {
+            return String(explicit).trim().replace(/\/$/, '');
+        }
+        const base = (process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000')
+            .replace(/\/$/, '');
+        return `${base}/newsletter/unsubscribe`;
+    })(),
     passwordResetExpiresIn: process.env.PASSWORD_RESET_EXPIRES_IN || '1h',
     mail: {
         host: process.env.SMTP_HOST,

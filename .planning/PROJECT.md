@@ -1,4 +1,4 @@
-# GIRIK Backend - Maritime Certificate Generation System
+# GR Class Backend - Maritime Certificate Generation System
 
 ## What This Is
 
