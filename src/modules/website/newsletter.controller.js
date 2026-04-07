@@ -2,17 +2,27 @@ import * as NewsletterService from './newsletter.service.js';
 import { extractUnsubscribeTokenFromRequest } from './newsletter-unsubscribe.util.js';
 import env from '../../config/env.js';
 
-/** Same as POST: no HTML page — Gmail uses POST; GET is for rare client follow-ups. */
 export const unsubscribeOneClickGet = async (req, res, next) => {
     try {
         const token = extractUnsubscribeTokenFromRequest(req);
         const result = await NewsletterService.unsubscribeByToken(token);
         
-        const redirectBase = env.newsletterUnsubscribeUrl;
+        res.setHeader('Content-Type', 'text/html');
         if (!result.ok) {
-            return res.redirect(`${redirectBase}?status=error&message=invalid_token`);
+            return res.send(`
+                <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+                    <h2 style="color: #dc2626;">Invalid or Expired Link</h2>
+                    <p>We could not process your unsubscribe request because the link is no longer valid.</p>
+                </div>
+            `);
         }
-        return res.redirect(`${redirectBase}?status=success`);
+        return res.send(`
+            <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+                <h2 style="color: #059669;">Unsubscribed Successfully</h2>
+                <p>You have been removed from our mailing list and will no longer receive these emails.</p>
+                <script>setTimeout(() => window.close(), 3000);</script>
+            </div>
+        `);
     } catch (error) {
         next(error);
     }
