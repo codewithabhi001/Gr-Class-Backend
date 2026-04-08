@@ -11,7 +11,7 @@
 ### Request Body
 ```json
 {
-  "email": "admin@girik.com",
+  "email": "admin@grclass.com",
   "password": "Admin@123"
 }
 ```
@@ -27,7 +27,7 @@
   "user": {
     "id": "019514a2-7e3b-7000-8000-000000000001",
     "name": "Admin User",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "ADMIN",
     "phone": "+971501234567",
     "status": "ACTIVE",
@@ -121,7 +121,7 @@ OR
   "user": {
     "id": "019514a2-7e3b-7000-8000-000000000001",
     "name": "Admin User",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "ADMIN",
     "phone": "+971501234567",
     "status": "ACTIVE",
@@ -143,7 +143,7 @@ OR
 ### Request Body
 ```json
 {
-  "email": "user@girik.com"
+  "email": "user@grclass.com"
 }
 ```
 

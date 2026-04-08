@@ -41,4 +41,8 @@ router.post('/forgot-password', authLimiter, validate(schemas.forgotPassword), a
 // Access: Public
 router.post('/reset-password', authLimiter, validate(schemas.resetPassword), authController.resetPassword);
 
+// Change password for logged-in users
+// Access: Authenticated
+router.post('/change-password', authenticate, validate(schemas.changePassword), authController.changePassword);
+
 export default router;

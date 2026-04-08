@@ -392,10 +392,10 @@ function customizeSpec(spec, role) {
   const loginPost = spec.paths?.['/api/v1/auth/login']?.post;
   if (loginPost && loginPost.requestBody?.content?.['application/json']) {
     const roleEmails = {
-      ADMIN: 'admin@girik.com',
-      TM: 'tm@girik.com',
-      GM: 'gm@girik.com',
-      SURVEYOR: 'surveyor@girik.com',
+      ADMIN: 'admin@grclass.com',
+      TM: 'tm@grclass.com',
+      GM: 'gm@grclass.com',
+      SURVEYOR: 'surveyor@grclass.com',
       CLIENT: 'ops@pacific.com',
     };
 

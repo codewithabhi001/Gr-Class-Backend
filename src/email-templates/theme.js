@@ -23,15 +23,15 @@ export const emailTheme = {
       400: '#a1a1aa',
       500: '#71717a',
       600: '#52525b',
-      700: '#3f3f46',
-      800: '#27272a',
-      900: '#18181b',
-      950: '#09090b',
+      700: '#4b5563',
+      800: '#374151',
+      900: '#1f2937',
+      950: '#111827',
     },
     navy: {
-      800: '#1e293b',
-      900: '#0f172a',
-      950: '#020617',
+      800: '#134e4a',
+      900: '#0f766e',
+      950: '#115e59',
     },
     accent: {
       400: '#fbbf24',
@@ -44,6 +44,6 @@ export const emailTheme = {
     lg: '8px',
   },
   typography: {
-    sans: "system-ui, -apple-system, sans-serif",
+    sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   }
 };

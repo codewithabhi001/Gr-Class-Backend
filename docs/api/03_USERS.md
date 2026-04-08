@@ -20,12 +20,12 @@ None
   "data": {
     "id": "019514a2-7e3b-7000-8000-000000000001",
     "name": "Admin User",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "ADMIN",
     "phone": "+971501234567",
     "status": "ACTIVE",
     "client_id": null,
-    "profile_pic_url": "https://storage.girik.com/profiles/admin.jpg",
+    "profile_pic_url": "https://storage.grclass.com/profiles/admin.jpg",
     "force_password_reset": false,
     "last_login_at": "2026-03-05T18:00:00.000Z",
     "created_at": "2026-01-01T00:00:00.000Z",
@@ -53,7 +53,7 @@ None
   "message": "Profile picture updated successfully",
   "data": {
     "id": "019514a2-7e3b-7000-8000-000000000001",
-    "profile_pic_url": "https://storage.girik.com/profiles/new-pic.jpg"
+    "profile_pic_url": "https://storage.grclass.com/profiles/new-pic.jpg"
   }
 }
 ```
@@ -114,7 +114,7 @@ None
       {
         "id": "019514a2-7e3b-7000-8000-000000000001",
         "name": "Admin User",
-        "email": "admin@girik.com",
+        "email": "admin@grclass.com",
         "role": "ADMIN",
         "phone": "+971501234567",
         "status": "ACTIVE",
@@ -127,7 +127,7 @@ None
       {
         "id": "019514a2-7e3b-7000-8000-000000000002",
         "name": "John Surveyor",
-        "email": "john@girik.com",
+        "email": "john@grclass.com",
         "role": "SURVEYOR",
         "phone": "+971502345678",
         "status": "ACTIVE",
@@ -154,7 +154,7 @@ None
 ```json
 {
   "name": "New User",
-  "email": "newuser@girik.com",
+  "email": "newuser@grclass.com",
   "password": "Secure@123",
   "role": "TO",
   "phone": "+971501234567",
@@ -179,7 +179,7 @@ None
   "data": {
     "id": "019514a2-7e3b-7000-8000-000000000050",
     "name": "New User",
-    "email": "newuser@girik.com",
+    "email": "newuser@grclass.com",
     "role": "TO",
     "phone": "+971501234567",
     "status": "ACTIVE",
@@ -205,7 +205,7 @@ None
 ```json
 {
   "name": "Updated Name",
-  "email": "updated@girik.com",
+  "email": "updated@grclass.com",
   "role": "TM",
   "phone": "+971509876543",
   "status": "ACTIVE",
@@ -230,7 +230,7 @@ None
   "data": {
     "id": "019514a2-7e3b-7000-8000-000000000050",
     "name": "Updated Name",
-    "email": "updated@girik.com",
+    "email": "updated@grclass.com",
     "role": "TM",
     "phone": "+971509876543",
     "status": "ACTIVE",

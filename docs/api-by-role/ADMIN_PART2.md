@@ -321,14 +321,14 @@ Fields: `receipt` (file), `payment_date` (string)
 ### POST `/api/v1/surveyors`
 **Request:**
 ```json
-{ "name": "John Surveyor", "email": "john@girik.com", "password": "Secure@123", "phone": "+971501234567", "nationality": "UK", "qualifications": "Master Mariner" }
+{ "name": "John Surveyor", "email": "john@grclass.com", "password": "Secure@123", "phone": "+971501234567", "nationality": "UK", "qualifications": "Master Mariner" }
 ```
 **Response `201`:**
 ```json
 {
   "success": true, "message": "Surveyor created successfully",
   "data": {
-    "user": { "id": "uuid", "name": "John Surveyor", "email": "john@girik.com", "role": "SURVEYOR" },
+    "user": { "id": "uuid", "name": "John Surveyor", "email": "john@grclass.com", "role": "SURVEYOR" },
     "profile": { "id": "uuid", "nationality": "UK", "qualifications": "Master Mariner" }
   }
 }
@@ -370,7 +370,7 @@ Fields: `receipt` (file), `payment_date` (string)
     "id": "uuid", "user_id": "uuid", "nationality": "UK",
     "qualifications": "Master Mariner, Class 1 Certificate",
     "is_available": true, "last_known_latitude": 25.2048, "last_known_longitude": 55.2708,
-    "User": { "id": "uuid", "name": "John Surveyor", "email": "john@girik.com", "role": "SURVEYOR", "status": "ACTIVE" }
+    "User": { "id": "uuid", "name": "John Surveyor", "email": "john@grclass.com", "role": "SURVEYOR", "status": "ACTIVE" }
   }
 }
 ```

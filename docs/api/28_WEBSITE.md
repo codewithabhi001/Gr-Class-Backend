@@ -36,8 +36,8 @@
   "section": "HOME",
   "title": "About Girik Marine",
   "description": "Introduction to our certification services",
-  "video_url": "https://storage.girik.com/videos/intro.mp4",
-  "thumbnail_url": "https://storage.girik.com/thumbnails/intro.jpg",
+  "video_url": "https://storage.grclass.com/videos/intro.mp4",
+  "thumbnail_url": "https://storage.grclass.com/thumbnails/intro.jpg",
   "uploaded_by": "019514a2-7e3b-7000-8000-000000000001",
   "created_at": "2026-03-05T18:00:00.000Z",
   "updated_at": "2026-03-05T18:00:00.000Z"

@@ -33,7 +33,7 @@
 **Request:** `profile_pic` (file, image)
 **Response `200`:**
 ```json
-{ "success": true, "message": "Profile picture updated successfully", "data": { "id": "uuid", "profile_pic_url": "https://storage.girik.com/profiles/new.jpg" } }
+{ "success": true, "message": "Profile picture updated successfully", "data": { "id": "uuid", "profile_pic_url": "https://storage.grclass.com/profiles/new.jpg" } }
 ```
 
 ### PUT `/api/v1/users/fcm-token`
@@ -200,7 +200,7 @@
   "target_port": "Dubai Port, Jebel Ali",
   "target_date": "2026-04-15",
   "uploaded_documents": [
-    { "required_document_id": "uuid", "file_url": "https://storage.girik.com/uploads/doc1.pdf" }
+    { "required_document_id": "uuid", "file_url": "https://storage.grclass.com/uploads/doc1.pdf" }
   ]
 }
 ```
@@ -328,7 +328,7 @@
   "data": {
     "id": "uuid", "job_id": "uuid", "sender_id": "uuid",
     "message": "Updated documents attached.", "is_internal": false,
-    "attachment_url": "https://storage.girik.com/messages/doc.pdf",
+    "attachment_url": "https://storage.grclass.com/messages/doc.pdf",
     "created_at": "2026-03-05T20:45:00.000Z"
   }
 }
@@ -560,7 +560,7 @@
 
 **Response `201`:**
 ```json
-{ "success": true, "data": { "fileKey": "misc/1709672200000-report.pdf", "url": "https://storage.girik.com/misc/report.pdf" } }
+{ "success": true, "data": { "fileKey": "misc/1709672200000-report.pdf", "url": "https://storage.grclass.com/misc/report.pdf" } }
 ```
 
 ### POST `/api/v1/documents/register`

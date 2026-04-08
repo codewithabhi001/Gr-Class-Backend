@@ -107,7 +107,7 @@ export const register = async (userData, options = {}) => {
             name: user.name,
             email: user.email,
             password: userData.password,
-            loginUrl: 'https://grclass.com'
+            loginUrl: 'https://ops.grclass.com'
         });
         console.log(`[AuthService] Welcome email sent to ${user.email}`);
     } catch (emailError) {
@@ -206,6 +206,20 @@ export const resetPassword = async (token, newPassword) => {
     const salt = await bcrypt.genSalt(env.bcrypt.saltRounds || 10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     await user.update({ password_hash: hashedPassword, force_password_reset: false });
+};
+
+export const changePassword = async (userId, oldPassword, newPassword) => {
+    const user = await User.findByPk(userId);
+    if (!user) {
+        throw { statusCode: 404, message: 'User not found' };
+    }
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!isMatch) {
+        throw { statusCode: 400, message: 'Incorrect old password' };
+    }
+    const salt = await bcrypt.genSalt(env.bcrypt.saltRounds || 10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    await user.update({ password_hash: hashedPassword });
 };
 
 

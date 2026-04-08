@@ -20,7 +20,7 @@
 {
   "success": true,
   "data": {
-    "id": "uuid", "name": "John Surveyor", "email": "john@girik.com",
+    "id": "uuid", "name": "John Surveyor", "email": "john@grclass.com",
     "role": "SURVEYOR", "phone": "+971501234567", "status": "ACTIVE",
     "client_id": null, "profile_pic_url": "https://...",
     "force_password_reset": false, "last_login_at": "2026-03-05T08:00:00.000Z",
@@ -33,7 +33,7 @@
 Field: `profile_pic` (file)
 **Response `200`:**
 ```json
-{ "success": true, "message": "Profile picture updated successfully", "data": { "id": "uuid", "profile_pic_url": "https://storage.girik.com/profiles/new.jpg" } }
+{ "success": true, "message": "Profile picture updated successfully", "data": { "id": "uuid", "profile_pic_url": "https://storage.grclass.com/profiles/new.jpg" } }
 ```
 
 ### PUT `/api/v1/users/fcm-token`
@@ -182,7 +182,7 @@ Field: `profile_pic` (file)
       "question_text": "Fire extinguishers inspected and within service date?",
       "answer": "YES",
       "remarks": "All 15 extinguishers in good condition",
-      "file_url": "https://storage.girik.com/checklists/photo1.jpg"
+      "file_url": "https://storage.grclass.com/checklists/photo1.jpg"
     },
     {
       "question_code": "FS-002",
@@ -196,7 +196,7 @@ Field: `profile_pic` (file)
       "question_text": "Emergency exits clearly marked?",
       "answer": "NO",
       "remarks": "Exit sign on deck 3 is broken",
-      "file_url": "https://storage.girik.com/checklists/broken-sign.jpg"
+      "file_url": "https://storage.grclass.com/checklists/broken-sign.jpg"
     }
   ]
 }
@@ -240,7 +240,7 @@ Field: `profile_pic` (file)
   "message": "Proof uploaded successfully.",
   "data": {
     "id": "uuid", "survey_status": "PROOF_UPLOADED",
-    "evidence_proof_url": "https://storage.girik.com/surveys/proof-001.pdf",
+    "evidence_proof_url": "https://storage.grclass.com/surveys/proof-001.pdf",
     "updated_at": "2026-03-05T19:30:00.000Z"
   }
 }
@@ -286,9 +286,9 @@ Field: `profile_pic` (file)
     "started_at": "2026-03-05T18:00:00.000Z",
     "submitted_at": "2026-03-05T20:00:00.000Z",
     "finalized_at": null,
-    "attendance_photo_url": "https://storage.girik.com/surveys/photo-001.jpg",
-    "signature_url": "https://storage.girik.com/surveys/sig-001.png",
-    "evidence_proof_url": "https://storage.girik.com/surveys/proof-001.pdf",
+    "attendance_photo_url": "https://storage.grclass.com/surveys/photo-001.jpg",
+    "signature_url": "https://storage.grclass.com/surveys/sig-001.png",
+    "evidence_proof_url": "https://storage.grclass.com/surveys/proof-001.pdf",
     "survey_statement": "The vessel MV Star was inspected at Dubai Port...",
     "submission_count": 1,
     "created_at": "2026-03-05T18:00:00.000Z",
@@ -423,7 +423,7 @@ Field: `profile_pic` (file)
 ### POST `/api/v1/documents/upload` — `multipart/form-data`
 **Response `201`:**
 ```json
-{ "success": true, "data": { "fileKey": "surveys/1709672200000-photo.jpg", "url": "https://storage.girik.com/surveys/photo.jpg" } }
+{ "success": true, "data": { "fileKey": "surveys/1709672200000-photo.jpg", "url": "https://storage.grclass.com/surveys/photo.jpg" } }
 ```
 
 *(Also: POST `/register`, GET `/:id`, GET `/:entityType/:entityId`, POST `/:entityType/:entityId`, POST `/:entityType/:entityId/register`)*
@@ -442,7 +442,7 @@ Field: `profile_pic` (file)
     "nationality": "UK", "qualifications": "Master Mariner, Class 1 Certificate",
     "is_available": true,
     "last_known_latitude": 25.2048, "last_known_longitude": 55.2708,
-    "User": { "id": "uuid", "name": "John Surveyor", "email": "john@girik.com", "role": "SURVEYOR", "status": "ACTIVE" }
+    "User": { "id": "uuid", "name": "John Surveyor", "email": "john@grclass.com", "role": "SURVEYOR", "status": "ACTIVE" }
   }
 }
 ```

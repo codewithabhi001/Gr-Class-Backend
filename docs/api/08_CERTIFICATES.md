@@ -38,8 +38,8 @@
     "expiry_date": "2031-03-05",
     "status": "VALID",
     "issued_by_user_id": "019514a2-7e3b-7000-8000-000000000001",
-    "qr_code_url": "https://storage.girik.com/qr/GIRIK-2026-0042.png",
-    "pdf_file_url": "https://storage.girik.com/certs/GIRIK-2026-0042.pdf",
+    "qr_code_url": "https://storage.grclass.com/qr/GIRIK-2026-0042.png",
+    "pdf_file_url": "https://storage.grclass.com/certs/GIRIK-2026-0042.pdf",
     "created_at": "2026-03-05T21:30:00.000Z"
   }
 }

@@ -48,17 +48,17 @@ export const buildTransactionalNotificationEmail = ({
     const metaRows = [];
     if (data.jobId) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#64748b;font-size:12px;width:120px;">Job reference</td><td style="padding:6px 12px;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#0f172a;">${escapeHtml(String(data.jobId))}</td></tr>`
+            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;width:120px;">Job reference</td><td style="padding:6px 12px;font-size:13px;color:#134e4a;">${escapeHtml(String(data.jobId))}</td></tr>`
         );
     }
     if (data.status) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#64748b;font-size:12px;">Status</td><td style="padding:6px 12px;font-size:13px;color:#0f172a;font-weight:600;">${escapeHtml(String(data.status))}</td></tr>`
+            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;">Status</td><td style="padding:6px 12px;font-size:13px;color:#0f766e;font-weight:600;">${escapeHtml(String(data.status))}</td></tr>`
         );
     }
     if (data.vesselName) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#64748b;font-size:12px;">Vessel</td><td style="padding:6px 12px;font-size:13px;color:#0f172a;">${escapeHtml(String(data.vesselName))}</td></tr>`
+            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;">Vessel</td><td style="padding:6px 12px;font-size:13px;color:#134e4a;">${escapeHtml(String(data.vesselName))}</td></tr>`
         );
     }
 
@@ -67,9 +67,9 @@ export const buildTransactionalNotificationEmail = ({
         : '';
 
     const innerHtml = `
-      <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;">${escapeHtml(label)}</p>
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;letter-spacing:-0.02em;">${escapeHtml(headline)}</h1>
-      <div style="font-size:15px;color:#475569;">${messageToHtml(messageText)}</div>
+      <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#0d9488;">${escapeHtml(label)}</p>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f766e;line-height:1.3;letter-spacing:-0.02em;">${escapeHtml(headline)}</h1>
+      <div style="font-size:15px;color:#4b5563;">${messageToHtml(messageText)}</div>
       ${metaTable}
     `;
 

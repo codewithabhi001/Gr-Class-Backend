@@ -29,7 +29,7 @@ CREATED → DOCUMENT_VERIFIED → APPROVED → ASSIGNED → SURVEY_AUTHORIZED �
   "uploaded_documents": [
     {
       "required_document_id": "019514a2-7e3b-7000-8000-000000000090",
-      "file_url": "https://storage.girik.com/uploads/doc1.pdf"
+      "file_url": "https://storage.grclass.com/uploads/doc1.pdf"
     }
   ]
 }
@@ -698,7 +698,7 @@ Same structure as external messages but with `"is_internal": true`.
     "sender_id": "uuid",
     "message": "Updated documents attached.",
     "is_internal": false,
-    "attachment_url": "https://storage.girik.com/messages/doc.pdf",
+    "attachment_url": "https://storage.grclass.com/messages/doc.pdf",
     "created_at": "2026-03-05T20:45:00.000Z"
   }
 }

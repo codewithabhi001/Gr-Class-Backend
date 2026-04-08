@@ -80,7 +80,7 @@
 ### POST `/api/v1/documents/upload` — `multipart/form-data`
 **Response `201`:**
 ```json
-{ "success": true, "data": { "fileKey": "misc/1709672200000-report.pdf", "url": "https://storage.girik.com/misc/report.pdf" } }
+{ "success": true, "data": { "fileKey": "misc/1709672200000-report.pdf", "url": "https://storage.grclass.com/misc/report.pdf" } }
 ```
 
 ### DELETE `/api/v1/documents/:id`
@@ -371,7 +371,7 @@ Fields: `video`/`videoKey`, `thumbnail`/`thumbnailKey`, `section` (✅), `title`
 **Response `200`:** `{ "success": true, "data": { "id": "uuid", "status": "RETRYING" } }`
 
 ### POST `/api/v1/system/maintenance/:action` (enable/disable)
-**Response `200`:** `{ "success": true, "data": { "maintenance_mode": true, "performed_by": "admin@girik.com" } }`
+**Response `200`:** `{ "success": true, "data": { "maintenance_mode": true, "performed_by": "admin@grclass.com" } }`
 
 ### GET `/api/v1/system/feature-flags`
 **Response `200`:** `{ "success": true, "data": { "flags": { "NEW_UI": true, "BETA_REPORTS": false } } }`

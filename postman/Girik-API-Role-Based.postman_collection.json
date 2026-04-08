@@ -49,7 +49,7 @@
                 "description": "Authenticate with email and password. Returns user, **accessToken** (short-lived, for API calls), and **refreshToken** (long-lived, for getting new access tokens).\nUse **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Store tokens securely.\n",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@girik.com\",\n  \"password\": \"Password@123\"\n}",
+                  "raw": "{\n  \"email\": \"admin@grclass.com\",\n  \"password\": \"Password@123\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -121,7 +121,7 @@
                 "description": "Request password reset email.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"user@girik.com\"\n}",
+                  "raw": "{\n  \"email\": \"user@grclass.com\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3470,7 +3470,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@girik.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"TM\",\n  \"phone\": \"+65 9123 4567\",\n  \"client_id\": null\n}",
+                  "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@grclass.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"TM\",\n  \"phone\": \"+65 9123 4567\",\n  \"client_id\": null\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3553,7 +3553,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.updated@girik.com\",\n  \"phone\": \"+65 9876 5432\"\n}",
+                  "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.updated@grclass.com\",\n  \"phone\": \"+65 9876 5432\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4982,7 +4982,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"John Surveyor\",\n  \"email\": \"surveyor@girik.com\",\n  \"password\": \"SecurePass123!\",\n  \"phone\": \"+65 9123 4567\"\n}",
+                  "raw": "{\n  \"name\": \"John Surveyor\",\n  \"email\": \"surveyor@grclass.com\",\n  \"password\": \"SecurePass123!\",\n  \"phone\": \"+65 9123 4567\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -14855,7 +14855,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"John Surveyor\",\n  \"email\": \"surveyor@girik.com\",\n  \"password\": \"SecurePass123!\",\n  \"phone\": \"+65 9123 4567\"\n}",
+                  "raw": "{\n  \"name\": \"John Surveyor\",\n  \"email\": \"surveyor@grclass.com\",\n  \"password\": \"SecurePass123!\",\n  \"phone\": \"+65 9123 4567\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"

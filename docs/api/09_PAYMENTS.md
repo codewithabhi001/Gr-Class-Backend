@@ -171,7 +171,7 @@
     "id": "uuid",
     "payment_status": "PAID",
     "payment_date": "2026-03-05",
-    "receipt_url": "https://storage.girik.com/receipts/receipt-001.pdf",
+    "receipt_url": "https://storage.grclass.com/receipts/receipt-001.pdf",
     "verified_by_user_id": "uuid"
   }
 }

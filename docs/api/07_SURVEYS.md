@@ -85,7 +85,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
   "data": {
     "id": "019514a2-7e3b-7000-8000-000000000200",
     "survey_status": "PROOF_UPLOADED",
-    "evidence_proof_url": "https://storage.girik.com/surveys/proof-001.jpg",
+    "evidence_proof_url": "https://storage.grclass.com/surveys/proof-001.jpg",
     "updated_at": "2026-03-05T18:30:00.000Z"
   }
 }
@@ -195,9 +195,9 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
     "start_longitude": 55.2708,
     "submit_latitude": 25.2050,
     "submit_longitude": 55.2710,
-    "attendance_photo_url": "https://storage.girik.com/surveys/photo.jpg",
-    "signature_url": "https://storage.girik.com/surveys/signature.png",
-    "evidence_proof_url": "https://storage.girik.com/surveys/proof.jpg",
+    "attendance_photo_url": "https://storage.grclass.com/surveys/photo.jpg",
+    "signature_url": "https://storage.grclass.com/surveys/signature.png",
+    "evidence_proof_url": "https://storage.grclass.com/surveys/proof.jpg",
     "survey_statement": "The vessel was inspected...",
     "started_at": "2026-03-05T18:00:00.000Z",
     "submitted_at": "2026-03-05T20:00:00.000Z",
@@ -335,7 +335,7 @@ None required
   "success": true,
   "data": {
     "id": "uuid",
-    "statement_url": "https://storage.girik.com/statements/stmt-001.pdf"
+    "statement_url": "https://storage.grclass.com/statements/stmt-001.pdf"
   }
 }
 ```
@@ -403,9 +403,9 @@ None required
     "start_longitude": 55.2708,
     "submit_latitude": 25.2050,
     "submit_longitude": 55.2710,
-    "attendance_photo_url": "https://storage.girik.com/surveys/photo.jpg",
-    "signature_url": "https://storage.girik.com/surveys/signature.png",
-    "evidence_proof_url": "https://storage.girik.com/surveys/proof.jpg",
+    "attendance_photo_url": "https://storage.grclass.com/surveys/photo.jpg",
+    "signature_url": "https://storage.grclass.com/surveys/signature.png",
+    "evidence_proof_url": "https://storage.grclass.com/surveys/proof.jpg",
     "survey_statement": "The vessel MV Star was inspected...",
     "started_at": "2026-03-05T18:00:00.000Z",
     "submitted_at": "2026-03-05T20:00:00.000Z",

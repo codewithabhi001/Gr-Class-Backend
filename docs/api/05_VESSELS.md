@@ -119,7 +119,7 @@
   "builder_name": "Hyundai Heavy Industries",
   "uploaded_documents": [
     {
-      "file_url": "https://storage.girik.com/uploads/class_cert.pdf",
+      "file_url": "https://storage.grclass.com/uploads/class_cert.pdf",
       "document_type": "Class Certificate",
       "description": "Current class certificate"
     }

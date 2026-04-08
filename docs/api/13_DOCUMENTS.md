@@ -49,7 +49,7 @@
   "success": true,
   "data": {
     "fileKey": "misc/1709672200000-report.pdf",
-    "url": "https://storage.girik.com/misc/1709672200000-report.pdf"
+    "url": "https://storage.grclass.com/misc/1709672200000-report.pdf"
   }
 }
 ```

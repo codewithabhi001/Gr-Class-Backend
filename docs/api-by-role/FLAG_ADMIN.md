@@ -14,7 +14,7 @@
 ### GET `/api/v1/users/me`
 **Response `200`:**
 ```json
-{ "success": true, "data": { "id": "uuid", "name": "Flag Admin", "email": "flag@girik.com", "role": "FLAG_ADMIN", "phone": "+971506666666", "status": "ACTIVE", "client_id": null, "profile_pic_url": null, "last_login_at": "2026-03-05T08:00:00.000Z" } }
+{ "success": true, "data": { "id": "uuid", "name": "Flag Admin", "email": "flag@grclass.com", "role": "FLAG_ADMIN", "phone": "+971506666666", "status": "ACTIVE", "client_id": null, "profile_pic_url": null, "last_login_at": "2026-03-05T08:00:00.000Z" } }
 ```
 
 ### PUT `/api/v1/users/profile-pic` — `multipart/form-data`

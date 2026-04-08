@@ -38,7 +38,7 @@
     "qualification": "Chief Engineer",
     "years_of_experience": 15,
     "status": "PENDING",
-    "cv_url": "https://storage.girik.com/applications/cv.pdf",
+    "cv_url": "https://storage.grclass.com/applications/cv.pdf",
     "created_at": "2026-03-05T18:00:00.000Z"
   }
 }
@@ -55,7 +55,7 @@
 ```json
 {
   "name": "John Surveyor",
-  "email": "john@girik.com",
+  "email": "john@grclass.com",
   "password": "Secure@123",
   "phone": "+971501234567",
   "nationality": "UK",
@@ -78,7 +78,7 @@
   "success": true,
   "message": "Surveyor created successfully",
   "data": {
-    "user": { "id": "uuid", "name": "John Surveyor", "email": "john@girik.com", "role": "SURVEYOR" },
+    "user": { "id": "uuid", "name": "John Surveyor", "email": "john@grclass.com", "role": "SURVEYOR" },
     "profile": { "id": "uuid", "nationality": "UK", "qualifications": "Master Mariner..." }
   }
 }
@@ -189,7 +189,7 @@
     "User": {
       "id": "uuid",
       "name": "John Surveyor",
-      "email": "john@girik.com",
+      "email": "john@grclass.com",
       "role": "SURVEYOR",
       "status": "ACTIVE"
     }

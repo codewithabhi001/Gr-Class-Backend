@@ -21,11 +21,11 @@ export const render = (data) => {
       ${greeting}
       <p style="margin:0 0 16px;">Please confirm your email address by clicking the button below.</p>
       <p style="margin:0 0 20px;">
-        <a href="${escapeHtml(verifyUrl)}" style="display:inline-block;background:#18181b;color:#fafafa;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;font-size:14px;">Verify email</a>
+        <a href="${escapeHtml(verifyUrl)}" style="display:inline-block;background:#14b8a6;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;font-size:14px;">Verify email</a>
       </p>
-      <p style="margin:0 0 12px;color:#52525b;font-size:13px;">Or open this link:</p>
-      <p style="margin:0 0 20px;word-break:break-all;font-size:13px;color:#3f3f46;">${escapeHtml(verifyUrl)}</p>
-      <p style="margin:0;color:#52525b;font-size:14px;">This link expires in ${ttl} minute${ttl === 1 ? '' : 's'}.</p>
+      <p style="margin:0 0 12px;color:#71717a;font-size:13px;">Or open this link:</p>
+      <p style="margin:0 0 20px;word-break:break-all;font-size:13px;color:#4b5563;">${escapeHtml(verifyUrl)}</p>
+      <p style="margin:0;color:#71717a;font-size:14px;">This link expires in ${ttl} minute${ttl === 1 ? '' : 's'}.</p>
     `;
 
     return {

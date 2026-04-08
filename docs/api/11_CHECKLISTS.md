@@ -31,7 +31,7 @@
         "question_text": "Fire extinguishers inspected and within service date?",
         "answer": "YES",
         "remarks": "All 15 extinguishers in good condition",
-        "file_url": "https://storage.girik.com/checklists/photo1.jpg",
+        "file_url": "https://storage.grclass.com/checklists/photo1.jpg",
         "created_at": "2026-03-05T19:00:00.000Z"
       },
       {
@@ -49,7 +49,7 @@
         "question_text": "Emergency exits clearly marked?",
         "answer": "NO",
         "remarks": "Exit sign on deck 3 is broken",
-        "file_url": "https://storage.girik.com/checklists/broken-sign.jpg",
+        "file_url": "https://storage.grclass.com/checklists/broken-sign.jpg",
         "created_at": "2026-03-05T19:02:00.000Z"
       }
     ]
@@ -78,7 +78,7 @@
       "question_text": "Fire extinguishers inspected and within service date?",
       "answer": "YES",
       "remarks": "All 15 extinguishers in good condition",
-      "file_url": "https://storage.girik.com/checklists/photo1.jpg"
+      "file_url": "https://storage.grclass.com/checklists/photo1.jpg"
     },
     {
       "question_code": "FS-002",
@@ -92,7 +92,7 @@
       "question_text": "Emergency exits clearly marked?",
       "answer": "NO",
       "remarks": "Exit sign on deck 3 is broken",
-      "file_url": "https://storage.girik.com/checklists/broken-sign.jpg"
+      "file_url": "https://storage.grclass.com/checklists/broken-sign.jpg"
     }
   ]
 }

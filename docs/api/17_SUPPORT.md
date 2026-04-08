@@ -77,7 +77,7 @@
         "priority": "HIGH",
         "category": "Technical",
         "created_at": "2026-03-05T18:00:00.000Z",
-        "Creator": { "name": "Admin User", "email": "admin@girik.com" }
+        "Creator": { "name": "Admin User", "email": "admin@grclass.com" }
       }
     ],
     "count": 10
@@ -111,7 +111,7 @@
     "resolved_at": null,
     "resolved_by": null,
     "created_at": "2026-03-05T18:00:00.000Z",
-    "Creator": { "name": "Admin User", "email": "admin@girik.com" },
+    "Creator": { "name": "Admin User", "email": "admin@grclass.com" },
     "Resolver": null
   }
 }

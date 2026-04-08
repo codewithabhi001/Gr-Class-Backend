@@ -600,7 +600,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
     "email": {
       "type": "string",
       "format": "email",
-      "example": "admin@girik.com"
+      "example": "admin@grclass.com"
     },
     "password": {
       "type": "string",
@@ -609,7 +609,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
     }
   },
   "example": {
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "password": "SecurePass123!"
   }
 }
@@ -620,7 +620,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 
 ```json
 {
-  "email": "admin@girik.com",
+  "email": "admin@grclass.com",
   "password": "Password@123"
 }
 ```
@@ -655,7 +655,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
       "user": {
         "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
         "name": "John Doe",
-        "email": "admin@girik.com",
+        "email": "admin@grclass.com",
         "role": "CLIENT"
       },
       "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -937,7 +937,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
     "email": {
       "type": "string",
       "format": "email",
-      "example": "user@girik.com"
+      "example": "user@grclass.com"
     }
   }
 }
@@ -948,7 +948,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 
 ```json
 {
-  "email": "user@girik.com"
+  "email": "user@grclass.com"
 }
 ```
 </details>
@@ -13449,7 +13449,7 @@ with a file attachment.
 ```json
 {
   "name": "John Surveyor",
-  "email": "surveyor@girik.com",
+  "email": "surveyor@grclass.com",
   "password": "SecurePass123!",
   "phone": "+65 9123 4567"
 }
@@ -16493,7 +16493,7 @@ with a file attachment.
 ```json
 {
   "name": "John Doe",
-  "email": "john@girik.com",
+  "email": "john@grclass.com",
   "password": "SecurePass123!",
   "role": "TM",
   "phone": "+65 9123 4567",
@@ -16677,7 +16677,7 @@ with a file attachment.
 ```json
 {
   "name": "John Doe",
-  "email": "john.updated@girik.com",
+  "email": "john.updated@grclass.com",
   "phone": "+65 9876 5432"
 }
 ```

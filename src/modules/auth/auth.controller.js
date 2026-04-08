@@ -89,3 +89,13 @@ export const resetPassword = async (req, res, next) => {
         next(error);
     }
 }
+
+export const changePassword = async (req, res, next) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        await authService.changePassword(req.user.id, oldPassword, newPassword);
+        res.json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+        next(error);
+    }
+};

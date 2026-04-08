@@ -22,7 +22,7 @@
 {
   "success": true,
   "data": {
-    "id": "uuid", "name": "Admin User", "email": "admin@girik.com",
+    "id": "uuid", "name": "Admin User", "email": "admin@grclass.com",
     "role": "ADMIN", "phone": "+971501234567", "status": "ACTIVE",
     "client_id": null, "profile_pic_url": null,
     "force_password_reset": false, "last_login_at": "2026-03-05T18:00:00.000Z",
@@ -35,7 +35,7 @@
 Field: `profile_pic` (file)
 **Response `200`:**
 ```json
-{ "success": true, "message": "Profile picture updated successfully", "data": { "id": "uuid", "profile_pic_url": "https://storage.girik.com/profiles/new.jpg" } }
+{ "success": true, "message": "Profile picture updated successfully", "data": { "id": "uuid", "profile_pic_url": "https://storage.grclass.com/profiles/new.jpg" } }
 ```
 
 ### PUT `/api/v1/users/fcm-token`
@@ -58,7 +58,7 @@ Field: `profile_pic` (file)
   "data": {
     "rows": [
       {
-        "id": "uuid", "name": "TO User", "email": "to@girik.com",
+        "id": "uuid", "name": "TO User", "email": "to@grclass.com",
         "role": "TO", "phone": "+971503333333", "status": "ACTIVE",
         "client_id": null, "profile_pic_url": null,
         "last_login_at": "2026-03-05T08:00:00.000Z",
@@ -75,7 +75,7 @@ Field: `profile_pic` (file)
 ```json
 {
   "name": "New User",
-  "email": "newuser@girik.com",
+  "email": "newuser@grclass.com",
   "password": "Secure@123",
   "role": "TO",
   "phone": "+971501234567",
@@ -97,7 +97,7 @@ Field: `profile_pic` (file)
   "success": true,
   "message": "User created successfully",
   "data": {
-    "id": "uuid", "name": "New User", "email": "newuser@girik.com",
+    "id": "uuid", "name": "New User", "email": "newuser@grclass.com",
     "role": "TO", "phone": "+971501234567", "status": "ACTIVE",
     "client_id": null, "profile_pic_url": null,
     "created_at": "2026-03-05T18:00:00.000Z"

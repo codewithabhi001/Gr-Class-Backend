@@ -51,7 +51,7 @@ async function seed() {
         if (!admin) {
             admin = await db.User.create({
                 name: 'System Admin',
-                email: `admin_${Date.now()}@girik.com`,
+                email: `admin_${Date.now()}@grclass.com`,
                 password_hash: 'hashed_password',
                 role: 'ADMIN',
                 status: 'ACTIVE'
@@ -62,7 +62,7 @@ async function seed() {
         if (!tm) {
             tm = await db.User.create({
                 name: 'Technical Manager',
-                email: `tm_${Date.now()}@girik.com`,
+                email: `tm_${Date.now()}@grclass.com`,
                 password_hash: 'hashed_password',
                 role: 'TM',
                 status: 'ACTIVE'
@@ -73,7 +73,7 @@ async function seed() {
         if (!surveyor) {
             surveyor = await db.User.create({
                 name: 'Expert Surveyor',
-                email: `surveyor_${Date.now()}@girik.com`,
+                email: `surveyor_${Date.now()}@grclass.com`,
                 password_hash: 'hashed_password',
                 role: 'SURVEYOR',
                 status: 'ACTIVE'

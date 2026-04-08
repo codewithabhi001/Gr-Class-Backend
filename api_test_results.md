@@ -1,6 +1,6 @@
 # API Testing Results for Manager Roles
 
-## 🔹 Role: GM (User: gm@girik.com)
+## 🔹 Role: GM (User: gm@grclass.com)
 
 ### ❌ Login Failed
 ```json
@@ -12,7 +12,7 @@
 }
 ```
 
-## 🔹 Role: TM (User: tm@girik.com)
+## 🔹 Role: TM (User: tm@grclass.com)
 
 ### ❌ Login Failed
 ```json
@@ -24,7 +24,7 @@
 }
 ```
 
-## 🔹 Role: TO (User: to@girik.com)
+## 🔹 Role: TO (User: to@grclass.com)
 
 ### ❌ Login Failed
 ```json
@@ -36,7 +36,7 @@
 }
 ```
 
-## 🔹 Role: TA (User: ta@girik.com)
+## 🔹 Role: TA (User: ta@grclass.com)
 
 ### ❌ Login Failed
 ```json

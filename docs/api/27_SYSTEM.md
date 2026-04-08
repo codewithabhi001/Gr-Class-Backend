@@ -212,7 +212,7 @@
 ```json
 {
   "success": true,
-  "data": { "maintenance_mode": true, "performed_by": "admin@girik.com" }
+  "data": { "maintenance_mode": true, "performed_by": "admin@grclass.com" }
 }
 ```
 

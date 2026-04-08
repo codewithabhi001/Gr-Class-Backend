@@ -7,7 +7,7 @@
 
 ### Request
 ```json
-{ "email": "admin@girik.com", "password": "Admin@123" }
+{ "email": "admin@grclass.com", "password": "Admin@123" }
 ```
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
@@ -20,7 +20,7 @@
   "user": {
     "id": "019514a2-7e3b-7000-8000-000000000001",
     "name": "Admin User",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "ADMIN",
     "phone": "+971501234567",
     "status": "ACTIVE",
@@ -58,7 +58,7 @@
   "user": {
     "id": "019514a2-7e3b-7000-8000-000000000001",
     "name": "Admin User",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "ADMIN",
     "phone": "+971501234567",
     "status": "ACTIVE",
@@ -78,7 +78,7 @@
 
 ### Request
 ```json
-{ "email": "user@girik.com" }
+{ "email": "user@grclass.com" }
 ```
 ### Response `200`
 ```json
@@ -121,8 +121,8 @@ Path: `:number` = e.g. `GIRIK-2026-0042`
     "issue_date": "2026-01-15",
     "expiry_date": "2031-01-15",
     "status": "VALID",
-    "qr_code_url": "https://storage.girik.com/qr/GIRIK-2026-0042.png",
-    "pdf_file_url": "https://storage.girik.com/certs/GIRIK-2026-0042.pdf",
+    "qr_code_url": "https://storage.grclass.com/qr/GIRIK-2026-0042.png",
+    "pdf_file_url": "https://storage.grclass.com/certs/GIRIK-2026-0042.pdf",
     "issued_by_user_id": "019514a2-7e3b-7000-8000-000000000001",
     "Vessel": {
       "id": "019514a2-7e3b-7000-8000-000000000005",
@@ -189,8 +189,8 @@ Query: `?section=HOME`
     "section": "HOME",
     "title": "About Girik Marine",
     "description": "Introduction to Girik Marine certification services",
-    "video_url": "https://storage.girik.com/videos/intro.mp4",
-    "thumbnail_url": "https://storage.girik.com/thumbnails/intro.jpg",
+    "video_url": "https://storage.grclass.com/videos/intro.mp4",
+    "thumbnail_url": "https://storage.grclass.com/thumbnails/intro.jpg",
     "uploaded_by": "019514a2-7e3b-7000-8000-000000000001",
     "created_at": "2026-01-01T00:00:00.000Z",
     "updated_at": "2026-01-01T00:00:00.000Z"
@@ -277,7 +277,7 @@ Query: `?section=HOME`
     "qualification": "Chief Engineer",
     "years_of_experience": 15,
     "status": "PENDING",
-    "cv_url": "https://storage.girik.com/applications/cv.pdf",
+    "cv_url": "https://storage.grclass.com/applications/cv.pdf",
     "created_at": "2026-03-05T18:00:00.000Z"
   }
 }

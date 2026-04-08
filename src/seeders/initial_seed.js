@@ -12,7 +12,7 @@ const seed = async () => {
         // 1. Admin User
         await db.User.create({
             name: 'Super Admin',
-            email: 'admin@girik.com',
+            email: 'admin@grclass.com',
             password_hash: adminPassword,
             role: 'ADMIN',
             status: 'ACTIVE',
@@ -42,7 +42,7 @@ const seed = async () => {
         // 4. Sample Surveyor
         const surveyorUser = await db.User.create({
             name: 'John Surveyor',
-            email: 'surveyor@girik.com',
+            email: 'surveyor@grclass.com',
             password_hash: adminPassword,
             role: 'SURVEYOR',
             status: 'ACTIVE'

@@ -3,7 +3,7 @@ import fs from 'fs';
 import FormData from 'form-data';
 
 const BASE_URL = 'http://localhost:3000/api/v1';
-const SURVEYOR_EMAIL = 'surveyor@girik.com';
+const SURVEYOR_EMAIL = 'surveyor@grclass.com';
 const PASSWORD = 'Password@123';
 const JOB_ID = '019c7a6f-af92-737a-8f89-86e0bbc5f688';
 

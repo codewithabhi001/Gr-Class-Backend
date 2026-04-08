@@ -21,11 +21,11 @@ export const render = (data) => {
       ${greeting}
       <p style="margin:0 0 16px;">We received a request to reset your password. Click the button below to choose a new password.</p>
       <p style="margin:0 0 20px;">
-        <a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#18181b;color:#fafafa;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;font-size:14px;">Reset password</a>
+        <a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#14b8a6;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;font-size:14px;">Reset password</a>
       </p>
-      <p style="margin:0 0 12px;color:#52525b;font-size:13px;">Or copy and paste this link into your browser:</p>
-      <p style="margin:0 0 20px;word-break:break-all;font-size:13px;color:#3f3f46;">${escapeHtml(resetUrl)}</p>
-      <p style="margin:0;color:#52525b;font-size:14px;">This link expires in ${ttl} minute${ttl === 1 ? '' : 's'}. If you did not ask for a reset, you can ignore this email.</p>
+      <p style="margin:0 0 12px;color:#71717a;font-size:13px;">Or copy and paste this link into your browser:</p>
+      <p style="margin:0 0 20px;word-break:break-all;font-size:13px;color:#4b5563;">${escapeHtml(resetUrl)}</p>
+      <p style="margin:0;color:#71717a;font-size:14px;">This link expires in ${ttl} minute${ttl === 1 ? '' : 's'}. If you did not ask for a reset, you can ignore this email.</p>
     `;
 
     return {

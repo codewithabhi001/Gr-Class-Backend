@@ -29,7 +29,7 @@
               client_id: { type: string, format: uuid }
           example:
             name: "John Doe"
-            email: "john@girik.com"
+            email: "john@grclass.com"
             password: "SecurePass123!"
             role: "TM"
             phone: "+65 9123 4567"
@@ -73,7 +73,7 @@
               client_id: { type: string, format: uuid }
           example:
             name: "John Doe"
-            email: "john.updated@girik.com"
+            email: "john.updated@grclass.com"
             phone: "+65 9876 5432"
     responses:
       "200": { description: User updated }

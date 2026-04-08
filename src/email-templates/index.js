@@ -2,6 +2,7 @@ import { render as renderOtp } from './otp.template.js';
 import { render as renderPasswordReset } from './password-reset.template.js';
 import { render as renderEmailVerification } from './email-verification.template.js';
 import { render as renderWelcomeUser } from './welcome-user.template.js';
+import { render as renderSubscriptionWelcome } from './subscription-welcome.template.js';
 
 /** @type {Record<string, (data: object) => { subject: string, html: string, type?: string }>} */
 const registry = {
@@ -9,6 +10,7 @@ const registry = {
     PASSWORD_RESET: renderPasswordReset,
     EMAIL_VERIFICATION: renderEmailVerification,
     WELCOME_USER: renderWelcomeUser,
+    SUBSCRIPTION_WELCOME: renderSubscriptionWelcome,
 };
 
 /**

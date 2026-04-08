@@ -254,7 +254,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 
 ```json
 {
-  "email": "admin@girik.com",
+  "email": "admin@grclass.com",
   "password": "SecurePass123!"
 }
 ```
@@ -267,7 +267,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
   "user": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "name": "John Doe",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "CLIENT",
     "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
   },
@@ -358,7 +358,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
   "user": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "name": "John Doe",
-    "email": "admin@girik.com",
+    "email": "admin@grclass.com",
     "role": "CLIENT",
     "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
   },
@@ -392,7 +392,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 
 ```json
 {
-  "email": "user@girik.com"
+  "email": "user@grclass.com"
 }
 ```
 

@@ -44,21 +44,21 @@ const seed = async () => {
         const users = [
             {
                 name: 'System Admin',
-                email: 'admin@girik.com',
+                email: 'admin@grclass.com',
                 password_hash: defaultPassword,
                 role: 'ADMIN',
                 status: 'ACTIVE'
             },
             {
                 name: 'Technical Manager',
-                email: 'tm@girik.com',
+                email: 'tm@grclass.com',
                 password_hash: defaultPassword,
                 role: 'TM',
                 status: 'ACTIVE'
             },
             {
                 name: 'General Manager',
-                email: 'gm@girik.com',
+                email: 'gm@grclass.com',
                 password_hash: defaultPassword,
                 role: 'GM',
                 status: 'ACTIVE'
@@ -81,7 +81,7 @@ const seed = async () => {
             },
             {
                 name: 'Expert Surveyor',
-                email: 'surveyor@girik.com',
+                email: 'surveyor@grclass.com',
                 password_hash: defaultPassword,
                 role: 'SURVEYOR',
                 status: 'ACTIVE'

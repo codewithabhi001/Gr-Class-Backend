@@ -114,4 +114,4 @@ WebsiteContact:
       properties:
         id:    { type: string, format: uuid }
         name:  { type: string, example: "Admin User" }
-        email: { type: string, example: "admin@girik.com" }
+        email: { type: string, example: "admin@grclass.com" }

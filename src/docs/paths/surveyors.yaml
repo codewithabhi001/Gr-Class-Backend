@@ -65,7 +65,7 @@
               phone: { type: string }
           example:
             name: "John Surveyor"
-            email: "surveyor@girik.com"
+            email: "surveyor@grclass.com"
             password: "SecurePass123!"
             phone: "+65 9123 4567"
     responses:
