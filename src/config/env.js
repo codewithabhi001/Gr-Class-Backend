@@ -87,7 +87,7 @@ export default {
             .replace(/\/$/, '');
         return `${base}/newsletter/unsubscribe`;
     })(),
-    passwordResetExpiresIn: process.env.PASSWORD_RESET_EXPIRES_IN || '1h',
+    passwordResetExpiresIn: process.env.PASSWORD_RESET_EXPIRES_IN || '10m',
     mail: {
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT,

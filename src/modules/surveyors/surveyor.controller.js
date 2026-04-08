@@ -111,3 +111,10 @@ export const updateStatus = async (req, res, next) => {
         });
     } catch (error) { next(error); }
 };
+
+export const getUploadUrls = async (req, res, next) => {
+    try {
+        const result = await surveyorService.getUploadUrls(req.query);
+        res.json({ success: true, data: result });
+    } catch (e) { next(e); }
+};

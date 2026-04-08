@@ -8,7 +8,7 @@ export const templateName = 'PASSWORD_RESET';
 
 export const render = (data) => {
     const resetUrl = String(data.resetUrl || '');
-    const ttl = data.ttlMinutes != null ? Number(data.ttlMinutes) : 60;
+    const ttl = data.ttlMinutes != null ? Number(data.ttlMinutes) : 10;
     const userName = data.userName ? escapeHtml(data.userName) : '';
 
     const subject = 'Reset your GR Class password';

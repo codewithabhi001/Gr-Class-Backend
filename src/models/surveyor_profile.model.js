@@ -15,6 +15,7 @@ export default (sequelize, DataTypes) => {
         years_of_experience: { type: DataTypes.INTEGER, allowNull: true },
         cv_url: { type: DataTypes.STRING, allowNull: true },
         id_proof_url: { type: DataTypes.STRING, allowNull: true },
+        license_copy_url: { type: DataTypes.STRING, allowNull: true },
     }, {
         tableName: 'surveyor_profiles',
         underscored: true,

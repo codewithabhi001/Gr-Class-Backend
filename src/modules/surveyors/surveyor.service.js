@@ -9,6 +9,9 @@ const SurveyorApplication = db.SurveyorApplication;
 const User = db.User;
 const SurveyorProfile = db.SurveyorProfile;
 
+export const UPLOAD_FOLDERS = s3Service.UPLOAD_FOLDERS;
+export const getUploadSignedUrl = s3Service.getUploadSignedUrl;
+
 export const applySurveyor = async (data, files) => {
     const existingUser = await User.findOne({ where: { email: data.email } });
     if (existingUser) throw { statusCode: 400, message: 'A user with this email already exists.' };
@@ -121,11 +124,11 @@ export const reviewApplication = async (id, status, remarks, reviewerUserId) => 
 
         // Log credentials for demo/dev purposes if no mailer configured
         console.log(`Surveyor Approved: ${app.email} / ${randomPassword}`);
-        return app;
+        return await fileAccessService.resolveEntity(app);
     }
 
     await app.update({ status, reviewer_remarks: remarks });
-    return app;
+    return await fileAccessService.resolveEntity(app);
 };
 
 export const createSurveyor = async (data) => {
@@ -148,10 +151,11 @@ export const createSurveyor = async (data) => {
         qualification: data.qualification || data.qualifications,
         years_of_experience: data.years_of_experience,
         cv_url: data.cv_url,
-        id_proof_url: data.id_proof_url
+        id_proof_url: data.id_proof_url,
+        license_copy_url: data.license_copy_url
     });
 
-    return { user, profile };
+    return await fileAccessService.resolveEntity({ user, profile });
 };
 
 export const getProfile = async (id, user = null) => {
@@ -193,7 +197,7 @@ export const updateProfile = async (id, data) => {
     const profileFields = [
         'license_number', 'authorized_ship_types', 'authorized_certificates',
         'valid_from', 'valid_to', 'is_available', 'nationality',
-        'qualification', 'years_of_experience', 'cv_url', 'id_proof_url'
+        'qualification', 'years_of_experience', 'cv_url', 'id_proof_url', 'license_copy_url'
     ];
 
     const profileUpdate = {};
@@ -208,13 +212,13 @@ export const updateProfile = async (id, data) => {
         profileUpdate.qualification = data.qualifications;
     }
 
-    return await profile.update(profileUpdate);
+    return await fileAccessService.resolveEntity(await profile.update(profileUpdate));
 };
 
 export const updateAvailability = async (userId, isAvailable) => {
     const profile = await SurveyorProfile.findOne({ where: { user_id: userId } });
     if (!profile) throw { statusCode: 404, message: 'Surveyor profile not found' };
-    return await profile.update({ is_available: isAvailable });
+    return await fileAccessService.resolveEntity(await profile.update({ is_available: isAvailable }));
 };
 
 export const reportLocation = async (userId, locationData) => {
@@ -265,7 +269,7 @@ export const updateStatus = async (id, status) => {
         await profile.update({ status: profileStatusMap[status] || 'INACTIVE' });
     }
 
-    return user;
+    return await fileAccessService.resolveEntity(user);
 };
 
 export const getSurveyors = async (query = {}, user = null) => {
@@ -287,4 +291,49 @@ export const getSurveyors = async (query = {}, user = null) => {
     });
 
     return await fileAccessService.resolveEntity(surveyors, user);
+};
+
+export const getUploadUrls = async (query) => {
+    const { cv_filename, id_proof_filename, certificate_filenames } = query;
+    const folder = s3Service.UPLOAD_FOLDERS.SURVEYOR;
+    
+    const result = {};
+    const tasks = [];
+
+    if (cv_filename) {
+        tasks.push((async () => {
+            const key = `${folder}/cv/${uuidv4()}-${cv_filename}`;
+            result.cv = { key, uploadUrl: await s3Service.getUploadSignedUrl(key, 'application/pdf') };
+        })());
+    }
+
+    if (id_proof_filename) {
+        tasks.push((async () => {
+            const key = `${folder}/id-proof/${uuidv4()}-${id_proof_filename}`;
+            result.id_proof = { key, uploadUrl: await s3Service.getUploadSignedUrl(key, 'application/pdf') };
+        })());
+    }
+
+    if (certificate_filenames) {
+        let filenames = certificate_filenames;
+        if (typeof filenames === 'string') {
+            try {
+                filenames = JSON.parse(filenames);
+            } catch (e) {
+                filenames = filenames.split(',');
+            }
+        }
+        if (!Array.isArray(filenames)) filenames = [filenames];
+
+        result.certificates = [];
+        filenames.forEach(fn => {
+            tasks.push((async () => {
+                const key = `${folder}/certificates/${uuidv4()}-${fn}`;
+                result.certificates.push({ key, uploadUrl: await s3Service.getUploadSignedUrl(key, 'application/pdf') });
+            })());
+        });
+    }
+
+    await Promise.all(tasks);
+    return result;
 };
