@@ -2,6 +2,7 @@ import app from './app.js';
 import env from './config/env.js';
 import logger from './utils/logger.js';
 import db from './models/index.js';
+import chalk from 'chalk';
 
 import { startMonitoring } from './services/cron.service.js';
 
@@ -30,19 +31,15 @@ const startServer = async () => {
         const baseUrl = `http://${host}:${PORT}`;
 
         app.listen(PORT, () => {
+            console.log('\n' + chalk.bgBlue.white.bold(' SYSTEM ') + chalk.dim(' ='.repeat(25)));
             logger.info(`Server is running on port ${PORT}`);
-            console.log('\n' + '='.repeat(60));
-            console.log(`🚀 Server running at ${baseUrl}`);
+            console.log(`${chalk.green('🚀')} ${chalk.bold('Environment:')} ${chalk.cyan(env.nodeEnv)}`);
+            console.log(`${chalk.green('🌐')} ${chalk.bold('Base URL:')}    ${chalk.underline.blue(baseUrl)}`);
             console.log('');
-            console.log('📚 API Documentation (Swagger):');
-            console.log(`   Full:    ${baseUrl}/api-docs`);
-            console.log(`   Admin:   ${baseUrl}/api-docs/admin`);
-            console.log(`   GM:      ${baseUrl}/api-docs/gm`);
-            console.log(`   TM:      ${baseUrl}/api-docs/tm`);
-            console.log(`   TO:      ${baseUrl}/api-docs/to`);
-            console.log(`   Surveyor:${baseUrl}/api-docs/surveyor`);
-            console.log(`   Client:  ${baseUrl}/api-docs/client`);
-            console.log('='.repeat(60) + '\n');
+            console.log(chalk.bgMagenta.white.bold(' DOCUMENTATION ') + chalk.dim(' -'.repeat(20)));
+            console.log(`  ${chalk.dim('•')} ${chalk.bold('Full API:')}    ${chalk.blue(`${baseUrl}/api-docs`)}`);
+            console.log(`  ${chalk.dim('•')} ${chalk.bold('Roles:')}       ${chalk.gray('Admin, GM, TM, TO, Surveyor, Client')}`);
+            console.log(chalk.dim('='.repeat(58)) + '\n');
         });
     } catch (error) {
         logger.error('Unable to connect to the database:', error);

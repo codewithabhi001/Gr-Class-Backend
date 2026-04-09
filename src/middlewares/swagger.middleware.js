@@ -87,7 +87,7 @@ export function setupSwagger(app) {
           swaggerOptions: {
             ...SWAGGER_OPTIONS.swaggerOptions,
             urls: roleUrls,
-            'urls.primaryName': 'ALL',
+            'urls.primaryName': role,
           },
         })
       : swaggerUi.generateHTML(null, {

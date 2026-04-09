@@ -72,9 +72,9 @@ mounts.forEach(module => {
     const lines = content.split('\n');
     let fileLevelRoles = null; // null means no restrictions found at file level
 
-    // Check for router.use(hasRole(...))
+    // Check for router.use(hasRole(...)) or router.use(authorizeRoles(...))
     // We assume it's usually at the top level of the router setup
-    const fileRoleRegex = /router\.use\(\s*hasRole\(([^)]+)\)\s*\)/;
+    const fileRoleRegex = /router\.use\(\s*(?:hasRole|authorizeRoles)\(([^)]+)\)\s*\)/;
     const fileRoleMatch = content.match(fileRoleRegex);
     if (fileRoleMatch) {
         fileLevelRoles = parseRoles(fileRoleMatch[1]);
@@ -105,12 +105,23 @@ mounts.forEach(module => {
         fullPath = fullPath.replace(/([^:]\/)\/+/g, '$1');
 
         // Check for specific roles in this route
-        const roleCheckRegex = /hasRole\(([^)]+)\)/;
+        // Matches hasRole('ROLE') or authorizeRoles('ROLE1', 'ROLE2') or authorizeRoles(...RBAC.VAR)
+        const roleCheckRegex = /(?:hasRole|authorizeRoles)\s*\(([^)]+)\)/;
         const roleMatch = middlewares.match(roleCheckRegex);
 
         let routeRoles = null;
         if (roleMatch) {
-            routeRoles = parseRoles(roleMatch[1]);
+            const rawRoles = roleMatch[1];
+            if (rawRoles.includes('...')) {
+                // Hardcoded resolution for known RBAC variables or just mark as complex
+                if (rawRoles.includes('AUTHORIZE_SURVEY')) {
+                    routeRoles = ['ADMIN', 'TM'];
+                } else {
+                    routeRoles = ['ADMIN']; // Fallback
+                }
+            } else {
+                routeRoles = parseRoles(rawRoles);
+            }
         }
 
         // Determine effective roles

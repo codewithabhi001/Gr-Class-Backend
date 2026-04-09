@@ -1,6 +1,11 @@
 import winston from 'winston';
 import chalk from 'chalk';
 
+// Ensure colors work on Ubuntu/Linux servers even if not a TTY
+if (process.env.FORCE_COLOR === undefined) {
+    process.env.FORCE_COLOR = '3'; // Force 256 colors
+}
+
 const isProd = process.env.NODE_ENV === 'production';
 
 const logger = winston.createLogger({
@@ -20,19 +25,21 @@ if (process.env.NODE_ENV !== 'production') {
         format: winston.format.combine(
             winston.format.timestamp({ format: 'HH:mm:ss' }),
             winston.format.printf(({ timestamp, level, message, ...metadata }) => {
-                let colorFunc;
+                let badge;
                 switch (level) {
-                    case 'error': colorFunc = chalk.bold.red; break;
-                    case 'warn': colorFunc = chalk.yellow; break;
-                    case 'info': colorFunc = chalk.cyan; break;
-                    case 'debug': colorFunc = chalk.gray; break;
-                    default: colorFunc = chalk.white;
+                    case 'error': badge = chalk.bgRed.white.bold(` ERROR `); break;
+                    case 'warn':  badge = chalk.bgYellow.black.bold(` WARN `); break;
+                    case 'info':  badge = chalk.bgCyan.black.bold(` INFO `); break;
+                    case 'debug': badge = chalk.bgGray.white.bold(` DEBUG `); break;
+                    default:      badge = chalk.bgWhite.black.bold(` ${level.toUpperCase()} `);
                 }
 
-                let msg = `${chalk.gray(`[${timestamp}]`)} ${colorFunc(level.toUpperCase().padEnd(5))}: ${message}`;
+                const ts = chalk.gray(`[${timestamp}]`);
+                let msg = `${ts} ${badge} ${message}`;
                 
                 if (Object.keys(metadata).length && metadata.event !== 'api_request') {
-                    msg += `\n${chalk.gray(JSON.stringify(metadata, null, 2))}`;
+                    const metaStr = JSON.stringify(metadata, null, 2);
+                    msg += `\n${chalk.dim(metaStr.split('\n').map(l => `  ${l}`).join('\n'))}`;
                 }
                 return msg;
             })

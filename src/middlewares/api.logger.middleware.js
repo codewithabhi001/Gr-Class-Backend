@@ -27,25 +27,25 @@ export const apiLogger = (req, res, next) => {
         const duration = Date.now() - startTime;
         
         const statusCode = res.statusCode;
-        let scColor;
-        if (statusCode >= 500) scColor = chalk.bold.red;
-        else if (statusCode >= 400) scColor = chalk.yellow;
-        else if (statusCode >= 300) scColor = chalk.cyan;
-        else scColor = chalk.green;
+        let scBadge;
+        if (statusCode >= 500) scBadge = chalk.bgRed.white.bold(` ${statusCode} `);
+        else if (statusCode >= 400) scBadge = chalk.bgYellow.black.bold(` ${statusCode} `);
+        else if (statusCode >= 300) scBadge = chalk.bgCyan.black.bold(` ${statusCode} `);
+        else scBadge = chalk.bgGreen.black.bold(` ${statusCode} `);
 
-        const methodColor = {
-            'GET': chalk.blue,
-            'POST': chalk.green,
-            'PUT': chalk.yellow,
-            'DELETE': chalk.red,
-            'PATCH': chalk.magenta
-        }[req.method] || chalk.white;
+        const methodBadge = {
+            'GET':    chalk.bgBlue.white.bold(` GET `),
+            'POST':   chalk.bgGreen.black.bold(` POST `),
+            'PUT':    chalk.bgYellow.black.bold(` PUT `),
+            'DELETE': chalk.bgRed.white.bold(` DELETE `),
+            'PATCH':  chalk.bgMagenta.white.bold(` PATCH `)
+        }[req.method] || chalk.bgWhite.black.bold(` ${req.method} `);
 
         const ip = req.ip || req.connection?.remoteAddress || 'unknown';
 
         const message = isProd
             ? `${req.method} ${req.originalUrl} - ${statusCode} [${ip}]`
-            : `${methodColor(req.method.padEnd(6))} ${chalk.white(req.originalUrl.split('?')[0])} ${scColor(statusCode)} ${chalk.gray(`${duration}ms`)} ${chalk.dim(`(${ip})`)}`;
+            : `${methodBadge} ${chalk.white(req.originalUrl.split('?')[0])} ${scBadge} ${chalk.gray(`${duration}ms`)} ${chalk.dim(`(${ip})`)}`;
 
         const line = {
             event: 'api_request',

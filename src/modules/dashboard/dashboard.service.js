@@ -6,9 +6,41 @@ const { User, Client, Vessel, JobRequest, SurveyorProfile, Certificate, FlagAdmi
 const vesselAttrs = ['id', 'vessel_name', 'imo_number', 'flag_administration_id', 'class_status'];
 
 export const getAdminDashboard = async () => {
-    // 1. Parallel counts and grouping (Dramatically faster for remote DBs)
+    const stats = await getOperationalStats();
+    const roleCountsRaw = await User.findAll({
+        attributes: ['role', [db.sequelize.fn('COUNT', 'role'), 'count']],
+        group: ['role'],
+        raw: true
+    });
+
+    const roleCounts = roleCountsRaw.reduce((acc, r) => {
+        acc[r.role] = parseInt(r.count, 10);
+        return acc;
+    }, {});
+
+    return {
+        role: 'ADMIN',
+        summary: {
+            ...stats.summary,
+            users: {
+                total: roleCountsRaw.reduce((sum, r) => sum + parseInt(r.count, 10), 0),
+                by_role: roleCounts,
+                admin: roleCounts.ADMIN || 0,
+                gm: roleCounts.GM || 0,
+                tm: roleCounts.TM || 0,
+                to: roleCounts.TO || 0,
+                ta: roleCounts.TA || 0,
+                surveyors: stats.surveyorCount,
+                clients: roleCounts.CLIENT || 0,
+                flag_admin: roleCounts.FLAG_ADMIN || 0,
+            },
+        },
+        client_with_vessels: stats.client_with_vessels,
+    };
+}
+
+const getOperationalStats = async () => {
     const [
-        roleCountsRaw,
         clientsWithVessels,
         vesselsCount,
         jobsCount,
@@ -16,19 +48,15 @@ export const getAdminDashboard = async () => {
         surveyorProfilesCount,
         jobStatusCountsRaw,
         certStatusCountsRaw,
-        surveyStatusCountsRaw
+        surveyStatusCountsRaw,
+        ncCountsRaw
     ] = await Promise.all([
-        User.findAll({
-            attributes: ['role', [db.sequelize.fn('COUNT', 'role'), 'count']],
-            group: ['role'],
-            raw: true
-        }),
         Client.findAll({
             where: { status: 'ACTIVE' },
             include: [{
                 model: Vessel,
                 as: 'Vessels',
-                required: false, // Keep false to see all, we will filter in JS
+                required: false,
                 attributes: vesselAttrs,
                 include: [{ model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }]
             }],
@@ -52,13 +80,12 @@ export const getAdminDashboard = async () => {
             group: ['survey_status'],
             raw: true
         }),
+        NonConformity.findAll({
+            attributes: ['status', [db.sequelize.fn('COUNT', 'status'), 'count']],
+            group: ['status'],
+            raw: true
+        })
     ]);
-
-    // 2. Map grouped results back to simple objects
-    const roleCounts = roleCountsRaw.reduce((acc, r) => {
-        acc[r.role] = parseInt(r.count, 10);
-        return acc;
-    }, {});
 
     const jobsByStatus = jobStatusCountsRaw.reduce((acc, j) => {
         const status = j.job_status || 'CREATED';
@@ -78,6 +105,12 @@ export const getAdminDashboard = async () => {
         return acc;
     }, {});
 
+    const ncByStatus = ncCountsRaw.reduce((acc, n) => {
+        const status = n.status || 'OPEN';
+        acc[status] = (acc[status] || 0) + parseInt(n.count, 10);
+        return acc;
+    }, {});
+
     const clients = clientsWithVessels.map((c) => ({
         id: c.id,
         company_name: c.company_name,
@@ -93,84 +126,68 @@ export const getAdminDashboard = async () => {
         })),
     }));
 
-    // 3. Filter clients who actually have vessels
-    const clientsWithVesselList = clients.filter(c => c.vessels && c.vessels.length > 0);
-
-    // Sort by vessel count descending
-    const sortedClients = (clientsWithVesselList.length > 0 ? clientsWithVesselList : clients)
+    const sortedClients = clients
+        .filter(c => c.vessels && c.vessels.length > 0)
         .sort((a, b) => b.vessels.length - a.vessels.length)
         .slice(0, 5);
 
     return {
-        role: 'ADMIN',
         summary: {
-            users: {
-                total: roleCountsRaw.reduce((sum, r) => sum + parseInt(r.count, 10), 0),
-                by_role: roleCounts,
-                admin: roleCounts.ADMIN || 0,
-                gm: roleCounts.GM || 0,
-                tm: roleCounts.TM || 0,
-                to: roleCounts.TO || 0,
-                ta: roleCounts.TA || 0,
-                surveyors: surveyorProfilesCount,
-                clients: roleCounts.CLIENT || 0,
-                flag_admin: roleCounts.FLAG_ADMIN || 0,
-            },
-            clients: clients.length,
             vessels: vesselsCount,
+            clients: clients.length,
             jobs: { total: jobsCount, by_status: jobsByStatus },
             surveys: { total: surveyStatusCountsRaw.reduce((sum, s) => sum + parseInt(s.count, 10), 0), by_status: surveysByStatus },
             certificates: { total: certificatesCount, by_status: certsByStatus },
+            non_conformities: { total: ncCountsRaw.reduce((sum, n) => sum + parseInt(n.count, 10), 0), by_status: ncByStatus }
         },
+        surveyorCount: surveyorProfilesCount,
         client_with_vessels: sortedClients,
     };
 }
 
 export const getGMDashboard = async () => {
-    const admin = await getAdminDashboard();
-    return { ...admin, role: 'GM' };
+    const stats = await getOperationalStats();
+    return {
+        role: 'GM',
+        summary: stats.summary,
+        client_with_vessels: stats.client_with_vessels
+    };
 }
 
 export const getTMDashboard = async () => {
-    const admin = await getAdminDashboard();
-    return { ...admin, role: 'TM' };
+    const stats = await getOperationalStats();
+    return {
+        role: 'TM',
+        summary: stats.summary,
+        client_with_vessels: stats.client_with_vessels
+    };
 }
 
 export const getTODashboard = async (user) => {
-    const [jobsCount, myInvolvedJobs, vesselsCount, clientsCount, surveys] = await Promise.all([
-        JobRequest.count(),
-        JobRequest.count({ where: { job_status: { [Op.notIn]: ['CERTIFIED', 'REJECTED', 'CANCELLED'] } } }),
-        Vessel.count(),
-        Client.count({ where: { status: 'ACTIVE' } }),
-        Survey.count({ where: { survey_status: { [Op.in]: ['SUBMITTED', 'FINALIZED'] } } })
-    ]);
+    const stats = await getOperationalStats();
+    
+    // For TO, we might want to highlight jobs waiting for their action
+    const pendingVerification = stats.summary.jobs.by_status['CREATED'] || 0;
+    const pendingTechnicalReview = stats.summary.jobs.by_status['SURVEY_DONE'] || 0;
 
     return {
         role: 'TO',
         summary: {
-            jobs_total: jobsCount,
-            jobs_active: myInvolvedJobs,
-            vessels: vesselsCount,
-            clients: clientsCount,
-            survey_reports: surveys,
+            ...stats.summary,
+            to_action: {
+                verification_needed: pendingVerification,
+                review_needed: pendingTechnicalReview
+            }
         },
+        client_with_vessels: stats.client_with_vessels
     };
 }
 
 export const getTADashboard = async (user) => {
-    const [jobsCount, vesselsCount, clientsCount] = await Promise.all([
-        JobRequest.count(),
-        Vessel.count(),
-        Client.count({ where: { status: 'ACTIVE' } }),
-    ]);
-
+    const stats = await getOperationalStats();
     return {
         role: 'TA',
-        summary: {
-            jobs: jobsCount,
-            vessels: vesselsCount,
-            clients: clientsCount,
-        },
+        summary: stats.summary,
     };
 }
 

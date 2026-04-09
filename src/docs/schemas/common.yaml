@@ -4,20 +4,38 @@ ErrorResponse:
   required:
     - success
     - message
+    - error_code
+    - trace_id
   properties:
     success:
       type: boolean
       example: false
+    error_code:
+      type: string
+      example: "VALIDATION_ERROR"
     message:
       type: string
-      example: "Validation Error"
-    error:
+      example: "Invalid request parameters"
+    errors:
+      type: object
+      description: "Map of field-specific validation errors"
+      example:
+        email: "Email is required"
+        password: "Password is too short"
+    trace_id:
       type: string
-      description: "Detailed error message (e.g. from Joi validation)"
+      format: uuid
+      example: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+    stack:
+      type: string
+      description: "Error stack trace (only in development)"
   example:
     success: false
-    message: "Validation Error"
-    error: "vessel_id is required"
+    error_code: "VALIDATION_ERROR"
+    message: "Validation failed. Please correct the highlighted fields."
+    errors:
+      vessel_id: "vessel_id is required"
+    trace_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
 
 SuccessWrapper:
   type: object
