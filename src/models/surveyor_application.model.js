@@ -16,7 +16,7 @@ export default (sequelize, DataTypes) => {
     }, {
         tableName: 'surveyor_applications',
         underscored: true,
-        timestamps: false,
+        timestamps: true,
     });
 
     SurveyorApplication.associate = (models) => {

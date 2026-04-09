@@ -19,7 +19,7 @@ export default (sequelize, DataTypes) => {
     }, {
         tableName: 'surveyor_profiles',
         underscored: true,
-        timestamps: false,
+        timestamps: true,
     });
 
     SurveyorProfile.associate = (models) => {
