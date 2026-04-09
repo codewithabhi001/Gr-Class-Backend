@@ -294,42 +294,51 @@ export const getSurveyors = async (query = {}, user = null) => {
 };
 
 export const getUploadUrls = async (query) => {
-    const { cv_filename, id_proof_filename, certificate_filenames } = query;
+    const { cv_filename, id_proof_filename, id_proof, certificate_filenames, cv_mimetype, id_proof_mimetype, certificate_mimetypes } = query;
     const folder = s3Service.UPLOAD_FOLDERS.SURVEYOR;
     
+    // Support 'id_proof' as alias for 'id_proof_filename'
+    const idProofFn = id_proof_filename || id_proof;
+
     const result = {};
     const tasks = [];
 
     if (cv_filename) {
         tasks.push((async () => {
             const key = `${folder}/cv/${uuidv4()}-${cv_filename}`;
-            result.cv = { key, uploadUrl: await s3Service.getUploadSignedUrl(key, 'application/pdf') };
+            const contentType = cv_mimetype || 'application/pdf';
+            result.cv = { key, uploadUrl: await s3Service.getUploadSignedUrl(key, contentType) };
         })());
     }
 
-    if (id_proof_filename) {
+    if (idProofFn) {
         tasks.push((async () => {
-            const key = `${folder}/id-proof/${uuidv4()}-${id_proof_filename}`;
-            result.id_proof = { key, uploadUrl: await s3Service.getUploadSignedUrl(key, 'application/pdf') };
+            const key = `${folder}/id-proof/${uuidv4()}-${idProofFn}`;
+            const contentType = id_proof_mimetype || 'application/pdf';
+            result.id_proof = { key, uploadUrl: await s3Service.getUploadSignedUrl(key, contentType) };
         })());
     }
 
     if (certificate_filenames) {
         let filenames = certificate_filenames;
+        let mimetypes = certificate_mimetypes;
+
         if (typeof filenames === 'string') {
-            try {
-                filenames = JSON.parse(filenames);
-            } catch (e) {
-                filenames = filenames.split(',');
-            }
+            try { filenames = JSON.parse(filenames); } catch (e) { filenames = filenames.split(','); }
         }
+        if (typeof mimetypes === 'string') {
+            try { mimetypes = JSON.parse(mimetypes); } catch (e) { mimetypes = mimetypes.split(','); }
+        }
+
         if (!Array.isArray(filenames)) filenames = [filenames];
+        if (!Array.isArray(mimetypes)) mimetypes = [mimetypes];
 
         result.certificates = [];
-        filenames.forEach(fn => {
+        filenames.forEach((fn, index) => {
             tasks.push((async () => {
                 const key = `${folder}/certificates/${uuidv4()}-${fn}`;
-                result.certificates.push({ key, uploadUrl: await s3Service.getUploadSignedUrl(key, 'application/pdf') });
+                const contentType = mimetypes[index] || 'application/pdf';
+                result.certificates.push({ key, uploadUrl: await s3Service.getUploadSignedUrl(key, contentType) });
             })());
         });
     }
