@@ -12,7 +12,7 @@ export default (sequelize, DataTypes) => {
     }, {
         tableName: 'payments',
         underscored: true,
-        timestamps: false,
+        timestamps: true,
     });
 
     Payment.associate = (models) => {

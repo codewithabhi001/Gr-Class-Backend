@@ -19,7 +19,7 @@ export default (sequelize, DataTypes) => {
     }, {
         tableName: 'non_conformities',
         underscored: true,
-        timestamps: false,
+        timestamps: true,
     });
 
     NonConformity.associate = (models) => {

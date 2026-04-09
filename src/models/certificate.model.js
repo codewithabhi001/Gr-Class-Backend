@@ -13,7 +13,7 @@ export default (sequelize, DataTypes) => {
     }, {
         tableName: 'certificates',
         underscored: true,
-        timestamps: false,
+        timestamps: true,
     });
 
     Certificate.associate = (models) => {

@@ -262,8 +262,12 @@ export const getSurveyorDashboard = async (user) => {
 export const getClientDashboard = async (clientId) => {
     if (!clientId) throw { statusCode: 403, message: 'User is not associated with a client' };
 
-    // 1. Get vessel IDs first
-    const vessels = await Vessel.findAll({ where: { client_id: clientId }, attributes: ['id', 'vessel_name'] });
+    // 1. Get vessels (sorted by recent)
+    const vessels = await Vessel.findAll({ 
+        where: { client_id: clientId }, 
+        attributes: ['id', 'vessel_name', 'imo_number', 'createdAt'],
+        order: [['createdAt', 'DESC']]
+    });
     const vesselIds = vessels.map(v => v.id);
 
     if (vesselIds.length === 0) {
@@ -271,12 +275,15 @@ export const getClientDashboard = async (clientId) => {
             role: 'CLIENT',
             stats: { total_vessels: 0, active_jobs: 0, expiring_soon: 0, pending_payments: 0 },
             recent_jobs: [],
-            expiring_certificates: []
+            expiring_certificates: [],
+            recent_vessels: [],
+            recent_certificates: [],
+            recent_payments: []
         };
     }
 
-    // 2. Parallel fetch jobs and certificates
-    const [jobs, certificates] = await Promise.all([
+    // 2. Parallel fetch jobs, certificates and payments
+    const [jobs, certificates, payments] = await Promise.all([
         JobRequest.findAll({
             where: { vessel_id: vesselIds },
             include: [
@@ -287,15 +294,19 @@ export const getClientDashboard = async (clientId) => {
         }),
         Certificate.findAll({
             where: { vessel_id: vesselIds },
-            include: [{ model: Vessel, attributes: ['vessel_name'] }]
+            include: [{ model: Vessel, attributes: ['vessel_name'] }],
+            order: [['createdAt', 'DESC']]
+        }),
+        Payment.findAll({
+            include: [{
+                model: JobRequest,
+                where: { vessel_id: vesselIds },
+                required: true,
+                include: [{ model: Vessel, attributes: ['vessel_name'] }]
+            }],
+            order: [['createdAt', 'DESC']]
         })
     ]);
-
-    // 3. Get payments for these jobs
-    const jobIds = jobs.map(j => j.id);
-    const payments = jobIds.length > 0 
-        ? await Payment.findAll({ where: { job_id: jobIds } })
-        : [];
 
     // Calculate statistics
     const stats = {
@@ -317,6 +328,35 @@ export const getClientDashboard = async (clientId) => {
             type: j.CertificateType?.name,
             status: j.job_status,
             date: j.createdAt
+        })),
+        recent_vessels: vessels.slice(0, 5).map(v => ({
+            id: v.id,
+            vessel_name: v.vessel_name,
+            imo_number: v.imo_number,
+            date_added: v.createdAt
+        })),
+        recent_certificates: certificates.slice(0, 5).map(c => ({
+            id: c.id,
+            name: c.certificate_name,
+            vessel: c.Vessel?.vessel_name,
+            expiry_date: c.expiry_date,
+            issued_date: c.issued_date || c.createdAt
+        })),
+        recent_payments: payments.slice(0, 5).map(p => ({
+            id: p.id,
+            invoice_number: p.invoice_number,
+            amount: p.amount,
+            currency: p.currency,
+            status: p.payment_status,
+            vessel_name: p.JobRequest?.Vessel?.vessel_name,
+            date: p.payment_date || p.createdAt
+        })),
+        pending_payments: payments.filter(p => p.payment_status === 'UNPAID').map(p => ({
+            id: p.id,
+            invoice_number: p.invoice_number,
+            amount: p.amount,
+            currency: p.currency,
+            vessel_name: p.JobRequest?.Vessel?.vessel_name
         })),
         expiring_certificates: certificates
             .filter(c => {
