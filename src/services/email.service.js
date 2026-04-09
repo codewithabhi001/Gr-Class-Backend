@@ -124,8 +124,8 @@ export const sendTemplateEmail = async (to, templateName, data) => {
             type = 'alerts';
             break;
         case 'CERTIFICATE_EXPIRY':
-            fallbackSubject = `Certificate expiring: ${data.certificateNumber}`;
-            fallbackBody = `Certificate ${data.certificateNumber} for ${data.vesselName} expires on ${data.expiryDate}.`;
+            fallbackSubject = `Renewal Notice: Your Certificate for ${data.vesselName} is Expiring Soon`;
+            fallbackBody = `This is a reminder that the following certificate is approaching its expiry date. \n\nVessel: ${data.vesselName}\nCertificate: ${data.certificateNumber}\nType: ${data.certificateType}\nExpiry Date: ${data.expiryDate}\n\nPlease initiate the renewal process soon to avoid any operational interruptions.`;
             break;
         case 'LEGAL_HOLD':
             fallbackSubject = `Legal hold: ${data.entityId}`;
@@ -181,6 +181,15 @@ export const sendTemplateEmail = async (to, templateName, data) => {
         case 'JOB_RESCHEDULED':
             fallbackSubject = `Job rescheduled: ${data.vesselName}`;
             fallbackBody = `The job for ${data.vesselName} has been rescheduled to ${data.newDate} at ${data.newPort}. Reason: ${data.reason}`;
+            break;
+        case 'CERTIFICATE_GENERATED':
+            if (data.isInternal) {
+                fallbackSubject = `Internal: Certificate Issued — ${data.certificateNumber}`;
+                fallbackBody = `A new certificate ${data.certificateNumber} has been issued for ${data.vesselName} (${data.certificateType}) following the completion of Job ${data.jobId}. This is now available in the system for oversight.`;
+            } else {
+                fallbackSubject = `Congratulations! Certificate Issued — ${data.certificateNumber}`;
+                fallbackBody = `We are pleased to inform you that the certificate for your vessel ${data.vesselName} has been successfully generated. \n\nCertificate Number: ${data.certificateNumber}\nType: ${data.certificateType}\n\nYou can now view and download the official PDF from your dashboard.`;
+            }
             break;
         default:
             fallbackSubject = data.title || 'GR Class notification';

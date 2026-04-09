@@ -9,6 +9,7 @@ import * as lifecycleService from '../../services/lifecycle.service.js';
 import env from '../../config/env.js';
 import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
 import QRCode from 'qrcode';
+import * as emailService from '../../services/email.service.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -318,12 +319,67 @@ export const generateCertificate = async (data, user) => {
                 { model: db.CertificateType, attributes: ['name'] }
             ]
         });
-
         if (finalCert && finalCert.pdf_file_url) {
             const key = fileAccessService.getKeyFromUrl(finalCert.pdf_file_url);
             const signedUrl = await fileAccessService.generateSignedUrl(key, 3600, user);
             finalCert.setDataValue('pdf_url', signedUrl);
         }
+
+        // ── Non-blocking Notification Dispatch ──
+        (async () => {
+            try {
+                const vesselId = job.vessel_id;
+                const vesselFull = await Vessel.findByPk(vesselId, { attributes: ['client_id'] });
+                
+                const commonData = {
+                    certificateNumber,
+                    vesselName: vessel?.vessel_name,
+                    certificateType: job.CertificateType?.name,
+                    expiryDate: expiryDate.toLocaleDateString(),
+                    jobId: job.id,
+                    status: 'ISSUED'
+                };
+
+                // 1. Notify Client Users
+                if (vesselFull?.client_id) {
+                    const clientUsers = await db.User.findAll({
+                        where: { client_id: vesselFull.client_id, role: 'CLIENT', status: 'ACTIVE' },
+                        attributes: ['email']
+                    });
+                    const clientEmails = clientUsers.map(u => u.email);
+                    if (clientEmails.length > 0) {
+                        await emailService.sendTemplateEmail(clientEmails, 'CERTIFICATE_GENERATED', { 
+                            ...commonData, 
+                            isInternal: false 
+                        });
+                    }
+                }
+
+                // 2. Notify Internal Managers (GM & TM)
+                const internalUsers = await db.User.findAll({
+                    where: { role: { [Op.in]: ['GM', 'TM'] }, status: 'ACTIVE' },
+                    attributes: ['email']
+                });
+                const internalEmails = internalUsers.map(u => u.email);
+                
+                // 3. Notify Assigned Surveyor
+                if (job.assigned_surveyor_id) {
+                    const surveyor = await db.User.findByPk(job.assigned_surveyor_id, { attributes: ['email'] });
+                    if (surveyor?.email && !internalEmails.includes(surveyor.email)) {
+                        internalEmails.push(surveyor.email);
+                    }
+                }
+
+                if (internalEmails.length > 0) {
+                    await emailService.sendTemplateEmail(internalEmails, 'CERTIFICATE_GENERATED', { 
+                        ...commonData, 
+                        isInternal: true 
+                    });
+                }
+            } catch (err) {
+                logger.error('Failed to dispatch certificate generation emails', { certificateNumber, err: err.message });
+            }
+        })();
 
         return finalCert;
     } catch (error) {
