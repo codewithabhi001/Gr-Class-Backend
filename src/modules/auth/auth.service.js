@@ -6,6 +6,7 @@ import * as emailService from '../../services/email.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as tokenBlacklistService from '../../services/tokenBlacklist.service.js';
 import { passwordReset as passwordResetTemplate } from '../../email-templates/index.js';
+import { getContext } from '../../utils/context.util.js';
 
 const User = db.User;
 
@@ -44,8 +45,31 @@ export const login = async (email, password) => {
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
+        const ctx = getContext();
+        db.AuditLog.create({
+            action: 'LOGIN_FAILED',
+            entity_name: 'User',
+            entity_id: user.id,
+            ip_address: ctx.ip,
+            user_agent: ctx.userAgent,
+            new_values: { email }
+        }).catch(() => { });
         throw { statusCode: 401, message: 'Invalid credentials' };
     }
+
+    // Set context for audit logging
+    const ctx = getContext();
+    if (ctx) ctx.userId = user.id;
+
+    // Explicit LOGIN audit log
+    db.AuditLog.create({
+        user_id: user.id,
+        action: 'LOGIN',
+        entity_name: 'User',
+        entity_id: user.id,
+        ip_address: ctx.ip,
+        user_agent: ctx.userAgent
+    }).catch(() => { });
 
     // Non-blocking — don't wait for this DB write
     user.update({ last_login_at: new Date() }).catch(() => { });
@@ -101,6 +125,10 @@ export const register = async (userData, options = {}) => {
         transaction ? { transaction } : undefined
     );
 
+    // Set context for audit logging
+    const ctx = getContext();
+    if (ctx) ctx.userId = user.id;
+
     // Send Welcome Email
     try {
         await emailService.sendTemplateEmail(user.email, 'WELCOME_USER', {
@@ -132,6 +160,17 @@ export const register = async (userData, options = {}) => {
 
 export const logout = async (userId, token) => {
     if (token) await tokenBlacklistService.blacklistToken(token);
+    
+    const ctx = getContext();
+    db.AuditLog.create({
+        user_id: userId,
+        action: 'LOGOUT',
+        entity_name: 'User',
+        entity_id: userId,
+        ip_address: ctx.ip,
+        user_agent: ctx.userAgent
+    }).catch(() => { });
+
     return true;
 };
 

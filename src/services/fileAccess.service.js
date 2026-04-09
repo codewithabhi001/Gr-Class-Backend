@@ -1,6 +1,7 @@
 import db from '../models/index.js';
 import * as s3Service from './s3.service.js';
 import env from '../config/env.js';
+import { getContext } from '../utils/context.util.js';
 
 const { JobRequest, Vessel, Certificate, AuditLog } = db;
 
@@ -75,9 +76,12 @@ export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null
     _signedUrlCache.set(cacheKey, { url: signedUrl, ts: Date.now() });
 
     // Audit Log (non-blocking) - Only if not skipped
-    if (user && !skipAudit) {
+    const ctx = getContext();
+    const activeUserId = user?.id || ctx.userId;
+
+    if (activeUserId && !skipAudit) {
         AuditLog.create({
-            user_id: user.id,
+            user_id: activeUserId,
             action: 'GENERATE_SIGNED_URL',
             entity_name: 'File',
             entity_id: null,
@@ -178,9 +182,18 @@ export const resolveEntity = async (data, user = null) => {
 
     // Perform bulk audit logging if any entries were collected
     if (auditEntries.length > 0) {
-        AuditLog.bulkCreate(auditEntries).catch(err => {
-            console.warn(`Bulk audit logging failed for ${auditEntries.length} entries:`, err);
-        });
+        // Double check user IDs if missing
+        const ctx = getContext();
+        const entries = auditEntries.map(e => ({
+            ...e,
+            user_id: e.user_id || ctx.userId
+        })).filter(e => e.user_id);
+
+        if (entries.length > 0) {
+            AuditLog.bulkCreate(entries).catch(err => {
+                console.warn(`Bulk audit logging failed for ${entries.length} entries:`, err);
+            });
+        }
     }
 
     return result;

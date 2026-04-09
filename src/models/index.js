@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Sequelize from 'sequelize';
 import env from '../config/env.js';
+import { getContext } from '../utils/context.util.js';
 
 import { v7 as uuidv7 } from 'uuid';
 
@@ -52,25 +53,41 @@ const loadModels = async () => {
         }
     });
 
-    // Attach Immutable Audit Trail hooks to Critical Workflow states
-    const auditableModels = ['JobRequest', 'Survey', 'Certificate'];
-    auditableModels.forEach(modelName => {
+    // Attach Immutable Audit Trail hooks to ALL models (except AuditLog to avoid recursion)
+    Object.keys(db).forEach(modelName => {
+        if (modelName === 'AuditLog') return;
         const Model = db[modelName];
-        if (!Model) return;
+        if (!Model || typeof Model.addHook !== 'function') return;
 
         const auditAction = async (instance, options, action) => {
             if (!db.AuditLog) return;
+            
+            // Only log write operations for the audit trail
+            const ctx = getContext();
+            
             const auditData = {
                 action,
                 entity_name: modelName,
                 entity_id: instance.id,
                 old_values: action === 'CREATE' ? null : (instance._previousDataValues || null),
                 new_values: action === 'DELETE' ? null : (instance.dataValues || null),
-                user_id: options?.user_id || null, // Passed in queries: { user_id: req.user.id }
-                ip_address: options?.ip_address || null,
-                user_agent: options?.user_agent || null
+                user_id: options?.user_id || ctx.userId || null,
+                ip_address: options?.ip_address || ctx.ip || null,
+                user_agent: options?.user_agent || ctx.userAgent || null
             };
-            await db.AuditLog.create(auditData, { transaction: options?.transaction });
+
+            // Don't log if no changes (for UPDATE)
+            if (action === 'UPDATE' && JSON.stringify(auditData.old_values) === JSON.stringify(auditData.new_values)) {
+                return;
+            }
+
+            try {
+                // Use a separate transaction or no transaction to ensure the log is kept even if main txn fails?
+                // Actually, usually audit logs should be part of the txn to ensure consistency.
+                await db.AuditLog.create(auditData, { transaction: options?.transaction });
+            } catch (err) {
+                console.error(`Failed to create audit log for ${modelName}:`, err.message);
+            }
         };
 
         Model.addHook('afterCreate', async (instance, options) => auditAction(instance, options, 'CREATE'));

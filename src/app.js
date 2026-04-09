@@ -10,9 +10,13 @@ import logger from './utils/logger.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 import { apiLogger, errorLogger } from './middlewares/api.logger.middleware.js';
 import { setupSwagger } from './middlewares/swagger.middleware.js';
+import { contextMiddleware } from './middlewares/context.middleware.js';
 import './models/index.js'; // Initialize DB
 
 const app = express();
+
+// 0. Context Storage (Must be first to wrap all callbacks)
+app.use(contextMiddleware);
 
 // Trust proxy for rate limiting behind Nginx/CloudFront
 app.set('trust proxy', 1); 

@@ -379,8 +379,7 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
         }]
     });
 
-    const eligible = [];
-    const not_eligible = [];
+    const surveyors = [];
 
     for (const profile of allSurveyors) {
         let isEligible = true;
@@ -399,11 +398,6 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             }
         }
 
-        if (!profile.is_available) {
-            isEligible = false;
-            missing_reasons.push('Surveyor is currently UNAVAILABLE/OFFLINE');
-        }
-
         if (certName) {
             let authorizedCerts = profile.authorized_certificates;
             if (typeof authorizedCerts === 'string') {
@@ -417,7 +411,13 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             }
         }
 
-        const surveyorData = {
+        // Availability check
+        if (!profile.is_available) {
+            isEligible = false;
+            missing_reasons.push('Surveyor is currently UNAVAILABLE/OFFLINE');
+        }
+
+        surveyors.push({
             id: profile.User.id,
             name: profile.User.name,
             email: profile.User.email,
@@ -427,19 +427,15 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             status: profile.status,
             license_number: profile.license_number,
             years_of_experience: profile.years_of_experience,
+            is_eligible: isEligible,
             missing_reasons
-        };
-
-        if (isEligible) {
-            eligible.push(surveyorData);
-        } else {
-            not_eligible.push(surveyorData);
-        }
+        });
     }
 
     return {
-        eligible,
-        not_eligible
+        surveyors,
+        eligible: surveyors.filter(s => s.is_eligible),
+        not_eligible: surveyors.filter(s => !s.is_eligible)
     };
 };
 

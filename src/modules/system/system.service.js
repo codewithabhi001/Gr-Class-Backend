@@ -17,13 +17,32 @@ export const getSystemMetrics = async () => {
 };
 
 export const getAuditLogs = async (query) => {
-    const { page = 1, limit = 50 } = query;
-    return await db.AuditLog.findAndCountAll({
+    const { page = 1, limit = 50, user_id, action, entity_name, from_date, to_date } = query;
+    const where = {};
+    if (user_id) where.user_id = user_id;
+    if (action) where.action = action;
+    if (entity_name) where.entity_name = entity_name;
+    if (from_date || to_date) {
+        where.createdAt = {};
+        if (from_date) where.createdAt[db.Sequelize.Op.gte] = new Date(from_date);
+        if (to_date) where.createdAt[db.Sequelize.Op.lte] = new Date(to_date);
+    }
+
+    const { count, rows } = await db.AuditLog.findAndCountAll({
+        where,
         limit: parseInt(limit),
-        offset: (page - 1) * limit,
+        offset: (parseInt(page) - 1) * parseInt(limit),
         order: [['created_at', 'DESC']],
-        include: [{ model: db.User, attributes: ['name', 'email'] }]
+        include: [{ model: db.User, attributes: ['id', 'name', 'email', 'role'] }]
     });
+
+    return {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit),
+        logs: rows
+    };
 };
 
 export const forceLogout = async (userId) => {

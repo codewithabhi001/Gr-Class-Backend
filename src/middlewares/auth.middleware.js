@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import env from '../config/env.js';
 import db from '../models/index.js';
 import * as tokenBlacklistService from '../services/tokenBlacklist.service.js';
+import { updateContextUser } from './context.middleware.js';
 
 // ── In-memory user cache to avoid DB hit on every authenticated request ──
 const _userCache = new Map();
@@ -66,6 +67,7 @@ export const authenticate = async (req, res, next) => {
 
         req.user = user;
         req.token = token;
+        updateContextUser(user);
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Invalid token' });
@@ -97,6 +99,7 @@ export const optionalAuthenticate = async (req, res, next) => {
         if (user && user.status === 'ACTIVE') {
             req.user = user;
             req.token = token;
+            updateContextUser(user);
         }
     } catch {
         // Invalid or expired token — treat as anonymous
