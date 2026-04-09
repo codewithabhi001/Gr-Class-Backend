@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 
 const applyLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
+    max: 8005,
     message: { success: false, message: 'Too many applications, please try again later.' }
 });
 
