@@ -146,7 +146,7 @@ export const generateCertificate = async (data, user) => {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
     }
     const userId = user.id;
-    const { job_id, validity_years } = data;
+    const { job_id, validity_years, expiry_date } = data;
 
     const transaction = await db.sequelize.transaction();
     try {
@@ -217,8 +217,15 @@ export const generateCertificate = async (data, user) => {
         }
 
         const issueDate = new Date();
-        const expiryDate = new Date();
-        expiryDate.setFullYear(issueDate.getFullYear() + (validity_years || 1));
+        let expiryDate;
+        if (expiry_date) {
+            expiryDate = new Date(expiry_date);
+        } else {
+            expiryDate = new Date();
+            expiryDate.setFullYear(issueDate.getFullYear() + (validity_years || 1));
+            // In maritime, certificates usually expire the day before their anniversary
+            expiryDate.setDate(expiryDate.getDate() - 1);
+        }
         const certificateNumber = `CERT-${uuidv4().substring(0, 8).toUpperCase()}`;
 
         const cert = await Certificate.create({
@@ -570,8 +577,10 @@ export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
 export const getExpiringCertificates = async (days, user) => {
     const scopeWhere = await getCertificateScopeFilter(user);
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
     const target = new Date();
     target.setDate(today.getDate() + days);
+    target.setHours(23, 59, 59, 999); // End of target day
 
     return await Certificate.findAll({
         where: {

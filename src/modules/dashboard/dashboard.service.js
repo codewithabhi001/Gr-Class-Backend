@@ -40,6 +40,12 @@ export const getAdminDashboard = async () => {
 }
 
 const getOperationalStats = async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date();
+    target.setDate(today.getDate() + 30);
+    target.setHours(23, 59, 59, 999);
+
     const [
         clientsWithVessels,
         vesselsCount,
@@ -49,7 +55,8 @@ const getOperationalStats = async () => {
         jobStatusCountsRaw,
         certStatusCountsRaw,
         surveyStatusCountsRaw,
-        ncCountsRaw
+        ncCountsRaw,
+        expiringCertsCount
     ] = await Promise.all([
         Client.findAll({
             where: { status: 'ACTIVE' },
@@ -84,6 +91,14 @@ const getOperationalStats = async () => {
             attributes: ['status', [db.sequelize.fn('COUNT', 'status'), 'count']],
             group: ['status'],
             raw: true
+        }),
+        Certificate.count({
+            where: {
+                status: 'VALID',
+                expiry_date: {
+                    [Op.between]: [today, target]
+                }
+            }
         })
     ]);
 
@@ -137,7 +152,11 @@ const getOperationalStats = async () => {
             clients: clients.length,
             jobs: { total: jobsCount, by_status: jobsByStatus },
             surveys: { total: surveyStatusCountsRaw.reduce((sum, s) => sum + parseInt(s.count, 10), 0), by_status: surveysByStatus },
-            certificates: { total: certificatesCount, by_status: certsByStatus },
+            certificates: { 
+                total: certificatesCount, 
+                by_status: certsByStatus,
+                expiring_soon: expiringCertsCount 
+            },
             non_conformities: { total: ncCountsRaw.reduce((sum, n) => sum + parseInt(n.count, 10), 0), by_status: ncByStatus }
         },
         surveyorCount: surveyorProfilesCount,
@@ -313,8 +332,13 @@ export const getClientDashboard = async (clientId) => {
         total_vessels: vessels.length,
         active_jobs: jobs.filter(j => !['CERTIFIED', 'REJECTED', 'CANCELLED'].includes(j.job_status)).length,
         expiring_soon: certificates.filter(c => {
-            const daysToExpiry = Math.floor((new Date(c.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
-            return daysToExpiry <= 60 && daysToExpiry > 0;
+            const expiry = new Date(c.expiry_date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            expiry.setHours(0, 0, 0, 0);
+            const diffTime = expiry - today;
+            const daysToExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return daysToExpiry <= 30 && daysToExpiry >= 0;
         }).length,
         pending_payments: payments.filter(p => p.payment_status === 'UNPAID').length,
     };
@@ -360,8 +384,13 @@ export const getClientDashboard = async (clientId) => {
         })),
         expiring_certificates: certificates
             .filter(c => {
-                const daysToExpiry = Math.floor((new Date(c.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
-                return daysToExpiry <= 60 && daysToExpiry > 0;
+                const expiry = new Date(c.expiry_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                expiry.setHours(0, 0, 0, 0);
+                const diffTime = expiry - today;
+                const daysToExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return daysToExpiry <= 30 && daysToExpiry >= 0;
             })
             .slice(0, 5)
             .map(c => ({
