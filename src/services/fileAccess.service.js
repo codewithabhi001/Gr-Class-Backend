@@ -100,13 +100,15 @@ export const generateSignedUrl = async (key, expiresInSeconds = 300, user = null
  * @param {boolean} skipAudit - Whether to skip individual audit logging
  * @returns {Promise<string>}
  */
-export const resolveUrl = async (keyOrUrl, user = null, skipAudit = false) => {
+export const resolveUrl = async (keyOrUrl, user = null, skipAudit = false, forcePublic = false) => {
     if (!keyOrUrl) return null;
     const key = getKeyFromUrl(keyOrUrl);
 
-    // Check if it's a public path
-    if (key.startsWith('public/')) {
-        return generatePublicCdnUrl(key);
+    // Check if it's a public path or forced public
+    if (key.startsWith('public/') || forcePublic) {
+        // If it's forced public but doesn't start with public/, we still want the CDN domain
+        const cdnDomain = env.aws.cloudfrontDomain || 'cdn.grclass.com';
+        return `https://${cdnDomain}/${key}`;
     }
 
     // Otherwise return a signed URL (default 1 hour expiry)
@@ -140,7 +142,9 @@ export const resolveEntity = async (data, user = null) => {
             const fieldPromises = Object.entries(plain).map(async ([key, value]) => {
                 if (urlKeys.includes(key)) {
                     if (typeof value === 'string' && value && !value.startsWith('http')) {
-                        const resolved = await resolveUrl(value, user, true); // skip individual audit
+                        // Force public CDN for profile_pic_url if used in public context (like testimonials)
+                        const forcePublic = key === 'profile_pic_url';
+                        const resolved = await resolveUrl(value, user, true, forcePublic); // skip individual audit
                         plain[key] = resolved;
                         if (user && !value.startsWith('public/')) {
                             auditEntries.push({
@@ -153,7 +157,8 @@ export const resolveEntity = async (data, user = null) => {
                     } else if (Array.isArray(value)) {
                         plain[key] = await Promise.all(value.map(async v => {
                             if (typeof v === 'string' && v && !v.startsWith('http')) {
-                                const resolved = await resolveUrl(v, user, true);
+                                const forcePublic = key === 'profile_pic_url';
+                                const resolved = await resolveUrl(v, user, true, forcePublic);
                                 if (user && !v.startsWith('public/')) {
                                     auditEntries.push({
                                         user_id: user.id,
