@@ -463,6 +463,7 @@ export const schemas = {
     }),
     upsertPortfolioFeedback: Joi.object({
         comment: Joi.string().required(),
+        rating: Joi.number().integer().min(1).max(5).optional(),
         designation: Joi.string().max(100).allow('', null).optional(),
         company: Joi.string().max(100).allow('', null).optional(),
     }),

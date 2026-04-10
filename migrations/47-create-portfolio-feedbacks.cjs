@@ -24,6 +24,10 @@ module.exports = {
                 type: Sequelize.TEXT,
                 allowNull: false
             },
+            rating: {
+                type: Sequelize.INTEGER,
+                allowNull: true
+            },
             designation: {
                 type: Sequelize.STRING(100),
                 allowNull: true

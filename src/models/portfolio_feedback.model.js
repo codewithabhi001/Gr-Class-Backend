@@ -14,6 +14,14 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: false
         },
+        rating: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            validate: {
+                min: 1,
+                max: 5
+            }
+        },
         designation: {
             type: DataTypes.STRING(100),
             allowNull: true

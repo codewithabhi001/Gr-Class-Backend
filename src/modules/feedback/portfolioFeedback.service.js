@@ -9,7 +9,7 @@ const User = db.User;
  * @param {object} data - { comment, profile_url, designation, company }
  */
 export const upsertFeedback = async (clientId, data) => {
-    const { comment, designation, company } = data;
+    const { comment, designation, company, rating } = data;
 
     // Use upsert or findOne then update/create
     const [feedback, created] = await PortfolioFeedback.findOrCreate({
@@ -19,9 +19,8 @@ export const upsertFeedback = async (clientId, data) => {
             comment,
             designation,
             company,
-            is_visible: false // New feedback or updates default to false (needs admin review?)
-            // Actually, if they update, maybe we should keep the visibility status or reset it.
-            // Requirement says "client first time create kr sake aur next time se sirf update"
+            rating,
+            is_visible: false 
         }
     });
 
@@ -30,8 +29,7 @@ export const upsertFeedback = async (clientId, data) => {
             comment,
             designation,
             company,
-            // is_visible: feedback.is_visible // Keep existing visibility or reset?
-            // Usually, updating content should probably require re-approval.
+            rating,
             is_visible: false 
         });
     }
