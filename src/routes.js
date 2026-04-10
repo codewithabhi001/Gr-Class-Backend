@@ -25,6 +25,7 @@ import systemRoutes from './modules/system/system.routes.js';
 import reportRoutes from './modules/reports/report.routes.js';
 import activityRequestRoutes from './modules/activity_requests/activity_request.routes.js';
 import customerFeedbackRoutes from './modules/feedback/feedback.routes.js';
+import portfolioFeedbackRoutes from './modules/feedback/portfolioFeedback.routes.js';
 import changeRequestRoutes from './modules/change_requests/change_request.routes.js';
 import templateRoutes from './modules/templates/template.routes.js';
 import incidentRoutes from './modules/incidents/incident.routes.js';
@@ -83,6 +84,7 @@ router.use('/certificate-templates', templateRoutes);
 router.use('/incidents', incidentRoutes);
 router.use('/activity-requests', activityRequestRoutes);
 router.use('/customer-feedback', customerFeedbackRoutes);
+router.use('/portfolio-feedback', portfolioFeedbackRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/website', websiteRoutes);
 

@@ -461,6 +461,15 @@ export const schemas = {
     newsletterUnsubscribe: Joi.object({
         email: Joi.string().email().required()
     }),
+    upsertPortfolioFeedback: Joi.object({
+        comment: Joi.string().required(),
+        profile_url: Joi.string().uri().allow('', null).optional(),
+        designation: Joi.string().max(100).allow('', null).optional(),
+        company: Joi.string().max(100).allow('', null).optional(),
+    }),
+    togglePortfolioFeedbackVisibility: Joi.object({
+        is_visible: Joi.boolean().required(),
+    }),
     // newsletterSend: Joi.object({
     //     // emails: Joi.array().items(Joi.string(.email()).optional(),
     //     // subject: Joi.string().min(3).max(500).required(),

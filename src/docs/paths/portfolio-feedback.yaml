@@ -1,0 +1,76 @@
+/api/v1/portfolio-feedback:
+  get:
+    tags: [Feedback]
+    summary: Get all portfolio feedback (Admin view)
+    description: Returns all feedback requested for portfolio display.
+    x-roles: [ADMIN, GM]
+    responses:
+      200:
+        description: List of feedbacks
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PortfolioFeedback'
+  post:
+    tags: [Feedback]
+    summary: Submit/Update portfolio feedback (Client view)
+    description: Creates a new feedback or updates the existing one for the logged-in client.
+    x-roles: [CLIENT]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PortfolioFeedbackInput'
+    responses:
+      200:
+        description: Feedback submitted
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioFeedback'
+
+/api/v1/portfolio-feedback/public:
+  get:
+    tags: [Feedback]
+    summary: Get visible portfolio feedback (Public view)
+    description: Returns only feedback items marked as visible by Admin. Use this for the portfolio page.
+    x-roles: [PUBLIC]
+    responses:
+      200:
+        description: List of visible feedbacks
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PortfolioFeedback'
+
+/api/v1/portfolio-feedback/{id}/visibility:
+  patch:
+    tags: [Feedback]
+    summary: Toggle feedback visibility (Admin Only)
+    description: Show or hide a feedback item on the public portfolio.
+    x-roles: [ADMIN]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PortfolioFeedbackVisibilityInput'
+    responses:
+      200:
+        description: Visibility updated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioFeedback'
