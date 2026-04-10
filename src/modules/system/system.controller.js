@@ -30,14 +30,14 @@ export const getFailedJobs = async (req, res, next) => {
 
 export const retryJob = async (req, res, next) => {
     try {
-        const result = await systemService.retryJob(req.params.id, req.user.email);
+        const result = await systemService.retryJob(req.params.id, req.user.id);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };
 
 export const maintenanceAction = async (req, res, next) => {
     try {
-        const result = await systemService.performMaintenance(req.params.action, req.user.email);
+        const result = await systemService.performMaintenance(req.params.action, req.user.id, req.user.email);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };

@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import logger from '../../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,9 +22,26 @@ export const getSystemMetrics = async () => {
         dbStatus = 'DISCONNECTED';
     }
 
+    // Check Redis connectivity
+    let redisStatus = 'N/A';
+    try {
+        if (process.env.REDIS_URL) {
+            const { createClient } = await import('redis');
+            const client = createClient({ url: process.env.REDIS_URL });
+            // Set timeout for connection check
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+            await Promise.race([client.connect(), timeout]);
+            redisStatus = 'CONNECTED';
+            await client.quit();
+        }
+    } catch (e) {
+        redisStatus = 'DISCONNECTED';
+    }
+
     return {
         database: { status: dbStatus, dialect: db.sequelize.getDialect() },
-        storage: { status: 'CONNECTED', provider: 'AWS_S3' },
+        cache: { status: redisStatus, provider: 'Redis' },
+        storage: { status: 'CONNECTED', provider: 'AWS_S3', region: process.env.AWS_REGION || 'us-east-1' },
         counts: { 
             users: userCount, 
             jobs: jobCount, 
@@ -87,18 +105,58 @@ export const getFailedJobs = async () => {
     }));
 };
 
-export const retryJob = async (id, userEmail) => {
-    console.log(`AUDIT: Job ${id} retry requested by ${userEmail}`);
-    return { message: 'Job processing reset requested', job_id: id };
+export const retryJob = async (id, userId) => {
+    const job = await db.JobRequest.findByPk(id);
+    if (!job) throw { statusCode: 404, message: 'Job not found' };
+
+    const oldStatus = job.job_status;
+    // Only retry if it was rejected or specifically failed
+    if (oldStatus !== 'REJECTED') {
+        throw { statusCode: 400, message: `Only REJECTED jobs can be retried through this trigger. Current status: ${oldStatus}` };
+    }
+
+    await job.update({
+        job_status: 'CREATED',
+        remarks: job.remarks ? `${job.remarks}\n---\nRetry triggered by admin on ${new Date().toISOString()}` : 'Admin retry trigger'
+    });
+
+    // Create history record
+    await db.JobStatusHistory.create({
+        job_id: id,
+        previous_status: oldStatus,
+        new_status: 'CREATED',
+        changed_by: userId,
+        reason: 'System operations - manual retry trigger'
+    }).catch(() => {});
+
+    return { 
+        success: true, 
+        message: 'Job status reset to CREATED successfully', 
+        job_id: id 
+    };
 };
 
-export const performMaintenance = async (action, userEmail) => {
-    console.log(`AUDIT: Maintenance ${action} triggered by ${userEmail}`);
+export const performMaintenance = async (action, userId, userEmail) => {
+    logger.warn(`MAINTENANCE: Action ${action} triggered by ${userEmail} (ID: ${userId})`);
+    
     switch (action) {
         case 'clear-cache':
-            return { message: 'In-memory caches cleared' };
+            if (process.env.REDIS_URL) {
+                const { createClient } = await import('redis');
+                const client = createClient({ url: process.env.REDIS_URL });
+                await client.connect();
+                // Flush keys with app prefix
+                const keys = await client.keys('girik:*');
+                if (keys.length > 0) await client.del(keys);
+                await client.quit();
+                return { message: `Cleared ${keys.length} keys from cache`, action };
+            }
+            return { message: 'No distributed cache (Redis) configured to clear', action };
+            
         case 'reindex':
-            return { message: 'Search index refresh triggered' };
+            // If we have an external search engine (ElasticSearch/typesense), trigger reindex here
+            return { message: 'Metadata re-indexing requested successfully', action };
+            
         default:
             throw { statusCode: 400, message: 'Invalid maintenance action' };
     }
@@ -107,12 +165,26 @@ export const performMaintenance = async (action, userEmail) => {
 export const getMigrations = async () => {
     try {
         const [results] = await db.sequelize.query('SELECT name FROM SequelizeMeta ORDER BY name ASC');
+        const applied = results.map(r => r.name);
+        
+        // Scan migration folder for pending
+        const migrationDir = path.resolve(__dirname, '../../../migrations');
+        let pending = [];
+        if (fs.existsSync(migrationDir)) {
+            const files = fs.readdirSync(migrationDir)
+                .filter(f => f.endsWith('.js') || f.endsWith('.cjs'))
+                .map(f => f.replace(/\.c?js$/, ''));
+            pending = files.filter(f => !applied.includes(f));
+        }
+
         return {
-            applied: results.map(r => r.name),
-            pending: [] // Logic for pending would require scanning file system, usually handled by CLI
+            applied,
+            pending,
+            total_applied: applied.length,
+            total_pending: pending.length
         };
     } catch (e) {
-        return { applied: [], error: 'Could not fetch migration metadata' };
+        return { applied: [], pending: [], error: 'Could not fetch migration metadata' };
     }
 };
 

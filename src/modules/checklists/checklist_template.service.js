@@ -33,6 +33,7 @@ export const getChecklistTemplates = async (filters = {}) => {
 
     return await ChecklistTemplate.findAll({
         where,
+        attributes: { exclude: ['sections', 'metadata'] }, // Exclude heavy JSON fields for list view
         include: [
             {
                 model: CertificateType,
@@ -159,15 +160,32 @@ export const deleteChecklistTemplate = async (id) => {
  * Activate a checklist template
  */
 export const activateChecklistTemplate = async (id, userId) => {
-    const template = await ChecklistTemplate.findByPk(id);
+    return await db.sequelize.transaction(async (t) => {
+        const template = await ChecklistTemplate.findByPk(id, { transaction: t });
 
-    if (!template) {
-        throw { statusCode: 404, message: 'Checklist template not found' };
-    }
+        if (!template) {
+            throw { statusCode: 404, message: 'Checklist template not found' };
+        }
 
-    return await template.update({
-        status: 'ACTIVE',
-        updated_by: userId
+        // Deactivate all other active templates for this certificate type
+        if (template.certificate_type_id) {
+            await ChecklistTemplate.update(
+                { status: 'INACTIVE', updated_by: userId },
+                {
+                    where: {
+                        certificate_type_id: template.certificate_type_id,
+                        status: 'ACTIVE',
+                        id: { [db.Sequelize.Op.ne]: id }
+                    },
+                    transaction: t
+                }
+            );
+        }
+
+        return await template.update({
+            status: 'ACTIVE',
+            updated_by: userId
+        }, { transaction: t });
     });
 };
 
