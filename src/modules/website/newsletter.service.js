@@ -13,6 +13,26 @@ const buildOneClickUnsubscribeUrl = (email) => {
     return `${base}/api/v1/website/newsletter/unsubscribe-one-click?token=${encodeURIComponent(token)}`;
 };
 
+/** Internal helper to send the welcome email in the background */
+const sendWelcomeEmailInBackground = async (email) => {
+    try {
+        const oneClickUrl = buildOneClickUnsubscribeUrl(email);
+        const { render: renderWelcome } = await import('../../email-templates/subscription-welcome.template.js');
+        const templateData = renderWelcome({ email, unsubscribeUrl: oneClickUrl });
+
+        emailService.sendEmail(email, templateData.subject, templateData.html, 'subscribe', {
+            headers: {
+                'List-Id': env.newsletterListId,
+                'List-Unsubscribe': `<${oneClickUrl}>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                Precedence: 'bulk'
+            }
+        }).catch(e => logger.error(`[Newsletter Service] Background send failed for ${email}: ${e.message}`));
+    } catch (err) {
+        logger.error(`[Newsletter Service] Failed to prepare welcome email for ${email}: ${err.message}`);
+    }
+};
+
 export const subscribe = async (email, source = 'website') => {
     const trimmedEmail = String(email || '').trim().toLowerCase();
     
@@ -25,6 +45,10 @@ export const subscribe = async (email, source = 'website') => {
         } else {
             // Re-activate
             await existing.update({ is_active: true, unsubscribed_at: null, source: source || existing.source });
+            
+            // Send thank you email (Background)
+            sendWelcomeEmailInBackground(trimmedEmail);
+
             return { message: 'Subscription re-activated successfully.', re_activated: true };
         }
     }
@@ -37,24 +61,7 @@ export const subscribe = async (email, source = 'website') => {
     });
 
     // Send thank you email (Background)
-    (async () => {
-        try {
-            const oneClickUrl = buildOneClickUnsubscribeUrl(trimmedEmail);
-            const { render: renderWelcome } = await import('../../email-templates/subscription-welcome.template.js');
-            const templateData = renderWelcome({ email: trimmedEmail, unsubscribeUrl: oneClickUrl });
-
-            emailService.sendEmail(trimmedEmail, templateData.subject, templateData.html, 'subscribe', {
-                headers: {
-                    'List-Id': env.newsletterListId,
-                    'List-Unsubscribe': `<${oneClickUrl}>`,
-                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-                    Precedence: 'bulk'
-                }
-            }).catch(e => logger.error(`[Newsletter Service] Background send failed for ${trimmedEmail}: ${e.message}`));
-        } catch (err) {
-            logger.error(`[Newsletter Service] Failed to prepare welcome email for ${trimmedEmail}: ${err.message}`);
-        }
-    })();
+    sendWelcomeEmailInBackground(trimmedEmail);
 
     return { 
         message: 'Subscribed to newsletter successfully.', 
@@ -65,6 +72,7 @@ export const subscribe = async (email, source = 'website') => {
         } 
     };
 };
+
 
 export const unsubscribe = async (email) => {
     const trimmedEmail = String(email || '').trim().toLowerCase();

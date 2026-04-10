@@ -13,10 +13,10 @@ export const render = (data) => {
     const subject = 'Welcome to the GR Class Newsletter!';
 
     const innerHtml = `
-      <p style="margin:0 0 16px;">Hi there,</p>
-      <p style="margin:0 0 16px;">Thank you for subscribing to the <strong>GR Class Newsletter</strong>. You've been successfully added to our mailing list (${userEmail}).</p>
+      <p style="margin:0 0 16px;">Welcome,</p>
+      <p style="margin:0 0 16px;">Thank you for joining the <strong>GR Class Newsletter</strong>. We are pleased to provide you with the latest maritime insights, regulatory updates, and technological advancements directly at <strong>${userEmail}</strong>.</p>
       
-      <p style="margin:0 0 20px;">From now on, you'll receive the latest updates on maritime classification, certification standards, and vessel inspection technologies directly in your inbox.</p>
+      <p style="margin:0 0 20px;">You will now receive periodic updates regarding maritime classification, certification standards, and vessel inspection innovations to help you stay informed in an evolving industry.</p>
       
       <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
         <p style="margin:0; font-size: 14px; color: #4b5563;">
