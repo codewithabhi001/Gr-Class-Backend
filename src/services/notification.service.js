@@ -182,8 +182,9 @@ export const notifyRoles = async (roles, eventOrTitle, dataOrMessage = {}, extra
 
             // Email Notification
             if (emailAllowed && user.email) {
+                const emailData = typeof dataOrMessage === 'object' ? { ...dataOrMessage, title, message } : { title, message };
                 emailPromises.push(
-                    emailService.sendTemplateEmail(user.email, type, { title, message })
+                    emailService.sendTemplateEmail(user.email, type, emailData)
                         .catch(err => logger.error(`Email error for user ${user.id}:`, err))
                 );
             }

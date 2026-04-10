@@ -65,6 +65,10 @@ const formats = {
     'INFO': (data) => ({
         title: data.title || 'Information Update ℹ️',
         message: data.message || 'You have a new update.'
+    }),
+    'NEW_WEBSITE_ENQUIRY': (data) => ({
+        title: 'New Website Enquiry 🚢',
+        message: `${data.full_name} (${data.company || 'N/A'}) sent a new message via the contact form.`
     })
 };
 

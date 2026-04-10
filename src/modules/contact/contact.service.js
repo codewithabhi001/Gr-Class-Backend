@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import db from '../../models/index.js';
 import * as notificationService from '../../services/notification.service.js';
+import emailService from '../../services/email.service.js';
 import logger from '../../utils/logger.js';
 
 const WebsiteContact = db.WebsiteContact;
@@ -30,10 +31,24 @@ export const submitEnquiry = async (data, ipAddress) => {
     // without blocking on email delivery to all ADMIN/GM users.
     notificationService.notifyRoles(
         ['ADMIN', 'GM'],
-        'New Website Enquiry',
-        `${full_name} (${company || 'N/A'}) sent a new message via the contact form.`,
-        'INFO'
+        'NEW_WEBSITE_ENQUIRY',
+        {
+            full_name,
+            company: company || 'N/A',
+            corporate_email,
+            message,
+            phone: phone || 'N/A',
+            subject: subject || 'N/A',
+            enquiry_id: enquiry.id
+        }
     ).catch(err => logger.error('Failed to notify roles for new enquiry', err));
+
+    // Send acknowledgement email to the user
+    emailService.sendTemplateEmail(
+        corporate_email,
+        'CONTACT_ACKNOWLEDGEMENT',
+        { full_name }
+    ).catch(err => logger.error(`Failed to send contact acknowledgement email to ${corporate_email}`, err));
 
     return enquiry;
 };
