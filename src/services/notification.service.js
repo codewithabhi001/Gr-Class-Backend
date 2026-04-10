@@ -92,7 +92,8 @@ export const sendNotification = async (userId, eventType, data = {}, userObj = n
             promises.push(emailService.sendTemplateEmail(user.email, eventType, data).catch(e => logger.error('Email fail:', e)));
         }
 
-        await Promise.allSettled(promises);
+        // Dispatch and move on (Background)
+        Promise.allSettled(promises);
 
     } catch (err) {
         logger.error(`Failed to send notification to user ${userId}`, err);
@@ -193,8 +194,8 @@ export const notifyRoles = async (roles, eventOrTitle, dataOrMessage = {}, extra
             await Notification.bulkCreate(notificationsToCreate);
         }
 
-        // 2. Trigger Push & Email concurrently
-        await Promise.allSettled([...pushPromises, ...emailPromises]);
+        // 2. Trigger Push & Email concurrently (Background)
+        Promise.allSettled([...pushPromises, ...emailPromises]);
 
     } catch (error) {
         logger.error('Error in notifyRoles:', error);

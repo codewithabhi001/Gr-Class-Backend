@@ -2,6 +2,7 @@ export default (sequelize, DataTypes) => {
     const CertificateType = sequelize.define('CertificateType', {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
         name: DataTypes.STRING,
+        short_code: DataTypes.STRING, // e.g., SC, LL, TM
         issuing_authority: DataTypes.ENUM('CLASS', 'FLAG'),
         validity_years: DataTypes.INTEGER,
         status: { type: DataTypes.ENUM('ACTIVE', 'INACTIVE'), defaultValue: 'ACTIVE' },

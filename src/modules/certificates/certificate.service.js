@@ -142,6 +142,28 @@ export const updateCertificateType = async (id, data) => {
     }
 };
 
+const generateUniqueCertificateNumber = async (typeCode = null) => {
+    const year = new Date().getFullYear();
+    let isUnique = false;
+    let certNumber;
+
+    while (!isUnique) {
+        const randomStr = uuidv4().substring(0, 8).toUpperCase();
+        // Format: GR/TYPE/YEAR/RANDOM or GR/YEAR/RANDOM
+        if (typeCode) {
+            certNumber = `GR/${typeCode}/${year}/${randomStr}`;
+        } else {
+            certNumber = `GR/${year}/${randomStr}`;
+        }
+        
+        const existing = await Certificate.findOne({ where: { certificate_number: certNumber } });
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+    return certNumber;
+};
+
 export const generateCertificate = async (data, user) => {
     if (!isRoleAllowed(RBAC.GENERATE_CERTIFICATE, user.role)) {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
@@ -157,7 +179,7 @@ export const generateCertificate = async (data, user) => {
             lock: transaction.LOCK.UPDATE,
             include: [
                 { model: db.Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
-                { model: db.CertificateType, attributes: ['id', 'name', 'issuing_authority'] },
+                { model: db.CertificateType, attributes: ['id', 'name', 'issuing_authority', 'short_code'] },
             ],
         });
         if (!job) throw { statusCode: 404, message: 'Job not found' };
@@ -227,7 +249,7 @@ export const generateCertificate = async (data, user) => {
             // In maritime, certificates usually expire the day before their anniversary
             expiryDate.setDate(expiryDate.getDate() - 1);
         }
-        const certificateNumber = `CERT-${uuidv4().substring(0, 8).toUpperCase()}`;
+        const certificateNumber = await generateUniqueCertificateNumber(job.CertificateType?.short_code);
 
         const cert = await Certificate.create({
             vessel_id: job.vessel_id,
@@ -502,7 +524,7 @@ export const updateStatus = async (id, status, reason, userId) => {
 };
 
 export const renewCertificate = async (id, validityYears, reason, userId) => {
-    const oldCert = await Certificate.findByPk(id);
+    const oldCert = await Certificate.findByPk(id, { include: [db.CertificateType] });
     if (!oldCert) throw { statusCode: 404, message: 'Certificate not found' };
 
     await oldCert.update({ status: 'EXPIRED' });
@@ -514,7 +536,7 @@ export const renewCertificate = async (id, validityYears, reason, userId) => {
     const newCert = await Certificate.create({
         vessel_id: oldCert.vessel_id,
         certificate_type_id: oldCert.certificate_type_id,
-        certificate_number: `CERT-${uuidv4().substring(0, 8).toUpperCase()}`,
+        certificate_number: await generateUniqueCertificateNumber(oldCert.CertificateType?.short_code),
         issue_date: issueDate,
         expiry_date: expiryDate,
         status: 'VALID',
@@ -557,7 +579,7 @@ export const getHistory = async (id, user) => {
 };
 
 export const transferCertificate = async (id, newOwnerId, reason, userId) => {
-    const cert = await Certificate.findByPk(id);
+    const cert = await Certificate.findByPk(id, { include: [db.CertificateType] });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
     await cert.update({ status: 'TRANSFERRED' });
@@ -565,7 +587,7 @@ export const transferCertificate = async (id, newOwnerId, reason, userId) => {
     const newCert = await Certificate.create({
         vessel_id: cert.vessel_id,
         certificate_type_id: cert.certificate_type_id,
-        certificate_number: `CERT-${uuidv4().substring(0, 8).toUpperCase()}`,
+        certificate_number: await generateUniqueCertificateNumber(cert.CertificateType?.short_code),
         issue_date: new Date(),
         expiry_date: cert.expiry_date,
         status: 'VALID',
@@ -605,6 +627,7 @@ export const extendCertificate = async (id, extensionMonths, reason, userId) => 
 
 export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
     const cert = await Certificate.findByPk(id);
+    const newType = await db.CertificateType.findByPk(newTypeId);
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
     await cert.update({ status: 'DOWNGRADED' });
@@ -612,7 +635,7 @@ export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
     const newCert = await Certificate.create({
         vessel_id: cert.vessel_id,
         certificate_type_id: newTypeId,
-        certificate_number: `CERT-${uuidv4().substring(0, 8).toUpperCase()}`,
+        certificate_number: await generateUniqueCertificateNumber(newType?.short_code),
         issue_date: new Date(),
         expiry_date: cert.expiry_date,
         status: 'VALID',

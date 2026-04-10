@@ -36,23 +36,25 @@ export const subscribe = async (email, source = 'website') => {
         subscribed_at: new Date()
     });
 
-    // Send thank you email
-    try {
-        const oneClickUrl = buildOneClickUnsubscribeUrl(trimmedEmail);
-        const { render: renderWelcome } = await import('../../email-templates/subscription-welcome.template.js');
-        const templateData = renderWelcome({ email: trimmedEmail, unsubscribeUrl: oneClickUrl });
+    // Send thank you email (Background)
+    (async () => {
+        try {
+            const oneClickUrl = buildOneClickUnsubscribeUrl(trimmedEmail);
+            const { render: renderWelcome } = await import('../../email-templates/subscription-welcome.template.js');
+            const templateData = renderWelcome({ email: trimmedEmail, unsubscribeUrl: oneClickUrl });
 
-        await emailService.sendEmail(trimmedEmail, templateData.subject, templateData.html, 'subscribe', {
-            headers: {
-                'List-Id': env.newsletterListId,
-                'List-Unsubscribe': `<${oneClickUrl}>`,
-                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-                Precedence: 'bulk'
-            }
-        });
-    } catch (err) {
-        logger.error(`[Newsletter] Failed to send welcome email to ${trimmedEmail}: ${err.message}`);
-    }
+            emailService.sendEmail(trimmedEmail, templateData.subject, templateData.html, 'subscribe', {
+                headers: {
+                    'List-Id': env.newsletterListId,
+                    'List-Unsubscribe': `<${oneClickUrl}>`,
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                    Precedence: 'bulk'
+                }
+            }).catch(e => logger.error(`[Newsletter Service] Background send failed for ${trimmedEmail}: ${e.message}`));
+        } catch (err) {
+            logger.error(`[Newsletter Service] Failed to prepare welcome email for ${trimmedEmail}: ${err.message}`);
+        }
+    })();
 
     return { 
         message: 'Subscribed to newsletter successfully.', 

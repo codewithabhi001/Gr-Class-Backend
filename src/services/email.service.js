@@ -60,37 +60,42 @@ export const sendEmail = async (to, subject, body, type = 'system', options = {}
         const recipients = validateEmailParams(to, subject, body);
         const fromEmail = SENDER_MAP[type] || SENDER_MAP.system;
 
-        const mailOptions = {
+        const baseOptions = {
             from: fromEmail,
-            to: recipients.join(','),
             subject: subject,
             html: body
         };
 
         const extra = options.headers;
         if (extra && typeof extra === 'object' && Object.keys(extra).length > 0) {
-            mailOptions.headers = { ...extra };
+            baseOptions.headers = { ...extra };
         }
 
         if (options.attachments && Array.isArray(options.attachments)) {
-            mailOptions.attachments = options.attachments;
+            baseOptions.attachments = options.attachments;
         }
 
         // Auto-attach logo if the template uses it
         if (body.includes('cid:grclass-logo')) {
-            mailOptions.attachments = mailOptions.attachments || [];
-            mailOptions.attachments.push({
+            baseOptions.attachments = baseOptions.attachments || [];
+            baseOptions.attachments.push({
                 filename: 'Gr-class.png',
                 path: path.join(__dirname, '../email-templates/Gr-class.png'),
                 cid: 'grclass-logo'
             });
         }
 
-        // Attempt send via Nodemailer (using our SES transporter) with retries
-        const response = await withRetry(() => mailTransporter.sendMail(mailOptions), 2);
+        // Send individual emails to each recipient so they don't see each other
+        const sendPromises = recipients.map(async (recipient) => {
+            const mailOptions = { ...baseOptions, to: recipient };
+            return await withRetry(() => mailTransporter.sendMail(mailOptions), 2);
+        });
 
-        logger.info(`[EmailService] Email sent to ${recipients.join(',')} from ${fromEmail}. MessageId: ${response.messageId}`);
-        return true;
+        const results = await Promise.allSettled(sendPromises);
+        const successes = results.filter(r => r.status === 'fulfilled').length;
+        
+        logger.info(`[EmailService] Dispatched ${successes}/${recipients.length} individual emails from ${fromEmail}. Subject: ${subject}`);
+        return successes > 0;
     } catch (error) {
         logger.error(`[EmailService] Error sending email: ${error.message}`, {
             to, subject, type, error: error.stack

@@ -129,18 +129,15 @@ export const register = async (userData, options = {}) => {
     const ctx = getContext();
     if (ctx) ctx.userId = user.id;
 
-    // Send Welcome Email
-    try {
-        await emailService.sendTemplateEmail(user.email, 'WELCOME_USER', {
-            name: user.name,
-            email: user.email,
-            password: userData.password,
-            loginUrl: 'https://ops.grclass.com'
-        });
-        console.log(`[AuthService] Welcome email sent to ${user.email}`);
-    } catch (emailError) {
-        console.error(`[AuthService] Failed to send welcome email:`, emailError);
-    }
+    // Send Welcome Email (Background)
+    emailService.sendTemplateEmail(user.email, 'WELCOME_USER', {
+        name: user.name,
+        email: user.email,
+        password: userData.password,
+        loginUrl: 'https://ops.grclass.com'
+    }).catch(emailError => {
+        console.error(`[AuthService] Background welcome email failed for ${user.email}:`, emailError.message);
+    });
 
     const resolvedUser = await fileAccessService.resolveEntity(user);
     const userObj = {
