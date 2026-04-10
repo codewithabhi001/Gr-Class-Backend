@@ -9,9 +9,6 @@ PortfolioFeedback:
       format: uuid
     comment:
       type: string
-    profile_url:
-      type: string
-      format: url
     designation:
       type: string
     company:
@@ -48,9 +45,6 @@ PortfolioFeedbackPublic:
       format: uuid
     comment:
       type: string
-    profile_url:
-      type: string
-      format: url
     designation:
       type: string
     company:
@@ -81,9 +75,6 @@ PortfolioFeedbackInput:
   properties:
     comment:
       type: string
-    profile_url:
-      type: string
-      format: url
     designation:
       type: string
     company:

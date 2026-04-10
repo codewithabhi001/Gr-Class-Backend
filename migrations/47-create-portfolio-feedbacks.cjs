@@ -24,10 +24,6 @@ module.exports = {
                 type: Sequelize.TEXT,
                 allowNull: false
             },
-            profile_url: {
-                type: Sequelize.STRING(500),
-                allowNull: true
-            },
             designation: {
                 type: Sequelize.STRING(100),
                 allowNull: true

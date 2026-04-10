@@ -14,10 +14,6 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: false
         },
-        profile_url: {
-            type: DataTypes.STRING(500),
-            allowNull: true
-        },
         designation: {
             type: DataTypes.STRING(100),
             allowNull: true
