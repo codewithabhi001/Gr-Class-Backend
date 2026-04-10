@@ -55,7 +55,7 @@ export const render = (data) => {
       </div>
 
       <p style="margin: 0 0 24px; text-align: center;">
-        <a href="https://grclass.com/admin/enquiries/${enquiryId}" style="display:inline-block; background:#1e293b; color:#ffffff; text-decoration:none; padding:14px 28px; border-radius:8px; font-weight:600; font-size:15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">View in Admin Panel</a>
+        <a href="https://ops.grclass.com/admin/enquiries/${enquiryId}" style="display:inline-block; background:#1e293b; color:#ffffff; text-decoration:none; padding:14px 28px; border-radius:8px; font-weight:600; font-size:15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">View in Admin Panel</a>
       </p>
 
       <p style="margin:0; color:#94a3b8; font-size:13px; text-align: center;">

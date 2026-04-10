@@ -34,7 +34,7 @@ export const startMonitoring = () => {
                                 certificateNumber: cert.certificate_number,
                                 vesselName: vessel.vessel_name,
                                 certificateType: cert.CertificateType?.name || 'Maritime Certificate',
-                                expiryDate: cert.expiry_date.toLocaleDateString(),
+                                expiryDate: new Date(cert.expiry_date).toLocaleDateString(),
                                 daysRemaining: days
                             });
                             logger.info(`[CRON] Expiry notice (${days}d) sent to ${clientEmails.length} users for Cert ${cert.certificate_number}`);

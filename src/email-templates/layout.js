@@ -53,7 +53,7 @@ export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribe
                 <tr>
                   <td valign="middle" style="padding-right:20px; width:100px; font-family:${EMAIL_FONT_STACK};">
                     <a href="https://grclass.com" target="_blank" style="display:inline-block; text-decoration:none; font-family:${EMAIL_FONT_STACK};">
-                      <img src="cid:grclass-logo" alt="GR Class" style="display:block; border:none; outline:none; height:70px; width:auto; max-width:180px;" />
+                      <img src="https://grclass.com/logo-new.png" alt="GR Class" style="display:block; border:none; outline:none; height:70px; width:auto; max-width:180px;" />
                     </a>
                   </td>
                   <td valign="middle" style="border-left:2px solid ${theme.colors.brand[100]}; padding-left:20px; font-family:${EMAIL_FONT_STACK};">
