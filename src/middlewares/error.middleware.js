@@ -28,7 +28,15 @@ export const errorMiddleware = (err, req, res, next) => {
     // Remove quotes from Joi/Sequelize messages if any
     message = message.replace(/"/g, '');
 
-    logger.error(`${statusCode} - [${errorCode}] ${message} - ${req.originalUrl} - ${req.method} - ${req.ip} - Trace: ${traceId}`);
+    logger.error(`${statusCode} - [${errorCode}] ${message}`, {
+        event: 'api_error',
+        method: req.method,
+        path: req.originalUrl,
+        ip: req.ip,
+        traceId,
+        errors,
+        stack: statusCode >= 500 ? err.stack : undefined
+    });
 
     res.status(statusCode).json({
         success: false,

@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import logger from '../utils/logger.js';
 
 export const validate = (schema) => {
     return (req, res, next) => {
@@ -9,6 +10,15 @@ export const validate = (schema) => {
             error.details.forEach((detail) => {
                 const key = detail.path.join('.');
                 formattedErrors[key] = detail.message.replace(/"/g, '');
+            });
+
+            logger.warn(`Validation Failed: ${req.method} ${req.originalUrl}`, {
+                event: 'validation_error',
+                path: req.originalUrl,
+                method: req.method,
+                errors: formattedErrors,
+                user: req.user?.email || null,
+                ip: req.ip
             });
 
             return res.status(400).json({
@@ -290,34 +300,18 @@ export const schemas = {
         limit: Joi.number().integer().required(),
     }),
     createTemplate: Joi.object({
-        name: Joi.string().required(),
-        code: Joi.string().required(),
-        description: Joi.string().optional(),
-        sections: Joi.array().items(Joi.object({
-            title: Joi.string().required(),
-            items: Joi.array().items(Joi.object({
-                code: Joi.string().required(),
-                text: Joi.string().required(),
-                type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER').default('YES_NO_NA')
-            })).required()
-        })).required(),
-        status: Joi.string().valid('ACTIVE', 'INACTIVE', 'DRAFT').optional(),
-        metadata: Joi.object().optional()
+        template_name: Joi.string().required(),
+        certificate_type_id: Joi.string().guid().required(),
+        template_content: Joi.string().required(),
+        variables: Joi.array().items(Joi.string()).optional(),
+        is_active: Joi.boolean().optional().default(true)
     }),
     updateTemplate: Joi.object({
-        name: Joi.string().optional(),
-        code: Joi.string().optional(),
-        description: Joi.string().optional(),
-        sections: Joi.array().items(Joi.object({
-            title: Joi.string().required(),
-            items: Joi.array().items(Joi.object({
-                code: Joi.string().required(),
-                text: Joi.string().required(),
-                type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER').default('YES_NO_NA')
-            })).required()
-        })).optional(),
-        status: Joi.string().valid('ACTIVE', 'INACTIVE', 'DRAFT').optional(),
-        metadata: Joi.object().optional()
+        template_name: Joi.string().optional(),
+        certificate_type_id: Joi.string().guid().optional(),
+        template_content: Joi.string().optional(),
+        variables: Joi.array().items(Joi.string()).optional(),
+        is_active: Joi.boolean().optional()
     }),
     createChecklistTemplate: Joi.object({
         name: Joi.string().required(),
