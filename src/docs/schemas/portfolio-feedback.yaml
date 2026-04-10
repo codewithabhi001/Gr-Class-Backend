@@ -37,6 +37,43 @@ PortfolioFeedback:
         profile_pic_url:
           type: string
 
+PortfolioFeedbackPublic:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    client_id:
+      type: string
+      format: uuid
+    comment:
+      type: string
+    profile_url:
+      type: string
+      format: url
+    designation:
+      type: string
+    company:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        profile_pic_url:
+          type: string
+
 PortfolioFeedbackInput:
   type: object
   required:

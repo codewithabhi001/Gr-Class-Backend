@@ -7,9 +7,28 @@ export const submitFeedback = async (req, res, next) => {
     try {
         const clientId = req.user.id;
         const feedback = await portfolioFeedbackService.upsertFeedback(clientId, req.body);
+        const feedbackJson = feedback.toJSON();
+        delete feedbackJson.is_visible;
+        
         res.status(200).json({
             success: true,
             message: 'Feedback submitted successfully and is pending admin approval',
+            data: feedbackJson
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Client gets their own portfolio feedback
+ */
+export const getMyFeedback = async (req, res, next) => {
+    try {
+        const clientId = req.user.id;
+        const feedback = await portfolioFeedbackService.getClientFeedback(clientId);
+        res.status(200).json({
+            success: true,
             data: feedback
         });
     } catch (error) {

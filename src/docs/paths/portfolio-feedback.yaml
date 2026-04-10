@@ -2,7 +2,7 @@
   get:
     tags: [Feedback]
     summary: Get all portfolio feedback (Admin view)
-    description: Returns all feedback requested for portfolio display.
+    description: Returns all feedback requested for portfolio display. Includes visibility status.
     x-roles: [ADMIN, GM]
     responses:
       200:
@@ -30,13 +30,27 @@
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PortfolioFeedback'
+              $ref: '#/components/schemas/PortfolioFeedbackPublic'
+
+/api/v1/portfolio-feedback/my-feedback:
+  get:
+    tags: [Feedback]
+    summary: Get own portfolio feedback (Client view)
+    description: Returns the feedback submitted by the logged-in client.
+    x-roles: [CLIENT]
+    responses:
+      200:
+        description: Client feedback
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioFeedbackPublic'
 
 /api/v1/portfolio-feedback/public:
   get:
     tags: [Feedback]
     summary: Get visible portfolio feedback (Public view)
-    description: Returns only feedback items marked as visible by Admin. Use this for the portfolio page.
+    description: Returns only feedback items marked as visible by Admin.
     x-roles: [PUBLIC]
     responses:
       200:
@@ -46,7 +60,7 @@
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/PortfolioFeedback'
+                $ref: '#/components/schemas/PortfolioFeedbackPublic'
 
 /api/v1/portfolio-feedback/{id}/visibility:
   patch:

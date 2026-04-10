@@ -61,12 +61,23 @@ export const getAllFeedbackAdmin = async () => {
 export const getPublicFeedback = async () => {
     return await PortfolioFeedback.findAll({
         where: { is_visible: true },
+        attributes: { exclude: ['is_visible'] },
         include: [{
             model: User,
             as: 'Client',
             attributes: ['id', 'name', 'email', 'profile_pic_url']
         }],
         order: [['updated_at', 'DESC']]
+    });
+};
+
+/**
+ * Get feedback for a specific client
+ */
+export const getClientFeedback = async (clientId) => {
+    return await PortfolioFeedback.findOne({
+        where: { client_id: clientId },
+        attributes: { exclude: ['is_visible'] }
     });
 };
 

@@ -20,6 +20,9 @@ router.use(authenticate);
 // Client submits or updates their feedback
 router.post('/', authorizeRoles('CLIENT'), validate(schemas.upsertPortfolioFeedback), portfolioFeedbackController.submitFeedback);
 
+// Client gets their own feedback
+router.get('/my-feedback', authorizeRoles('CLIENT'), portfolioFeedbackController.getMyFeedback);
+
 // Admin gets all feedback
 router.get('/', authorizeRoles('ADMIN', 'GM'), portfolioFeedbackController.getAllFeedback);
 
