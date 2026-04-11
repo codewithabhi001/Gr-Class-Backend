@@ -44,12 +44,11 @@ export const getKeyFromUrl = (urlOrKey) => {
  */
 export const generatePublicCdnUrl = (key) => {
     const cleanKey = getKeyFromUrl(key);
-    // Allow any key starting with public/ to be served via CDN
+    // Allow only keys starting with public/ to be served via CDN
     if (!cleanKey || !cleanKey.startsWith('public/')) {
         return null;
     }
-    const cdnDomain = env.aws.cloudfrontDomain || 'cdn.grclass.com'; // Fallback or env
-    // Ensure https
+    const cdnDomain = env.aws.cloudfrontDomain || 'cdn.grclass.com';
     return `https://${cdnDomain}/${cleanKey}`;
 };
 
@@ -106,7 +105,7 @@ export const resolveUrl = async (keyOrUrl, user = null, skipAudit = false, force
 
     // Check if it's a public path or forced public
     if (key.startsWith('public/') || forcePublic) {
-        // If it's forced public but doesn't start with public/, we still want the CDN domain
+        // Use CDN domain for public assets
         const cdnDomain = env.aws.cloudfrontDomain || 'cdn.grclass.com';
         return `https://${cdnDomain}/${key}`;
     }

@@ -96,7 +96,7 @@ export const uploadCertificatePdf = async (pdfBuffer, certificateNumber) => {
         pdfBuffer,
         fileName,
         'application/pdf',
-        s3Service.UPLOAD_FOLDERS.PUBLIC_CERTIFICATES
+        s3Service.UPLOAD_FOLDERS.CERTIFICATES
     );
     return url;
 };

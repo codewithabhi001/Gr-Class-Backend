@@ -422,9 +422,9 @@ async function runJobThroughFlow({ vessel, certType, port, reason, targetStatus,
 
     // ──────── STEP 9: Populate survey fields required for SUBMITTED guard ────────
     await survey.update({
-        attendance_photo_url: `https://girik-assets.s3.amazonaws.com/surveys/attendance_${job.id}.jpg`,
-        signature_url: `https://girik-assets.s3.amazonaws.com/surveys/signature_${job.id}.png`,
-        evidence_proof_url: `https://girik-assets.s3.amazonaws.com/surveys/evidence_${job.id}.pdf`,
+        attendance_photo_url: `surveys/attendance_${job.id}.jpg`,
+        signature_url: `surveys/signature_${job.id}.png`,
+        evidence_proof_url: `surveys/evidence_${job.id}.pdf`,
         survey_statement: 'I hereby declare that the above survey has been conducted in accordance with all applicable international conventions and class society requirements.',
         submit_latitude: 1.2644 + (Math.random() * 0.05),
         submit_longitude: 103.8200 + (Math.random() * 0.05),
@@ -455,17 +455,17 @@ async function runJobThroughFlow({ vessel, certType, port, reason, targetStatus,
     const expiryDate = new Date(issueDate);
     expiryDate.setFullYear(expiryDate.getFullYear() + certType.validity_years);
 
-    const cert = await db.Certificate.create({
-        vessel_id: vessel.id,
-        certificate_type_id: certType.id,
-        certificate_number: certNumber,
-        issue_date: issueDate.toISOString().split('T')[0],
-        expiry_date: expiryDate.toISOString().split('T')[0],
-        status: 'VALID',
-        issued_by_user_id: tm.id,
-        qr_code_url: `https://girik-assets.s3.amazonaws.com/certs/qr_${certNumber}.png`,
-        pdf_file_url: `https://girik-assets.s3.amazonaws.com/certs/${certNumber}.pdf`,
-    });
+        const cert = await db.Certificate.create({
+            vessel_id: vessel.id,
+            certificate_type_id: certType.id,
+            certificate_number: certNumber,
+            issue_date: issueDate.toISOString().split('T')[0],
+            expiry_date: expiryDate.toISOString().split('T')[0],
+            status: 'VALID',
+            issued_by_user_id: tm.id,
+            qr_code_url: `certificates/qr_${certNumber}.png`,
+            pdf_file_url: `certificates/${certNumber}.pdf`,
+        });
 
     await job.update({ generated_certificate_id: cert.id });
 
@@ -487,7 +487,7 @@ async function runJobThroughFlow({ vessel, certType, port, reason, targetStatus,
         currency: 'USD',
         payment_status: 'PAID',
         payment_date: new Date(),
-        receipt_url: `https://girik-assets.s3.amazonaws.com/payments/receipt_${job.id}.pdf`,
+        receipt_url: `payments/receipt_${job.id}.pdf`,
         verified_by_user_id: admin.id,
     });
 
