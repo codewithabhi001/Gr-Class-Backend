@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 jobs:
   deploy:
@@ -22,14 +23,24 @@ jobs:
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           chmod 644 ~/.ssh/known_hosts
 
+      - name: Set Deployment Environment Variables
+        run: |
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "DEPLOY_DIR=/var/www/Gr-Class-Backend" >> $GITHUB_ENV
+            echo "PM2_NAME=girik" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_DIR=/var/www/dev/Gr-Class-Backend" >> $GITHUB_ENV
+            echo "PM2_NAME=girik-dev" >> $GITHUB_ENV
+          fi
+
       - name: Deploy Backend
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=no \
             -o BatchMode=yes \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd /var/www/Gr-Class-Backend && \
-             git fetch origin main && \
-             git reset --hard origin/main && \
+            "cd $DEPLOY_DIR && \
+             git fetch origin ${{ github.ref_name }} && \
+             git reset --hard origin/${{ github.ref_name }} && \
              npm install --omit=dev && \
-             pm2 reload girik --update-env || pm2 start src/server.js --name girik --update-env && pm2 save"
+             pm2 reload $PM2_NAME --update-env || pm2 start src/server.js --name $PM2_NAME --update-env && pm2 save"

@@ -79,8 +79,8 @@ export const sendEmail = async (to, subject, body, type = 'system', options = {}
         if (body.includes('cid:grclass-logo')) {
             baseOptions.attachments = baseOptions.attachments || [];
             baseOptions.attachments.push({
-                filename: 'Gr-class.png',
-                path: path.join(__dirname, '../email-templates/Gr-class.png'),
+                filename: 'grclass-logo.webp',
+                path: path.join(__dirname, '../email-templates/grclass-logo.webp'),
                 cid: 'grclass-logo'
             });
         }
@@ -93,7 +93,7 @@ export const sendEmail = async (to, subject, body, type = 'system', options = {}
 
         const results = await Promise.allSettled(sendPromises);
         const successes = results.filter(r => r.status === 'fulfilled').length;
-        
+
         logger.info(`[EmailService] Dispatched ${successes}/${recipients.length} individual emails from ${fromEmail}. Subject: ${subject}`);
         return successes > 0;
     } catch (error) {

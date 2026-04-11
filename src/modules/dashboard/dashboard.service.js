@@ -1,7 +1,7 @@
 import db from '../../models/index.js';
 import { Op } from 'sequelize';
 
-const { User, Client, Vessel, JobRequest, SurveyorProfile, Certificate, FlagAdministration, Survey, CertificateType, Payment, NonConformity } = db;
+const { User, Client, Vessel, JobRequest, SurveyorProfile, Certificate, FlagAdministration, Survey, CertificateType, Payment, NonConformity, SurveyorApplication, WebsiteContact } = db;
 
 const vesselAttrs = ['id', 'vessel_name', 'imo_number', 'flag_administration_id', 'class_status'];
 
@@ -36,6 +36,7 @@ export const getAdminDashboard = async () => {
             },
         },
         client_with_vessels: stats.client_with_vessels,
+        recent_activities: stats.recent_activities
     };
 }
 
@@ -56,7 +57,13 @@ const getOperationalStats = async () => {
         certStatusCountsRaw,
         surveyStatusCountsRaw,
         ncCountsRaw,
-        expiringCertsCount
+        expiringCertsCount,
+        recentJobs,
+        recentCertificates,
+        recentSurveyApplications,
+        recentSurveys,
+        recentNCs,
+        recentEnquiries
     ] = await Promise.all([
         Client.findAll({
             where: { status: 'ACTIVE' },
@@ -99,6 +106,40 @@ const getOperationalStats = async () => {
                     [Op.between]: [today, target]
                 }
             }
+        }),
+        JobRequest.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']],
+            include: [
+                { model: Vessel, attributes: ['vessel_name'] },
+                { model: CertificateType, attributes: ['name'] }
+            ]
+        }),
+        Certificate.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']],
+            include: [{ model: Vessel, attributes: ['vessel_name'] }]
+        }),
+        SurveyorApplication.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']]
+        }),
+        Survey.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']],
+            include: [
+                { model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] },
+                { model: User, attributes: ['name', 'email'] }
+            ]
+        }),
+        NonConformity.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']],
+            include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
+        }),
+        WebsiteContact.findAll({
+            limit: 5,
+            order: [['createdAt', 'DESC']]
         })
     ]);
 
@@ -161,6 +202,51 @@ const getOperationalStats = async () => {
         },
         surveyorCount: surveyorProfilesCount,
         client_with_vessels: sortedClients,
+        recent_activities: {
+            jobs: recentJobs.map(j => ({
+                id: j.id,
+                vessel: j.Vessel?.vessel_name,
+                type: j.CertificateType?.name,
+                status: j.job_status,
+                created_at: j.createdAt
+            })),
+            certificates: recentCertificates.map(c => ({
+                id: c.id,
+                vessel: c.Vessel?.vessel_name,
+                name: c.certificate_name,
+                status: c.status,
+                issued_at: c.issued_date || c.createdAt
+            })),
+            survey_applications: recentSurveyApplications.map(a => ({
+                id: a.id,
+                name: a.full_name,
+                email: a.email,
+                qualification: a.qualification,
+                status: a.status,
+                created_at: a.createdAt
+            })),
+            surveys: recentSurveys.map(s => ({
+                id: s.id,
+                vessel: s.JobRequest?.Vessel?.vessel_name,
+                surveyor: s.User?.name,
+                status: s.survey_status,
+                updated_at: s.updatedAt
+            })),
+            non_conformities: recentNCs.map(n => ({
+                id: n.id,
+                vessel: n.JobRequest?.Vessel?.vessel_name,
+                description: n.description,
+                status: n.status,
+                created_at: n.createdAt
+            })),
+            enquiries: recentEnquiries.map(e => ({
+                id: e.id,
+                name: e.name,
+                subject: e.subject,
+                status: e.status,
+                created_at: e.createdAt
+            }))
+        }
     };
 }
 
@@ -169,7 +255,8 @@ export const getGMDashboard = async () => {
     return {
         role: 'GM',
         summary: stats.summary,
-        client_with_vessels: stats.client_with_vessels
+        client_with_vessels: stats.client_with_vessels,
+        recent_activities: stats.recent_activities
     };
 }
 
@@ -178,7 +265,8 @@ export const getTMDashboard = async () => {
     return {
         role: 'TM',
         summary: stats.summary,
-        client_with_vessels: stats.client_with_vessels
+        client_with_vessels: stats.client_with_vessels,
+        recent_activities: stats.recent_activities
     };
 }
 
@@ -198,7 +286,12 @@ export const getTODashboard = async (user) => {
                 review_needed: pendingTechnicalReview
             }
         },
-        client_with_vessels: stats.client_with_vessels
+        client_with_vessels: stats.client_with_vessels,
+        recent_activities: {
+            jobs: stats.recent_activities.jobs,
+            certificates: stats.recent_activities.certificates,
+            surveys: stats.recent_activities.surveys
+        }
     };
 }
 
@@ -207,6 +300,10 @@ export const getTADashboard = async (user) => {
     return {
         role: 'TA',
         summary: stats.summary,
+        recent_activities: {
+            jobs: stats.recent_activities.jobs,
+            surveys: stats.recent_activities.surveys
+        }
     };
 }
 
@@ -265,7 +362,8 @@ export const getSurveyorDashboard = async (user) => {
             surveys_by_status: surveysByStatus,
             completed_surveys: surveysByStatus['FINALIZED'] || 0,
             open_non_conformities: openNCsCount,
-            rework_requested: jobsByStatus['REWORK_REQUESTED'] || 0
+            rework_requested: jobsByStatus['REWORK_REQUESTED'] || 0,
+            pending_proofs: surveysByStatus['CHECKLIST_SUBMITTED'] || 0
         },
         recent_assigned_jobs: assignedJobs.map((j) => ({
             id: j.id,
@@ -275,6 +373,16 @@ export const getSurveyorDashboard = async (user) => {
             vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
             certificate_type: j.CertificateType?.name
         })),
+        upcoming_jobs: assignedJobs
+            .filter(j => j.job_status === 'SURVEYOR_ASSIGNED' || j.job_status === 'IN_PROGRESS')
+            .sort((a, b) => new Date(a.target_date) - new Date(b.target_date))
+            .slice(0, 5)
+            .map(j => ({
+                id: j.id,
+                vessel: j.Vessel?.vessel_name,
+                target_date: j.target_date,
+                status: j.job_status
+            }))
     };
 }
 
@@ -301,13 +409,14 @@ export const getClientDashboard = async (clientId) => {
         };
     }
 
-    // 2. Parallel fetch jobs, certificates and payments
-    const [jobs, certificates, payments] = await Promise.all([
+    // 2. Parallel fetch jobs, certificates, payments, surveys and NCs
+    const [jobs, certificates, payments, surveys, ncs] = await Promise.all([
         JobRequest.findAll({
             where: { vessel_id: vesselIds },
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
-                { model: CertificateType, attributes: ['name'] }
+                { model: CertificateType, attributes: ['name'] },
+                { model: User, as: 'surveyor', attributes: ['name', 'email'] }
             ],
             order: [['createdAt', 'DESC']]
         }),
@@ -324,13 +433,39 @@ export const getClientDashboard = async (clientId) => {
                 include: [{ model: Vessel, attributes: ['vessel_name'] }]
             }],
             order: [['createdAt', 'DESC']]
+        }),
+        Survey.findAll({
+            include: [{
+                model: JobRequest,
+                where: { vessel_id: vesselIds },
+                required: true,
+                include: [{ model: Vessel, attributes: ['vessel_name'] }]
+            }, {
+                model: User, attributes: ['name', 'email']
+            }],
+            order: [['updatedAt', 'DESC']]
+        }),
+        NonConformity.findAll({
+            include: [{
+                model: JobRequest,
+                where: { vessel_id: vesselIds },
+                required: true,
+                include: [{ model: Vessel, attributes: ['vessel_name'] }]
+            }],
+            order: [['createdAt', 'DESC']]
         })
     ]);
 
     // Calculate statistics
+    const jobsByStatus = jobs.reduce((acc, j) => {
+        const s = j.job_status || 'CREATED';
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+    }, {});
     const stats = {
         total_vessels: vessels.length,
         active_jobs: jobs.filter(j => !['CERTIFIED', 'REJECTED', 'CANCELLED'].includes(j.job_status)).length,
+        jobs_by_status: jobsByStatus,
         expiring_soon: certificates.filter(c => {
             const expiry = new Date(c.expiry_date);
             const today = new Date();
@@ -341,6 +476,7 @@ export const getClientDashboard = async (clientId) => {
             return daysToExpiry <= 30 && daysToExpiry >= 0;
         }).length,
         pending_payments: payments.filter(p => p.payment_status === 'UNPAID').length,
+        open_non_conformities: ncs.filter(n => n.status === 'OPEN').length
     };
 
     return {
@@ -351,6 +487,7 @@ export const getClientDashboard = async (clientId) => {
             vessel_name: j.Vessel?.vessel_name,
             type: j.CertificateType?.name,
             status: j.job_status,
+            surveyor: j.surveyor?.name,
             date: j.createdAt
         })),
         recent_vessels: vessels.slice(0, 5).map(v => ({
@@ -366,6 +503,13 @@ export const getClientDashboard = async (clientId) => {
             expiry_date: c.expiry_date,
             issued_date: c.issued_date || c.createdAt
         })),
+        recent_surveys: surveys.slice(0, 5).map(s => ({
+            id: s.id,
+            vessel: s.JobRequest?.Vessel?.vessel_name,
+            surveyor: s.User?.name,
+            status: s.survey_status,
+            date: s.submitted_at || s.updatedAt
+        })),
         recent_payments: payments.slice(0, 5).map(p => ({
             id: p.id,
             invoice_number: p.invoice_number,
@@ -374,6 +518,13 @@ export const getClientDashboard = async (clientId) => {
             status: p.payment_status,
             vessel_name: p.JobRequest?.Vessel?.vessel_name,
             date: p.payment_date || p.createdAt
+        })),
+        open_non_conformities_list: ncs.filter(n => n.status === 'OPEN').slice(0, 5).map(n => ({
+            id: n.id,
+            vessel: n.JobRequest?.Vessel?.vessel_name,
+            description: n.description,
+            severity: n.severity,
+            date: n.createdAt
         })),
         pending_payments: payments.filter(p => p.payment_status === 'UNPAID').map(p => ({
             id: p.id,

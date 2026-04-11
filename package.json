@@ -8,7 +8,8 @@
     "dev": "node --watch src/server.js",
     "test": "node --test tests/**/*.test.js",
     "test:apis": "node scripts/test-all-apis.js",
-    "postman:build": "node scripts/build-postman-collection.js"
+    "postman:build": "node scripts/build-postman-collection.js",
+    "seed:initial": "node scripts/seed_initial_data.js"
   },
   "keywords": [],
   "author": "",
