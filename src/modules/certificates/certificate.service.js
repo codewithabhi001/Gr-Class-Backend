@@ -287,7 +287,9 @@ export const generateCertificate = async (data, user) => {
             issue_date: issueDate,
             expiry_date: expiryDate,
             certificate_number: certificateNumber,
-            certificate_type: job.CertificateType?.name ?? ''
+            certificate_type: job.CertificateType?.name ?? '',
+            port: job.target_port ?? '',
+            place: job.target_port ?? ''
         };
         let qrDataUrl = null;
         try {
