@@ -23,6 +23,16 @@ JobCreateRequest:
       example: "2026-03-15"
     remarks:
       type: string
+    uploaded_documents:
+      type: array
+      items:
+        type: object
+        required: [required_document_id, file_url]
+        properties:
+          required_document_id:
+            $ref: '#/components/schemas/UUID'
+          file_url:
+            type: string
 
 JobResponse:
   type: object
@@ -30,6 +40,8 @@ JobResponse:
     id:
       $ref: '#/components/schemas/UUID'
     vessel_id:
+      $ref: '#/components/schemas/UUID'
+    requested_by_user_id:
       $ref: '#/components/schemas/UUID'
     certificate_type_id:
       $ref: '#/components/schemas/UUID'
@@ -40,6 +52,12 @@ JobResponse:
     target_date:
       type: string
       format: date
+    job_status:
+      type: string
+      enum: [CREATED, DOCUMENT_VERIFIED, APPROVED, ASSIGNED, SURVEY_AUTHORIZED, IN_PROGRESS, SURVEY_DONE, REVIEWED, FINALIZED, REWORK_REQUESTED, PAYMENT_DONE, CERTIFIED, REJECTED]
+    priority:
+      type: string
+      enum: [LOW, NORMAL, HIGH, URGENT]
     assigned_surveyor_id:
       $ref: '#/components/schemas/UUID'
       nullable: true
@@ -54,13 +72,47 @@ JobResponse:
       nullable: true
     remarks:
       type: string
-    job_status:
+      nullable: true
+    is_survey_required:
+      type: boolean
+    reschedule_count:
+      type: integer
+    payment_status:
       type: string
-      enum: [CREATED, DOCUMENT_VERIFIED, APPROVED, ASSIGNED, SURVEY_AUTHORIZED, IN_PROGRESS, SURVEY_DONE, REVIEWED, FINALIZED, REWORK_REQUESTED, PAYMENT_DONE, CERTIFIED, REJECTED]
-      example: "CREATED"
+      example: "UNPAID"
+    certificate_url:
+      type: string
+      format: uri
+      nullable: true
+    certificate_number:
+      type: string
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    Vessel:
+      $ref: '#/components/schemas/VesselSummary'
+    CertificateType:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        issuing_authority: { type: string }
     survey:
       type: object
-      nullable: true
+      properties:
+        id: { type: string, format: uuid }
+        survey_status: { type: string }
+        survey_statement_status: { type: string }
+        started_at: { type: string, format: date-time }
+        submitted_at: { type: string, format: date-time }
+    Payments:
+      type: array
+      items:
+        $ref: '#/components/schemas/PaymentResponse'
       properties:
         id:
           $ref: '#/components/schemas/UUID'
@@ -138,19 +190,22 @@ JobStatusUpdateRequest:
 
 AssignSurveyorRequest:
   type: object
-  required:
-    - surveyorId
   properties:
     surveyorId:
       $ref: '#/components/schemas/UUID'
+    surveyor_id:
+      $ref: '#/components/schemas/UUID'
+    remarks:
+      type: string
 
 ReassignJobRequest:
   type: object
   required:
-    - surveyorId
     - reason
   properties:
     surveyorId:
+      $ref: '#/components/schemas/UUID'
+    surveyor_id:
       $ref: '#/components/schemas/UUID'
     reason:
       type: string
@@ -158,6 +213,8 @@ ReassignJobRequest:
 RescheduleJobRequest:
   type: object
   required:
+    - new_target_date
+    - new_target_port
     - reason
   properties:
     new_target_date:
@@ -168,23 +225,30 @@ RescheduleJobRequest:
     reason:
       type: string
 
-EscalateJobRequest:
-  type: object
-  required:
-    - reason
-    - target_role
-  properties:
-    reason:
-      type: string
-    target_role:
-      type: string
-      enum: [GM, ADMIN]
-
 JobCancelRequest:
   type: object
   required: [reason]
   properties:
     reason:
+      type: string
+
+JobRejectRequest:
+  type: object
+  required: [reason]
+  properties:
+    reason:
+      type: string
+
+JobEvidenceUploadRequest:
+  type: object
+  required: [job_id, context]
+  properties:
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    context:
+      type: string
+      example: "SURVEY_PHOTOS"
+    description:
       type: string
 
 AddNoteRequest:

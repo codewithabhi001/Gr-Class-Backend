@@ -1,0 +1,197 @@
+SurveyorApplyRequest:
+  type: object
+  required:
+    - full_name
+    - email
+    - phone
+    - nationality
+    - qualification
+    - years_of_experience
+  properties:
+    full_name:
+      type: string
+    email:
+      type: string
+      format: email
+    phone:
+      type: string
+    nationality:
+      type: string
+    qualification:
+      type: string
+    years_of_experience:
+      type: integer
+    cvKey:
+      type: string
+      description: "S3 key for CV document"
+    idProofKey:
+      type: string
+      description: "S3 key for ID proof"
+    certificateKeys:
+      type: array
+      items:
+        type: string
+      description: "S3 keys for other certificates"
+
+SurveyorProfileUpdateRequest:
+  type: object
+  properties:
+    full_name:
+      type: string
+    name:
+      type: string
+    phone:
+      type: string
+    nationality:
+      type: string
+    qualification:
+      type: string
+    years_of_experience:
+      type: integer
+    license_number:
+      type: string
+    authorized_ship_types:
+      type: array
+      items:
+        type: string
+    authorized_certificates:
+      type: array
+      items:
+        type: string
+    valid_to:
+      type: string
+      format: date
+    cv_url:
+      type: string
+      format: uri
+    license_copy_url:
+      type: string
+      format: uri
+    is_available:
+      type: boolean
+
+SurveyorProfileResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    user_id:
+      $ref: '#/components/schemas/UUID'
+    surveyor_application_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    license_number:
+      type: string
+    authorized_ship_types:
+      type: array
+      items: { type: string }
+    authorized_certificates:
+      type: array
+      items: { type: string }
+    valid_from:
+      type: string
+      format: date
+    valid_to:
+      type: string
+      format: date
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED]
+    is_available:
+      type: boolean
+    nationality:
+      type: string
+    qualification:
+      type: string
+    years_of_experience:
+      type: integer
+    cv_url:
+      type: string
+      format: uri
+    id_proof_url:
+      type: string
+      format: uri
+    license_copy_url:
+      type: string
+      format: uri
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    User:
+      $ref: '#/components/schemas/UserSummary'
+
+SurveyorApplicationResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    full_name:
+      type: string
+    email:
+      type: string
+      format: email
+    phone:
+      type: string
+    nationality:
+      type: string
+    qualification:
+      type: string
+    years_of_experience:
+      type: integer
+    cv_file_url:
+      type: string
+      format: uri
+    certificate_files_url:
+      type: array
+      items: { type: string, format: uri }
+    id_proof_url:
+      type: string
+      format: uri
+    status:
+      type: string
+      enum: [PENDING, DOCUMENTS_REQUIRED, APPROVED, REJECTED]
+    reviewer_remarks:
+      type: string
+      nullable: true
+    approved_user_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+SurveyorReviewRequest:
+  type: object
+  required:
+    - status
+  properties:
+    status:
+      type: string
+      enum: [APPROVED, REJECTED, DOCUMENTS_REQUIRED]
+    remarks:
+      type: string
+
+SurveyorAvailabilityRequest:
+  type: object
+  required:
+    - is_available
+  properties:
+    is_available:
+      type: boolean
+
+SurveyorLocationRequest:
+  type: object
+  required:
+    - latitude
+    - longitude
+  properties:
+    latitude:
+      type: number
+    longitude:
+      type: number

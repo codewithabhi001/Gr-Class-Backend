@@ -9,7 +9,6 @@ CertificateResponse:
       $ref: '#/components/schemas/UUID'
     certificate_number:
       type: string
-      example: "GIR-CERT-2026-001234"
     issue_date:
       type: string
       format: date
@@ -19,163 +18,77 @@ CertificateResponse:
     status:
       type: string
       enum: [VALID, EXPIRED, SUSPENDED, REVOKED]
-      example: "VALID"
     qr_code_url:
       type: string
       format: uri
     pdf_file_url:
       type: string
       format: uri
+    issued_by_user_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
     CertificateType:
       type: object
       properties:
-        name:
-          type: string
-          example: "Safety Construction"
-          description: "Name of the certificate type"
+        name: { type: string }
     Vessel:
       type: object
       properties:
-        vessel_name:
-          type: string
-          example: "Ocean Pioneer"
-        imo_number:
-          type: string
-          example: "9123456"
-  example:
-    id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    certificate_number: "GIR-CERT-2026-001234"
-    status: "VALID"
-    issue_date: "2026-01-15"
-    expiry_date: "2027-01-14"
-
-GenerateCertificateRequest:
-  type: object
-  required:
-    - job_id
-  properties:
-    job_id:
-      type: string
-      format: uuid
-      example: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    validity_years:
-      type: integer
-      minimum: 1
-      maximum: 5
-      default: 1
-  example:
-    job_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    validity_years: 1
-
-CertActionRequest:
-  type: object
-  required:
-    - reason
-  properties:
-    reason:
-      type: string
-      example: "Administrative suspension"
-  example:
-    reason: "Administrative suspension"
-
-RenewCertRequest:
-  type: object
-  required:
-    - validity_years
-    - reason
-  properties:
-    validity_years:
-      type: integer
-      minimum: 1
-      maximum: 5
-    reason:
-      type: string
-  example:
-    validity_years: 1
-    reason: "Standard renewal"
-
-CertificateRequiredDocument:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    document_name:
-      type: string
-      example: "Bill of Sale"
-    is_mandatory:
-      type: boolean
-      example: true
+        vessel_name: { type: string }
+        imo_number: { type: string }
 
 CertificateTypeResponse:
   type: object
-  description: Minimal certificate type — returned in list endpoint only.
   properties:
     id:
-      type: string
-      format: uuid
+      $ref: '#/components/schemas/UUID'
     name:
       type: string
-      example: "Class Certificate"
+    short_code:
+      type: string
     issuing_authority:
       type: string
       enum: [CLASS, FLAG]
     validity_years:
       type: integer
-      example: 5
     status:
       type: string
       enum: [ACTIVE, INACTIVE]
     requires_survey:
       type: boolean
-      example: true
 
 CertificateTypeDetailResponse:
   type: object
-  description: Full certificate type detail — returned by GET /types/:id, POST /types, and PUT /types/:id.
   properties:
     id:
-      type: string
-      format: uuid
+      $ref: '#/components/schemas/UUID'
     name:
       type: string
-      example: "Class Certificate"
+    short_code:
+      type: string
     issuing_authority:
       type: string
       enum: [CLASS, FLAG]
     validity_years:
       type: integer
-      example: 5
     status:
       type: string
       enum: [ACTIVE, INACTIVE]
     description:
       type: string
       nullable: true
-      example: "Annual classification survey certificate"
     requires_survey:
       type: boolean
-      example: true
     CertificateRequiredDocuments:
       type: array
-      description: All required documents for this certificate type, ordered by name.
       items:
         $ref: '#/components/schemas/CertificateRequiredDocument'
-  example:
-    id: "019c79a4-55ba-773c-9454-f6bee169ab03"
-    name: "Class Certificate"
-    issuing_authority: "CLASS"
-    validity_years: 5
-    status: "ACTIVE"
-    description: "Annual classification survey certificate"
-    requires_survey: true
-    CertificateRequiredDocuments:
-      - id: "019c79a4-0001-0000-0000-000000000001"
-        document_name: "Registry Certificate"
-        is_mandatory: true
-      - id: "019c79a4-0001-0000-0000-000000000002"
-        document_name: "Previous Survey Report"
-        is_mandatory: false
 
 CertificateTypeCreateRequest:
   type: object
@@ -261,3 +174,47 @@ CertificateTypeUpdateRequest:
         is_mandatory: false
       - document_name: "Previous Registry Certificate"
         is_mandatory: true
+
+GenerateCertificateRequest:
+  type: object
+  required:
+    - job_id
+  properties:
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    validity_years:
+      type: integer
+      minimum: 1
+      maximum: 5
+      default: 1
+
+CertActionRequest:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+
+RenewCertRequest:
+  type: object
+  required:
+    - validity_years
+    - reason
+  properties:
+    validity_years:
+      type: integer
+      minimum: 1
+      maximum: 5
+    reason:
+      type: string
+
+CertificateRequiredDocument:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    document_name:
+      type: string
+    is_mandatory:
+      type: boolean

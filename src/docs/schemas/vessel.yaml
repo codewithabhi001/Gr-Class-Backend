@@ -39,6 +39,7 @@ VesselCreateRequest:
       example: "Ocean Pioneer"
     imo_number:
       type: string
+      pattern: '^[0-9]{7}$'
       example: "9123456"
     call_sign:
       type: string
@@ -167,12 +168,16 @@ VesselResponse:
           $ref: '#/components/schemas/UUID'
         call_sign:
           type: string
+          nullable: true
         mmsi_number:
           type: string
+          nullable: true
         port_of_registry:
           type: string
+          nullable: true
         year_built:
           type: integer
+          nullable: true
         gross_tonnage:
           type: number
         net_tonnage:
@@ -184,10 +189,19 @@ VesselResponse:
           enum: [ACTIVE, SUSPENDED, WITHDRAWN]
         current_class_society:
           type: string
+          nullable: true
         engine_type:
           type: string
+          nullable: true
         builder_name:
           type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
   example:
     id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
     vessel_name: "Ocean Pioneer"

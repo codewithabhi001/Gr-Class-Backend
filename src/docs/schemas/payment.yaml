@@ -7,18 +7,13 @@ PaymentResponse:
       $ref: '#/components/schemas/UUID'
     invoice_number:
       type: string
-      example: "INV-2026-001234"
     amount:
       type: number
-      format: decimal
-      example: 1500.00
     currency:
       type: string
-      example: "USD"
     payment_status:
       type: string
       enum: [UNPAID, PAID, ON_HOLD]
-      example: "UNPAID"
     payment_date:
       type: string
       format: date-time
@@ -27,12 +22,30 @@ PaymentResponse:
       type: string
       format: uri
       nullable: true
-  example:
-    id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    invoice_number: "INV-2026-001234"
-    amount: 1500.00
-    currency: "USD"
-    payment_status: "UNPAID"
+    verified_by_user_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    refunded_amount:
+      type: string
+    amount_paid:
+      type: string
+    net_amount:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    JobRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        job_status: { type: string }
+        Vessel:
+          type: object
+          properties:
+            vessel_name: { type: string }
 
 CreateInvoiceRequest:
   type: object

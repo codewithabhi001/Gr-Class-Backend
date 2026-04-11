@@ -115,3 +115,83 @@ WebsiteContact:
         id:    { type: string, format: uuid }
         name:  { type: string, example: "Admin User" }
         email: { type: string, example: "admin@grclass.com" }
+
+WebsiteContactResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    full_name:
+      type: string
+    company:
+      type: string
+      nullable: true
+    corporate_email:
+      type: string
+      format: email
+    message:
+      type: string
+    phone:
+      type: string
+      nullable: true
+    subject:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [NEW, READ, REPLIED, ARCHIVED]
+    internal_note:
+      type: string
+      nullable: true
+    replied_by:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    replied_at:
+      type: string
+      format: date-time
+      nullable: true
+    ip_address:
+      type: string
+      nullable: true
+    source_page:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+WebsiteContactInput:
+  type: object
+  required:
+    - full_name
+    - corporate_email
+    - message
+  properties:
+    full_name:
+      type: string
+    company:
+      type: string
+    corporate_email:
+      type: string
+      format: email
+    message:
+      type: string
+    phone:
+      type: string
+    subject:
+      type: string
+    source_page:
+      type: string
+
+WebsiteContactStatusUpdate:
+  type: object
+  required:
+    - status
+  properties:
+    status:
+      type: string
+      enum: [NEW, READ, REPLIED, ARCHIVED]
+    internal_note:
+      type: string

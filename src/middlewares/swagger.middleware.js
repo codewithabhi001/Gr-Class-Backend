@@ -11,7 +11,7 @@
 import swaggerUi from 'swagger-ui-express';
 import { clearCache, getSpecForRole } from '../docs/build-openapi.js';
 
-const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'ta', 'flag_admin'];
+const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'ta', 'flag_admin', 'public'];
 
 const ROLE_MAP = {
   admin: 'ADMIN',
@@ -22,6 +22,7 @@ const ROLE_MAP = {
   surveyor: 'SURVEYOR',
   client: 'CLIENT',
   flag_admin: 'FLAG_ADMIN',
+  public: 'PUBLIC',
 };
 
 /**
@@ -61,6 +62,7 @@ export function setupSwagger(app) {
     { url: '/api-docs/spec.json?role=SURVEYOR', name: 'SURVEYOR' },
     { url: '/api-docs/spec.json?role=CLIENT', name: 'CLIENT' },
     { url: '/api-docs/spec.json?role=FLAG_ADMIN', name: 'FLAG_ADMIN' },
+    { url: '/api-docs/spec.json?role=PUBLIC', name: 'PUBLIC' },
   ];
 
   // Swagger UI: serve static first, then custom HTML for index paths

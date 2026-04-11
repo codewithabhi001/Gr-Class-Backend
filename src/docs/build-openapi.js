@@ -263,8 +263,30 @@ export function filterSpecByRole(spec, role) {
         continue;
       }
 
-      // Include if role matches or operation is PUBLIC
-      if (roles.includes(role) || roles.includes('PUBLIC')) {
+      const isPublicRole = role === 'PUBLIC';
+      const isAuthTag = op.tags && op.tags.includes('Auth');
+
+      // Logic for including an operation:
+      // 1. If it's the 'all' view, include everything.
+      // 2. If it's the 'PUBLIC' view, include strictly PUBLIC ones BUT NOT Auth.
+      // 3. If it's a specific role (ADMIN, CLIENT, etc.):
+      //    a. Include if it matches the role.
+      //    b. Include if it's PUBLIC (including Auth).
+
+      const hasRole = roles.includes(role);
+      const isPublicOp = roles.includes('PUBLIC');
+      const isAll = role === 'all';
+
+      let included = false;
+      if (isAll) {
+        included = true;
+      } else if (isPublicRole) {
+        included = isPublicOp && !isAuthTag;
+      } else {
+        included = hasRole || isPublicOp;
+      }
+
+      if (included) {
         // Special case: Surveyor doesn't need to see Contact/Enquiry APIs in their documentation
         if (role === 'SURVEYOR' && op.tags && op.tags.includes('Contact')) {
           continue;

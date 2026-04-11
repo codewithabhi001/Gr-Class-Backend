@@ -1,0 +1,52 @@
+CustomerFeedback:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    client_id:
+      $ref: '#/components/schemas/UUID'
+    rating:
+      type: integer
+      minimum: 1
+      maximum: 5
+    timeliness:
+      type: integer
+      minimum: 1
+      maximum: 5
+    professionalism:
+      type: integer
+      minimum: 1
+      maximum: 5
+    documentation:
+      type: integer
+      minimum: 1
+      maximum: 5
+    remarks:
+      type: string
+      nullable: true
+    submitted_at:
+      type: string
+      format: date-time
+    created_at:
+      type: string
+      format: date-time
+
+CustomerFeedbackResponse:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    data:
+      $ref: '#/components/schemas/CustomerFeedback'
+
+CustomerFeedbackCreateRequest:
+  type: object
+  required: [job_id, rating, timeliness, professionalism, documentation]
+  properties:
+    job_id: { $ref: '#/components/schemas/UUID' }
+    rating: { type: integer, minimum: 1, maximum: 5 }
+    timeliness: { type: integer, minimum: 1, maximum: 5 }
+    professionalism: { type: integer, minimum: 1, maximum: 5 }
+    documentation: { type: integer, minimum: 1, maximum: 5 }
+    remarks: { type: string }

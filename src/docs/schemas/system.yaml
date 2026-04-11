@@ -1,0 +1,75 @@
+AuditLogResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    user_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    action:
+      type: string
+    entity_name:
+      type: string
+    entity_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    old_values:
+      type: object
+      nullable: true
+    new_values:
+      type: object
+      nullable: true
+    ip_address:
+      type: string
+    user_agent:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+
+FinancialLedgerResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    invoice_id:
+      $ref: '#/components/schemas/UUID'
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    transaction_type:
+      type: string
+      enum: [CHARGE, PAYMENT, REFUND, ADJUSTMENT, WRITEOFF]
+    amount:
+      type: number
+    currency:
+      type: string
+    reference_id:
+      type: string
+    performed_by:
+      $ref: '#/components/schemas/UUID'
+    remarks:
+      type: string
+    balance_after:
+      type: number
+    created_at:
+      type: string
+      format: date-time
+
+GpsTrackingResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    surveyor_id:
+      $ref: '#/components/schemas/UUID'
+    vessel_id:
+      $ref: '#/components/schemas/UUID'
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    latitude:
+      type: number
+    longitude:
+      type: number
+    timestamp:
+      type: string
+      format: date-time

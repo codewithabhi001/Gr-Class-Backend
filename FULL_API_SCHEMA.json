@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Girik Marine Backend API",
-    "description": "Production-grade API documentation for Girik Marine Backend.\nUse role-specific docs: `/api-docs/admin`, `/api-docs/gm`, `/api-docs/tm`, `/api-docs/surveyor`, `/api-docs/client`\n",
+    "description": "Production-grade API documentation for Girik Marine Backend.\nUse role-specific docs: `/api-docs/admin`, `/api-docs/gm`, `/api-docs/tm`, `/api-docs/surveyor`, `/api-docs/client`, `/api-docs/public`\n",
     "version": "1.0.0",
     "contact": {
       "name": "Girik Marine"

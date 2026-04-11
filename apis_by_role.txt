@@ -1,0 +1,594 @@
+## ROLE: ...RBAC.AUTHORIZE_SURVEY
+### jobs
+  - [PUT] /:id/authorize-survey
+
+
+## ROLE: ADMIN
+### activity_requests
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id/status
+### approvals
+  - [POST] /
+  - [PUT] /:id/step
+### certificates
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/download
+  - [GET] /:id/history
+  - [GET] /:id/preview
+  - [GET] /:id/signature
+  - [GET] /expiring
+  - [GET] /job/:jobId
+  - [GET] /types
+  - [GET] /types/:id
+  - [GET] /vessel/:vesselId
+  - [POST] /
+  - [POST] /:id/extend
+  - [POST] /:id/reissue
+  - [POST] /:id/sign
+  - [POST] /:id/transfer
+  - [POST] /bulk-renew
+  - [POST] /types
+  - [PUT] /:id/downgrade
+  - [PUT] /:id/renew
+  - [PUT] /:id/restore
+  - [PUT] /:id/revoke
+  - [PUT] /:id/suspend
+  - [PUT] /types/:id
+### change_requests
+  - [GET] /
+  - [POST] /
+  - [PUT] /:id/approve
+  - [PUT] /:id/reject
+### clients
+  - [DELETE] /:id
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/documents
+  - [POST] /
+  - [PUT] /:id
+### dashboard
+  - [GET] /
+### documents
+  - [DELETE] /:id
+  - [GET] /:entityType/:entityId
+  - [GET] /:id
+  - [GET] /get-upload-url
+  - [POST] /:entityType/:entityId
+  - [POST] /:entityType/:entityId/register
+  - [POST] /register
+  - [POST] /upload
+### feedback
+  - [GET] /
+  - [GET] /
+  - [GET] /job/:jobId
+  - [PATCH] /:id/visibility
+### flags
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id
+### incidents
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id/status
+### jobs
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/eligible-surveyors
+  - [GET] /:id/history
+  - [GET] /:id/messages/external
+  - [GET] /:id/messages/internal
+  - [POST] /
+  - [POST] /:id/messages
+  - [POST] /:id/notes
+  - [PUT] /:id/approve-request
+  - [PUT] /:id/assign
+  - [PUT] /:id/cancel
+  - [PUT] /:id/finalize
+  - [PUT] /:id/priority
+  - [PUT] /:id/reassign
+  - [PUT] /:id/reject
+  - [PUT] /:id/reschedule
+  - [PUT] /:id/review
+  - [PUT] /:id/send-back
+  - [PUT] /:id/verify-documents
+### non_conformities
+  - [GET] /job/:jobId
+### payments
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/ledger
+  - [GET] /summary
+  - [POST] /:id/partial
+  - [POST] /:id/refund
+  - [POST] /invoice
+  - [POST] /writeoff
+  - [PUT] /:id/pay
+### surveyors
+  - [GET] /
+  - [GET] /:id/location-history
+  - [GET] /:id/profile
+  - [GET] /applications
+  - [POST] /
+  - [PUT] /:id/profile
+  - [PUT] /:id/status
+  - [PUT] /applications/:id/review
+### system
+  - [GET] /audit-logs
+  - [GET] /feature-flags
+  - [GET] /jobs/failed
+  - [GET] /locales
+  - [GET] /metrics
+  - [GET] /migrations
+  - [POST] /jobs/:id/retry
+  - [POST] /maintenance/:action
+  - [POST] /users/:id/logout
+### templates
+  - [DELETE] /:id
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id
+### toca
+  - [GET] /
+  - [PUT] /:id/status
+### users
+  - [DELETE] /:id
+  - [GET] /
+  - [POST] /
+  - [PUT] /:id
+  - [PUT] /:id/status
+### vessels
+  - [GET] /
+  - [GET] /:id
+  - [GET] /client/:clientId
+  - [POST] /
+  - [PUT] /:id
+### website
+  - [DELETE] /videos/:id
+  - [GET] /subscribers
+  - [POST] /send
+  - [POST] /videos
+  - [PUT] /videos/:id
+
+
+## ROLE: CLIENT
+### activity_requests
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+### certificates
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/download
+  - [GET] /:id/history
+  - [GET] /:id/preview
+  - [GET] /:id/signature
+  - [GET] /expiring
+  - [GET] /job/:jobId
+  - [GET] /types
+  - [GET] /types/:id
+  - [GET] /vessel/:vesselId
+### change_requests
+  - [POST] /
+### clients
+  - [GET] /dashboard
+  - [GET] /profile
+  - [GET] /profile/documents
+  - [PUT] /profile
+### dashboard
+  - [GET] /
+### documents
+  - [GET] /:entityType/:entityId
+  - [GET] /:id
+  - [GET] /get-upload-url
+  - [POST] /:entityType/:entityId
+  - [POST] /:entityType/:entityId/register
+  - [POST] /register
+  - [POST] /upload
+### feedback
+  - [GET] /job/:jobId
+  - [GET] /my-feedback
+  - [POST] /
+  - [POST] /
+### incidents
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+### jobs
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/messages/external
+  - [POST] /
+  - [POST] /:id/messages
+  - [PUT] /:id/cancel
+### payments
+  - [GET] /
+  - [GET] /:id
+  - [GET] /summary
+### vessels
+  - [GET] /
+  - [GET] /:id
+
+
+## ROLE: FLAG_ADMIN
+### dashboard
+  - [GET] /
+### jobs
+  - [GET] /
+
+
+## ROLE: GM
+### activity_requests
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id/status
+### approvals
+  - [POST] /
+  - [PUT] /:id/step
+### certificates
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/download
+  - [GET] /:id/history
+  - [GET] /:id/preview
+  - [GET] /:id/signature
+  - [GET] /expiring
+  - [GET] /job/:jobId
+  - [GET] /types
+  - [GET] /types/:id
+  - [GET] /vessel/:vesselId
+  - [POST] /
+  - [POST] /:id/extend
+  - [POST] /:id/sign
+  - [POST] /:id/transfer
+  - [PUT] /:id/downgrade
+### change_requests
+  - [GET] /
+  - [POST] /
+  - [PUT] /:id/approve
+  - [PUT] /:id/reject
+### clients
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/documents
+  - [POST] /
+  - [PUT] /:id
+### dashboard
+  - [GET] /
+### documents
+  - [DELETE] /:id
+  - [GET] /:entityType/:entityId
+  - [GET] /:id
+  - [GET] /get-upload-url
+  - [POST] /:entityType/:entityId
+  - [POST] /:entityType/:entityId/register
+  - [POST] /register
+  - [POST] /upload
+### feedback
+  - [GET] /
+  - [GET] /
+  - [GET] /job/:jobId
+### flags
+  - [GET] /
+  - [GET] /:id
+### incidents
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id/status
+### jobs
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/eligible-surveyors
+  - [GET] /:id/history
+  - [GET] /:id/messages/external
+  - [GET] /:id/messages/internal
+  - [POST] /
+  - [POST] /:id/messages
+  - [POST] /:id/notes
+  - [PUT] /:id/approve-request
+  - [PUT] /:id/assign
+  - [PUT] /:id/cancel
+  - [PUT] /:id/finalize
+  - [PUT] /:id/priority
+  - [PUT] /:id/reassign
+  - [PUT] /:id/reject
+  - [PUT] /:id/reschedule
+  - [PUT] /:id/verify-documents
+### non_conformities
+  - [GET] /job/:jobId
+### payments
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/ledger
+  - [GET] /summary
+  - [POST] /:id/partial
+  - [POST] /:id/refund
+  - [POST] /invoice
+  - [PUT] /:id/pay
+### surveyors
+  - [GET] /
+  - [GET] /:id/location-history
+  - [GET] /:id/profile
+### templates
+  - [GET] /
+  - [GET] /:id
+### toca
+  - [GET] /
+### vessels
+  - [GET] /
+  - [GET] /:id
+  - [GET] /client/:clientId
+  - [POST] /
+  - [PUT] /:id
+
+
+## ROLE: Public/Authenticated (No specific role)
+### auth
+  - [POST] /change-password
+  - [POST] /forgot-password
+  - [POST] /login
+  - [POST] /logout
+  - [POST] /refresh-token
+  - [POST] /reset-password
+### certificates
+  - [GET] /verify/:number
+### checklists
+  - [GET] /jobs/:jobId
+### compliance
+  - [GET] /export/:id
+  - [POST] /anonymize/:id
+### feedback
+  - [GET] /public
+### notifications
+  - [GET] /
+  - [PUT] /:id/read
+  - [PUT] /read-all
+### public
+  - [GET] /certificate/verify/:number
+  - [GET] /vessel/:imo
+  - [GET] /website/videos
+### reports
+  - [GET] /certificates
+  - [GET] /financials
+  - [GET] /non-conformities
+  - [GET] /surveyors
+### search
+  - [GET] /
+### site_static
+  - [GET] /
+  - [GET] /:slug
+### support
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id
+  - [PUT] /:id/status
+### surveyors
+  - [GET] /get-upload-url
+  - [POST] /apply
+### system
+  - [GET] /health
+  - [GET] /readiness
+  - [GET] /version
+### users
+  - [GET] /me
+  - [PUT] /fcm-token
+  - [PUT] /profile-pic
+### website
+  - [GET] /unsubscribe-one-click
+  - [GET] /videos
+  - [POST] /subscribe
+  - [POST] /unsubscribe
+  - [POST] /unsubscribe-one-click
+
+
+## ROLE: SURVEYOR
+### certificates
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/download
+  - [GET] /:id/history
+  - [GET] /:id/preview
+  - [GET] /:id/signature
+  - [GET] /job/:jobId
+  - [GET] /types
+  - [GET] /types/:id
+  - [GET] /vessel/:vesselId
+### checklists
+  - [PUT] /jobs/:jobId
+### dashboard
+  - [GET] /
+### documents
+  - [GET] /:entityType/:entityId
+  - [GET] /:id
+  - [GET] /get-upload-url
+  - [POST] /:entityType/:entityId
+  - [POST] /:entityType/:entityId/register
+  - [POST] /register
+  - [POST] /upload
+### jobs
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/messages/external
+  - [POST] /:id/messages
+### non_conformities
+  - [GET] /job/:jobId
+  - [POST] /
+### surveyors
+  - [GET] /:id/profile
+  - [POST] /availability
+  - [POST] /location
+### vessels
+  - [GET] /:id
+
+
+## ROLE: TA
+### dashboard
+  - [GET] /
+### jobs
+  - [GET] /
+### payments
+  - [PUT] /:id/pay
+
+
+## ROLE: TM
+### activity_requests
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id/status
+### approvals
+  - [POST] /
+  - [PUT] /:id/step
+### certificates
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/download
+  - [GET] /:id/history
+  - [GET] /:id/preview
+  - [GET] /:id/signature
+  - [GET] /expiring
+  - [GET] /job/:jobId
+  - [GET] /types
+  - [GET] /types/:id
+  - [GET] /vessel/:vesselId
+  - [POST] /
+  - [POST] /:id/reissue
+  - [POST] /bulk-renew
+  - [PUT] /:id/renew
+  - [PUT] /:id/restore
+  - [PUT] /:id/revoke
+  - [PUT] /:id/suspend
+  - [PUT] /types/:id
+### change_requests
+  - [GET] /
+  - [POST] /
+### clients
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/documents
+  - [POST] /
+  - [PUT] /:id
+### dashboard
+  - [GET] /
+### documents
+  - [GET] /:entityType/:entityId
+  - [GET] /:id
+  - [GET] /get-upload-url
+  - [POST] /:entityType/:entityId
+  - [POST] /:entityType/:entityId/register
+  - [POST] /register
+  - [POST] /upload
+### flags
+  - [GET] /
+  - [GET] /:id
+### incidents
+  - [GET] /
+  - [GET] /:id
+  - [POST] /
+  - [PUT] /:id/status
+### jobs
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/eligible-surveyors
+  - [GET] /:id/history
+  - [GET] /:id/messages/external
+  - [GET] /:id/messages/internal
+  - [POST] /:id/messages
+  - [POST] /:id/notes
+  - [PUT] /:id/cancel
+  - [PUT] /:id/finalize
+  - [PUT] /:id/priority
+  - [PUT] /:id/reject
+  - [PUT] /:id/send-back
+### non_conformities
+  - [GET] /job/:jobId
+  - [PUT] /:id/close
+### payments
+  - [GET] /
+  - [GET] /:id
+  - [POST] /:id/partial
+  - [POST] /invoice
+  - [PUT] /:id/pay
+### surveyors
+  - [GET] /
+  - [GET] /:id/location-history
+  - [GET] /:id/profile
+  - [GET] /applications
+  - [POST] /
+  - [PUT] /:id/profile
+  - [PUT] /:id/status
+  - [PUT] /applications/:id/review
+### templates
+  - [GET] /
+  - [GET] /:id
+### toca
+  - [GET] /
+  - [POST] /
+  - [PUT] /:id/status
+### vessels
+  - [GET] /
+  - [GET] /:id
+  - [GET] /client/:clientId
+  - [POST] /
+  - [PUT] /:id
+
+
+## ROLE: TO
+### activity_requests
+  - [GET] /
+  - [GET] /:id
+### certificates
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/download
+  - [GET] /:id/history
+  - [GET] /:id/preview
+  - [GET] /:id/signature
+  - [GET] /expiring
+  - [GET] /job/:jobId
+  - [GET] /types
+  - [GET] /types/:id
+  - [GET] /vessel/:vesselId
+### clients
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/documents
+### dashboard
+  - [GET] /
+### documents
+  - [GET] /:entityType/:entityId
+  - [GET] /:id
+### flags
+  - [GET] /
+  - [GET] /:id
+### incidents
+  - [GET] /
+  - [GET] /:id
+### jobs
+  - [GET] /
+  - [GET] /:id
+  - [GET] /:id/history
+  - [GET] /:id/messages/external
+  - [GET] /:id/messages/internal
+  - [POST] /:id/messages
+  - [POST] /:id/notes
+  - [PUT] /:id/review
+  - [PUT] /:id/send-back
+  - [PUT] /:id/verify-documents
+### non_conformities
+  - [GET] /job/:jobId
+  - [POST] /
+  - [PUT] /:id/close
+### vessels
+  - [GET] /
+  - [GET] /:id
+
+

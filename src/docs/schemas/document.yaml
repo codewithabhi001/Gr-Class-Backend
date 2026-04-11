@@ -1,0 +1,53 @@
+Document:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    entity_type:
+      type: string
+      example: "JOB"
+    entity_id:
+      $ref: '#/components/schemas/UUID'
+    file_url:
+      type: string
+      format: uri
+    file_type:
+      type: string
+      example: "application/pdf"
+    document_type:
+      type: string
+      example: "EVIDENCE"
+    description:
+      type: string
+      nullable: true
+    uploaded_by:
+      $ref: '#/components/schemas/UUID'
+    uploaded_at:
+      type: string
+      format: date-time
+
+DocumentResponse:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    data:
+      $ref: '#/components/schemas/Document'
+
+DocumentListResponse:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    data:
+      type: array
+      items:
+        $ref: '#/components/schemas/Document'
+
+UploadUrlResponse:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    data:
+      type: object
+      properties:
+        uploadUrl: { type: string, format: uri }
+        fileKey: { type: string, example: "jobs/01933c5e.../report.pdf" }

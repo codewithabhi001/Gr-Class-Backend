@@ -61,17 +61,27 @@ UserSummary:
       $ref: '#/components/schemas/UUID'
     name:
       type: string
-      example: "John Doe"
     email:
       type: string
       format: email
-      example: "admin@grclass.com"
     role:
       type: string
       enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
-      example: "CLIENT"
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED]
     client_id:
       $ref: '#/components/schemas/UUID'
+      nullable: true
+    profile_pic_url:
+      type: string
+      format: uri
+      nullable: true
+    force_password_reset:
+      type: boolean
+    last_login_at:
+      type: string
+      format: date-time
       nullable: true
 
 ForgotPasswordRequest:
@@ -99,6 +109,49 @@ ResetPasswordRequest:
       minLength: 8
       pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
       example: 'SecurePass123'
+
+RegistrationRequest:
+  type: object
+  required:
+    - name
+    - email
+    - password
+    - role
+  properties:
+    name:
+      type: string
+    email:
+      type: string
+      format: email
+    password:
+      type: string
+      format: password
+      minLength: 8
+      pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
+    role:
+      type: string
+      enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    company_name:
+      type: string
+    client_id:
+      $ref: '#/components/schemas/UUID'
+      nullable: true
+    phone:
+      type: string
+
+ChangePasswordRequest:
+  type: object
+  required:
+    - oldPassword
+    - newPassword
+  properties:
+    oldPassword:
+      type: string
+    newPassword:
+      type: string
+      format: password
+      minLength: 8
+      pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
 
 RefreshTokenRequest:
   type: object

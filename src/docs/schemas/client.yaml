@@ -31,6 +31,7 @@ ClientCreateRequest:
       enum: [ACTIVE, INACTIVE]
     user:
       type: object
+      required: [name, email, password]
       properties:
         name:
           type: string
@@ -45,7 +46,7 @@ ClientCreateRequest:
           example: 'SecurePass123'
         role:
           type: string
-          enum: [CLIENT]
+          enum: [CLIENT, ADMIN, GM, TM, TO, TA, SURVEYOR, FLAG_ADMIN]
           default: CLIENT
         phone:
           type: string
@@ -70,6 +71,18 @@ ClientResponse:
       type: string
     country:
       type: string
+    phone:
+      type: string
+    contact_person_name:
+      type: string
+    contact_person_email:
+      type: string
+      format: email
     status:
       type: string
       enum: [ACTIVE, INACTIVE]
+    has_user:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time

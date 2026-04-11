@@ -1,0 +1,19 @@
+NotificationResponse:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    user_id:
+      $ref: '#/components/schemas/UUID'
+    title:
+      type: string
+    message:
+      type: string
+    type:
+      type: string
+      enum: [INFO, WARNING, CRITICAL]
+    is_read:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time
