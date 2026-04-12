@@ -86,7 +86,10 @@ export const schemas = {
     }),
     generateCertificate: Joi.object({
         job_id: Joi.string().guid().required(),
-        validity_years: Joi.number().integer().min(1).max(5).optional(),
+         validity_years: Joi.number().integer().min(1).max(5).optional(),
+        certificate_authority_id: Joi.string().guid().optional().allow(null),
+        flag_administration_id: Joi.string().guid().optional().allow(null),
+        certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
     }),
     applySurveyor: Joi.object({
         full_name: Joi.string().required(),
@@ -470,9 +473,36 @@ export const schemas = {
     togglePortfolioFeedbackVisibility: Joi.object({
         is_visible: Joi.boolean().required(),
     }),
-    // newsletterSend: Joi.object({
-    //     // emails: Joi.array().items(Joi.string(.email()).optional(),
-    //     // subject: Joi.string().min(3).max(500).required(),
-    //     // message: Joi.string().min(10).required()
-    // }),
+    // ── Certificate Management ───────────────────────────────────────────
+    createCertificateAuthority: Joi.object({
+        name: Joi.string().required().trim(),
+        code: Joi.string().required().trim().uppercase(),
+        country: Joi.string().required().trim(),
+        logo_url: Joi.string().allow('', null).optional(),
+        status: Joi.string().valid('ACTIVE', 'INACTIVE').optional().default('ACTIVE')
+    }),
+    updateCertificateAuthority: Joi.object({
+        name: Joi.string().optional().trim(),
+        code: Joi.string().optional().trim().uppercase(),
+        country: Joi.string().optional().trim(),
+        logo_url: Joi.string().allow('', null).optional(),
+        status: Joi.string().valid('ACTIVE', 'INACTIVE').optional()
+    }),
+    updateCertificateDraft: Joi.object({
+        flag_administration_id: Joi.string().guid().optional(),
+        certificate_authority_id: Joi.string().guid().optional(),
+        certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
+        manual_text: Joi.alternatives().try(Joi.object(), Joi.string()).optional(),
+        remarks: Joi.string().allow('', null).optional(),
+        issue_date: Joi.date().iso().optional(),
+        expiry_date: Joi.date().iso().optional(),
+    }),
+    uploadExternalCertificate: Joi.object({
+        certificate_type_id: Joi.string().guid().required(),
+        certificate_authority_id: Joi.string().guid().optional().allow(null),
+        certificate_number: Joi.string().required(),
+        issue_date: Joi.date().iso().required(),
+        expiry_date: Joi.date().iso().required(),
+        s3_key: Joi.string().required(),
+    }),
 };

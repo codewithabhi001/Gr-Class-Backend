@@ -5,37 +5,86 @@
     operationId: createActivityRequest
     x-roles: [CLIENT, ADMIN, GM, TM]
     requestBody:
+      required: true
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              job_id: { type: string, format: uuid }
-              activity_type: { type: string }
-              requested_date: { type: string, format: date }
-              notes: { type: string }
-          example:
-            job_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-            activity_type: "SURVEY"
-            requested_date: "2026-03-20"
-            notes: "Prefer morning slot"
+            $ref: '#/components/schemas/ActivityRequestCreateRequest'
     responses:
-      "201": { description: Request created }
+      "201":
+        description: Request created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '#/components/schemas/ActivityRequestDetailResponse' }
+            example:
+              success: true
+              data:
+                id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+                request_number: "AR-2026-0001"
+                activity_type: "INSPECTION"
+                requested_service: "Annual Survey"
+                location_port: "Port of Singapore"
+                proposed_date: "2026-05-15T00:00:00.000Z"
+                description: "Testing API response capture"
+                priority: "MEDIUM"
+                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
+                status: "PENDING"
+                updatedAt: "2026-04-12T13:44:40.278Z"
+                createdAt: "2026-04-12T13:44:40.278Z"
+                attachments: []
       "403": { description: Forbidden }
 
   get:
     tags: [Activity Requests]
-    summary: Get activity requests
+    summary: Get activity requests (List)
+    description: Returns a list of activity requests with minimal details.
     operationId: getActivityRequests
     x-roles: [CLIENT, ADMIN, GM, TM, TO]
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, default: 1 }
+      - name: limit
+        in: query
+        schema: { type: integer, default: 10 }
+      - name: status
+        in: query
+        schema: { type: string, enum: [PENDING, APPROVED, REJECTED, CONVERTED_TO_JOB, DRAFT] }
     responses:
-      "200": { description: List of requests }
+      "200":
+        description: List of requests
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ActivityRequestSummary'
+            example:
+              success: true
+              data:
+                - id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+                  request_number: "AR-2026-0001"
+                  activity_type: "INSPECTION"
+                  requested_service: "Annual Survey"
+                  proposed_date: "2026-05-15T00:00:00.000Z"
+                  status: "PENDING"
+                  Vessel: null
+                  created_at: "2026-04-12T13:44:40.000Z"
       "403": { description: Forbidden }
 
 /api/v1/activity-requests/{id}:
   get:
     tags: [Activity Requests]
-    summary: Get request by ID
+    summary: Get request by ID (Detailed)
+    description: Returns full details of an activity request including associations.
     operationId: getActivityRequestById
     x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
@@ -44,10 +93,39 @@
         required: true
         schema: { type: string, format: uuid }
     responses:
-      "200": { description: Request details }
+      "200":
+        description: Request details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '#/components/schemas/ActivityRequestDetailResponse' }
+            example:
+              success: true
+              data:
+                id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+                request_number: "AR-2026-0001"
+                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
+                vessel_id: null
+                activity_type: "INSPECTION"
+                requested_service: "Annual Survey"
+                priority: "MEDIUM"
+                description: "Testing API response capture"
+                location_port: "Port of Singapore"
+                proposed_date: "2026-05-15T00:00:00.000Z"
+                status: "PENDING"
+                linked_job_id: null
+                rejection_reason: null
+                attachments: []
+                createdAt: "2026-04-12T13:44:40.000Z"
+                updatedAt: "2026-04-12T13:44:40.000Z"
+                Vessel: null
+                LinkedJob: null
       "403": { description: Forbidden }
+      "404": { description: Not found }
 
-  
 /api/v1/activity-requests/{id}/status:
   put:
     tags: [Activity Requests]
@@ -60,17 +138,45 @@
         required: true
         schema: { type: string, format: uuid }
     requestBody:
+      required: true
       content:
         application/json:
           schema:
             type: object
             required: [status]
             properties:
-              status: { type: string, enum: [PENDING, APPROVED, REJECTED, COMPLETED] }
+              status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
               remarks: { type: string }
           example:
             status: "APPROVED"
             remarks: "Surveyor assigned"
     responses:
-      "200": { description: Status updated }
+      "200":
+        description: Status updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                data: { $ref: '#/components/schemas/ActivityRequestDetailResponse' }
+            example:
+              success: true
+              data:
+                id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+                request_number: "AR-2026-0001"
+                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
+                vessel_id: null
+                activity_type: "INSPECTION"
+                requested_service: "Annual Survey"
+                priority: "MEDIUM"
+                description: "Testing API response capture"
+                location_port: "Port of Singapore"
+                proposed_date: "2026-05-15T00:00:00.000Z"
+                status: "APPROVED"
+                linked_job_id: null
+                rejection_reason: null
+                attachments: []
+                createdAt: "2026-04-12T13:44:40.000Z"
+                updatedAt: "2026-04-12T13:44:42.349Z"
       "403": { description: Forbidden }

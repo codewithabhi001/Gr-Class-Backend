@@ -70,7 +70,7 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/CertificateResponse'
+                    $ref: '#/components/schemas/CertificateSummary'
       "401":
         description: Unauthorized
         content:
@@ -100,6 +100,9 @@
           example:
             job_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
             validity_years: 1
+            certificate_authority_id: "8dfb2a33-4f8e-4ad3-8c59-95e2c1cc7a11"
+            flag_administration_id: "7a9b2a10-7b3d-4b2f-9a10-814b0e8a9c77"
+            certificate_term: "FULL_TERM"
     responses:
       "201":
         description: Certificate generated
@@ -122,6 +125,71 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+
+/api/v1/certificates/upload-url:
+  get:
+    tags: [Certificates]
+    summary: Get presigned URL for certificate upload
+    description: |
+      Returns a presigned S3 URL for uploading external certificates. ADMIN, GM, TM only.
+      
+      **IMPORTANT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
+    security: [{ bearerAuth: [] }]
+    operationId: getCertificateUploadUrl
+    x-roles: [ADMIN, GM, TM]
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string, example: "certificate.pdf" }
+      - name: contentType
+        in: query
+        required: true
+        schema: { type: string, example: "application/pdf" }
+    responses:
+      "200":
+        description: Presigned URL generated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    upload_url: { type: string, format: uri }
+                    key: { type: string }
+
+/api/v1/certificates/vessel/{vesselId}/external:
+  post:
+    tags: [Certificates]
+    summary: Upload external certificate
+    description: Manually upload an external certificate for a vessel. ADMIN, GM, TM only.
+    security: [{ bearerAuth: [] }]
+    operationId: uploadExternalCertificate
+    x-roles: [ADMIN, GM, TM]
+    parameters:
+      - name: vesselId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UploadExternalCertificateRequest'
+    responses:
+      "201":
+        description: External certificate uploaded
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/CertificateResponse' }
 
 /api/v1/certificates/types:
   get:
@@ -406,7 +474,7 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/CertificateResponse'
+                    $ref: '#/components/schemas/CertificateSummary'
 
 /api/v1/certificates/job/{jobId}:
   get:
@@ -472,7 +540,7 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/CertificateResponse'
+                    $ref: '#/components/schemas/CertificateSummary'
 
 /api/v1/certificates/{id}:
   get:
@@ -937,3 +1005,164 @@
                   example: true
                 data:
                   type: array
+                  items:
+                    $ref: '#/components/schemas/CertificateHistoryResponse'
+
+/api/v1/certificates/{id}/issue:
+  post:
+    tags: [Certificates]
+    summary: Issue certificate
+    description: Sets a DRAFT certificate to ISSUED and generates the official PDF. ADMIN, GM only.
+    security: [{ bearerAuth: [] }]
+    operationId: issueCertificate
+    x-roles: [ADMIN, GM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateCertificateDraftRequest'
+          example:
+            certificate_authority_id: "8dfb2a33-4f8e-4ad3-8c59-95e2c1cc7a11"
+            flag_administration_id: "7a9b2a10-7b3d-4b2f-9a10-814b0e8a9c77"
+            certificate_term: "FULL_TERM"
+    responses:
+      "200":
+        description: Certificate issued
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/CertificateResponse' }
+
+/api/v1/certificates/authorities:
+  get:
+    tags: [Certificates]
+    summary: List certificate authorities
+    description: Returns all active certificate authorities. ADMIN, GM only.
+    security: [{ bearerAuth: [] }]
+    operationId: getCertificateAuthorities
+    x-roles: [ADMIN, GM]
+    responses:
+      "200":
+        description: List of authorities
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items: { $ref: '#/components/schemas/CertificateAuthorityResponse' }
+
+  post:
+    tags: [Certificates]
+    summary: Create certificate authority
+    description: Create a new certificate authority. ADMIN only.
+    security: [{ bearerAuth: [] }]
+    operationId: createCertificateAuthority
+    x-roles: [ADMIN]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/CreateCertificateAuthorityRequest' }
+    responses:
+      "201":
+        description: Authority created
+
+/api/v1/certificates/authorities/upload-logo:
+  get:
+    tags: [Certificates]
+    summary: Get logo upload URL
+    description: |
+      Returns a presigned S3 URL for uploading an authority logo. ADMIN only.
+      
+      **IMPORTANT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
+    security: [{ bearerAuth: [] }]
+    operationId: getAuthorityLogoUploadUrl
+    x-roles: [ADMIN]
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string, example: "authority-logo.png" }
+      - name: contentType
+        in: query
+        required: true
+        schema: { type: string, example: "image/png" }
+    responses:
+      "200":
+        description: Presigned URL generated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    upload_url: { type: string, format: uri }
+                    key: { type: string }
+
+/api/v1/certificates/authorities/{id}:
+  get:
+    tags: [Certificates]
+    summary: Get authority by ID
+    operationId: getCertificateAuthorityById
+    x-roles: [ADMIN, GM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: Authority details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/CertificateAuthorityResponse' }
+  put:
+    tags: [Certificates]
+    summary: Update authority
+    operationId: updateCertificateAuthority
+    x-roles: [ADMIN]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/UpdateCertificateAuthorityRequest' }
+    responses:
+      "200":
+        description: Authority updated
+  delete:
+    tags: [Certificates]
+    summary: Delete authority
+    operationId: deleteCertificateAuthority
+    x-roles: [ADMIN]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: Authority deleted

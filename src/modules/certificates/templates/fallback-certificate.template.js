@@ -13,74 +13,121 @@ export const buildFallbackCertificateHtml = ({ variables, issuingAuthority, qrDa
     const certificateNumber = escapeHtml(variables?.certificate_number);
     const certificateType = escapeHtml(variables?.certificate_type || 'Certificate');
     const authority = escapeHtml(issuingAuthority);
+    const flagState = escapeHtml(variables?.flag_state);
+    const certTerm = escapeHtml(variables?.certificate_term);
     const issueDate = escapeHtml(formatDate(variables?.issue_date));
     const expiryDate = escapeHtml(formatDate(variables?.expiry_date));
+    const grLogo = variables?.gr_class_logo || 'https://grclass.com/grclass-logo.webp';
+    const caLogo = variables?.authority_logo;
+    const mt = variables?.manual_text || {};
 
     const qrHtml = qrDataUrl
-        ? `<div style="width:160px;height:160px;border-radius:8px;overflow:hidden;margin-bottom:12px;"><img src="${qrDataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="QR"/></div>`
-        : `<div style="width:160px;height:160px;border:2px dashed #cbd5e1;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#64748b;margin-bottom:12px;">QR</div>`;
+        ? `<div style="width:120px;height:120px;"><img src="${qrDataUrl}" style="width:100%;height:100%;" alt="QR"/></div>`
+        : `<div style="width:120px;height:120px;border:1px dashed #ccc;">QR</div>`;
+
+    // AFS Logic from Template
+    let afsContent = '';
+    if (mt.afs_option === 'not_applied') {
+        afsContent = `An anti-fouling system controlled under Annex 1 has not been applied during or after construction of this ship`;
+    } else if (mt.afs_option === 'applied_previously_removed') {
+        afsContent = `An anti-fouling system controlled under Annex 1 has been applied on this ship previously, but has been removed by <strong>${escapeHtml(mt.facility_name)}</strong> on <strong>${escapeHtml(mt.facility_date)}</strong>`;
+    } else if (mt.afs_option === 'applied_previously_covered') {
+        afsContent = `An anti-fouling system controlled under Annex 1 has been applied on this ship previously, but has been covered with a sealer coat applied by <strong>${escapeHtml(mt.facility_name)}</strong> on <strong>${escapeHtml(mt.facility_date)}</strong>`;
+    } else if (mt.afs_option === 'applied_prior') {
+        afsContent = `An anti-fouling system controlled under Annex 1 was applied on this ship prior to <strong>${escapeHtml(mt.facility_date)}</strong> but must be removed or covered with a sealer coat prior to <strong>${escapeHtml(mt.compliance_deadline)}</strong>`;
+    }
 
     return `
-      <div style="max-width:900px;margin:16px auto;padding:28px;border-radius:8px;border:1px solid #e0e0e0;font-family: 'Helvetica Neue', Arial, sans-serif;color:#1f2937;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:72px;height:72px;background:linear-gradient(135deg,#0b5394,#2a9df4);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;">
-              GIR
+      <div style="max-width:900px;margin:16px auto;padding:40px;border:2px solid #0b5394;border-radius:4px;font-family: 'Times New Roman', Times, serif;color:#000;line-height:1.5;background:#fff;">
+        
+        <!-- Header with Triple Logos -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;">
+          <div style="width:140px;">
+            <img src="${grLogo}" style="max-width:140px;height:auto;" alt="GR CLASS"/>
+          </div>
+          <div style="text-align:center;flex:1;padding:0 20px;">
+            <div style="font-size:20px;font-weight:bold;text-transform:uppercase;color:#0b5394;line-height:1.2;">
+              ${certTerm || ''} INTERNATIONAL ANTI-FOULING SYSTEM CERTIFICATE
             </div>
-            <div>
-              <div style="font-size:18px;font-weight:700;">${certificateType}</div>
-              <div style="font-size:12px;color:#6b7280;margin-top:4px;">${authority}</div>
+            <div style="margin-top:10px;">
+               ${variables?.flag_logo ? `<img src="${variables.flag_logo}" style="max-height:40px;margin-bottom:5px;"/><br/>` : ''}
+               <span style="font-size:13px;">Issued under the authority of the Government of</span><br/>
+               <span style="font-size:17px;font-weight:bold;text-decoration:underline;">${flagState || 'THE MERCHANT MARINE'}</span>
             </div>
           </div>
-          <div style="text-align:right;font-size:12px;color:#6b7280;">
-            <div>Certificate No</div>
-            <div style="font-weight:700;margin-top:6px;">${certificateNumber}</div>
+          <div style="width:140px;text-align:right;">
+            ${caLogo ? `<img src="${caLogo}" style="max-width:140px;max-height:80px;height:auto;" alt="Authority Logo"/>` : ''}
           </div>
         </div>
 
-        <hr style="border:none;border-top:1px solid #e6edf3;margin:20px 0;">
-
-        <div style="display:flex;gap:24px;">
-          <div style="flex:1;">
-            <table style="width:100%;border-collapse:collapse;font-size:14px;color:#111827;">
-              <tr>
-                <td style="padding:8px 0;font-weight:600;width:160px;">Vessel</td>
-                <td style="padding:8px 0;">${vesselName}</td>
-              </tr>
-              <tr>
-                <td style="padding:8px 0;font-weight:600;">IMO Number</td>
-                <td style="padding:8px 0;">${imoNumber}</td>
-              </tr>
-              <tr>
-                <td style="padding:8px 0;font-weight:600;">Issue Date</td>
-                <td style="padding:8px 0;">${issueDate}</td>
-              </tr>
-              <tr>
-                <td style="padding:8px 0;font-weight:600;">Expiry Date</td>
-                <td style="padding:8px 0;">${expiryDate}</td>
-              </tr>
-            </table>
-          </div>
-          <div style="width:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            ${qrHtml}
-            <div style="font-size:12px;color:#6b7280;text-align:center;">Scan to verify</div>
-          </div>
+        <div style="text-align:center;margin-bottom:30px;font-weight:bold;font-size:16px;">
+          By ${authority}
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:28px;">
-          <div style="max-width:60%;">
-            <div style="font-size:12px;color:#6b7280;">Issued by</div>
-            <div style="font-weight:700;margin-top:6px;">GR-CLASS Certification Services</div>
-            <div style="font-size:12px;color:#6b7280;margin-top:8px;">${authority}</div>
+        <!-- Vessel Details Table -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:30px;font-size:13px;">
+          <tr>
+            <th style="border:1px solid #000;padding:8px;text-align:left;width:250px;">Certificate No.</th>
+            <td style="border:1px solid #000;padding:8px;font-weight:bold;">${certificateNumber}</td>
+          </tr>
+          <tr>
+            <th style="border:1px solid #000;padding:8px;text-align:left;">Name of ship</th>
+            <td style="border:1px solid #000;padding:8px;">${vesselName}</td>
+          </tr>
+          <tr>
+            <th style="border:1px solid #000;padding:8px;text-align:left;">Distinctive number or letters</th>
+            <td style="border:1px solid #000;padding:8px;">${escapeHtml(variables.call_sign || '')}</td>
+          </tr>
+          <tr>
+            <th style="border:1px solid #000;padding:8px;text-align:left;">Port of registry</th>
+            <td style="border:1px solid #000;padding:8px;">${escapeHtml(variables.port_of_registry || '')}</td>
+          </tr>
+          <tr>
+            <th style="border:1px solid #000;padding:8px;text-align:left;">Gross tonnage</th>
+            <td style="border:1px solid #000;padding:8px;">${escapeHtml(variables.gross_tonnage || '')}</td>
+          </tr>
+          <tr>
+            <th style="border:1px solid #000;padding:8px;text-align:left;">IMO Number</th>
+            <td style="border:1px solid #000;padding:8px;">${imoNumber}</td>
+          </tr>
+        </table>
+
+        <!-- AFS Content Section -->
+        <div style="border:1px solid #000;padding:20px;margin-bottom:30px;font-size:14px;">
+          ${afsContent || '<em>Select Anti-Fouling System details in management panel</em>'}
+        </div>
+
+        <!-- Verification Section -->
+        <div style="margin-bottom:30px;font-size:14px;">
+          <strong>THIS IS TO CERTIFY THAT:</strong><br/>
+          1. The ship has been surveyed in accordance with regulation 1 of the Annex 4 of the Convention; and<br/>
+          2. The survey shows that the anti-fouling system on the ship complies with the applicable requirements of Annex 1 to the Convention.
+        </div>
+
+        <div style="display:flex;gap:40px;margin-bottom:40px;font-size:14px;">
+           <div style="flex:1;">
+             <p>This certificate is valid until: <strong>${expiryDate}</strong></p>
+             <p>Completion date of the survey: <strong>${escapeHtml(mt.survey_completion_date || issueDate)}</strong></p>
+             <p>Issued at: <strong>${escapeHtml(mt.issued_at_place || 'Mumbai, India')}</strong></p>
+             <p>Date of issue: <strong>${issueDate}</strong></p>
+           </div>
+           <div style="text-align:center;">
+             ${qrHtml}
+             <div style="font-size:10px;margin-top:4px;">Scan to Verify</div>
+           </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+          <div style="font-size:11px;color:#666;width:250px;">
+            GR CLASS – CLASSIFIED FOR STANDARD<br/>
+            E-mail: info@grclass.com | Web: www.grclass.com<br/>
+            Form AFS-ST | Approved by GM
           </div>
           <div style="text-align:center;">
-            <div style="height:48px;border-bottom:2px solid #111827;width:220px;margin-bottom:6px;"></div>
-            <div style="font-size:12px;color:#6b7280;">Authorized Signatory</div>
+            <div style="border-bottom:1px solid #000;width:250px;margin-bottom:8px;height:60px;"></div>
+            <div style="font-weight:bold;">${authority} REPRESENTATIVE</div>
           </div>
         </div>
 
-        <div style="margin-top:20px;font-size:11px;color:#9ca3af;text-align:center;">
-          This certificate is issued electronically and is valid without a signature.
-        </div>
       </div>`;
 };

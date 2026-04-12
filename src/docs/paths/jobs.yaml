@@ -71,7 +71,7 @@
         schema: { type: integer, example: 30 }
     responses:
       "200":
-        description: Paginated list of jobs
+        description: List of jobs
         content:
           application/json:
             schema:
@@ -81,13 +81,41 @@
                 data:
                   type: object
                   properties:
-                    total: { type: integer, example: 42 }
+                    total: { type: integer, example: 48 }
                     page: { type: integer, example: 1 }
                     limit: { type: integer, example: 10 }
                     totalPages: { type: integer, example: 5 }
                     jobs:
                       type: array
-                      items: { $ref: '#/components/schemas/JobResponse' }
+                      items:
+                        $ref: '#/components/schemas/JobSummary'
+            example:
+              success: true
+              data:
+                total: 48
+                page: 1
+                limit: 10
+                totalPages: 5
+                jobs:
+                  - id: "019d3ac5-3464-74f9-891e-f6eda7ee366c"
+                    job_status: "ASSIGNED"
+                    vessel_id: "019cbf1d-d9c1-732d-8d10-f866bb6e9dec"
+                    certificate_type_id: "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede"
+                    target_port: "Mumbai"
+                    target_date: "2026-12-31"
+                    priority: "NORMAL"
+                    createdAt: "2026-03-29T18:04:55.000Z"
+                    Vessel:
+                      id: "019cbf1d-d9c1-732d-8d10-f866bb6e9dec"
+                      vessel_name: "MV Pacific Guardian"
+                      imo_number: "9876501"
+                    CertificateType:
+                      id: "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede"
+                      name: "Safety Equipment Certificate"
+                    survey:
+                      id: "019d7c59-7f7e-768d-a9a5-00cb91079432"
+                      survey_status: "NOT_STARTED"
+                    payment_status: "N/A"
       "401":
         description: Unauthorized – missing or invalid token
         content:

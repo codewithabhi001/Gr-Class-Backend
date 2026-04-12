@@ -1,3 +1,32 @@
+JobSummary:
+  type: object
+  properties:
+    id: { $ref: '#/components/schemas/UUID' }
+    job_status: { type: string }
+    vessel_id: { $ref: '#/components/schemas/UUID' }
+    certificate_type_id: { $ref: '#/components/schemas/UUID' }
+    target_port: { type: string }
+    target_date: { type: string, format: date }
+    priority: { type: string }
+    createdAt: { type: string, format: date-time }
+    Vessel:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        vessel_name: { type: string }
+        imo_number: { type: string }
+    CertificateType:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+    survey:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        survey_status: { type: string }
+    payment_status: { type: string }
+
 JobCreateRequest:
   type: object
   required:
@@ -107,76 +136,73 @@ JobResponse:
         id: { type: string, format: uuid }
         survey_status: { type: string }
         survey_statement_status: { type: string }
-        started_at: { type: string, format: date-time }
-        submitted_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time, nullable: true }
+        submitted_at: { type: string, format: date-time, nullable: true }
     Payments:
       type: array
       items:
         $ref: '#/components/schemas/PaymentResponse'
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        survey_status:
-          type: string
-          enum: [NOT_STARTED, STARTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, SUBMITTED, REWORK_REQUIRED, FINALIZED]
-          example: "NOT_STARTED"
-        survey_statement_status:
-          type: string
-          enum: [NOT_PREPARED, DRAFT, ISSUED]
-          example: "NOT_PREPARED"
-        started_at:
-          type: string
-          format: date-time
-          nullable: true
-        submitted_at:
-          type: string
-          format: date-time
-          nullable: true
-        start_latitude: { type: number, nullable: true }
-        start_longitude: { type: number, nullable: true }
-        submit_latitude: { type: number, nullable: true }
-        submit_longitude: { type: number, nullable: true }
-        declared_by: { $ref: '#/components/schemas/UUID', nullable: true }
-        declared_at: { type: string, format: date-time, nullable: true }
-        declaration_hash: { type: string, nullable: true }
-        SurveyStatusHistories:
-          type: array
-          items:
-            type: object
-            properties:
-              id: { $ref: '#/components/schemas/UUID' }
-              previous_status: { type: string, nullable: true }
-              new_status: { type: string }
-              changed_by: { $ref: '#/components/schemas/UUID' }
-              reason: { type: string, nullable: true }
-              created_at: { type: string, format: date-time }
-    priority:
-      type: string
-      enum: [LOW, NORMAL, HIGH, URGENT]
-      default: NORMAL
-      description: "Management priority flag. Set/changed via PUT /jobs/:id/priority — not accepted at creation time."
-    vessel:
-      $ref: '#/components/schemas/VesselSummary'
-    certificate_type:
+    requester:
       type: object
       properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        name:
-          type: string
-    created_at:
-      type: string
-      format: date-time
-    updated_at:
-      type: string
-      format: date-time
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string }
+    surveyor:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        email: { type: string }
+    approver:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        role: { type: string }
+    payment_status: { type: string }
   example:
-    id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    vessel_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    job_status: "CREATED"
-    reason: "Annual survey due"
-    target_port: "Singapore"
-    target_date: "2026-03-15"
+    id: "019d3ac5-3464-74f9-891e-f6eda7ee366c"
+    job_status: "ASSIGNED"
+    vessel_id: "019cbf1d-d9c1-732d-8d10-f866bb6e9dec"
+    certificate_type_id: "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede"
+    requested_by_user_id: "019c79a4-3eee-731a-9eff-b0eed303e215"
+    assigned_surveyor_id: "019c79a4-4930-71fd-aa73-887301791935"
+    target_port: "Mumbai"
+    target_date: "2026-12-31"
+    priority: "NORMAL"
+    createdAt: "2026-03-29T18:04:55.000Z"
+    updatedAt: "2026-04-11T11:42:13.000Z"
+    is_survey_required: true
+    reschedule_count: 0
+    Vessel:
+      id: "019cbf1d-d9c1-732d-8d10-f866bb6e9dec"
+      vessel_name: "MV Pacific Guardian"
+      imo_number: "9876501"
+      client_id: "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
+    CertificateType:
+      id: "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede"
+      name: "Safety Equipment Certificate"
+      issuing_authority: "CLASS"
+    survey:
+      id: "019d7c59-7f7e-768d-a9a5-00cb91079432"
+      survey_status: "NOT_STARTED"
+      survey_statement_status: "NOT_PREPARED"
+    requester:
+      id: "019c79a4-3eee-731a-9eff-b0eed303e215"
+      name: "System Admin"
+      email: "admin@grclass.com"
+      role: "ADMIN"
+    surveyor:
+      id: "019c79a4-4930-71fd-aa73-887301791935"
+      name: "Abhishek Singh"
+      email: "abhisheksingh@gmail.com"
+    approver:
+      id: "019c79a4-42ee-772c-be48-490a7c1f4444"
+      name: "General Manager"
+      role: "GM"
+    payment_status: "N/A"
 
 JobStatusUpdateRequest:
   type: object

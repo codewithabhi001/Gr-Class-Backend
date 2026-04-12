@@ -18,6 +18,7 @@ export default (sequelize, DataTypes) => {
             }
         },
         authorization_scope: DataTypes.TEXT,
+        logo_url: DataTypes.STRING,
         status: { type: DataTypes.ENUM('ACTIVE', 'INACTIVE'), defaultValue: 'ACTIVE' },
     }, {
         tableName: 'flag_administrations',

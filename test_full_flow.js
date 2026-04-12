@@ -10,6 +10,7 @@ import * as lifecycleService from './src/services/lifecycle.service.js';
 async function runTest() {
     console.log('--- Starting Full Flow Test ---');
     try {
+        const { Op } = db.Sequelize;
         // 1. Get Seed Data
         const vessel = await db.Vessel.findOne({ where: { class_status: 'ACTIVE' } });
         const certType = await db.CertificateType.findOne({ where: { status: 'ACTIVE', requires_survey: true } });
@@ -28,9 +29,30 @@ async function runTest() {
         const gmUser = await db.User.findOne({ where: { role: 'GM', status: 'ACTIVE' } });
         const tmUser = await db.User.findOne({ where: { role: 'TM', status: 'ACTIVE' } });
         const adminUser = await db.User.findOne({ where: { role: 'ADMIN', status: 'ACTIVE' } });
+        const authorityWithLogo = await db.CertificateAuthority.findOne({
+            where: {
+                status: 'ACTIVE',
+                [Op.and]: [
+                    { logo_url: { [Op.ne]: null } },
+                    { logo_url: { [Op.ne]: '' } }
+                ]
+            }
+        });
+        const flagWithLogo = await db.FlagAdministration.findOne({
+            where: {
+                status: 'ACTIVE',
+                [Op.and]: [
+                    { logo_url: { [Op.ne]: null } },
+                    { logo_url: { [Op.ne]: '' } }
+                ]
+            }
+        });
 
         if (!vessel || !certType || !surveyorProfile || !surveyorUserId || !toUser || !gmUser || !tmUser || !adminUser) {
             throw new Error('Missing seed data (Vessel, CertType, available Surveyor, or Users)');
+        }
+        if (!authorityWithLogo) {
+            throw new Error('Missing seed data (CertificateAuthority with logo_url)');
         }
 
         console.log(`Using Vessel: ${vessel.vessel_name}, CertType: ${certType.name}, Surveyor: ${surveyorProfile.User.name}`);
@@ -154,13 +176,32 @@ async function runTest() {
         updatedJob = await db.JobRequest.findByPk(job.id);
         console.log(`Job Status (should stay FINALIZED): ${updatedJob.job_status}`);
 
-        // 15. Generate Certificate (Admin) - SKIPPED FOR MANUAL TESTING
-        console.log('\n[Step 14] Skipping Auto Certificate Generation (Manual step)...');
-        /*
-        const cert = await certificateService.generateCertificate({ job_id: job.id, validity_years: 1 }, adminUser);
+        // 15. Generate Certificate (Admin)
+        console.log('\n[Step 14] Generating Certificate (Admin)...');
+        const certDraft = await certificateService.generateCertificate({
+            job_id: job.id,
+            validity_years: 1,
+            certificate_authority_id: authorityWithLogo.id,
+            flag_administration_id: flagWithLogo?.id || null,
+            certificate_term: 'FULL_TERM'
+        }, adminUser);
         updatedJob = await db.JobRequest.findByPk(job.id);
-        console.log(`Job Status: ${updatedJob.job_status}, Certificate issued: ${cert.certificate_number}`);
-        */
+        console.log(`Job Status: ${updatedJob.job_status}, Certificate draft: ${certDraft.certificate_number}`);
+
+        // 16. Attach Certificate Authority + Optional Flag Logo (Admin)
+        console.log('\n[Step 15] Attaching Authority + Optional Flag Logos (Admin)...');
+        await certificateService.updateDraft(certDraft.id, {
+            certificate_authority_id: authorityWithLogo.id,
+            flag_administration_id: flagWithLogo?.id || null,
+            certificate_term: 'FULL_TERM',
+            remarks: 'Auto-issued in full flow test'
+        }, adminUser);
+        console.log(`Authority set: ${authorityWithLogo.name}, Flag logo: ${flagWithLogo ? flagWithLogo.flag_state_name : 'None'}`);
+
+        // 17. Issue Certificate (Admin)
+        console.log('\n[Step 16] Issuing Certificate (Admin)...');
+        const certIssued = await certificateService.issueCertificate(certDraft.id, adminUser);
+        console.log(`Certificate Issued: ${certIssued.certificate_number}, Status: ${certIssued.status}`);
 
         console.log('\n--- Full Flow Test Completed Successfully! ---');
 

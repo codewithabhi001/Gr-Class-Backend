@@ -19,7 +19,11 @@ export const getActivityRequests = async (query, scopeFilters = {}) => {
     const { page = 1, limit = 10, ...filters } = query;
     return await ActivityRequest.findAll({
         where: { ...filters, ...scopeFilters },
-        include: [Vessel, 'LinkedJob'],
+        attributes: ['id', 'request_number', 'activity_type', 'requested_service', 'proposed_date', 'status', 'vessel_id', 'created_at'],
+        include: [
+            { model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
+            { model: db.JobRequest, as: 'LinkedJob', attributes: ['id', 'job_status'] }
+        ],
         order: [['created_at', 'DESC']],
         limit: parseInt(limit),
         offset: (page - 1) * limit

@@ -10,6 +10,7 @@ import env from '../../config/env.js';
 import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
 import QRCode from 'qrcode';
 import * as emailService from '../../services/email.service.js';
+import * as s3Service from '../../services/s3.service.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -169,7 +170,7 @@ export const generateCertificate = async (data, user) => {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
     }
     const userId = user.id;
-    const { job_id, validity_years, expiry_date } = data;
+    const { job_id, validity_years, expiry_date, certificate_authority_id, flag_administration_id, certificate_term } = data;
 
     const transaction = await db.sequelize.transaction();
     try {
@@ -257,8 +258,13 @@ export const generateCertificate = async (data, user) => {
             certificate_number: certificateNumber,
             issue_date: issueDate,
             expiry_date: expiryDate,
-            status: 'VALID',
+            status: 'DRAFT', // Changed from VALID to DRAFT
+            source_type: 'INTERNAL',
+            version: 1,
             issued_by_user_id: userId,
+            certificate_authority_id: certificate_authority_id || null,
+            flag_administration_id: flag_administration_id || null,
+            certificate_term: certificate_term || null,
         }, { transaction });
 
         // Update job to CERTIFIED via lifecycle (ensures history record + terminal guard)
@@ -281,6 +287,24 @@ export const generateCertificate = async (data, user) => {
             order: [['createdAt', 'DESC']]
         });
         const vessel = job.Vessel;
+        let authority = null;
+        let flagState = null;
+        if (certificate_authority_id) {
+            authority = await db.CertificateAuthority.findByPk(certificate_authority_id);
+        }
+        if (flag_administration_id) {
+            flagState = await db.FlagAdministration.findByPk(flag_administration_id);
+        }
+        const grClassLogo = 'https://grclass.com/grclass-logo.webp';
+        let authorityLogo = null;
+        if (authority?.logo_url) {
+            authorityLogo = await fileAccessService.resolveUrl(authority.logo_url, user, true);
+        }
+        let flagLogo = null;
+        if (flagState?.logo_url) {
+            flagLogo = await fileAccessService.resolveUrl(flagState.logo_url, user, true);
+        }
+        const issuingAuthority = authority?.name || job.CertificateType?.issuing_authority || 'GR CLASS';
         const variables = {
             vessel_name: vessel?.vessel_name ?? '',
             imo_number: vessel?.imo_number ?? '',
@@ -289,7 +313,13 @@ export const generateCertificate = async (data, user) => {
             certificate_number: certificateNumber,
             certificate_type: job.CertificateType?.name ?? '',
             port: job.target_port ?? '',
-            place: job.target_port ?? ''
+            place: job.target_port ?? '',
+            certificate_term: certificate_term || '',
+            issuing_authority: issuingAuthority,
+            flag_state: flagState?.flag_state_name || '',
+            gr_class_logo: grClassLogo,
+            authority_logo: authorityLogo,
+            flag_logo: flagLogo
         };
         let qrDataUrl = null;
         try {
@@ -323,10 +353,28 @@ export const generateCertificate = async (data, user) => {
                 // If missing, append it at the bottom with some styling
                 content += `\n<div style="margin-top: 40px; text-align: center;">{{qr_image}}<br/><span style="font-size: 10px; color: #666;">Scan to verify</span></div>`;
             }
+            const hasLogoPlaceholder = /\{\{\s*(gr_class_logo|authority_logo|flag_logo)\s*\}\}/.test(content);
+            if (!hasLogoPlaceholder && (variables.gr_class_logo || variables.authority_logo || variables.flag_logo)) {
+                const header = `
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+  <div style="width:140px;">
+    ${variables.gr_class_logo ? `<img src="${variables.gr_class_logo}" style="max-width:140px;height:auto;" alt="GR CLASS"/>` : ''}
+  </div>
+  <div style="text-align:center;flex:1;font-weight:bold;font-size:13px;">
+    ${variables.issuing_authority ? `By ${variables.issuing_authority}` : ''}
+  </div>
+  <div style="width:160px;text-align:right;">
+    ${variables.flag_logo ? `<img src="${variables.flag_logo}" style="max-width:70px;max-height:50px;height:auto;margin-right:6px;" alt="Flag"/>` : ''}
+    ${variables.authority_logo ? `<img src="${variables.authority_logo}" style="max-width:90px;max-height:60px;height:auto;" alt="Authority"/>` : ''}
+  </div>
+</div>
+`;
+                content = header + content;
+            }
             fullHtml = certificatePdfService.wrapHtmlForPdf(certificatePdfService.fillTemplate(content, variables));
         } else {
             fullHtml = certificatePdfService.wrapHtmlForPdf(buildFallbackCertificateHtml({
-                variables, issuingAuthority: job.CertificateType?.issuing_authority ?? '', qrDataUrl
+                variables, issuingAuthority, qrDataUrl
             }));
         }
         try {
@@ -426,9 +474,10 @@ export const getCertificates = async (query, user) => {
 
     return await Certificate.findAndCountAll({
         where,
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
-        include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }, { model: db.CertificateType, attributes: ['name'] }],
+        include: [{ model: db.Vessel, attributes: ['id', 'vessel_name', 'imo_number'] }, { model: db.CertificateType, attributes: ['id', 'name'] }],
     });
 };
 
@@ -517,9 +566,9 @@ export const updateStatus = async (id, status, reason, userId) => {
     await db.CertificateHistory.create({
         certificate_id: cert.id,
         status: status,
-        changed_by: userId,
+        changed_by_user_id: userId,
         change_reason: reason,
-        change_date: new Date()
+        changed_at: new Date()
     });
 
     return cert;
@@ -548,26 +597,203 @@ export const renewCertificate = async (id, validityYears, reason, userId) => {
     await db.CertificateHistory.create({
         certificate_id: oldCert.id,
         status: 'RENEWED',
-        changed_by: userId,
+        changed_by_user_id: userId,
         change_reason: `Renewed. New Cert: ${newCert.certificate_number}`,
-        change_date: new Date()
+        changed_at: new Date()
     });
 
     return newCert;
 };
 
-export const reissueCertificate = async (id, reason, userId) => {
+export const updateDraft = async (id, data, user) => {
     const cert = await Certificate.findByPk(id);
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
+    if (cert.status !== 'DRAFT') throw { statusCode: 400, message: 'Only draft certificates can be updated' };
+
+    const { flag_administration_id, certificate_authority_id, certificate_term, manual_text, remarks, issue_date, expiry_date } = data;
+    
+    await cert.update({
+        flag_administration_id,
+        certificate_authority_id,
+        certificate_term,
+        manual_text,
+        remarks,
+        issue_date,
+        expiry_date
+    });
 
     await db.CertificateHistory.create({
         certificate_id: cert.id,
         status: cert.status,
-        changed_by: userId,
-        change_reason: `Re-issued: ${reason}`,
-        change_date: new Date()
+        changed_by_user_id: user.id,
+        change_reason: 'Draft updated with manual data/remarks',
+        changed_at: new Date()
     });
-    return { message: 'Certificate Re-issued', certificate: cert };
+
+    return cert;
+};
+
+export const issueCertificate = async (id, user) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const cert = await Certificate.findByPk(id, {
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+            include: [
+                { model: db.Vessel },
+                { model: db.CertificateType },
+                { model: db.FlagAdministration, as: 'FlagState' },
+                { model: db.CertificateAuthority, as: 'Authority' }
+            ]
+        });
+
+        if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
+        if (cert.status !== 'DRAFT') throw { statusCode: 400, message: 'Only draft certificates can be issued' };
+
+        const issuedAt = new Date();
+        await cert.update({
+            status: 'ISSUED',
+            issued_at: issuedAt,
+            issued_by_user_id: user.id
+        }, { transaction });
+
+        // Resolve Logos
+        const grClassLogo = 'https://grclass.com/grclass-logo.webp';
+        let authorityLogo = null;
+        if (cert.Authority?.logo_url) {
+            authorityLogo = await fileAccessService.resolveUrl(cert.Authority.logo_url, user, true);
+        }
+        let flagLogo = null;
+        if (cert.FlagState?.logo_url) {
+            flagLogo = await fileAccessService.resolveUrl(cert.FlagState.logo_url, user, true);
+        }
+
+        // Generate PDF
+        const variables = {
+            vessel_name: cert.Vessel?.vessel_name || '',
+            imo_number: cert.Vessel?.imo_number || '',
+            certificate_number: cert.certificate_number,
+            certificate_type: cert.CertificateType?.name || '',
+            issue_date: cert.issue_date,
+            expiry_date: cert.expiry_date,
+            certificate_term: cert.certificate_term,
+            flag_state: cert.FlagState?.flag_state_name || '',
+            issuing_authority: cert.Authority?.name || 'GR CLASS',
+            manual_text: cert.manual_text ? JSON.parse(cert.manual_text) : {},
+            remarks: cert.remarks || '',
+            gr_class_logo: grClassLogo,
+            authority_logo: authorityLogo,
+            flag_logo: flagLogo
+        };
+
+        let qrDataUrl = null;
+        try {
+            qrDataUrl = await QRCode.toDataURL(buildCertificateQrTargetUrl(cert.certificate_number), {
+                margin: 1, width: 300, errorCorrectionLevel: 'H'
+            });
+        } catch (e) { logger.warn('QR generation failed', { err: e.message }); }
+
+        const fullHtml = buildFallbackCertificateHtml({
+            variables, 
+            issuingAuthority: variables.issuing_authority,
+            qrDataUrl
+        });
+
+        const pdfBuffer = await certificatePdfService.htmlToPdfBuffer(certificatePdfService.wrapHtmlForPdf(fullHtml));
+        const pdfKey = await s3Service.uploadFile(pdfBuffer, `${cert.certificate_number}.pdf`, 'application/pdf', 'certificates');
+
+        await cert.update({ generated_pdf_url: pdfKey, pdf_file_url: pdfKey }, { transaction });
+
+        await db.CertificateHistory.create({
+            certificate_id: cert.id,
+            status: 'ISSUED',
+            changed_by_user_id: user.id,
+            change_reason: 'Certificate officially issued and PDF generated',
+            changed_at: issuedAt
+        }, { transaction });
+
+        await transaction.commit();
+        return cert;
+    } catch (err) {
+        await transaction.rollback();
+        throw err;
+    }
+};
+
+export const reissueCertificate = async (id, reason, userId) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const oldCert = await Certificate.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
+        if (!oldCert) throw { statusCode: 404, message: 'Original certificate not found' };
+
+        // Revoke old certificate
+        await oldCert.update({ status: 'REVOKED' }, { transaction });
+
+        // Create new version as DRAFT
+        const newCertData = {
+            ...oldCert.toJSON(),
+            id: undefined,
+            status: 'DRAFT',
+            version: oldCert.version + 1,
+            certificate_number: await generateUniqueCertificateNumber(),
+            issued_at: null,
+            pdf_file_url: null,
+            generated_pdf_url: null,
+            qr_code_url: null,
+            issued_by_user_id: userId
+        };
+
+        const newCert = await Certificate.create(newCertData, { transaction });
+
+        await db.CertificateHistory.create({
+            certificate_id: oldCert.id,
+            status: 'REVOKED',
+            changed_by_user_id: userId,
+            change_reason: `Re-issued as Version ${newCert.version}. Reason: ${reason}`,
+            changed_at: new Date()
+        }, { transaction });
+
+        await transaction.commit();
+        return newCert;
+    } catch (err) {
+        await transaction.rollback();
+        throw err;
+    }
+};
+
+export const getCertificateUploadUrl = async (fileName, contentType) => {
+    const key = s3Service.generateKey(fileName, 'certificates/external');
+    const uploadUrl = await s3Service.getUploadSignedUrl(key, contentType);
+    return { uploadUrl, key };
+};
+
+export const uploadExternalCertificate = async (vesselId, data, userId) => {
+    const { certificate_type_id, certificate_number, issue_date, expiry_date, s3_key, certificate_authority_id } = data;
+
+    const cert = await Certificate.create({
+        vessel_id: vesselId,
+        certificate_type_id,
+        certificate_authority_id,
+        certificate_number,
+        issue_date,
+        expiry_date,
+        source_type: 'EXTERNAL',
+        status: 'ISSUED', // External certs are issued by default
+        uploaded_file_url: s3_key,
+        pdf_file_url: s3_key,
+        issued_by_user_id: userId,
+        version: 1
+    });
+
+    await db.CertificateHistory.create({
+        certificate_id: cert.id,
+        status: 'ISSUED',
+        changed_by_user_id: userId,
+        change_reason: 'External certificate uploaded manually',
+        changed_at: new Date()
+    });
+
+    return cert;
 };
 
 export const previewCertificate = async (id, user) => {
@@ -599,9 +825,9 @@ export const transferCertificate = async (id, newOwnerId, reason, userId) => {
     await db.CertificateHistory.create({
         certificate_id: cert.id,
         status: 'TRANSFERRED',
-        changed_by: userId,
+        changed_by_user_id: userId,
         change_reason: `Transferred ownership. New Cert: ${newCert.certificate_number}. Reason: ${reason}`,
-        change_date: new Date()
+        changed_at: new Date()
     });
 
     return newCert;
@@ -619,9 +845,9 @@ export const extendCertificate = async (id, extensionMonths, reason, userId) => 
     await db.CertificateHistory.create({
         certificate_id: cert.id,
         status: cert.status,
-        changed_by: userId,
+        changed_by_user_id: userId,
         change_reason: `Extended by ${extensionMonths} months: ${reason}`,
-        change_date: new Date()
+        changed_at: new Date()
     });
 
     return cert;
@@ -647,9 +873,9 @@ export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
     await db.CertificateHistory.create({
         certificate_id: cert.id,
         status: 'DOWNGRADED',
-        changed_by: userId,
+        changed_by_user_id: userId,
         change_reason: `Downgraded to type ${newTypeId}. New Cert: ${newCert.certificate_number}. Reason: ${reason}`,
-        change_date: new Date()
+        changed_at: new Date()
     });
 
     return newCert;
@@ -692,7 +918,13 @@ export const bulkRenew = async (ids, validityYears, reason, userId) => {
 export const verifyCertificate = async (certificateNumber) => {
     const cert = await Certificate.findOne({
         where: { certificate_number: certificateNumber },
-        include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }, { model: db.CertificateType, attributes: ['name'] }]
+        include: [
+            { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }, 
+            { model: db.CertificateType, attributes: ['name'] },
+            { model: db.CertificateAuthority, as: 'Authority', attributes: ['name', 'code'] },
+            { model: db.FlagAdministration, as: 'FlagState', attributes: ['flag_state_name'] },
+            { model: db.User, as: 'issuer', attributes: ['first_name', 'last_name'] }
+        ]
     });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
@@ -706,7 +938,7 @@ export const verifyCertificate = async (certificateNumber) => {
     }
 
     return {
-        valid: cert.status === 'VALID' && new Date(cert.expiry_date) > new Date(),
+        valid: ['VALID', 'ISSUED'].includes(cert.status) && new Date(cert.expiry_date) >= new Date().setHours(0, 0, 0, 0),
         certificate: {
             certificate_number: cert.certificate_number,
             status: cert.status,
@@ -714,7 +946,10 @@ export const verifyCertificate = async (certificateNumber) => {
             expiry_date: cert.expiry_date,
             vessel_name: cert.Vessel?.vessel_name,
             imo_number: cert.Vessel?.imo_number,
-            certificate_type: cert.CertificateType?.name
+            certificate_type: cert.CertificateType?.name,
+            issuing_authority: cert.Authority?.name,
+            flag_state: cert.FlagState?.flag_state_name,
+            issued_by: cert.issuer ? `${cert.issuer.first_name} ${cert.issuer.last_name}` : 'GR CLASS'
         },
         pdf_url: pdfUrl
     };

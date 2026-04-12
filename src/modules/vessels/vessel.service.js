@@ -60,10 +60,11 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
     if (userRole === 'CLIENT') {
         return await Vessel.findAndCountAll({
             where,
+            attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
             limit: parseInt(limit),
             offset: (page - 1) * limit,
             include: [
-                { model: Client, as: 'Client' },
+                { model: Client, as: 'Client', attributes: ['id', 'company_name', 'company_code', 'status'] },
                 { model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }
             ],
             order: [['created_at', 'DESC']]
@@ -73,11 +74,12 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
     // For other roles, group by company name
     const vessels = await Vessel.findAll({
         where,
+        attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
         include: [
             {
                 model: Client,
                 as: 'Client',
-                attributes: ['id', 'company_name', 'company_code', 'email', 'phone', 'status']
+                attributes: ['id', 'company_name', 'company_code', 'status']
             },
             {
                 model: FlagAdministration,
@@ -168,11 +170,12 @@ export const getVesselsByClientId = async (clientId) => {
 
     const vessels = await Vessel.findAll({
         where: { client_id: clientId },
+        attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
         include: [
             {
                 model: Client,
                 as: 'Client',
-                attributes: ['id', 'company_name', 'company_code', 'email', 'phone', 'status']
+                attributes: ['id', 'company_name', 'company_code', 'status']
             },
             {
                 model: FlagAdministration,

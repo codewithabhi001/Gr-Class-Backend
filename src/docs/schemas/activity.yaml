@@ -1,48 +1,91 @@
-ActivityRequestResponse:
+ActivityRequestCreateRequest:
+  type: object
+  required: [activity_type, requested_service, proposed_date, location_port]
+  properties:
+    vessel_id:
+      $ref: '#/components/schemas/UUID'
+      description: "Mandatory for CLIENT requests"
+    activity_type:
+      type: string
+      enum: [INSPECTION, AUDIT, TRAINING, VISIT, OTHER]
+    requested_service:
+      type: string
+      example: "Annual Survey"
+    priority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, URGENT]
+      default: MEDIUM
+    description:
+      type: string
+    location_port:
+      type: string
+      example: "Port of Singapore"
+    proposed_date:
+      type: string
+      format: date
+      example: "2026-05-15"
+    attachments:
+      type: array
+      items:
+        type: string
+        format: uri
+
+ActivityRequestSummary:
   type: object
   properties:
     id:
       $ref: '#/components/schemas/UUID'
     request_number:
       type: string
-    requested_by:
-      $ref: '#/components/schemas/UUID'
-    vessel_id:
-      $ref: '#/components/schemas/UUID'
-      nullable: true
     activity_type:
       type: string
-      enum: [INSPECTION, AUDIT, TRAINING, VISIT, OTHER]
     requested_service:
-      type: string
-    priority:
-      type: string
-      enum: [LOW, MEDIUM, HIGH, URGENT]
-    description:
-      type: string
-    location_port:
       type: string
     proposed_date:
       type: string
-      format: date-time
+      format: date
     status:
       type: string
       enum: [PENDING, APPROVED, REJECTED, CONVERTED_TO_JOB, DRAFT]
-    linked_job_id:
-      $ref: '#/components/schemas/UUID'
-      nullable: true
-    rejection_reason:
-      type: string
-      nullable: true
-    attachments:
-      type: array
-      items: { type: string, format: uri }
+    Vessel:
+      $ref: '#/components/schemas/VesselSummary'
     created_at:
       type: string
       format: date-time
-    updated_at:
-      type: string
-      format: date-time
+
+ActivityRequestDetailResponse:
+  allOf:
+    - $ref: '#/components/schemas/ActivityRequestSummary'
+    - type: object
+      properties:
+        requested_by:
+          $ref: '#/components/schemas/UUID'
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        priority:
+          type: string
+        description:
+          type: string
+        location_port:
+          type: string
+        linked_job_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+        attachments:
+          type: array
+          items: { type: string, format: uri }
+        updated_at:
+          type: string
+          format: date-time
+        LinkedJob:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            job_status: { type: string }
+            reason: { type: string }
 
 ChangeRequestResponse:
   type: object

@@ -2,7 +2,7 @@ export default (sequelize, DataTypes) => {
     const CertificateHistory = sequelize.define('CertificateHistory', {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
         certificate_id: DataTypes.UUID,
-        status: DataTypes.ENUM('VALID', 'EXPIRED', 'SUSPENDED', 'REVOKED'),
+        status: DataTypes.ENUM('DRAFT', 'ISSUED', 'VALID', 'EXPIRED', 'SUSPENDED', 'REVOKED', 'RENEWED', 'TRANSFERRED', 'DOWNGRADED'),
         changed_by_user_id: DataTypes.UUID,
         change_reason: DataTypes.TEXT,
         changed_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },

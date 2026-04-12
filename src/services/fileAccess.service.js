@@ -136,7 +136,7 @@ export const resolveEntity = async (data, user = null) => {
             // If it's a Sequelize model instance, convert to plain object
             let plain = (typeof item.get === 'function') ? item.get({ plain: true }) : { ...item };
 
-            const urlKeys = ['url', 'file_url', 'attachment_url', 'attendance_photo_url', 'signature_url', 'evidence_proof_url', 'survey_statement_pdf_url', 'pdf_file_url', 'qr_code_url', 'document_url', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'profile_pic_url', 'cv_url', 'license_copy_url'];
+            const urlKeys = ['url', 'file_url', 'logo_url', 'attachment_url', 'attendance_photo_url', 'signature_url', 'evidence_proof_url', 'survey_statement_pdf_url', 'pdf_file_url', 'qr_code_url', 'document_url', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'profile_pic_url', 'cv_url', 'license_copy_url'];
 
             const fieldPromises = Object.entries(plain).map(async ([key, value]) => {
                 if (urlKeys.includes(key)) {

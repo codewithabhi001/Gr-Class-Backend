@@ -14,12 +14,16 @@ VesselSummary:
     ship_type:
       type: string
       example: "Cargo"
+    class_status:
+      type: string
+      enum: [ACTIVE, SUSPENDED, WITHDRAWN]
   example:
     id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
     vessel_name: "Ocean Pioneer"
     imo_number: "9123456"
     flag_administration_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
     ship_type: "Cargo"
+    class_status: "ACTIVE"
 
 VesselCreateRequest:
   type: object
@@ -202,21 +206,43 @@ VesselResponse:
         updated_at:
           type: string
           format: date-time
+        Client:
+          type: object
+          properties:
+            id: { $ref: '#/components/schemas/UUID' }
+            company_name: { type: string }
+            company_code: { type: string }
+            email: { type: string }
+            status: { type: string }
+        FlagAdministration:
+          type: object
+          properties:
+            flag_state_name: { type: string }
   example:
-    id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    vessel_name: "Ocean Pioneer"
-    imo_number: "9123456"
-    flag_administration_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    ship_type: "Cargo"
-    client_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-    call_sign: "9VSP"
-    mmsi_number: "563123456"
-    port_of_registry: "Singapore"
-    year_built: 2015
-    gross_tonnage: 30000.0
-    net_tonnage: 15000.0
-    deadweight: 45000.0
+    id: "019ccbf7-f67a-7443-bd21-17f16ef06cbb"
+    client_id: "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
+    flag_administration_id: "019cbf1d-b478-704f-a4af-7462034a800e"
+    vessel_name: "MT Blue Horizon"
+    imo_number: "9876506"
+    call_sign: "D5IJ6"
+    mmsi_number: "538007106"
+    port_of_registry: "Majuro"
+    year_built: 2021
+    ship_type: "Oil Tanker"
+    gross_tonnage: "82300.25"
+    net_tonnage: "44100.00"
+    deadweight: "158000.00"
     class_status: "ACTIVE"
     current_class_society: "DNV"
-    engine_type: "Diesel"
-    builder_name: "Hyundai Heavy Industries"
+    engine_type: "MAN B&W 7G80ME-C"
+    builder_name: "Hyundai Samho Heavy Industries"
+    createdAt: "2026-03-05T17:48:51.000Z"
+    updatedAt: "2026-03-05T17:48:51.000Z"
+    Client:
+      id: "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
+      company_name: "Pacific Maritime Corp"
+      company_code: "PMC001"
+      email: "ops@pacificmaritime.com"
+      status: "INACTIVE"
+    FlagAdministration:
+      flag_state_name: "Marshall Islands Maritime Administrator"

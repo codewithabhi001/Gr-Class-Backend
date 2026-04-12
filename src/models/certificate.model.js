@@ -4,11 +4,53 @@ export default (sequelize, DataTypes) => {
         vessel_id: DataTypes.UUID,
         certificate_type_id: DataTypes.UUID,
         certificate_number: { type: DataTypes.STRING, unique: true },
+        source_type: {
+            type: DataTypes.ENUM('INTERNAL', 'EXTERNAL'),
+            defaultValue: 'INTERNAL'
+        },
+        certificate_term: {
+            type: DataTypes.ENUM('FULL_TERM', 'SHORT_TERM'),
+            defaultValue: 'FULL_TERM'
+        },
+        flag_administration_id: DataTypes.UUID,
+        certificate_authority_id: DataTypes.UUID,
+        version: {
+            type: DataTypes.INTEGER,
+            defaultValue: 1
+        },
+        manual_text: {
+            type: DataTypes.TEXT,
+            comment: 'Stores structured JSON for template fields',
+            get() {
+                const rawValue = this.getDataValue('manual_text');
+                try {
+                    return rawValue ? JSON.parse(rawValue) : {};
+                } catch (e) {
+                    return rawValue || {};
+                }
+            },
+            set(value) {
+                this.setDataValue('manual_text', typeof value === 'object' ? JSON.stringify(value) : value);
+            }
+        },
+        remarks: DataTypes.TEXT,
         issue_date: DataTypes.DATEONLY,
         expiry_date: DataTypes.DATEONLY,
-        status: { type: DataTypes.ENUM('VALID', 'EXPIRED', 'SUSPENDED', 'REVOKED'), defaultValue: 'VALID' },
+        status: { 
+            type: DataTypes.ENUM('DRAFT', 'ISSUED', 'VALID', 'EXPIRED', 'SUSPENDED', 'REVOKED'), 
+            defaultValue: 'DRAFT' 
+        },
         qr_code_url: DataTypes.STRING,
         pdf_file_url: DataTypes.STRING,
+        uploaded_file_url: {
+            type: DataTypes.STRING,
+            comment: 'S3 key for external certificates'
+        },
+        generated_pdf_url: {
+            type: DataTypes.STRING,
+            comment: 'S3 key for system generated certificates'
+        },
+        issued_at: DataTypes.DATE,
         issued_by_user_id: DataTypes.UUID,
     }, {
         tableName: 'certificates',
@@ -19,6 +61,8 @@ export default (sequelize, DataTypes) => {
     Certificate.associate = (models) => {
         Certificate.belongsTo(models.Vessel, { foreignKey: 'vessel_id' });
         Certificate.belongsTo(models.CertificateType, { foreignKey: 'certificate_type_id' });
+        Certificate.belongsTo(models.FlagAdministration, { foreignKey: 'flag_administration_id', as: 'FlagState' });
+        Certificate.belongsTo(models.CertificateAuthority, { foreignKey: 'certificate_authority_id', as: 'Authority' });
         Certificate.belongsTo(models.User, { foreignKey: 'issued_by_user_id', as: 'issuer' });
         Certificate.hasMany(models.CertificateHistory, { foreignKey: 'certificate_id' });
     };

@@ -28,16 +28,44 @@
                   type: boolean
                   example: true
                 data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/VesselResponse'
+                  type: object
+                  properties:
+                    count: { type: integer, example: 1 }
+                    rows:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          company:
+                            type: object
+                            properties:
+                              id: { type: string, format: uuid }
+                              name: { type: string }
+                              code: { type: string }
+                              status: { type: string }
+                          vessels:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/VesselSummary'
             example:
               success: true
               data:
-                - id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-                  vessel_name: "Ocean Pioneer"
-                  imo_number: "9123456"
-                  flag_state: "Singapore"
+                count: 1
+                rows:
+                  - company:
+                      id: "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
+                      name: "Pacific Maritime Corp"
+                      code: "PMC001"
+                      status: "INACTIVE"
+                    vessels:
+                      - id: "019ccbf7-f67a-7443-bd21-17f16ef06cbb"
+                        vessel_name: "MT Blue Horizon"
+                        imo_number: "9876506"
+                        ship_type: "Oil Tanker"
+                        class_status: "ACTIVE"
+                        client_id: "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
+                        flag_administration_id: "019cbf1d-b478-704f-a4af-7462034a800e"
+                        createdAt: "2026-03-05T17:48:51.000Z"
       "401":
         description: Unauthorized
         content:

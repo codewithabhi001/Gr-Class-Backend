@@ -7,13 +7,14 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test tests/**/*.test.js",
-    "test:apis": "node scripts/test-all-apis.js",
+    "test:apis": "node scripts/test_all_apis.js",
     "postman:build": "node scripts/build-postman-collection.js",
     "seed:initial": "node scripts/seed_initial_data.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
-    "db:seed:all": "sequelize-cli db:seed:all"
+    "db:seed:all": "sequelize-cli db:seed:all",
+    "record:activity": "node scripts/record_activity_responses.js"
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.2"

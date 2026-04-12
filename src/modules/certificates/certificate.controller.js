@@ -119,12 +119,59 @@ export const renewCertificate = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const updateDraft = async (req, res, next) => {
+    try {
+        const result = await certService.updateDraft(req.params.id, req.body, req.user);
+        res.json({
+            success: true,
+            message: 'Draft updated successfully',
+            data: result
+        });
+    } catch (error) { next(error); }
+};
+
+export const issueCertificate = async (req, res, next) => {
+    try {
+        if (req.body && Object.keys(req.body).length > 0) {
+            await certService.updateDraft(req.params.id, req.body, req.user);
+        }
+        const result = await certService.issueCertificate(req.params.id, req.user);
+        res.json({
+            success: true,
+            message: 'Certificate issued successfully',
+            data: result
+        });
+    } catch (error) { next(error); }
+};
+
 export const reissueCertificate = async (req, res, next) => {
     try {
         const result = await certService.reissueCertificate(req.params.id, req.body.reason, req.user.id);
         res.json({
             success: true,
-            message: 'Certificate reissued successfully',
+            message: 'Certificate reissued. New draft created.',
+            data: result
+        });
+    } catch (error) { next(error); }
+};
+
+export const getCertificateUploadUrl = async (req, res, next) => {
+    try {
+        const { fileName, contentType } = req.query;
+        if (!fileName || !contentType) {
+            return res.status(400).json({ success: false, message: 'fileName and contentType are required' });
+        }
+        const result = await certService.getCertificateUploadUrl(fileName, contentType);
+        res.json({ success: true, data: result });
+    } catch (error) { next(error); }
+};
+
+export const uploadExternalCertificate = async (req, res, next) => {
+    try {
+        const result = await certService.uploadExternalCertificate(req.params.vesselId, req.body, req.user.id);
+        res.status(201).json({
+            success: true,
+            message: 'External certificate uploaded successfully',
             data: result
         });
     } catch (error) { next(error); }

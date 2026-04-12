@@ -1,10 +1,14 @@
 import express from 'express';
 import * as certController from './certificate.controller.js';
+import caRoutes from './certificate_authority.routes.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
 
 const router = express.Router();
+
+// Mount Authority Management
+router.use('/authorities', caRoutes);
 
 // Public Verification - No Auth
 router.get('/verify/:number', certController.verifyCertificate);
@@ -22,18 +26,31 @@ router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'),
 // Get certificates expiring within a range
 router.get('/expiring', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getExpiringCertificates);
 
+// Get internal/external upload signed URL
+router.get('/upload-url', authorizeRoles('ADMIN', 'GM', 'TM'), certController.getCertificateUploadUrl);
+
+// NEW: Upload external cert for vessel
+router.post('/vessel/:vesselId/external', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.uploadExternalCertificate), certController.uploadExternalCertificate);
+
 // Get certificates for a specific vessel
 router.get('/vessel/:vesselId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificatesByVessel);
 
 // Get certificate for a specific job
 router.get('/job/:jobId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateByJobId);
 
-// Generate a new certificate
+// Generate a new certificate (Draft)
 router.post('/', authorizeRoles('ADMIN', 'GM', 'TM'), certController.generateCertificate);
+
+// Update draft details
+router.put('/:id', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.updateCertificateDraft), certController.updateDraft);
+
+// Issue certificate (Status -> ISSUED, Generate PDF)
+router.post('/:id/issue', authorizeRoles('ADMIN', 'GM'), validate(schemas.updateCertificateDraft), certController.issueCertificate);
 
 // Get specific certificate details
 router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateById);
-// Download certificate PDF (redirects to pdf_file_url; CLIENT scoped to their vessels)
+
+// Download certificate PDF
 router.get('/:id/download', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.downloadCertificate);
 
 // Suspend/Revoke/Restore
@@ -45,8 +62,8 @@ router.put('/:id/restore', authorizeRoles('ADMIN', 'TM'), validate(schemas.certA
 router.put('/:id/renew', authorizeRoles('ADMIN', 'TM'), validate(schemas.renewCert), certController.renewCertificate);
 router.post('/bulk-renew', authorizeRoles('ADMIN', 'TM'), certController.bulkRenew);
 
-// Reissue
-router.post('/:id/reissue', authorizeRoles('ADMIN', 'TM'), validate(schemas.certAction), certController.reissueCertificate);
+// Reissue (Version +1, Revoke Old)
+router.post('/:id/reissue', authorizeRoles('ADMIN', 'TM'), certController.reissueCertificate);
 
 // Preview & Signature
 router.get('/:id/preview', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.previewCertificate);
