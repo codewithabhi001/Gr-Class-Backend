@@ -1,6 +1,6 @@
-# GIRIK Maritime Operations - Client API Documentation (Final Audit v1.0)
+# GR-CLASS Maritime Operations - Client API Documentation (Final Audit v1.0)
 
-This is the definitive API reference for developing the **GIRIK Client Portal**.  
+This is the definitive API reference for developing the **GR-CLASS Client Portal**.  
 *All endpoints are prefixed with `/api/v1`.*
 
 ---

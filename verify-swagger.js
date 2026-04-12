@@ -44,7 +44,7 @@ try {
     modulesRoutes.forEach(r => {
         // standard express route like / or /:id
         // we need to combine it with the module base route.
-        // But in girik backend usually routes.js mounts it, and the base mount is in another file e.g., src/routes.js
+        // But in gr-class backend usually routes.js mounts it, and the base mount is in another file e.g., src/routes.js
         // Let's just print some info if we want to cross-reference exactly.
     });
 

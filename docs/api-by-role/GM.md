@@ -1780,7 +1780,7 @@ CLIENT can only download certificates for their vessels.
 
 ### POST `/api/v1/contact`
 **Summary:** Submit a contact enquiry (public)
-**Description:** Anyone visiting the Girik Shipping portfolio website can send a message via this endpoint. No authentication is required.
+**Description:** Anyone visiting the GR-Class Shipping portfolio website can send a message via this endpoint. No authentication is required.
 
 
 #### Request Body

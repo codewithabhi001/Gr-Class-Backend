@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "Girik Marine API (Role-based)",
+    "name": "GR-Class Marine API (Role-based)",
     "description": "Postman collection generated from OpenAPI. Folders: Role (Admin, GM, etc.) → Resource (Certificates, Jobs, etc.) → APIs. Admin has all APIs admin can access; same for other roles.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -348,7 +348,7 @@
                     "contact"
                   ]
                 },
-                "description": "Anyone visiting the Girik Shipping portfolio website can send a message via this endpoint. No authentication is required.\n",
+                "description": "Anyone visiting the GR-Class Shipping portfolio website can send a message via this endpoint. No authentication is required.\n",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"full_name\": \"John Maritime\",\n  \"corporate_email\": \"john@pacificshipping.com\",\n  \"message\": \"We are interested in classification services for our fleet of 5 vessels.\"\n}",

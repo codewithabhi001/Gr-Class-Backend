@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints for FLAG_ADMIN
+# 🛰️ GR-Class Backend - API Endpoints for FLAG_ADMIN
 
 Base Path: `/api/v1`
 

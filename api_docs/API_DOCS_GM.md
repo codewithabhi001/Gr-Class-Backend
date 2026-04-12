@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints for GM
+# 🛰️ GR-Class Backend - API Endpoints for GM
 
 Base Path: `/api/v1`
 

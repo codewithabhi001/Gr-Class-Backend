@@ -1,4 +1,4 @@
-# GIRIK Marine Certification — Role-wise API Documentation
+# GR-CLASS Marine Certification — Role-wise API Documentation
 
 **Base URL:** `/api/v1`
 

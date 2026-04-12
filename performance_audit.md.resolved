@@ -1,4 +1,4 @@
-# 🔍 GIRIK Backend — Full System Performance Audit
+# 🔍 GR-CLASS Backend — Full System Performance Audit
 
 > [!CAUTION]
 > Your DB is on **AWS RDS ap-southeast-2 (Sydney)** and you're likely developing from **India**. Every DB query has **~150-300ms network round-trip latency**. This is the **#1 root cause** of slow APIs. Combined with missing indexes, N+1 queries, bcrypt cost, and S3 signed URL generation on every response — a simple login easily hits 1.5s.
@@ -13,7 +13,7 @@
 | 2 | 🔓 **bcrypt.compare with saltRounds=10** | 🔴 CRITICAL | +200-400ms per login | Login, Reset Password |
 | 3 | 🔗 **N+1 queries everywhere** | 🔴 CRITICAL | 3-8 extra queries per request | Jobs, Surveys, Certificates, Notifications |
 | 4 | 🗄️ **ZERO database indexes** on foreign keys | 🔴 CRITICAL | Full table scans on JOINs/WHERE | ALL APIs with filters |
-| 5 | ☁️ **S3 Signed URL on every response** ([resolveEntity](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126)) | 🟡 HIGH | +100-500ms per response | ALL APIs returning file URLs |
+| 5 | ☁️ **S3 Signed URL on every response** ([resolveEntity](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126)) | 🟡 HIGH | +100-500ms per response | ALL APIs returning file URLs |
 | 6 | 🔐 **Auth middleware does DB query on every request** | 🟡 HIGH | +150-300ms per authenticated API | ALL authenticated APIs |
 | 7 | 📢 **Notification service blocking queries** | 🟡 HIGH | 2-5 extra queries per mutation | All status change APIs |
 | 8 | 📊 **Dashboard: 9+ parallel queries** | 🟠 MEDIUM | ~1-3s per dashboard load | Admin/GM/TM Dashboard |
@@ -35,7 +35,7 @@ Your RDS is in **Sydney (ap-southeast-2)**, but you're developing from **India**
 **Login flow alone makes 4 sequential DB calls:**
 1. `User.findOne({ where: { email } })` — ~200ms
 2. `user.update({ last_login_at })` — ~200ms  
-3. [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) → S3 signed URL for `profile_pic_url` — ~200ms
+3. [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) → S3 signed URL for `profile_pic_url` — ~200ms
 4. JWT signing (CPU, fast) — ~5ms
 
 **Total: ~600ms minimum** just for login, without bcrypt.
@@ -111,7 +111,7 @@ const isMatch = await bcrypt.compare(password, user.password_hash);
 
 ---
 
-### 4. ☁️ [resolveEntity](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) — S3 Signed URL on Every Response
+### 4. ☁️ [resolveEntity](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) — S3 Signed URL on Every Response
 
 ```javascript
 // fileAccess.service.js:94
@@ -126,16 +126,16 @@ export const resolveEntity = async (data, user = null) => {
 
 | Service | Line | Impact |
 |---------|------|--------|
-| `auth.service.js:51` | Login — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call for profile_pic |
-| `auth.service.js:97` | Register — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call |
-| `auth.service.js:131` | Refresh Token — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call |
-| `job.service.js:267` | Get Jobs list — [resolveEntity(rows)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | **N signed URL calls** (one per job with attached docs) |
-| `job.service.js:322` | Get Job by ID — [resolveEntity(jobPlain)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs (docs, certs, surveys) |
-| `survey.service.js:171` | Upload proof — [resolveEntity({url})](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL |
-| `survey.service.js:291` | Submit survey — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | 3-5 signed URLs |
-| `survey.service.js:418` | Timeline — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs |
-| `survey.service.js:442` | Survey reports — [resolveEntity(rows)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | N × multiple signed URLs |
-| `survey.service.js:458` | Survey details — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs |
+| `auth.service.js:51` | Login — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call for profile_pic |
+| `auth.service.js:97` | Register — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call |
+| `auth.service.js:131` | Refresh Token — [resolveEntity(user)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL call |
+| `job.service.js:267` | Get Jobs list — [resolveEntity(rows)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | **N signed URL calls** (one per job with attached docs) |
+| `job.service.js:322` | Get Job by ID — [resolveEntity(jobPlain)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs (docs, certs, surveys) |
+| `survey.service.js:171` | Upload proof — [resolveEntity({url})](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | 1 signed URL |
+| `survey.service.js:291` | Submit survey — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | 3-5 signed URLs |
+| `survey.service.js:418` | Timeline — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs |
+| `survey.service.js:442` | Survey reports — [resolveEntity(rows)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | N × multiple signed URLs |
+| `survey.service.js:458` | Survey details — [resolveEntity(survey)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/fileAccess.service.js#88-126) | Multiple signed URLs |
 
 **For a job list with 10 jobs, each with 2 documents, this generates ~20 S3 signed URL calls** — at ~50ms each with AWS SDK overhead, that's easily **+1 second**.
 
@@ -158,7 +158,7 @@ const user = await db.User.findByPk(decoded.id);
 **Every authenticated API call** makes a DB round-trip to fetch the full user object. With remote RDS, that's +200ms on every single request.
 
 > [!TIP]
-> **Fix:** Cache the user object in-memory (Map/LRU cache) with a short TTL (60s). The JWT already contains [id](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/vessels/vessel.service.js#7-16), `role`, and `email` — for most APIs, that's enough without hitting the DB.
+> **Fix:** Cache the user object in-memory (Map/LRU cache) with a short TTL (60s). The JWT already contains [id](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/vessels/vessel.service.js#7-16), `role`, and `email` — for most APIs, that's enough without hitting the DB.
 
 ```javascript
 // Proposed fix:
@@ -190,15 +190,15 @@ export const authenticate = async (req, res, next) => {
 
 ### 6. 🔗 N+1 Query Problems
 
-#### 6a. [sendNotification](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#11-101) — N+1 per notification
+#### 6a. [sendNotification](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/notification.service.js#11-101) — N+1 per notification
 
 ```javascript
 // notification.service.js:22
 const pref = await NotificationPreference.findOne({ where: { user_id: user.id } });
 ```
-Every [sendNotification](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#11-101) call makes a **separate DB query** for the user's notification preference. When [notifyRoles(['ADMIN', 'GM', 'TM'], ...)](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#109-188) is called, it fetches all users with an include, but [sendNotification](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/services/notification.service.js#11-101) (individual) does not.
+Every [sendNotification](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/notification.service.js#11-101) call makes a **separate DB query** for the user's notification preference. When [notifyRoles(['ADMIN', 'GM', 'TM'], ...)](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/notification.service.js#109-188) is called, it fetches all users with an include, but [sendNotification](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/services/notification.service.js#11-101) (individual) does not.
 
-#### 6b. [validateSurveyorAuthority](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#34-82) — 3 sequential queries
+#### 6b. [validateSurveyorAuthority](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#34-82) — 3 sequential queries
 
 ```javascript
 // job.service.js:38-55
@@ -211,7 +211,7 @@ These could be **one query** with includes, or the vessel/certType could be pass
 
 #### 6c. Job workflow functions — repeated `findByPk` + `include: ['Vessel']`
 
-Almost every job workflow function ([verifyJobDocuments](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#426-467), [approveRequest](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#468-491), [assignSurveyor](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#507-534), [authorizeSurvey](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#574-603), [reviewJob](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#604-626), etc.) does:
+Almost every job workflow function ([verifyJobDocuments](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#426-467), [approveRequest](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#468-491), [assignSurveyor](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#507-534), [authorizeSurvey](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#574-603), [reviewJob](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#604-626), etc.) does:
 
 ```javascript
 const job = await requireJob(id);  // findByPk (query 1)
@@ -257,7 +257,7 @@ const [...] = await Promise.all([
 
 The `Promise.all` is good, but `Client.findAll({ include: [Vessel, FlagAdministration] })` fetches **ALL clients with ALL vessels** — this is an unbounded query.
 
-#### GM/TM Dashboard — calls [getAdminDashboard()](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/dashboard/dashboard.service.js#8-128) 😱
+#### GM/TM Dashboard — calls [getAdminDashboard()](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/dashboard/dashboard.service.js#8-128) 😱
 
 ```javascript
 export const getGMDashboard = async () => {
@@ -514,4 +514,4 @@ const vessels = await Vessel.findAndCountAll({
 2. **Cache user in auth middleware** — 10 lines of code, removes 1 DB query from every request
 3. **Make `last_login_at` update non-blocking** — Remove `await` from `user.update({ last_login_at })`
 4. **Cache signed URLs** — Add a Map cache, 50-min TTL
-5. **Load vessel with [requireJob](file:///Users/abhinavvishwakarma/work/GIRIK/GIRIK_BACKEND/src/modules/jobs/job.service.js#24-33)** — Pass `include: ['Vessel']` upfront instead of fetching twice
+5. **Load vessel with [requireJob](file:///Users/abhinavvishwakarma/work/GR-CLASS/GR-CLASS_BACKEND/src/modules/jobs/job.service.js#24-33)** — Pass `include: ['Vessel']` upfront instead of fetching twice

@@ -1,4 +1,4 @@
-# Girik — Surveyor App API Reference
+# GR-Class — Surveyor App API Reference
 ### Complete Guide for Frontend / Mobile Developers
 **Last updated:** 2026-02-20 | **Base URL:** `https://api.grclass.com/api/v1`
 

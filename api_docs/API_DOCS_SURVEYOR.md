@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints for SURVEYOR
+# 🛰️ GR-Class Backend - API Endpoints for SURVEYOR
 
 Base Path: `/api/v1`
 

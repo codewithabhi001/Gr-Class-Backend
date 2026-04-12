@@ -1,7 +1,7 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**GIRIK Backend - Maritime Certificate Generation System**
+**GR-CLASS Backend - Maritime Certificate Generation System**
 
 An enterprise-grade maritime certification platform designed for classification societies and recognized organizations. It digitizes the complete lifecycle of vessel inspection and certification processes, replacing manual, error-prone workflows with a reliable, scalable, and auditable digital system.
 
@@ -37,7 +37,7 @@ An enterprise-grade maritime certification platform designed for classification 
 - **AWS**: S3 & SES (via @aws-sdk/client-s3 and @aws-sdk/client-sesv2)
 - **Notifications**: Firebase Admin (Push), Nodemailer (Email fallback config etc.)
 ## Project Type
-- **Type**: Backend REST API (`girik_backend`)
+- **Type**: Backend REST API (`gr-class-backend`)
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->

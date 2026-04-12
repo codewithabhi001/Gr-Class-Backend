@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints by Role
+# 🛰️ GR-Class Backend - API Endpoints by Role
 
 Base Path: `/api/v1`
 

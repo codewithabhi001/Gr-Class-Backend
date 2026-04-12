@@ -123,7 +123,7 @@
     ],
     "certificates": [
       {
-        "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID",
+        "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID",
         "expiry_date": "2031-01-15",
         "Vessel": { "vessel_name": "MV Star" },
         "CertificateType": { "name": "SMC" }
@@ -181,7 +181,7 @@
     "FlagAdministration": { "flag_state_name": "Panama", "country": "PA", "authority_name": "Panama Maritime Authority" },
     "Documents": [{ "id": "uuid", "document_type": "Class Certificate", "file_url": "https://..." }],
     "JobRequests": [{ "id": "uuid", "job_status": "CREATED", "reason": "Annual survey" }],
-    "Certificates": [{ "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID" }]
+    "Certificates": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID" }]
   }
 }
 ```
@@ -348,7 +348,7 @@
   "data": {
     "rows": [
       {
-        "id": "uuid", "certificate_number": "GIRIK-2026-0042",
+        "id": "uuid", "certificate_number": "GR-CLASS-2026-0042",
         "vessel_id": "uuid", "certificate_type_id": "uuid",
         "issue_date": "2026-01-15", "expiry_date": "2031-01-15",
         "status": "VALID", "issued_by_user_id": "uuid",
@@ -407,7 +407,7 @@
   "data": {
     "expirations": [
       {
-        "id": "uuid", "certificate_number": "GIRIK-2026-0010",
+        "id": "uuid", "certificate_number": "GR-CLASS-2026-0010",
         "vessel_id": "uuid", "expiry_date": "2026-04-01", "status": "VALID",
         "Vessel": { "vessel_name": "MV Star" },
         "CertificateType": { "name": "SMC" }
@@ -425,7 +425,7 @@
   "success": true,
   "message": "Vessel certificates fetched successfully",
   "data": [
-    { "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID", "issue_date": "2026-01-15", "expiry_date": "2031-01-15", "CertificateType": { "name": "SMC" } }
+    { "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID", "issue_date": "2026-01-15", "expiry_date": "2031-01-15", "CertificateType": { "name": "SMC" } }
   ]
 }
 ```
@@ -433,7 +433,7 @@
 ### GET `/api/v1/certificates/job/:jobId`
 **Response `200`:**
 ```json
-{ "success": true, "message": "Certificate for job fetched successfully", "data": { "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID", "issue_date": "2026-01-15", "expiry_date": "2031-01-15" } }
+{ "success": true, "message": "Certificate for job fetched successfully", "data": { "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID", "issue_date": "2026-01-15", "expiry_date": "2031-01-15" } }
 ```
 
 ### GET `/api/v1/certificates/:id`
@@ -443,7 +443,7 @@
   "success": true,
   "message": "Certificate details fetched successfully",
   "data": {
-    "id": "uuid", "certificate_number": "GIRIK-2026-0042",
+    "id": "uuid", "certificate_number": "GR-CLASS-2026-0042",
     "vessel_id": "uuid", "certificate_type_id": "uuid", "job_id": "uuid",
     "issue_date": "2026-01-15", "expiry_date": "2031-01-15", "status": "VALID",
     "issued_by_user_id": "uuid", "qr_code_url": "https://...", "pdf_file_url": "https://...",
@@ -462,7 +462,7 @@
 {
   "success": true, "message": "Certificate preview data fetched",
   "data": {
-    "certificate_number": "GIRIK-2026-0042", "vessel_name": "MV Star",
+    "certificate_number": "GR-CLASS-2026-0042", "vessel_name": "MV Star",
     "imo_number": "1234567", "certificate_type": "Safety Management Certificate",
     "issue_date": "2026-01-15", "expiry_date": "2031-01-15", "issuing_authority": "CLASS"
   }
@@ -924,7 +924,7 @@ Same full incident object with associations.
   "data": {
     "vessels": [{ "id": "uuid", "vessel_name": "MV Star", "imo_number": "1234567", "class_status": "ACTIVE", "Client": { "company_name": "ABC Shipping" } }],
     "jobs": [{ "id": "uuid", "job_status": "ASSIGNED", "reason": "Annual survey", "Vessel": { "vessel_name": "MV Star" } }],
-    "certificates": [{ "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID", "Vessel": { "vessel_name": "MV Star" } }],
+    "certificates": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID", "Vessel": { "vessel_name": "MV Star" } }],
     "clients": []
   }
 }

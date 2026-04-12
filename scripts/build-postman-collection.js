@@ -1,7 +1,7 @@
 /**
  * Builds a role-wise Postman collection from OpenAPI spec (same as Swagger role views).
  * Run: node scripts/build-postman-collection.js
- * Output: postman/Girik-API-Role-Based.postman_collection.json
+ * Output: postman/GR-Class-API-Role-Based.postman_collection.json
  */
 import fs from 'fs';
 import path from 'path';
@@ -189,7 +189,7 @@ function buildCollection() {
 
   const collection = {
     info: {
-      name: 'Girik Marine API (Role-based)',
+      name: 'GR-Class Marine API (Role-based)',
       description: 'Postman collection generated from OpenAPI. Folders: Role (Admin, GM, etc.) → Resource (Certificates, Jobs, etc.) → APIs. Admin has all APIs admin can access; same for other roles.',
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
     },
@@ -248,7 +248,7 @@ function buildCollection() {
 }
 
 const outDir = path.join(__dirname, '..', 'postman');
-const outFile = path.join(outDir, 'Girik-API-Role-Based.postman_collection.json');
+const outFile = path.join(outDir, 'GR-Class-API-Role-Based.postman_collection.json');
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outFile, JSON.stringify(buildCollection(), null, 2), 'utf8');
 console.log('Postman collection written to:', outFile);

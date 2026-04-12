@@ -14,7 +14,7 @@ async function seed() {
         const [admin, adminCreated] = await db.User.findOrCreate({
             where: { email: 'admin@grclass.com' },
             defaults: {
-                name: 'Girik Admin',
+                name: 'GR-Class Admin',
                 password_hash: adminPassword,
                 role: 'ADMIN',
                 status: 'ACTIVE'
@@ -150,7 +150,7 @@ async function seed() {
                 title: 'Frequently Asked Questions',
                 content_type: 'FAQ',
                 faq_items: [
-                    { question: 'What is Girik Class?', answer: 'Girik Class is a classification society.' },
+                    { question: 'What is GR-Class?', answer: 'GR-Class is a classification society.' },
                     { question: 'How to request a survey?', answer: 'You can request a survey through the client portal.' }
                 ]
             },

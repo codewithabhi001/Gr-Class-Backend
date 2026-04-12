@@ -1,5 +1,5 @@
 /**
- * Integration Tests — Girik Lifecycle Engine
+ * Integration Tests — GR-Class Lifecycle Engine
  * Tests for all hardening scenarios from the MASTER REFACTOR.
  * Run: node tests/lifecycle_hardened.test.js
  */
@@ -81,7 +81,7 @@ async function makeSurvey(jobId, surveyorId, status = 'NOT_STARTED') {
 // ─── Run Tests ────────────────────────────────────────────────────────────────
 
 async function run() {
-    console.log('\n══ Girik Lifecycle Hardened Integration Tests ══\n');
+    console.log('\n══ GR-Class Lifecycle Hardened Integration Tests ══\n');
 
     const fx = await createFixtures();
     const { surveyorId, tmId, requesterId, vesselId, certTypeId } = fx;

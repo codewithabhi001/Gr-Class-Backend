@@ -1,4 +1,4 @@
-# Girik Lifecycle Role Matrix
+# GR-Class Lifecycle Role Matrix
 
 This document defines which roles are authorized to perform specific status transitions and actions for Jobs and Surveys.
 

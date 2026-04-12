@@ -1,4 +1,4 @@
-# Girik Backend — Complete Job to Certificate Flow
+# GR-Class Backend — Complete Job to Certificate Flow
 ### Post-Hardening Reference | Every API, Every Role, Every Guard
 
 > **Base URL:** `http://localhost:3000/api/v1`

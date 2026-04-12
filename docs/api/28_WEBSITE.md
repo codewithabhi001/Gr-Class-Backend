@@ -34,7 +34,7 @@
 {
   "id": "019514a2-7e3b-7000-8000-000000000040",
   "section": "HOME",
-  "title": "About Girik Marine",
+  "title": "About GR-Class Marine",
   "description": "Introduction to our certification services",
   "video_url": "https://storage.grclass.com/videos/intro.mp4",
   "thumbnail_url": "https://storage.grclass.com/thumbnails/intro.jpg",

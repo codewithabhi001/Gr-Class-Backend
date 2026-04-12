@@ -64,7 +64,7 @@ async function runTests() {
     return result;
   };
 
-  console.log('\n=== GIRIK Backend – API tests (Admin token) ===');
+  console.log('\n=== GR-CLASS Backend – API tests (Admin token) ===');
   console.log(`Base: ${API_BASE}\n`);
 
   // Health (no auth)

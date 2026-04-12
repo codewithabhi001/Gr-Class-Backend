@@ -1,6 +1,6 @@
-# Girik Marine Certification Backend
+# GR-Class Marine Certification Backend
 
-This is the production-ready backend for the Girik Marine Certification and Operations Management System. It is built using Node.js, Express.js, and Sequelize ORM with MySQL.
+This is the production-ready backend for the GR-Class Marine Certification and Operations Management System. It is built using Node.js, Express.js, and Sequelize ORM with MySQL.
 
 ## 🚀 Technologies
 
@@ -76,7 +76,7 @@ src
     DB_HOST=localhost
     DB_USER=root
     DB_PASS=your_password
-    DB_NAME=girik_db
+    DB_NAME=gr_class_db
     JWT_SECRET=super_secret_key
     AWS_ACCESS_KEY_ID=your_aws_key
     AWS_SECRET_ACCESS_KEY=your_aws_secret
@@ -339,4 +339,4 @@ All endpoints are prefixed with `/api/v1`.
 
 *   **Cron Jobs:** Runs daily to check for expiring certificates and sends alerts.
 *   **Notifications:** Automatically creates DB notifications and checks Geo-Fencing radius during survey submission.
-# Girik-Class-Backend
+# GR-Class-Backend

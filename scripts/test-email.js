@@ -49,7 +49,7 @@ if (!to || !to.includes('@')) {
 const provider = (process.env.EMAIL_PROVIDER || 'smtp').toLowerCase();
 const resolvedFrom = getMailFrom(purposeOption);
 
-console.log('--- GIRIK email test ---');
+console.log('--- GR-CLASS email test ---');
 console.log('Provider:', provider === 'ses' ? 'Amazon SES' : 'SMTP (Nodemailer)');
 console.log('Purpose:', purpose);
 if (provider === 'ses') {
@@ -61,15 +61,15 @@ console.log('Resolved From:', resolvedFrom);
 console.log('To:', to);
 console.log('Sending...');
 
-const subject = `[GIRIK] Test email (${purpose}) ${new Date().toISOString()}`;
-const text = `This is a test message from GIRIK_BACKEND (scripts/test-email.js).
+const subject = `[GR-CLASS] Test email (${purpose}) ${new Date().toISOString()}`;
+const text = `This is a test message from GR-CLASS_BACKEND (scripts/test-email.js).
 
 Purpose: ${purpose}
 If you received this, email delivery is working.
 
 Time: ${new Date().toISOString()}
 `;
-const html = `<p>This is a <strong>test</strong> message from <code>GIRIK_BACKEND</code> (<code>scripts/test-email.js</code>).</p>
+const html = `<p>This is a <strong>test</strong> message from <code>GR-CLASS_BACKEND</code> (<code>scripts/test-email.js</code>).</p>
 <p>Purpose: <code>${purpose}</code></p>
 <p>If you received this, email delivery is working.</p>
 <p><small>${new Date().toISOString()}</small></p>`;

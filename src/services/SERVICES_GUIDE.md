@@ -1,6 +1,6 @@
 # Backend Global Services Guide
 
-This directory (`src/services`) contains shared, "single-purpose" utility services that provide the backbone logic for the entire GIRIK Backend. These services are used across multiple modules (Client, Management, Auth).
+This directory (`src/services`) contains shared, "single-purpose" utility services that provide the backbone logic for the entire GR-CLASS Backend. These services are used across multiple modules (Client, Management, Auth).
 
 ---
 

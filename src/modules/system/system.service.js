@@ -146,7 +146,7 @@ export const performMaintenance = async (action, userId, userEmail) => {
                 const client = createClient({ url: process.env.REDIS_URL });
                 await client.connect();
                 // Flush keys with app prefix
-                const keys = await client.keys('girik:*');
+                const keys = await client.keys('gr-class:*');
                 if (keys.length > 0) await client.del(keys);
                 await client.quit();
                 return { message: `Cleared ${keys.length} keys from cache`, action };

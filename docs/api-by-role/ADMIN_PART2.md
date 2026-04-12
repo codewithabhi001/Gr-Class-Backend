@@ -135,7 +135,7 @@
   "data": {
     "rows": [
       {
-        "id": "uuid", "certificate_number": "GIRIK-2026-0042", "vessel_id": "uuid",
+        "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "vessel_id": "uuid",
         "certificate_type_id": "uuid", "issue_date": "2026-01-15", "expiry_date": "2031-01-15",
         "status": "VALID", "issued_by_user_id": "uuid",
         "qr_code_url": "https://...", "pdf_file_url": "https://...",
@@ -154,7 +154,7 @@
 ```json
 {
   "success": true, "data": {
-    "expirations": [{ "id": "uuid", "certificate_number": "GIRIK-2026-0010", "expiry_date": "2026-04-01", "status": "VALID", "Vessel": { "vessel_name": "MV Star" }, "CertificateType": { "name": "SMC" } }],
+    "expirations": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0010", "expiry_date": "2026-04-01", "status": "VALID", "Vessel": { "vessel_name": "MV Star" }, "CertificateType": { "name": "SMC" } }],
     "count": 12, "days": 30
   }
 }
@@ -167,7 +167,7 @@
 {
   "success": true, "message": "Certificate generated successfully",
   "data": {
-    "id": "uuid", "certificate_number": "GIRIK-2026-0042", "vessel_id": "uuid",
+    "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "vessel_id": "uuid",
     "certificate_type_id": "uuid", "job_id": "uuid",
     "issue_date": "2026-03-05", "expiry_date": "2031-03-05", "status": "VALID",
     "issued_by_user_id": "uuid", "qr_code_url": "https://...", "pdf_file_url": "https://..."
@@ -214,7 +214,7 @@
 **Request:** `{ "reason": "Original certificate damaged" }`
 **Response `201`:**
 ```json
-{ "success": true, "message": "Certificate reissued.", "data": { "id": "new-uuid", "certificate_number": "GIRIK-2026-0042-R1", "status": "VALID" } }
+{ "success": true, "message": "Certificate reissued.", "data": { "id": "new-uuid", "certificate_number": "GR-CLASS-2026-0042-R1", "status": "VALID" } }
 ```
 
 ### POST `/api/v1/certificates/:id/sign`

@@ -22,7 +22,7 @@
 {
   "success": true,
   "data": {
-    "uploadUrl": "https://s3.amazonaws.com/girik-bucket/uploads/abc/report.pdf?X-Amz-Signature=...",
+    "uploadUrl": "https://s3.amazonaws.com/gr-class-bucket/uploads/abc/report.pdf?X-Amz-Signature=...",
     "fileKey": "uploads/abc/report.pdf",
     "expiresIn": 3600
   }

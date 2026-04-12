@@ -338,7 +338,7 @@ Same response structure as GET `/vessels`.
     "FlagAdministration": { "flag_state_name": "Panama", "country": "PA", "authority_name": "Panama Maritime Authority" },
     "Documents": [{ "id": "uuid", "document_type": "Class Certificate", "signedUrl": "https://..." }],
     "JobRequests": [{ "id": "uuid", "job_status": "CREATED", "reason": "Annual survey" }],
-    "Certificates": [{ "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID" }]
+    "Certificates": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID" }]
   }
 }
 ```

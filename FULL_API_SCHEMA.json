@@ -1,11 +1,11 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Girik Marine Backend API",
-    "description": "Production-grade API documentation for Girik Marine Backend.\nUse role-specific docs: `/api-docs/admin`, `/api-docs/gm`, `/api-docs/tm`, `/api-docs/surveyor`, `/api-docs/client`, `/api-docs/public`\n",
+    "title": "GR-Class Marine Backend API",
+    "description": "Production-grade API documentation for GR-Class Marine Backend.\nUse role-specific docs: `/api-docs/admin`, `/api-docs/gm`, `/api-docs/tm`, `/api-docs/surveyor`, `/api-docs/client`, `/api-docs/public`\n",
     "version": "1.0.0",
     "contact": {
-      "name": "Girik Marine"
+      "name": "GR-Class Marine"
     }
   },
   "servers": [
@@ -6847,7 +6847,7 @@
         ],
         "summary": "Submit a contact enquiry (public)",
         "operationId": "submitContactEnquiry",
-        "description": "Anyone visiting the Girik Shipping portfolio website can send a message via this endpoint. No authentication is required.\n",
+        "description": "Anyone visiting the GR-Class Shipping portfolio website can send a message via this endpoint. No authentication is required.\n",
         "x-roles": [
           "PUBLIC"
         ],

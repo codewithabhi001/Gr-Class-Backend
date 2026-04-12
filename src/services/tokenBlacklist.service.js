@@ -13,7 +13,7 @@ let redisPromise = null;
 
 const sha256 = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
-const redisKey = (token) => `girik:token-bl:${sha256(token)}`;
+const redisKey = (token) => `gr-class:token-bl:${sha256(token)}`;
 
 async function getRedis() {
     const url = process.env.REDIS_URL;

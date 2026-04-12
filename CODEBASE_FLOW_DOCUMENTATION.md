@@ -1,4 +1,4 @@
-# Girik Backend - Complete Codebase Flow Documentation
+# GR-Class Backend - Complete Codebase Flow Documentation
 
 ## Table of Contents
 1. [Checklists Module Overview](#checklists-module-overview)
@@ -625,4 +625,4 @@ This documentation provides a comprehensive overview of:
 - ✅ The complete request flow from frontend to database
 - ✅ Database relationships and entity associations
 
-The Girik backend follows a **modular, layered architecture** with clear separation of concerns, making it maintainable and scalable.
+The GR-Class backend follows a **modular, layered architecture** with clear separation of concerns, making it maintainable and scalable.

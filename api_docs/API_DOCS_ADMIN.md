@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints for ADMIN
+# 🛰️ GR-Class Backend - API Endpoints for ADMIN
 
 Base Path: `/api/v1`
 

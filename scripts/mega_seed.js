@@ -155,7 +155,7 @@ async function seed() {
             const v = await db.Vessel.create({
                 client_id: clientCompany.id,
                 flag_administration_id: flagAdmin.id,
-                vessel_name: `Girik Vessel ${i + 1}`,
+                vessel_name: `GR-Class Vessel ${i + 1}`,
                 imo_number: (1000000 + i).toString(),
                 call_sign: `CALL-${i + 1}`,
                 mmsi_number: (100000000 + i).toString(),

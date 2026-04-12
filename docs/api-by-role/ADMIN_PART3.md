@@ -147,7 +147,7 @@ _(GET /:id, GET /:entityType/:entityId, POST upload, POST register — same as C
 **Query:** `?from_date=2026-01-01&to_date=2026-12-31&status=VALID`
 **Response `200`:**
 ```json
-{ "total": 150, "by_status": { "VALID": 120, "EXPIRED": 20, "SUSPENDED": 5, "REVOKED": 5 }, "by_type": [{ "certificate_type": "SMC", "count": 50 }], "certificates": [{ "id": "uuid", "certificate_number": "GIRIK-2026-0042", "vessel_name": "MV Star", "status": "VALID", "issue_date": "2026-01-15", "expiry_date": "2031-01-15" }] }
+{ "total": 150, "by_status": { "VALID": 120, "EXPIRED": 20, "SUSPENDED": 5, "REVOKED": 5 }, "by_type": [{ "certificate_type": "SMC", "count": 50 }], "certificates": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "vessel_name": "MV Star", "status": "VALID", "issue_date": "2026-01-15", "expiry_date": "2031-01-15" }] }
 ```
 
 ### GET `/api/v1/reports/surveyors`
@@ -312,7 +312,7 @@ Same as checklist templates structure.
 ### POST `/api/v1/compliance/anonymize/:id` (ADMIN only)
 **Response `200`:**
 ```json
-{ "success": true, "data": { "id": "uuid", "name": "[ANONYMIZED]", "email": "anon-uuid@anonymized.girik", "phone": null, "status": "INACTIVE" } }
+{ "success": true, "data": { "id": "uuid", "name": "[ANONYMIZED]", "email": "anon-uuid@anonymized.gr-class", "phone": null, "status": "INACTIVE" } }
 ```
 
 ---
@@ -323,7 +323,7 @@ Same as checklist templates structure.
 Fields: `video`/`videoKey`, `thumbnail`/`thumbnailKey`, `section` (✅), `title`, `description`
 **Response `201`:**
 ```json
-{ "id": "uuid", "section": "HOME", "title": "About Girik", "video_url": "https://...", "thumbnail_url": "https://...", "uploaded_by": "uuid", "created_at": "2026-03-05T18:00:00.000Z" }
+{ "id": "uuid", "section": "HOME", "title": "About GR-Class", "video_url": "https://...", "thumbnail_url": "https://...", "uploaded_by": "uuid", "created_at": "2026-03-05T18:00:00.000Z" }
 ```
 
 ### PUT `/api/v1/website/videos/:id` — `multipart/form-data`

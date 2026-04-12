@@ -1,6 +1,6 @@
 # Core Manual API Reference Guide
 
-*This document was manually created by inspecting the codebase (`src/modules`, `src/services`, `src/models`) line-by-line. Instead of relying on auto-generated Swagger documentation, this guide highlights exactly what is happening under the hood across GIRIK's core modules, including their expected logic, valid schemas, and database return responses.*
+*This document was manually created by inspecting the codebase (`src/modules`, `src/services`, `src/models`) line-by-line. Instead of relying on auto-generated Swagger documentation, this guide highlights exactly what is happening under the hood across GR-CLASS's core modules, including their expected logic, valid schemas, and database return responses.*
 
 ---
 

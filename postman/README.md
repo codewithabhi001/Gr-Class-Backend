@@ -1,10 +1,10 @@
-# Postman collection – Girik API (role-based)
+# Postman collection – GR-Class API (role-based)
 
 This folder contains a **role-wise Postman collection** aligned with Swagger role views.
 
 ## File
 
-- **`Girik-API-Role-Based.postman_collection.json`** – Import this into Postman.
+- **`GR-Class-API-Role-Based.postman_collection.json`** – Import this into Postman.
 
 ## How it’s generated
 
@@ -16,7 +16,7 @@ npm run postman:build
 node scripts/build-postman-collection.js
 ```
 
-Output is written to `postman/Girik-API-Role-Based.postman_collection.json`.
+Output is written to `postman/GR-Class-API-Role-Based.postman_collection.json`.
 
 ## Collection structure
 
@@ -32,7 +32,7 @@ Output is written to `postman/Girik-API-Role-Based.postman_collection.json`.
 ## Using in Postman
 
 1. **Import**  
-   Postman → Import → Upload `Girik-API-Role-Based.postman_collection.json`.
+   Postman → Import → Upload `GR-Class-API-Role-Based.postman_collection.json`.
 
 2. **Variables** (collection variables):
    - **baseUrl**: `http://localhost:3000` (or your API base URL).

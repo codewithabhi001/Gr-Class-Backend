@@ -1,6 +1,6 @@
 # Job to Certificate Generation Workflow
 
-This document outlines the complete workflow from Job Creation to Certificate Generation within the Girik system.
+This document outlines the complete workflow from Job Creation to Certificate Generation within the GR-Class system.
 
 ## 1. High-Level Overview
 

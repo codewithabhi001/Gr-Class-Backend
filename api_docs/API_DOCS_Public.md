@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints for Public
+# 🛰️ GR-Class Backend - API Endpoints for Public
 
 Base Path: `/api/v1`
 

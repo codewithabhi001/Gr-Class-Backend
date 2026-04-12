@@ -1,4 +1,4 @@
-# GIRIK Marine Certification — API Documentation
+# GR-CLASS Marine Certification — API Documentation
 
 **Base URL:** `/api/v1`
 

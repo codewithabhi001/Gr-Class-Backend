@@ -59,7 +59,7 @@
   "data": {
     "id": "uuid",
     "name": "[ANONYMIZED]",
-    "email": "anon-uuid@anonymized.girik",
+    "email": "anon-uuid@anonymized.gr-class",
     "phone": null,
     "status": "INACTIVE"
   }

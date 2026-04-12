@@ -10,7 +10,7 @@ SiteStaticContent:
       example: "new-vessel-launch-2026"
     title:
       type: string
-      example: "Girik Class Launches Next-Gen Survey Platform"
+      example: "GR-Class Class Launches Next-Gen Survey Platform"
     content_type:
       type: string
       enum: [PAGE, FAQ, NEWS]
@@ -18,7 +18,7 @@ SiteStaticContent:
     body_html:
       type: string
       nullable: true
-      example: "<h1>Strategic Launch</h1><p>Girik Class sets new industry benchmarks...</p>"
+      example: "<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>"
     thumbnail_url:
       type: string
       format: uri

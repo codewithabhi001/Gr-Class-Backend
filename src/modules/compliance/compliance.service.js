@@ -16,7 +16,7 @@ export const anonymizeUser = async (userId) => {
 
     await user.update({
         name: 'ANONYMOUS',
-        email: `anon-${userId}@girik.internal`,
+        email: `anon-${userId}@gr-class.internal`,
         phone: '0000000000',
         status: 'INACTIVE'
     });

@@ -10,7 +10,7 @@
     summary: Submit a contact enquiry (public)
     operationId: submitContactEnquiry
     description: >
-      Anyone visiting the Girik Shipping portfolio website can send a message
+      Anyone visiting the GR-Class Shipping portfolio website can send a message
       via this endpoint. No authentication is required.
     security: []
     x-roles: [PUBLIC]

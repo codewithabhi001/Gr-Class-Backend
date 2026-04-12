@@ -1,6 +1,6 @@
 # Flow: Creating a Job → Generating a Certificate
 
-This document describes the end-to-end flow in the GIRIK_BACKEND codebase from creating a job request to generating a certificate. It includes actor roles, important status transitions, API endpoints, validations, services called, and references to key implementation points.
+This document describes the end-to-end flow in the GR-CLASS_BACKEND codebase from creating a job request to generating a certificate. It includes actor roles, important status transitions, API endpoints, validations, services called, and references to key implementation points.
 
 ## Actors / Roles
 - CLIENT: Requests jobs for their vessels.
@@ -94,7 +94,7 @@ This document describes the end-to-end flow in the GIRIK_BACKEND codebase from c
 
 - Job creation logic (validations, DB create, and initial JobStatusHistory):
 
-```10:29:/Users/abhinavvishwakarma/work/Project/GIRIK_BACKEND/src/modules/jobs/job.service.js
+```10:29:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/modules/jobs/job.service.js
 export const createJob = async (data, userId) => {
     if (data.certificate_type_id) {
         const certType = await CertificateType.findByPk(data.certificate_type_id);
@@ -115,7 +115,7 @@ export const createJob = async (data, userId) => {
 
 - Start survey (check-in) — sets `IN_PROGRESS` and logs initial GPS:
 
-```62:89:/Users/abhinavvishwakarma/work/Project/GIRIK_BACKEND/src/modules/surveys/survey.service.js
+```62:89:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/modules/surveys/survey.service.js
 export const startSurvey = async (data, userId) => {
     const { job_id, latitude, longitude } = data;
     const job = await JobRequest.findByPk(job_id);
@@ -129,7 +129,7 @@ export const startSurvey = async (data, userId) => {
 
 - Submit survey report — upload photo to S3, create SurveyReport, update job status to `SURVEY_DONE`, log gps:
 
-```11:60:/Users/abhinavvishwakarma/work/Project/GIRIK_BACKEND/src/modules/surveys/survey.service.js
+```11:60:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/modules/surveys/survey.service.js
 export const submitSurveyReport = async (data, files, userId) => {
     const { job_id, submit_latitude, submit_longitude, survey_statement } = data;
     const job = await JobRequest.findByPk(job_id);
@@ -148,7 +148,7 @@ export const submitSurveyReport = async (data, files, userId) => {
 
 - Generate certificate — creates Certificate record, fills template, converts to PDF via Puppeteer, uploads to S3, updates job_status => `CERTIFIED`:
 
-```42:66:/Users/abhinavvishwakarma/work/Project/GIRIK_BACKEND/src/modules/certificates/certificate.service.js
+```42:66:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/modules/certificates/certificate.service.js
 export const generateCertificate = async (data, userId) => {
     const { job_id, validity_years } = data;
     const job = await JobRequest.findByPk(job_id, { include: [Vessel, CertificateType] });
@@ -162,7 +162,7 @@ export const generateCertificate = async (data, userId) => {
 
 - PDF generation and upload flow (uses Puppeteer + S3):
 
-```35:56:/Users/abhinavvishwakarma/work/Project/GIRIK_BACKEND/src/services/certificate-pdf.service.js
+```35:56:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/services/certificate-pdf.service.js
 export const htmlToPdfBuffer = async (html) => {
     const puppeteer = await import('puppeteer');
     const browser = await puppeteer.default.launch({ headless: true, args: ['--no-sandbox'] });

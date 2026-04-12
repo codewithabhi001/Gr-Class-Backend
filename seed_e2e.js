@@ -64,7 +64,7 @@ async function run() {
             console.log(`Vessel Document Uploaded: ${vesselDocUrl}`);
 
             // 2. Create Vessel
-            const vesselName = "Girik Voyager " + Math.floor(Math.random() * 1000) + ` (Fleet ${i})`;
+            const vesselName = "GR-Class Voyager " + Math.floor(Math.random() * 1000) + ` (Fleet ${i})`;
             console.log(`Creating Vessel: ${vesselName}`);
 
             let vessel;

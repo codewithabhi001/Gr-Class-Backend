@@ -98,7 +98,7 @@ for role in api_list.keys():
     filename = os.path.join(docs_dir, f"API_DOCS_{safe_role_name}.md")
     
     with open(filename, 'w') as md:
-        md.write(f"# 🛰️ Girik Backend - API Endpoints for {role}\n\n")
+        md.write(f"# 🛰️ GR-Class Backend - API Endpoints for {role}\n\n")
         md.write(f"Base Path: `{base_api_url}`\n\n")
         
         # Group by module/prefix

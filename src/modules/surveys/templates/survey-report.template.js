@@ -51,7 +51,7 @@ export const buildSurveyReportHtml = ({ job, vessel, surveyor, survey, checklist
             </div>
             <div style="text-align: center; width: 45%;">
                 <div style="height: 80px; border-bottom: 1px solid #2d3748; margin-bottom: 10px;"></div>
-                <div style="font-size: 12px; font-weight: bold;">GIRIK AUTHORIZED SIGNATORY</div>
+                <div style="font-size: 12px; font-weight: bold;">GR-CLASS AUTHORIZED SIGNATORY</div>
                 <div style="font-size: 11px; color: #718096;">Official Stamp & Date</div>
             </div>
         </div>
@@ -65,7 +65,7 @@ export const buildSurveyReportHtml = ({ job, vessel, surveyor, survey, checklist
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a365d; padding-bottom: 20px; margin-bottom: 30px;">
             <div>
                 <h1 style="margin: 0; color: #1a365d; font-size: 28px; letter-spacing: 1px;">SURVEY STATEMENT OF FACT</h1>
-                <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; font-weight: 600;">GIRIK CERTIFICATION SERVICES</p>
+                <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; font-weight: 600;">GR-CLASS CERTIFICATION SERVICES</p>
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 12px; color: #718096;">Report Reference</div>
@@ -127,7 +127,7 @@ export const buildSurveyReportHtml = ({ job, vessel, surveyor, survey, checklist
 
         <!-- Footer -->
         <div style="margin-top: 60px; border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 10px; color: #a0aec0;">
-            GIRIK Certification Services - Marine Inspection Division
+            GR-CLASS Certification Services - Marine Inspection Division
             <br/>This document is a record of fact at the time of inspection and does not constitute a legal certificate.
             <br/>Report Generated: ${formatDate(new Date())}
         </div>

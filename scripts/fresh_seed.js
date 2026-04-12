@@ -450,7 +450,7 @@ async function runJobThroughFlow({ vessel, certType, port, reason, targetStatus,
     await lifecycleService.updateSurveyStatus(survey.id, 'FINALIZED', tm.id, 'TM approved and finalized survey report');
 
     // ──────── STEP 13: Generate Certificate for finalized jobs ────────
-    const certNumber = `GIRIK-${certType.name.split(' ').map(w => w[0]).join('').toUpperCase()}-${new Date().getFullYear()}-${String(certSeq).padStart(5, '0')}`;
+    const certNumber = `GR-CLASS-${certType.name.split(' ').map(w => w[0]).join('').toUpperCase()}-${new Date().getFullYear()}-${String(certSeq).padStart(5, '0')}`;
     const issueDate = new Date();
     const expiryDate = new Date(issueDate);
     expiryDate.setFullYear(expiryDate.getFullYear() + certType.validity_years);

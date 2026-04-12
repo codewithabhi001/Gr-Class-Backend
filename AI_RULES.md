@@ -1,7 +1,6 @@
+# GR-CLASS MARINE BACKEND – AI RULE FILE
 
-# GIRIK MARINE BACKEND – AI RULE FILE
-
-This file serves as the definitive guide for AI assistants and developers working on the GIRIK Marine Backend. All code generation, architectural decisions, and API designs MUST adhere to these rules.
+This file serves as the definitive guide for AI assistants and developers working on the GR-CLASS Marine Backend. All code generation, architectural decisions, and API designs MUST adhere to these rules.
 
 ## 1. Core System Purpose
 The system manages marine certification and vessel compliance with legal-grade auditability.

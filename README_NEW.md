@@ -1,8 +1,8 @@
-# Girik Marine Certification - Backend Project Description
+# GR-Class Marine Certification - Backend Project Description
 
 ## 🚢 Project Overview
 
-The **Girik Marine Certification Backend** is a comprehensive, enterprise-grade system designed to manage the end-to-end lifecycle of maritime vessel certification, surveys, and compliance operations. It serves as the core infrastructure for a Classification Society or a Recognizing Organization (RO), enabling them to inspect ships, issue statutory/class certificates, and ensure compliance with international maritime regulations (IMO, SOLAS, MARPOL).
+The **GR-Class Marine Certification Backend** is a comprehensive, enterprise-grade system designed to manage the end-to-end lifecycle of maritime vessel certification, surveys, and compliance operations. It serves as the core infrastructure for a Classification Society or a Recognizing Organization (RO), enabling them to inspect ships, issue statutory/class certificates, and ensure compliance with international maritime regulations (IMO, SOLAS, MARPOL).
 
 This system facilitates collaboration between multiple stakeholders: **Clients (Ship Owners)**, **Head Office Staff (Admins, Technical Managers)**, and **Field Surveyors**.
 
@@ -93,7 +93,7 @@ The central unit of work is a **Job Request**.
 *   **Workflow**: Surveyor raises NC -> Client fixes -> Surveyor creates "Close-out" report -> NC Closed.
 
 ### 4. Transfer of Class Authority (TOCA)
-*   Workflow for a vessel moving from another society (e.g., Lloyds, DNV) to Girik.
+*   Workflow for a vessel moving from another society (e.g., Lloyds, DNV) to GR-Class.
 *   Involves reviewing previous survey history and analyzing "Gaining" vs "Losing" society data.
 *   Requires `GM` level approval.
 

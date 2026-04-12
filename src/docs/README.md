@@ -1,6 +1,6 @@
-# Girik Marine OpenAPI Documentation
+# GR-Class Marine OpenAPI Documentation
 
-Production-grade OpenAPI 3.0 documentation for the Girik Marine Backend API.
+Production-grade OpenAPI 3.0 documentation for the GR-Class Marine Backend API.
 
 ## Structure
 

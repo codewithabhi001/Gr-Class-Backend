@@ -268,10 +268,11 @@ export function filterSpecByRole(spec, role) {
 
       // Logic for including an operation:
       // 1. If it's the 'all' view, include everything.
-      // 2. If it's the 'PUBLIC' view, include strictly PUBLIC ones BUT NOT Auth.
+      // 2. If it's the 'PUBLIC' view, include everything tagged PUBLIC (auth + public utilities).
       // 3. If it's a specific role (ADMIN, CLIENT, etc.):
       //    a. Include if it matches the role.
-      //    b. Include if it's PUBLIC (including Auth).
+      //    b. Include if it's an Auth API (even if roled PUBLIC).
+      //    c. Hide other generic PUBLIC APIs (like website contact form) from specialized role views.
 
       const hasRole = roles.includes(role);
       const isPublicOp = roles.includes('PUBLIC');
@@ -281,9 +282,9 @@ export function filterSpecByRole(spec, role) {
       if (isAll) {
         included = true;
       } else if (isPublicRole) {
-        included = isPublicOp && !isAuthTag;
+        included = isPublicOp;
       } else {
-        included = hasRole || isPublicOp;
+        included = hasRole || (isPublicOp && isAuthTag);
       }
 
       if (included) {

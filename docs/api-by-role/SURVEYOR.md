@@ -593,7 +593,7 @@ Same structure with `Creator` and `Resolver` fields.
   "data": {
     "vessels": [{ "id": "uuid", "vessel_name": "MV Star", "imo_number": "1234567" }],
     "jobs": [{ "id": "uuid", "job_status": "ASSIGNED", "reason": "Annual survey" }],
-    "certificates": [{ "id": "uuid", "certificate_number": "GIRIK-2026-0042", "status": "VALID" }],
+    "certificates": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0042", "status": "VALID" }],
     "clients": []
   }
 }

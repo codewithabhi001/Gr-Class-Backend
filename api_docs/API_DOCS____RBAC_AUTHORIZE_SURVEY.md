@@ -1,4 +1,4 @@
-# 🛰️ Girik Backend - API Endpoints for ...RBAC.AUTHORIZE_SURVEY
+# 🛰️ GR-Class Backend - API Endpoints for ...RBAC.AUTHORIZE_SURVEY
 
 Base Path: `/api/v1`
 

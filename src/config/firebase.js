@@ -18,7 +18,7 @@ try {
     if (isAbsolute(rawPath)) {
         fullPath = rawPath;
     } else if (rawPath.startsWith('./')) {
-        // Resolve relative to project root /var/www/Girik-Class-Backend
+        // Resolve relative to project root /var/www/GR-Class-Class-Backend
         fullPath = join(projectRoot, rawPath);
     } else {
         fullPath = resolve(rawPath);

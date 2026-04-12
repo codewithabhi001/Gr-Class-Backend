@@ -12,7 +12,7 @@ module.exports = {
     development: {
         username: process.env.DB_USER || 'root',
         password: process.env.DB_PASS || '',
-        database: process.env.DB_NAME || 'girik_db',
+        database: process.env.DB_NAME || 'gr_class_db',
         host: process.env.DB_HOST || '127.0.0.1',
         port: process.env.DB_PORT || 3306,
         dialect: process.env.DB_DIALECT || 'mysql',
@@ -22,7 +22,7 @@ module.exports = {
     test: {
         username: process.env.DB_USER || 'root',
         password: process.env.DB_PASS || '',
-        database: process.env.DB_NAME || 'girik_db_test',
+        database: process.env.DB_NAME || 'gr_class_db_test',
         host: process.env.DB_HOST || '127.0.0.1',
         port: process.env.DB_PORT || 3306,
         dialect: process.env.DB_DIALECT || 'mysql',

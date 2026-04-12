@@ -70,7 +70,7 @@ export const buildFallbackCertificateHtml = ({ variables, issuingAuthority, qrDa
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:28px;">
           <div style="max-width:60%;">
             <div style="font-size:12px;color:#6b7280;">Issued by</div>
-            <div style="font-weight:700;margin-top:6px;">GIRIK Certification Services</div>
+            <div style="font-weight:700;margin-top:6px;">GR-CLASS Certification Services</div>
             <div style="font-size:12px;color:#6b7280;margin-top:8px;">${authority}</div>
           </div>
           <div style="text-align:center;">

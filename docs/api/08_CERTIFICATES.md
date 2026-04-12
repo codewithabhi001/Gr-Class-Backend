@@ -30,7 +30,7 @@
   "message": "Certificate generated successfully",
   "data": {
     "id": "019514a2-7e3b-7000-8000-000000000300",
-    "certificate_number": "GIRIK-2026-0042",
+    "certificate_number": "GR-CLASS-2026-0042",
     "vessel_id": "019514a2-7e3b-7000-8000-000000000005",
     "certificate_type_id": "019514a2-7e3b-7000-8000-000000000020",
     "job_id": "019514a2-7e3b-7000-8000-000000000100",
@@ -38,8 +38,8 @@
     "expiry_date": "2031-03-05",
     "status": "VALID",
     "issued_by_user_id": "019514a2-7e3b-7000-8000-000000000001",
-    "qr_code_url": "https://storage.grclass.com/qr/GIRIK-2026-0042.png",
-    "pdf_file_url": "https://storage.grclass.com/certs/GIRIK-2026-0042.pdf",
+    "qr_code_url": "https://storage.grclass.com/qr/GR-CLASS-2026-0042.png",
+    "pdf_file_url": "https://storage.grclass.com/certs/GR-CLASS-2026-0042.pdf",
     "created_at": "2026-03-05T21:30:00.000Z"
   }
 }
@@ -69,7 +69,7 @@
     "rows": [
       {
         "id": "019514a2-7e3b-7000-8000-000000000300",
-        "certificate_number": "GIRIK-2026-0042",
+        "certificate_number": "GR-CLASS-2026-0042",
         "vessel_id": "019514a2-7e3b-7000-8000-000000000005",
         "certificate_type_id": "019514a2-7e3b-7000-8000-000000000020",
         "issue_date": "2026-01-15",
@@ -236,7 +236,7 @@
     "expirations": [
       {
         "id": "uuid",
-        "certificate_number": "GIRIK-2026-0010",
+        "certificate_number": "GR-CLASS-2026-0010",
         "vessel_id": "uuid",
         "expiry_date": "2026-04-01",
         "status": "VALID",
@@ -269,7 +269,7 @@
   "data": [
     {
       "id": "uuid",
-      "certificate_number": "GIRIK-2026-0042",
+      "certificate_number": "GR-CLASS-2026-0042",
       "status": "VALID",
       "issue_date": "2026-01-15",
       "expiry_date": "2031-01-15",
@@ -297,7 +297,7 @@
   "message": "Certificate for job fetched successfully",
   "data": {
     "id": "uuid",
-    "certificate_number": "GIRIK-2026-0042",
+    "certificate_number": "GR-CLASS-2026-0042",
     "status": "VALID",
     "issue_date": "2026-01-15",
     "expiry_date": "2031-01-15"
@@ -318,7 +318,7 @@
   "message": "Certificate details fetched successfully",
   "data": {
     "id": "uuid",
-    "certificate_number": "GIRIK-2026-0042",
+    "certificate_number": "GR-CLASS-2026-0042",
     "vessel_id": "uuid",
     "certificate_type_id": "uuid",
     "job_id": "uuid",
@@ -364,7 +364,7 @@
   "success": true,
   "message": "Certificate preview data fetched",
   "data": {
-    "certificate_number": "GIRIK-2026-0042",
+    "certificate_number": "GR-CLASS-2026-0042",
     "vessel_name": "MV Star",
     "imo_number": "1234567",
     "certificate_type": "Safety Management Certificate",
@@ -607,7 +607,7 @@
 {
   "success": true,
   "message": "Certificate reissued successfully",
-  "data": { "id": "uuid", "certificate_number": "GIRIK-2026-0042-R1" }
+  "data": { "id": "uuid", "certificate_number": "GR-CLASS-2026-0042-R1" }
 }
 ```
 

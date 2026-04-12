@@ -12,11 +12,11 @@ export const render = (data) => {
     const userPassword = data.password ? escapeHtml(data.password) : '';
     const loginUrl = data.loginUrl ? escapeHtml(data.loginUrl) : 'https://ops.grclass.com';
 
-    const subject = 'Welcome to Girik Class - Your Login Credentials';
+    const subject = 'Welcome to GR-Class Class - Your Login Credentials';
 
     const innerHtml = `
       <p style="margin:0 0 12px;">Hi ${userName},</p>
-      <p style="margin:0 0 16px;">Welcome to <strong>Girik Class</strong>! Your account has been successfully created by the administrator. You can now log in to the portal using the credentials below.</p>
+      <p style="margin:0 0 16px;">Welcome to <strong>GR-Class Class</strong>! Your account has been successfully created by the administrator. You can now log in to the portal using the credentials below.</p>
       
       <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
         <p style="margin:0 0 8px;"><strong>Login Page:</strong> <a href="${loginUrl}" style="color: #14b8a6; text-decoration: none;">${loginUrl}</a></p>

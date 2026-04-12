@@ -9540,7 +9540,7 @@ with a file attachment.
 
 **Summary:** Submit a contact enquiry (public)
 
-**Description:** Anyone visiting the Girik Shipping portfolio website can send a message via this endpoint. No authentication is required.
+**Description:** Anyone visiting the GR-Class Shipping portfolio website can send a message via this endpoint. No authentication is required.
 
 
 **Allowed Roles:** `PUBLIC`

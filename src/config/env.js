@@ -10,7 +10,7 @@ export default {
         port: process.env.DB_PORT || 3306,
         username: process.env.DB_USER || 'root',
         password: process.env.DB_PASS || '',
-        name: process.env.DB_NAME || 'girik_db',
+        name: process.env.DB_NAME || 'gr_class_db',
         dialect: process.env.DB_DIALECT || 'mysql',
         sslCa: process.env.DB_SSL_CA,
     },
@@ -64,9 +64,7 @@ export default {
     /**
      * RFC 2919 List-Id header value (not including "List-Id:").
      * Gmail shows this name in the Unsubscribe dialog; without it you often see "(Unknown)".
-     * Example: Girik Class Newsletter
-     */ 
-    newsletterListId: (process.env.NEWSLETTER_LIST_ID || 'Girik Class Newsletter').trim(),
+    newsletterListId: (process.env.NEWSLETTER_LIST_ID || 'GR-Class Newsletter').trim(),
     get newsletterUnsubscribeSecret() {
         const s = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
         if (process.env.NODE_ENV === 'production' && (!s || String(s).length < 32)) {
@@ -99,6 +97,6 @@ export default {
         saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
     },
     firebase: {
-        serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './src/config/girik-class-firebase-adminsdk-fbsvc-9297fb6be9.json'
+        serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './src/config/gr-class-firebase-adminsdk-fbsvc-9297fb6be9.json'
     }
 };

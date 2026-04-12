@@ -43,7 +43,7 @@
     "certificates": [
       {
         "id": "uuid",
-        "certificate_number": "GIRIK-2026-0042",
+        "certificate_number": "GR-CLASS-2026-0042",
         "status": "VALID",
         "Vessel": { "vessel_name": "MV Star" }
       }

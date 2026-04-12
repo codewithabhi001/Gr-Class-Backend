@@ -55,7 +55,7 @@ export const authenticate = async (req, res, next) => {
             _userCache.delete(decoded.id);
             return res.status(403).json({
                 success: false,
-                message: 'Your account has been suspended. Please contact the GIRIK Administration for assistance.',
+                message: 'Your account has been suspended. Please contact the GR-CLASS Administration for assistance.',
                 error_code: 'ACCOUNT_SUSPENDED'
             });
         }
