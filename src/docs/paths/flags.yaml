@@ -16,11 +16,16 @@
               country: { type: string }
               authority_name: { type: string }
               contact_email: { type: string, format: email }
+              authorization_scope: { type: string }
+              logo_url: { type: string }
+              status: { type: string, enum: [ACTIVE, INACTIVE] }
           example:
             flag_state_name: "Singapore"
             country: "Singapore"
             authority_name: "Maritime and Port Authority"
             contact_email: "mpa@gov.sg"
+            logo_url: "flags/logos/singapore.png"
+            status: "ACTIVE"
     responses:
       "201": { description: Flag created }
       "403": { description: Forbidden }
@@ -55,8 +60,12 @@
               country: { type: string }
               authority_name: { type: string }
               contact_email: { type: string, format: email }
+              authorization_scope: { type: string }
+              logo_url: { type: string }
+              status: { type: string, enum: [ACTIVE, INACTIVE] }
           example:
             authority_name: "Maritime and Port Authority of Singapore"
+            logo_url: "flags/logos/singapore.png"
     responses:
       "200": { description: Flag updated }
       "403": { description: Forbidden }

@@ -160,6 +160,18 @@ export const schemas = {
         country: Joi.string().required(),
         authority_name: Joi.string().required(),
         contact_email: Joi.string().email().required(),
+        authorization_scope: Joi.string().optional().allow('', null),
+        logo_url: Joi.string().optional().allow('', null),
+        status: Joi.string().valid('ACTIVE', 'INACTIVE').optional(),
+    }),
+    updateFlag: Joi.object({
+        flag_state_name: Joi.string().optional(),
+        country: Joi.string().optional(),
+        authority_name: Joi.string().optional(),
+        contact_email: Joi.string().email().optional(),
+        authorization_scope: Joi.string().optional().allow('', null),
+        logo_url: Joi.string().optional().allow('', null),
+        status: Joi.string().valid('ACTIVE', 'INACTIVE').optional(),
     }),
     createClient: Joi.object({
         company_name: Joi.string().required(),

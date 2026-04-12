@@ -103,6 +103,8 @@ FlagAdministrationResponse:
       format: email
     authorization_scope:
       type: string
+    logo_url:
+      type: string
     status:
       type: string
       enum: [ACTIVE, INACTIVE]
