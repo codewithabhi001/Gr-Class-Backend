@@ -15,6 +15,11 @@
             properties:
               template_name: { type: string, description: "Name of the certificate template" }
               certificate_type_id: { type: string, format: uuid, description: "ID of the associated certificate type" }
+              certificate_term:
+                type: string
+                enum: [FULL_TERM, SHORT_TERM]
+                nullable: true
+                description: "If set, this template is used only for that term"
               template_content: { type: string, description: "HTML or string layout containing placeholders" }
               variables: 
                 type: array
@@ -25,6 +30,7 @@
           example:
             template_name: "IOPP Certificate v1"
             certificate_type_id: "019ccdfb-e89b-12d3-a456-426614174000"
+            certificate_term: "FULL_TERM"
             template_content: "<html><body><h1>IOPP CERTIFICATE</h1><p>Vessel: {{vesselName}}</p><p>Issued by: {{authority}}</p></body></html>"
             variables: ["vesselName", "authority"]
             is_active: true
@@ -45,6 +51,9 @@
       - name: certificate_type_id
         in: query
         schema: { type: string, format: uuid }
+      - name: certificate_term
+        in: query
+        schema: { type: string, enum: [FULL_TERM, SHORT_TERM] }
     responses:
       "200": { description: List of templates }
       "403": { description: Forbidden }
@@ -83,6 +92,7 @@
             properties:
               template_name: { type: string }
               certificate_type_id: { type: string, format: uuid }
+              certificate_term: { type: string, enum: [FULL_TERM, SHORT_TERM], nullable: true }
               template_content: { type: string }
               variables: 
                 type: array

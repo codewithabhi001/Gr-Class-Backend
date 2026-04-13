@@ -10,6 +10,8 @@
     "test:apis": "node scripts/test_all_apis.js",
     "postman:build": "node scripts/build-postman-collection.js",
     "seed:initial": "node scripts/seed_initial_data.js",
+    "seed:certificate-types": "node scripts/sync_certificate_types_from_xlsx.js",
+    "db:patch:templates-term": "node scripts/db_patch_certificate_templates_term.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
@@ -54,6 +56,7 @@
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "winston": "^3.19.0",
+    "xlsx": "^0.18.5",
     "yamljs": "^0.3.0"
   }
 }

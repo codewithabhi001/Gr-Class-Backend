@@ -275,10 +275,45 @@ CertificateRequiredDocument:
   properties:
     id:
       $ref: '#/components/schemas/UUID'
+    certificate_type_id:
+      $ref: '#/components/schemas/UUID'
     document_name:
       type: string
     is_mandatory:
       type: boolean
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CertificateRequiredDocumentCreateRequest:
+  type: object
+  required: [document_name]
+  properties:
+    document_name:
+      type: string
+      example: "Registry Certificate"
+    is_mandatory:
+      type: boolean
+      default: true
+  example:
+    document_name: "Registry Certificate"
+    is_mandatory: true
+
+CertificateRequiredDocumentUpdateRequest:
+  type: object
+  properties:
+    document_name:
+      type: string
+      example: "Registry Certificate (Updated)"
+    is_mandatory:
+      type: boolean
+      example: false
+  example:
+    document_name: "Registry Certificate (Updated)"
+    is_mandatory: false
 
 CertificateAuthorityResponse:
   type: object

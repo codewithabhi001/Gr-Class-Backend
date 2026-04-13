@@ -289,6 +289,34 @@ export const updateCertificateType = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+export const getCertificateTypeRequiredDocuments = async (req, res, next) => {
+    try {
+        const docs = await certService.getCertificateTypeRequiredDocuments(req.params.id);
+        res.json({ success: true, data: docs });
+    } catch (e) { next(e); }
+};
+
+export const addCertificateTypeRequiredDocument = async (req, res, next) => {
+    try {
+        const doc = await certService.addCertificateTypeRequiredDocument(req.params.id, req.body);
+        res.status(201).json({ success: true, message: 'Required document added', data: doc });
+    } catch (e) { next(e); }
+};
+
+export const updateCertificateTypeRequiredDocument = async (req, res, next) => {
+    try {
+        const doc = await certService.updateCertificateTypeRequiredDocument(req.params.id, req.params.docId, req.body);
+        res.json({ success: true, message: 'Required document updated', data: doc });
+    } catch (e) { next(e); }
+};
+
+export const deleteCertificateTypeRequiredDocument = async (req, res, next) => {
+    try {
+        const result = await certService.deleteCertificateTypeRequiredDocument(req.params.id, req.params.docId);
+        res.json({ success: true, message: 'Required document deleted', data: result });
+    } catch (e) { next(e); }
+};
+
 export const bulkRenew = async (req, res, next) => {
     try {
         const result = await certService.bulkRenew(req.body.ids, req.body.validity_years, req.body.reason, req.user.id);

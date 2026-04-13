@@ -14,12 +14,68 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { clearCache, getSpecForRole } from '../docs/build-openapi.js';
+import yaml from 'yamljs';
+import { buildFullSpec, clearCache, getSpecForRole } from '../docs/build-openapi.js';
 
 const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'ta', 'flag_admin', 'public'];
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MODULE_SWAGGER_DIR = path.resolve(__dirname, '../../docs/swagger-by-module');
+const DOCS_DIR = path.resolve(__dirname, '../docs');
+const PATHS_DIR = path.join(DOCS_DIR, 'paths');
+
+const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
+
+const pickModulePaths = (fullSpec, moduleDoc) => {
+  const paths = {};
+  for (const [p, cfg] of Object.entries(moduleDoc || {})) {
+    const fullPathCfg = fullSpec.paths?.[p];
+    if (!fullPathCfg) continue;
+    const onlyModuleMethods = {};
+    for (const [k, v] of Object.entries(cfg || {})) {
+      if (HTTP_METHODS.includes(k.toLowerCase())) {
+        onlyModuleMethods[k] = fullPathCfg[k];
+      } else {
+        onlyModuleMethods[k] = fullPathCfg[k] ?? v;
+      }
+    }
+    paths[p] = onlyModuleMethods;
+  }
+  return paths;
+};
+
+const collectModuleTags = (pathsObj) => {
+  const tags = new Set();
+  for (const pathCfg of Object.values(pathsObj || {})) {
+    for (const [method, op] of Object.entries(pathCfg || {})) {
+      if (!HTTP_METHODS.includes(method.toLowerCase())) continue;
+      (op?.tags || []).forEach((t) => tags.add(t));
+    }
+  }
+  return tags;
+};
+
+function buildModuleSpec(moduleName) {
+  const moduleYamlPath = path.join(PATHS_DIR, `${moduleName}.yaml`);
+  if (!fs.existsSync(moduleYamlPath)) return null;
+
+  // Build fresh spec from disk so edits appear instantly in dev.
+  clearCache();
+  const fullSpec = buildFullSpec();
+  const moduleDoc = yaml.load(moduleYamlPath) || {};
+  const modulePaths = pickModulePaths(fullSpec, moduleDoc);
+  const moduleTags = collectModuleTags(modulePaths);
+
+  return {
+    ...fullSpec,
+    info: {
+      ...fullSpec.info,
+      title: `${fullSpec.info?.title || 'API'} - ${moduleName} module`,
+    },
+    tags: (fullSpec.tags || []).filter((t) => moduleTags.has(t.name)),
+    paths: modulePaths,
+  };
+}
 
 const ROLE_MAP = {
   admin: 'ADMIN',
@@ -234,17 +290,23 @@ export function setupSwagger(app) {
 
   app.get('/api-docs/module/spec/:module', (req, res) => {
     const moduleName = String(req.params.module || '').trim();
+    const dynamic = buildModuleSpec(moduleName);
+    if (dynamic) return res.json(dynamic);
+
+    // Fallback: serve pre-generated module json (if present)
     const filePath = path.join(MODULE_SWAGGER_DIR, `${moduleName}.json`);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, message: `Module '${moduleName}' not found.` });
-    }
-    return res.sendFile(filePath);
+    if (fs.existsSync(filePath)) return res.sendFile(filePath);
+
+    return res.status(404).json({ success: false, message: `Module '${moduleName}' not found.` });
   });
 
   app.get('/api-docs/module/:module', (req, res) => {
     const moduleName = String(req.params.module || '').trim();
+    // Allow module UI even if we haven't generated docs/swagger-by-module yet,
+    // as long as a matching src/docs/paths/<module>.yaml exists.
+    const dynamic = buildModuleSpec(moduleName);
     const filePath = path.join(MODULE_SWAGGER_DIR, `${moduleName}.json`);
-    if (!fs.existsSync(filePath)) {
+    if (!dynamic && !fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
         message: `Module '${moduleName}' not found. Use /api-docs/module to list available modules.`,
@@ -273,8 +335,9 @@ export function setupSwagger(app) {
 
   app.get('/api-docs/module/init/:module.js', (req, res) => {
     const moduleName = String(req.params.module || '').trim();
+    const dynamic = buildModuleSpec(moduleName);
     const filePath = path.join(MODULE_SWAGGER_DIR, `${moduleName}.json`);
-    if (!fs.existsSync(filePath)) {
+    if (!dynamic && !fs.existsSync(filePath)) {
       return res.status(404).type('application/javascript').send('console.error("Module swagger not found.");');
     }
 

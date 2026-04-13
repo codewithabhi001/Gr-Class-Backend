@@ -21,6 +21,12 @@ router.post('/types', authorizeRoles('ADMIN'), validate(schemas.createCertificat
 router.get('/types/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateTypeById);
 router.put('/types/:id', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateCertificateType), certController.updateCertificateType);
 
+// Required documents per certificate type (ADMIN/TM)
+router.get('/types/:id/required-documents', authorizeRoles('ADMIN', 'TM'), certController.getCertificateTypeRequiredDocuments);
+router.post('/types/:id/required-documents', authorizeRoles('ADMIN', 'TM'), validate(schemas.addCertificateTypeRequiredDocument), certController.addCertificateTypeRequiredDocument);
+router.put('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateCertificateTypeRequiredDocument), certController.updateCertificateTypeRequiredDocument);
+router.delete('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'TM'), certController.deleteCertificateTypeRequiredDocument);
+
 // List all certificates
 router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificates);
 // Get certificates expiring within a range

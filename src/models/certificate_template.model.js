@@ -3,6 +3,10 @@ export default (sequelize, DataTypes) => {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
         certificate_type_id: DataTypes.UUID,
         template_name: DataTypes.STRING,
+        certificate_term: {
+            type: DataTypes.ENUM('FULL_TERM', 'SHORT_TERM'),
+            allowNull: true,
+        },
         template_content: DataTypes.TEXT,
         variables: { type: DataTypes.JSON, defaultValue: [] },
         is_active: { type: DataTypes.BOOLEAN, defaultValue: true },

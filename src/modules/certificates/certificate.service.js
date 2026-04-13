@@ -143,6 +143,82 @@ export const updateCertificateType = async (id, data) => {
     }
 };
 
+/** List required documents for a certificate type. */
+export const getCertificateTypeRequiredDocuments = async (certificateTypeId) => {
+    const type = await CertificateType.findByPk(certificateTypeId, {
+        attributes: ['id', 'name', 'status'],
+    });
+    if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
+
+    return await db.CertificateRequiredDocument.findAll({
+        where: { certificate_type_id: certificateTypeId },
+        attributes: ['id', 'certificate_type_id', 'document_name', 'is_mandatory', 'createdAt', 'updatedAt'],
+        order: [['document_name', 'ASC']],
+    });
+};
+
+/** Add one required document for a certificate type. */
+export const addCertificateTypeRequiredDocument = async (certificateTypeId, data) => {
+    const type = await CertificateType.findByPk(certificateTypeId, { attributes: ['id'] });
+    if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
+
+    const name = (data.document_name ?? '').trim();
+    const existing = await db.CertificateRequiredDocument.findOne({
+        where: { certificate_type_id: certificateTypeId, document_name: name }
+    });
+    if (existing) throw { statusCode: 409, message: 'Required document already exists for this certificate type' };
+
+    return await db.CertificateRequiredDocument.create({
+        certificate_type_id: certificateTypeId,
+        document_name: name,
+        is_mandatory: data.is_mandatory ?? true,
+    });
+};
+
+/** Update one required document for a certificate type. */
+export const updateCertificateTypeRequiredDocument = async (certificateTypeId, requiredDocumentId, data) => {
+    const doc = await db.CertificateRequiredDocument.findByPk(requiredDocumentId);
+    if (!doc) throw { statusCode: 404, message: 'Required document not found' };
+    if (doc.certificate_type_id !== certificateTypeId) {
+        throw { statusCode: 400, message: 'Required document does not belong to this certificate type' };
+    }
+
+    if (data.document_name) {
+        const name = data.document_name.trim();
+        const dup = await db.CertificateRequiredDocument.findOne({
+            where: {
+                certificate_type_id: certificateTypeId,
+                document_name: name,
+                id: { [Op.ne]: requiredDocumentId }
+            }
+        });
+        if (dup) throw { statusCode: 409, message: 'Another required document with this name already exists' };
+    }
+
+    await doc.update({
+        ...(data.document_name ? { document_name: data.document_name.trim() } : {}),
+        ...(typeof data.is_mandatory === 'boolean' ? { is_mandatory: data.is_mandatory } : {}),
+    });
+    return doc;
+};
+
+/** Delete one required document for a certificate type. */
+export const deleteCertificateTypeRequiredDocument = async (certificateTypeId, requiredDocumentId) => {
+    const doc = await db.CertificateRequiredDocument.findByPk(requiredDocumentId);
+    if (!doc) throw { statusCode: 404, message: 'Required document not found' };
+    if (doc.certificate_type_id !== certificateTypeId) {
+        throw { statusCode: 400, message: 'Required document does not belong to this certificate type' };
+    }
+
+    const usedCount = await db.JobDocument.count({ where: { required_document_id: requiredDocumentId } });
+    if (usedCount > 0) {
+        throw { statusCode: 409, message: 'Cannot delete: required document is already used in jobs' };
+    }
+
+    await doc.destroy();
+    return { deleted: true };
+};
+
 const generateUniqueCertificateNumber = async (typeCode = null) => {
     const year = new Date().getFullYear();
     let isUnique = false;
@@ -282,7 +358,15 @@ export const generateCertificate = async (data, user) => {
         await transaction.commit();
 
         // Generate PDF outside transaction (non-critical, best-effort)
+        // Prefer a term-specific template; fallback to latest active template for the type.
         const template = await CertificateTemplate.findOne({
+            where: {
+                certificate_type_id: job.certificate_type_id,
+                is_active: true,
+                ...(certificate_term ? { certificate_term } : {})
+            },
+            order: [['createdAt', 'DESC']]
+        }) || await CertificateTemplate.findOne({
             where: { certificate_type_id: job.certificate_type_id, is_active: true },
             order: [['createdAt', 'DESC']]
         });

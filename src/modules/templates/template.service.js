@@ -6,6 +6,7 @@ export const createTemplate = async (data) => {
     return await CertificateTemplate.create({
         template_name: data.template_name,
         certificate_type_id: data.certificate_type_id,
+        certificate_term: data.certificate_term ?? null,
         template_content: data.template_content,
         variables: data.variables || [],
         is_active: data.is_active !== false
@@ -16,6 +17,7 @@ export const getTemplates = async (filters = {}) => {
     const where = {};
     if (filters.is_active !== undefined) where.is_active = filters.is_active;
     if (filters.certificate_type_id) where.certificate_type_id = filters.certificate_type_id;
+    if (filters.certificate_term) where.certificate_term = filters.certificate_term;
 
     return await CertificateTemplate.findAll({
         where,

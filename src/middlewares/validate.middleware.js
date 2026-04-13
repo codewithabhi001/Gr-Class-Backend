@@ -258,6 +258,14 @@ export const schemas = {
             is_mandatory: Joi.boolean().optional().default(true)
         })).optional()
     }),
+    addCertificateTypeRequiredDocument: Joi.object({
+        document_name: Joi.string().required().trim(),
+        is_mandatory: Joi.boolean().optional().default(true),
+    }),
+    updateCertificateTypeRequiredDocument: Joi.object({
+        document_name: Joi.string().optional().trim(),
+        is_mandatory: Joi.boolean().optional(),
+    }).or('document_name', 'is_mandatory'),
     uploadDocument: Joi.object({
         entity_type: Joi.string().required(),
         entity_id: Joi.string().guid().required(),
@@ -317,6 +325,7 @@ export const schemas = {
     createTemplate: Joi.object({
         template_name: Joi.string().required(),
         certificate_type_id: Joi.string().guid().required(),
+        certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional().allow(null),
         template_content: Joi.string().required(),
         variables: Joi.array().items(Joi.string()).optional(),
         is_active: Joi.boolean().optional().default(true)
@@ -324,6 +333,7 @@ export const schemas = {
     updateTemplate: Joi.object({
         template_name: Joi.string().optional(),
         certificate_type_id: Joi.string().guid().optional(),
+        certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional().allow(null),
         template_content: Joi.string().optional(),
         variables: Joi.array().items(Joi.string()).optional(),
         is_active: Joi.boolean().optional()

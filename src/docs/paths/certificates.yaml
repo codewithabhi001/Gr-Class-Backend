@@ -421,6 +421,273 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+/api/v1/certificates/types/{id}/required-documents:
+  get:
+    tags: [Certificates]
+    summary: List required documents for a certificate type
+    description: |
+      Returns the list of required documents configured for a certificate type.
+      **Roles:** ADMIN, TM
+    security: [{ bearerAuth: [] }]
+    operationId: getCertificateTypeRequiredDocuments
+    x-roles: [ADMIN, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Certificate type UUID
+    responses:
+      "200":
+        description: Required documents list
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CertificateRequiredDocument'
+            example:
+              success: true
+              data:
+                - id: "019c79a4-0001-0000-0000-000000000001"
+                  certificate_type_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                  document_name: "Registry Certificate"
+                  is_mandatory: true
+                  created_at: "2026-04-13T12:00:00.000Z"
+                  updated_at: "2026-04-13T12:00:00.000Z"
+                - id: "019c79a4-0001-0000-0000-000000000002"
+                  certificate_type_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                  document_name: "Previous Survey Report"
+                  is_mandatory: false
+                  created_at: "2026-04-13T12:00:00.000Z"
+                  updated_at: "2026-04-13T12:00:00.000Z"
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Certificate type not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  post:
+    tags: [Certificates]
+    summary: Add required document for a certificate type
+    description: |
+      Adds a single required document to a certificate type.
+      **Roles:** ADMIN, TM
+    security: [{ bearerAuth: [] }]
+    operationId: addCertificateTypeRequiredDocument
+    x-roles: [ADMIN, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CertificateRequiredDocumentCreateRequest'
+          example:
+            document_name: "Registry Certificate"
+            is_mandatory: true
+    responses:
+      "201":
+        description: Required document created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Required document added" }
+                data:
+                  $ref: '#/components/schemas/CertificateRequiredDocument'
+            example:
+              success: true
+              message: "Required document added"
+              data:
+                id: "019c79a4-0001-0000-0000-000000000003"
+                certificate_type_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                document_name: "Registry Certificate"
+                is_mandatory: true
+                created_at: "2026-04-13T12:00:00.000Z"
+                updated_at: "2026-04-13T12:00:00.000Z"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Certificate type not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "409":
+        description: Required document already exists
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+/api/v1/certificates/types/{id}/required-documents/{docId}:
+  put:
+    tags: [Certificates]
+    summary: Update required document for a certificate type
+    description: |
+      Updates a single required document (name and/or is_mandatory).
+      **Roles:** ADMIN, TM
+    security: [{ bearerAuth: [] }]
+    operationId: updateCertificateTypeRequiredDocument
+    x-roles: [ADMIN, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: docId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Required document UUID
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CertificateRequiredDocumentUpdateRequest'
+          example:
+            document_name: "Registry Certificate (Updated)"
+            is_mandatory: false
+    responses:
+      "200":
+        description: Required document updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Required document updated" }
+                data:
+                  $ref: '#/components/schemas/CertificateRequiredDocument'
+            example:
+              success: true
+              message: "Required document updated"
+              data:
+                id: "019c79a4-0001-0000-0000-000000000003"
+                certificate_type_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                document_name: "Registry Certificate (Updated)"
+                is_mandatory: false
+                created_at: "2026-04-13T12:00:00.000Z"
+                updated_at: "2026-04-13T12:05:00.000Z"
+      "400":
+        description: Validation error / wrong type mapping
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Document not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "409":
+        description: Duplicate document name
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  delete:
+    tags: [Certificates]
+    summary: Delete required document for a certificate type
+    description: |
+      Deletes a required document if it is not used in any job documents.
+      If already used, returns **409**.
+      **Roles:** ADMIN, TM
+    security: [{ bearerAuth: [] }]
+    operationId: deleteCertificateTypeRequiredDocument
+    x-roles: [ADMIN, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: docId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: Deleted
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Required document deleted" }
+                data:
+                  type: object
+                  properties:
+                    deleted: { type: boolean, example: true }
+            example:
+              success: true
+              message: "Required document deleted"
+              data:
+                deleted: true
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Document not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "409":
+        description: Cannot delete (document already used in jobs)
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
 /api/v1/certificates/bulk-renew:
   post:
     tags: [Certificates]
