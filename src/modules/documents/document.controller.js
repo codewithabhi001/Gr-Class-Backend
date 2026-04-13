@@ -79,8 +79,8 @@ export const uploadDocument = async (req, res, next) => {
             results.push(result);
         } else if (req.body.fileData) {
             // Validate external file data
-            const isValid = validateDoc(req.body.fileData.url || 'file.dat', req.body.fileData.type);
-            if (!isValid) throw { statusCode: 400, message: 'Invalid file format for registration.' };
+            // const isValid = validateDoc(req.body.fileData.url || 'file.dat', req.body.fileData.type);
+            // if (!isValid) throw { statusCode: 400, message: 'Invalid file format for registration.' };
 
             // Register external file data
             const result = await documentService.registerDocument(entityType, entityId, req.body.fileData, req.user.id, document_type, description);
@@ -132,14 +132,14 @@ export const getUploadUrl = async (req, res, next) => {
         }
 
         // Perform format checks based on folder or general document rules
-        const isVideoFolder = folder && folder.includes('video');
-        const isValid = isVideoFolder 
-            ? validateVideo(fileName, fileType) 
-            : validateDoc(fileName, fileType);
+        // const isVideoFolder = folder && folder.includes('video');
+        // const isValid = isVideoFolder 
+        //     ? validateVideo(fileName, fileType) 
+        //     : validateDoc(fileName, fileType);
 
-        if (!isValid) {
-            throw { statusCode: 400, message: `Invalid file format for ${fileName} (${fileType}). Allowed: PDF, JPEG, PNG, WEBP${isVideoFolder ? ', MP4, MOV' : ''}.` };
-        }
+        // if (!isValid) {
+        //     throw { statusCode: 400, message: `Invalid file format for ${fileName} (${fileType}). Allowed: PDF, JPEG, PNG, WEBP${isVideoFolder ? ', MP4, MOV' : ''}.` };
+        // }
 
         const data = await documentService.generatePresignedUrl(fileName, fileType, folder);
         res.json({ success: true, data });
@@ -152,8 +152,8 @@ export const registerStandaloneFile = async (req, res, next) => {
         if (!fileKey) throw { statusCode: 400, message: 'fileKey is required for registration.' };
 
         // Validate format
-        const isValid = validateDoc(fileKey, fileType);
-        if (!isValid) throw { statusCode: 400, message: 'Invalid file format for registration.' };
+        // const isValid = validateDoc(fileKey, fileType);
+        // if (!isValid) throw { statusCode: 400, message: 'Invalid file format for registration.' };
 
         // We can reuse registerDocument service with a null entity if needed, 
         // or just return the key if it's meant to be temporary.
