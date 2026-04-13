@@ -72,17 +72,20 @@ export const globalSearch = async (query, user) => {
     results.vessels = await db.Vessel.findAll({
         where: vesselWhere,
         include: vesselInclude,
+        attributes: ['id', 'vessel_name', 'imo_number', 'client_id'],
         limit: 10
     });
 
     results.jobs = await db.JobRequest.findAll({
         where: jobWhere,
+        attributes: ['id', 'job_status', 'vessel_id', 'created_at'],
         limit: 10
     });
 
     results.certificates = await db.Certificate.findAll({
         where: certWhere,
         include: certInclude,
+        attributes: ['id', 'certificate_number', 'vessel_id', 'status', 'expiry_date'],
         limit: 10,
         subQuery: false
     });

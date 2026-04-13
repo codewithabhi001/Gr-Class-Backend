@@ -6,7 +6,17 @@ export const createFlag = async (data) => {
 };
 
 export const getFlags = async () => {
-    return await FlagAdministration.findAll();
+    return await FlagAdministration.findAll({
+        attributes: [
+            'id',
+            'flag_state_name',
+            'country',
+            'authority_name',
+            'contact_email',
+            'logo_url',
+            'status'
+        ]
+    });
 };
 export const getFlag = async (id) => {
     return await FlagAdministration.findByPk(id);

@@ -93,7 +93,8 @@ export const getFailedJobs = async () => {
         where: { job_status: 'REJECTED' },
         limit: 10,
         order: [['updatedAt', 'DESC']],
-        include: ['Vessel']
+        attributes: ['id', 'job_status', 'remarks', 'updatedAt'],
+        include: [{ model: db.Vessel, attributes: ['vessel_name'] }]
     });
     
     return rejected.map(r => ({

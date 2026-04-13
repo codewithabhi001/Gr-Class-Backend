@@ -35,6 +35,29 @@ WebsiteVideo:
       type: string
       format: date-time
 
+WebsiteVideoListItem:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    section:
+      type: string
+    title:
+      type: string
+    description:
+      type: string
+    video_url:
+      type: string
+      format: uri
+      nullable: true
+    thumbnail_url:
+      type: string
+      format: uri
+    created_at:
+      type: string
+      format: date-time
+
 WebsiteVideoInput:
   type: object
   required:
@@ -115,6 +138,53 @@ WebsiteContact:
         id:    { type: string, format: uuid }
         name:  { type: string, example: "Admin User" }
         email: { type: string, example: "admin@grclass.com" }
+
+WebsiteContactListItem:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    full_name:
+      type: string
+    company:
+      type: string
+      nullable: true
+    corporate_email:
+      type: string
+      format: email
+    phone:
+      type: string
+      nullable: true
+    subject:
+      type: string
+      nullable: true
+    source_page:
+      type: string
+    status:
+      type: string
+      enum: [NEW, READ, REPLIED, ARCHIVED]
+    internal_note:
+      type: string
+      nullable: true
+    replied_by:
+      type: string
+      format: uuid
+      nullable: true
+    replied_at:
+      type: string
+      format: date-time
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    Responder:
+      type: object
+      nullable: true
+      properties:
+        id:    { type: string, format: uuid }
+        name:  { type: string }
+        email: { type: string }
 
 WebsiteContactResponse:
   type: object

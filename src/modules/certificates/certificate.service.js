@@ -499,6 +499,7 @@ export const getCertificatesByVessel = async (vesselId, user) => {
 
     return await Certificate.findAll({
         where,
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         include: [{ model: db.CertificateType, attributes: ['name'] }],
         order: [['expiry_date', 'ASC']]
     });
@@ -803,7 +804,11 @@ export const previewCertificate = async (id, user) => {
 
 export const getHistory = async (id, user) => {
     await getCertificateById(id, user);
-    return await db.CertificateHistory.findAll({ where: { certificate_id: id }, order: [['changed_at', 'DESC']] });
+    return await db.CertificateHistory.findAll({
+        where: { certificate_id: id },
+        attributes: ['id', 'certificate_id', 'status', 'change_reason', 'changed_by_user_id', 'changed_at'],
+        order: [['changed_at', 'DESC']]
+    });
 };
 
 export const transferCertificate = async (id, newOwnerId, reason, userId) => {

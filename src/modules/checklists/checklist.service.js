@@ -23,7 +23,20 @@ export const getChecklist = async (jobId, filters = {}) => {
         ];
     }
 
-    const items = await ActivityPlanning.findAll({ where });
+    const items = await ActivityPlanning.findAll({
+        where,
+        attributes: [
+            'id',
+            'job_id',
+            'question_code',
+            'question_text',
+            'answer',
+            'remarks',
+            'file_url',
+            'created_at',
+            'updated_at'
+        ]
+    });
     return await fileAccessService.resolveEntity(items);
 };
 

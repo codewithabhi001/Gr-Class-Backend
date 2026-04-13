@@ -46,6 +46,17 @@ export const getClients = async (query) => {
     const { page = 1, limit = 10, ...filters } = query;
     const result = await Client.findAndCountAll({
         where: filters,
+        attributes: [
+            'id',
+            'company_name',
+            'company_code',
+            'status',
+            'email',
+            'phone',
+            'contact_person_name',
+            'contact_person_email',
+            'created_at'
+        ],
         include: [{ model: User, attributes: ['id'] }],
         distinct: true,
         limit: parseInt(limit),
@@ -100,22 +111,33 @@ export const updateProfile = async (userId, data) => {
 export const getDashboardData = async (clientId) => {
     if (!clientId) throw { statusCode: 404, message: 'Client not found' };
 
-    const vessels = await Vessel.findAll({ where: { client_id: clientId } });
+    const vessels = await Vessel.findAll({
+        where: { client_id: clientId },
+        attributes: ['id']
+    });
     const vesselIds = vessels.map(v => v.id);
 
     const jobs = await JobRequest.findAll({
         where: { vessel_id: vesselIds },
-        include: ['Vessel', 'CertificateType'],
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'job_status', 'created_at'],
+        include: [
+            { model: db.Vessel, attributes: ['id', 'vessel_name'] },
+            { model: db.CertificateType, attributes: ['id', 'name'] }
+        ],
         order: [['created_at', 'DESC']]
     });
 
     const certificates = await Certificate.findAll({
         where: { vessel_id: vesselIds },
-        include: ['Vessel']
+        attributes: ['id', 'vessel_id', 'certificate_number', 'expiry_date', 'status', 'created_at'],
+        include: [{ model: db.Vessel, attributes: ['id', 'vessel_name'] }]
     });
 
     const jobIds = jobs.map(j => j.id);
-    const payments = await Payment.findAll({ where: { job_id: jobIds } });
+    const payments = await Payment.findAll({
+        where: { job_id: jobIds },
+        attributes: ['id', 'job_id', 'payment_status']
+    });
 
     const stats = {
         total_vessels: vessels.length,
@@ -157,6 +179,17 @@ export const getClientDocuments = async (clientId, user) => {
     if (vesselIds.length > 0) {
         const vesselDocs = await db.VesselDocument.findAll({
             where: { vessel_id: vesselIds },
+            attributes: [
+                'id',
+                'vessel_id',
+                'file_url',
+                'file_type',
+                'document_type',
+                'description',
+                'uploaded_by',
+                'created_at',
+                'updated_at'
+            ],
             order: [['created_at', 'DESC']]
         });
         allDocs = allDocs.concat(vesselDocs.map(d => ({
@@ -169,6 +202,17 @@ export const getClientDocuments = async (clientId, user) => {
     if (jobIds.length > 0) {
         const jobDocs = await db.JobDocument.findAll({
             where: { job_id: jobIds },
+            attributes: [
+                'id',
+                'job_id',
+                'file_url',
+                'file_type',
+                'document_type',
+                'description',
+                'uploaded_by',
+                'created_at',
+                'updated_at'
+            ],
             order: [['created_at', 'DESC']]
         });
         allDocs = allDocs.concat(jobDocs.map(d => ({

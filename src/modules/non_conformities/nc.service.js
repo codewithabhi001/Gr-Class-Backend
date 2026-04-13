@@ -22,5 +22,8 @@ export const closeNC = async (id, remarks) => {
 };
 
 export const getByJob = async (jobId) => {
-    return await NonConformity.findAll({ where: { job_id: jobId } });
+    return await NonConformity.findAll({
+        where: { job_id: jobId },
+        attributes: ['id', 'job_id', 'description', 'severity', 'status', 'closure_remarks', 'closed_at', 'created_at', 'updated_at']
+    });
 };

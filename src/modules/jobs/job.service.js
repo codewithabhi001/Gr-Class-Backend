@@ -829,6 +829,7 @@ export const getJobHistory = async (id) => {
     const jobHistory = await JobStatusHistory.findAll({
         where: { job_id: id },
         order: [['created_at', 'ASC']],
+        attributes: ['id', 'job_id', 'previous_status', 'new_status', 'changed_by', 'reason', 'created_at'],
         include: [{ model: User, attributes: ['name', 'email', 'role'] }]
     });
 
@@ -836,6 +837,7 @@ export const getJobHistory = async (id) => {
     const surveyHistory = survey ? await db.SurveyStatusHistory.findAll({
         where: { survey_id: survey.id },
         order: [['created_at', 'ASC']],
+        attributes: ['id', 'survey_id', 'previous_status', 'new_status', 'changed_by', 'reason', 'submission_iteration', 'createdAt'],
         include: [{ model: User, as: 'User', attributes: ['name', 'email', 'role'] }]
     }) : [];
 

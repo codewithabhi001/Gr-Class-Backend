@@ -92,6 +92,20 @@ export const getAllEnquiries = async (query) => {
 
     return await WebsiteContact.findAndCountAll({
         where,
+        attributes: [
+            'id',
+            'full_name',
+            'company',
+            'corporate_email',
+            'phone',
+            'subject',
+            'source_page',
+            'status',
+            'internal_note',
+            'replied_by',
+            'replied_at',
+            'created_at'
+        ],
         include: [
             {
                 model: User,

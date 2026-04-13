@@ -19,7 +19,7 @@
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/WebsiteVideo'
+                $ref: '#/components/schemas/WebsiteVideoListItem'
     x-roles:
       - PUBLIC
 
@@ -38,7 +38,7 @@
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/WebsiteVideo'
+                $ref: '#/components/schemas/WebsiteVideoListItem'
     x-roles:
       - ADMIN
 

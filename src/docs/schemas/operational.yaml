@@ -114,3 +114,23 @@ FlagAdministrationResponse:
     updated_at:
       type: string
       format: date-time
+
+FlagAdministrationListItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    flag_state_name:
+      type: string
+    country:
+      type: string
+    authority_name:
+      type: string
+    contact_email:
+      type: string
+      format: email
+    logo_url:
+      type: string
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE]

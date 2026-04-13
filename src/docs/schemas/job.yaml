@@ -303,14 +303,14 @@ JobHistoryItem:
       $ref: '#/components/schemas/UUID'
     job_id:
       $ref: '#/components/schemas/UUID'
-    old_status:
+    previous_status:
       type: string
       nullable: true
     new_status:
       type: string
     changed_by:
       $ref: '#/components/schemas/UUID'
-    change_reason:
+    reason:
       type: string
     created_at:
       type: string
@@ -324,6 +324,50 @@ JobHistoryItem:
           type: string
         role:
           type: string
+
+SurveyHistoryItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    survey_id:
+      $ref: '#/components/schemas/UUID'
+    previous_status:
+      type: string
+      nullable: true
+    new_status:
+      type: string
+    changed_by:
+      $ref: '#/components/schemas/UUID'
+    reason:
+      type: string
+      nullable: true
+    submission_iteration:
+      type: integer
+    created_at:
+      type: string
+      format: date-time
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+JobHistoryResponse:
+  type: object
+  properties:
+    job_history:
+      type: array
+      items:
+        $ref: '#/components/schemas/JobHistoryItem'
+    survey_history:
+      type: array
+      items:
+        $ref: '#/components/schemas/SurveyHistoryItem'
 
 JobNoteResponse:
   type: object

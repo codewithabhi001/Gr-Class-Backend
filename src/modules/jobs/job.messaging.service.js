@@ -8,6 +8,7 @@ const User = db.User;
 export const getJobMessages = async (jobId, isInternal = false) => {
     const messages = await Message.findAll({
         where: { job_id: jobId, is_internal: isInternal },
+        attributes: ['id', 'job_id', 'sender_id', 'message_text', 'is_internal', 'attachment_url', 'created_at', 'updated_at'],
         include: [{ model: User, as: 'Sender', attributes: ['name', 'role'] }],
         order: [['created_at', 'ASC']]
     });

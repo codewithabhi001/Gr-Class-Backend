@@ -3,6 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import cookieParser from 'cookie-parser';
 import routes from './routes.js';
@@ -14,6 +17,9 @@ import { contextMiddleware } from './middlewares/context.middleware.js';
 import './models/index.js'; // Initialize DB
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const docsRoot = path.resolve(__dirname, '..', 'docs');
 
 // 0. Context Storage (Must be first to wrap all callbacks)
 app.use(contextMiddleware);
@@ -96,6 +102,29 @@ app.use('/api/v1', routes);
 
 // OpenAPI Swagger docs (role-specific: /api-docs, /api-docs/admin, /api-docs/gm, etc.)
 setupSwagger(app);
+
+// Serve generated docs folder (module-wise swagger, role-wise docs, etc.)
+app.use('/docs', express.static(docsRoot));
+
+// Friendly module swagger route without extension.
+app.get('/docs/swagger-by-module/:module', (req, res) => {
+    const moduleName = String(req.params.module || '').trim();
+    const baseDir = path.join(docsRoot, 'swagger-by-module');
+    const yamlFile = path.join(baseDir, `${moduleName}.yaml`);
+    const jsonFile = path.join(baseDir, `${moduleName}.json`);
+
+    if (fs.existsSync(yamlFile)) {
+        return res.sendFile(yamlFile);
+    }
+    if (fs.existsSync(jsonFile)) {
+        return res.sendFile(jsonFile);
+    }
+
+    return res.status(404).json({
+        success: false,
+        message: `Module swagger not found for '${moduleName}'.`,
+    });
+});
 
 // Error Logger - Logs detailed error information
 app.use(errorLogger);

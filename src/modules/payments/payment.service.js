@@ -127,9 +127,26 @@ export const getPayments = async (query, scopeFilters = {}) => {
 
     const result = await Payment.findAndCountAll({
         where: { ...allowedFilters, ...scopeFilters },
+        attributes: [
+            'id',
+            'job_id',
+            'invoice_number',
+            'amount',
+            'currency',
+            'payment_status',
+            'payment_date',
+            'receipt_url',
+            'verified_by_user_id',
+            'created_at',
+            'updated_at'
+        ],
         limit: parseInt(limit),
         offset: (page - 1) * limit,
-        include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }],
+        include: [{
+            model: JobRequest,
+            attributes: ['id', 'job_status', 'vessel_id'],
+            include: [{ model: Vessel, attributes: ['vessel_name'] }]
+        }],
         order: [['payment_date', 'DESC']]
     });
 

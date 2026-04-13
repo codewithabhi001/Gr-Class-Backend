@@ -47,6 +47,16 @@ PaymentResponse:
           properties:
             vessel_name: { type: string }
 
+PaymentListResponse:
+  type: object
+  properties:
+    count:
+      type: integer
+    rows:
+      type: array
+      items:
+        $ref: '#/components/schemas/PaymentResponse'
+
 CreateInvoiceRequest:
   type: object
   required:

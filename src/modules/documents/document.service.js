@@ -8,6 +8,17 @@ const Document = db.Document;
 export const getEntityDocuments = async (entityType, entityId) => {
     const documents = await Document.findAll({
         where: { entity_type: entityType, entity_id: entityId },
+        attributes: [
+            'id',
+            'entity_type',
+            'entity_id',
+            'file_url',
+            'file_type',
+            'document_type',
+            'description',
+            'uploaded_by',
+            'uploaded_at'
+        ],
         order: [['uploaded_at', 'DESC']]
     });
     return await fileAccessService.resolveEntity(documents);

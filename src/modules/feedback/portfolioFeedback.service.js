@@ -42,6 +42,17 @@ export const upsertFeedback = async (clientId, data) => {
  */
 export const getAllFeedbackAdmin = async () => {
     return await PortfolioFeedback.findAll({
+        attributes: [
+            'id',
+            'client_id',
+            'comment',
+            'rating',
+            'designation',
+            'company',
+            'is_visible',
+            'created_at',
+            'updated_at'
+        ],
         include: [{
             model: User,
             as: 'Client',
@@ -57,7 +68,16 @@ export const getAllFeedbackAdmin = async () => {
 export const getPublicFeedback = async () => {
     return await PortfolioFeedback.findAll({
         where: { is_visible: true },
-        attributes: { exclude: ['is_visible'] },
+        attributes: [
+            'id',
+            'client_id',
+            'comment',
+            'rating',
+            'designation',
+            'company',
+            'created_at',
+            'updated_at'
+        ],
         include: [{
             model: User,
             as: 'Client',
@@ -73,7 +93,16 @@ export const getPublicFeedback = async () => {
 export const getClientFeedback = async (clientId) => {
     return await PortfolioFeedback.findOne({
         where: { client_id: clientId },
-        attributes: { exclude: ['is_visible'] }
+        attributes: [
+            'id',
+            'client_id',
+            'comment',
+            'rating',
+            'designation',
+            'company',
+            'created_at',
+            'updated_at'
+        ]
     });
 };
 

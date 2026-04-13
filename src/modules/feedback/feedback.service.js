@@ -51,6 +51,22 @@ export const getAllFeedback = async (query) => {
         limit: parseInt(limit),
         offset: (page - 1) * limit,
         order: [['created_at', 'DESC']], // Use created_at if submitted_at doesn't exist
-        include: ['Client']
+        attributes: [
+            'id',
+            'job_id',
+            'client_id',
+            'rating',
+            'timeliness',
+            'professionalism',
+            'documentation',
+            'remarks',
+            'submitted_at',
+            'created_at'
+        ],
+        include: [{
+            model: db.User,
+            as: 'Client',
+            attributes: ['id', 'name', 'email']
+        }]
     });
 };

@@ -7,6 +7,7 @@ export const getAuthorities = async (req, res, next) => {
     try {
         const authorities = await db.CertificateAuthority.findAll({
             where: { status: 'ACTIVE' },
+            attributes: ['id', 'name', 'code', 'country', 'logo_url', 'status'],
             order: [['name', 'ASC']]
         });
         const resolved = await fileAccessService.resolveEntity(authorities, req.user);

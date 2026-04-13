@@ -39,6 +39,7 @@ export const getVideos = async (section) => {
 
     const videos = await WebsiteVideo.findAll({
         where: whereClause,
+        attributes: ['id', 'section', 'title', 'description', 'video_url', 'thumbnail_url', 'created_at'],
         order: [['created_at', 'DESC']]
     });
 

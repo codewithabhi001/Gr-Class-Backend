@@ -86,6 +86,7 @@ export const notifyRoles = async (roles, title, message, type = 'INFO') => {
 export const getNotifications = async (userId) => {
     return await Notification.findAll({
         where: { user_id: userId },
+        attributes: ['id', 'title', 'message', 'type', 'is_read', 'created_at'],
         order: [['created_at', 'DESC']],
         limit: 50
     });

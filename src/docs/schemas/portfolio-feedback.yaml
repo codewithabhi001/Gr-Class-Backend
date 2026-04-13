@@ -9,6 +9,10 @@ PortfolioFeedback:
       format: uuid
     comment:
       type: string
+    rating:
+      type: integer
+      minimum: 1
+      maximum: 5
     designation:
       type: string
     company:
@@ -45,6 +49,10 @@ PortfolioFeedbackPublic:
       format: uuid
     comment:
       type: string
+    rating:
+      type: integer
+      minimum: 1
+      maximum: 5
     designation:
       type: string
     company:

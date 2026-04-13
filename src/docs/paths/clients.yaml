@@ -30,7 +30,7 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ClientResponse'
+                    $ref: '#/components/schemas/ClientListItem'
       "403":
         description: Forbidden
         content:

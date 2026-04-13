@@ -517,10 +517,18 @@ export const getTimeline = async (id, user) => {
         throw { statusCode: 400, message: "Survey not required for this job." };
     }
 
-    const gps = await GpsTracking.findAll({ where: { job_id: id }, order: [['timestamp', 'ASC']] });
+    const gps = await GpsTracking.findAll({
+        where: { job_id: id },
+        attributes: ['id', 'job_id', 'surveyor_id', 'vessel_id', 'latitude', 'longitude', 'timestamp'],
+        order: [['timestamp', 'ASC']]
+    });
     const survey = await Survey.findOne({
         where: { job_id: id },
-        include: [{ model: db.SurveyStatusHistory, as: 'SurveyStatusHistories' }],
+        include: [{
+            model: db.SurveyStatusHistory,
+            as: 'SurveyStatusHistories',
+            attributes: ['id', 'survey_id', 'previous_status', 'new_status', 'changed_by', 'reason', 'submission_iteration', 'createdAt']
+        }],
         order: [[{ model: db.SurveyStatusHistory, as: 'SurveyStatusHistories' }, 'created_at', 'ASC']]
     });
     return { job_id: id, gps_trace: gps, survey_details: await fileAccessService.resolveEntity(survey, { id: user?.id }) };
@@ -689,4 +697,3 @@ export const syncOfflineData = async (jobId, { checklist = [], gps_points = [] }
         throw error;
     }
 };
-

@@ -9,9 +9,17 @@
  *   /api-docs/client   - CLIENT role view
  */
 import swaggerUi from 'swagger-ui-express';
+import swaggerUiDist from 'swagger-ui-dist';
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { clearCache, getSpecForRole } from '../docs/build-openapi.js';
 
 const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'ta', 'flag_admin', 'public'];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const MODULE_SWAGGER_DIR = path.resolve(__dirname, '../../docs/swagger-by-module');
 
 const ROLE_MAP = {
   admin: 'ADMIN',
@@ -43,6 +51,10 @@ const SWAGGER_OPTIONS = {
  * Uses swaggerUrl to load role-specific spec from /api-docs/spec/:role.json
  */
 export function setupSwagger(app) {
+  // Serve Swagger UI static assets for module pages from a dedicated path
+  // so we never load default swagger-initializer.js (petstore URL).
+  app.use('/api-docs/module-assets', express.static(swaggerUiDist.getAbsoluteFSPath()));
+
   // Spec endpoints - must be before the catch-all to avoid static file conflict
   app.get('/api-docs/spec.json', (req, res) => {
     // Rebuild on each request so docs edits appear instantly in dev.
@@ -67,6 +79,11 @@ export function setupSwagger(app) {
 
   // Swagger UI: serve static first, then custom HTML for index paths
   const customHandler = (req, res, next) => {
+    // Let dedicated module swagger endpoints handle /api-docs/module/*
+    if (req.path.startsWith('/module')) {
+      return next();
+    }
+
     // If it's a static file request (.css, .js, .png, etc.), let swaggerUi.serve handle it
     if (req.path.includes('.') || req.path.endsWith('.css') || req.path.endsWith('.js')) {
       return next();
@@ -101,4 +118,185 @@ export function setupSwagger(app) {
   };
 
   app.use('/api-docs', swaggerUi.serve, customHandler);
+
+  // Module-wise Swagger UI (interactive)
+  app.get('/api-docs/module', (req, res) => {
+    if (!fs.existsSync(MODULE_SWAGGER_DIR)) {
+      return res.status(404).json({ success: false, message: 'Module swagger directory not found.' });
+    }
+    const modules = fs
+      .readdirSync(MODULE_SWAGGER_DIR)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.replace(/\.json$/, ''))
+      .sort();
+
+    if (String(req.query.format || '').toLowerCase() === 'json') {
+      return res.json({
+        success: true,
+        count: modules.length,
+        modules,
+        open_url_pattern: '/api-docs/module/{moduleName}',
+      });
+    }
+
+    const moduleLinks = modules
+      .map((m) => `
+        <a class="card" href="/api-docs/module/${m}">
+          <span class="name">${m}</span>
+          <span class="hint">Open Swagger</span>
+        </a>
+      `)
+      .join('\n');
+
+    const html = `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Module Swagger Index</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #0b1020;
+        color: #e7eaf3;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .title {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      .sub {
+        margin: 0 0 18px;
+        opacity: 0.85;
+      }
+      .tools {
+        margin-bottom: 20px;
+      }
+      .tools a {
+        color: #99c2ff;
+        text-decoration: none;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        display: block;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        padding: 14px;
+        text-decoration: none;
+        color: inherit;
+        background: rgba(255,255,255,0.02);
+      }
+      .card:hover {
+        border-color: #7cb1ff;
+        background: rgba(124,177,255,0.08);
+      }
+      .name {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .hint {
+        display: block;
+        font-size: 12px;
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1 class="title">Module Swagger</h1>
+      <p class="sub">Total modules: <strong>${modules.length}</strong></p>
+      <div class="tools">
+        <a href="/api-docs">Open Full Role-Based Swagger</a> |
+        <a href="/api-docs/module?format=json">View modules JSON</a>
+      </div>
+      <div class="grid">
+        ${moduleLinks}
+      </div>
+    </div>
+  </body>
+</html>
+    `;
+
+    return res.type('html').send(html);
+  });
+
+  app.get('/api-docs/module/spec/:module', (req, res) => {
+    const moduleName = String(req.params.module || '').trim();
+    const filePath = path.join(MODULE_SWAGGER_DIR, `${moduleName}.json`);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: `Module '${moduleName}' not found.` });
+    }
+    return res.sendFile(filePath);
+  });
+
+  app.get('/api-docs/module/:module', (req, res) => {
+    const moduleName = String(req.params.module || '').trim();
+    const filePath = path.join(MODULE_SWAGGER_DIR, `${moduleName}.json`);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: `Module '${moduleName}' not found. Use /api-docs/module to list available modules.`,
+      });
+    }
+
+    const html = `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Swagger - ${moduleName} module</title>
+    <link rel="stylesheet" type="text/css" href="/api-docs/module-assets/swagger-ui.css" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="/api-docs/module-assets/swagger-ui-bundle.js"></script>
+    <script src="/api-docs/module-assets/swagger-ui-standalone-preset.js"></script>
+    <script src="/api-docs/module/init/${moduleName}.js"></script>
+  </body>
+</html>
+    `;
+    return res.type('html').send(html);
+  });
+
+  app.get('/api-docs/module/init/:module.js', (req, res) => {
+    const moduleName = String(req.params.module || '').trim();
+    const filePath = path.join(MODULE_SWAGGER_DIR, `${moduleName}.json`);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).type('application/javascript').send('console.error("Module swagger not found.");');
+    }
+
+    const specUrl = `/api-docs/module/spec/${moduleName}`;
+    const js = `
+window.onload = function () {
+  SwaggerUIBundle({
+    url: ${JSON.stringify(specUrl)},
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+    layout: 'BaseLayout',
+    docExpansion: 'list',
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true,
+    validatorUrl: null
+  });
+};
+`.trim();
+
+    return res.type('application/javascript').send(js);
+  });
 }

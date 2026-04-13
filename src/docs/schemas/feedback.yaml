@@ -33,6 +33,27 @@ CustomerFeedback:
       type: string
       format: date-time
 
+CustomerFeedbackListItem:
+  allOf:
+    - $ref: '#/components/schemas/CustomerFeedback'
+    - type: object
+      properties:
+        Client:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            email: { type: string }
+
+CustomerFeedbackListResponse:
+  type: object
+  properties:
+    count: { type: integer }
+    rows:
+      type: array
+      items:
+        $ref: '#/components/schemas/CustomerFeedbackListItem'
+
 CustomerFeedbackResponse:
   type: object
   properties:

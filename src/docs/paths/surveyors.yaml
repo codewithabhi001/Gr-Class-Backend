@@ -86,7 +86,16 @@
     operationId: getSurveyorApplications
     x-roles: [ADMIN, TM]
     responses:
-      "200": { description: List of applications }
+      "200":
+        description: List of applications
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SurveyorApplicationListResponse'
       "403": { description: Forbidden }
 
 /api/v1/surveyors/applications/{id}/review:
@@ -213,5 +222,16 @@
         required: true
         schema: { type: string, format: uuid }
     responses:
-      "200": { description: Location history }
+      "200":
+        description: Location history
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/GpsTrackingResponse'
       "403": { description: Forbidden }

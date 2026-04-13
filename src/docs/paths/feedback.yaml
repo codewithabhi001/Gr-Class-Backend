@@ -28,7 +28,16 @@
     operationId: getAllFeedback
     x-roles: [ADMIN, GM]
     responses:
-      "200": { description: List of feedback }
+      "200":
+        description: List of feedback
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/CustomerFeedbackListResponse'
       "403": { description: Forbidden }
 
 /api/v1/customer-feedback/job/{jobId}:

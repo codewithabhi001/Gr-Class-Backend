@@ -122,23 +122,27 @@ const getOperationalStats = async () => {
         }),
         SurveyorApplication.findAll({
             limit: 5,
+            attributes: ['id', 'full_name', 'email', 'phone', 'status', 'created_at'],
             order: [['createdAt', 'DESC']]
         }),
         Survey.findAll({
             limit: 5,
             order: [['createdAt', 'DESC']],
+            attributes: ['id', 'job_id', 'survey_status', 'submitted_at', 'created_at'],
             include: [
-                { model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] },
+                { model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'], include: [{ model: Vessel, attributes: ['vessel_name'] }] },
                 { model: User, attributes: ['name', 'email'] }
             ]
         }),
         NonConformity.findAll({
             limit: 5,
             order: [['createdAt', 'DESC']],
-            include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
+            attributes: ['id', 'job_id', 'description', 'severity', 'status', 'created_at'],
+            include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'], include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
         }),
         WebsiteContact.findAll({
             limit: 5,
+            attributes: ['id', 'full_name', 'company', 'corporate_email', 'status', 'created_at'],
             order: [['createdAt', 'DESC']]
         })
     ]);

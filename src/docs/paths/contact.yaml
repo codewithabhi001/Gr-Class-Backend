@@ -128,7 +128,7 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/WebsiteContact'
+                    $ref: '#/components/schemas/WebsiteContactListItem'
       "403":
         description: Forbidden
 

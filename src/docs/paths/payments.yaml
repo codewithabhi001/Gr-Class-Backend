@@ -28,16 +28,16 @@
                   type: boolean
                   example: true
                 data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/PaymentResponse'
+                  $ref: '#/components/schemas/PaymentListResponse'
             example:
               success: true
               data:
-                - id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-                  invoice_number: "INV-2026-001234"
-                  amount: 1500.00
-                  payment_status: "UNPAID"
+                count: 1
+                rows:
+                  - id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                    invoice_number: "INV-2026-001234"
+                    amount: 1500.00
+                    payment_status: "UNPAID"
       "401":
         description: Unauthorized
         content:

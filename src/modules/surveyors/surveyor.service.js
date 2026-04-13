@@ -77,6 +77,17 @@ export const getApplications = async (query, user = null) => {
 
     const { count, rows } = await SurveyorApplication.findAndCountAll({
         where,
+        attributes: [
+            'id',
+            'full_name',
+            'email',
+            'phone',
+            'nationality',
+            'qualification',
+            'years_of_experience',
+            'status',
+            'created_at'
+        ],
         limit: parseInt(limit),
         offset: (page - 1) * limit
     });
@@ -241,6 +252,7 @@ export const reportLocation = async (userId, locationData) => {
 export const getGPSHistory = async (userId) => {
     return await db.GpsTracking.findAll({
         where: { surveyor_id: userId },
+        attributes: ['id', 'job_id', 'surveyor_id', 'vessel_id', 'latitude', 'longitude', 'timestamp'],
         order: [['timestamp', 'DESC']],
         limit: 100
     });

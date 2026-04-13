@@ -166,6 +166,40 @@ SurveyorApplicationResponse:
       type: string
       format: date-time
 
+SurveyorApplicationListItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    full_name:
+      type: string
+    email:
+      type: string
+      format: email
+    phone:
+      type: string
+    nationality:
+      type: string
+    qualification:
+      type: string
+    years_of_experience:
+      type: integer
+    status:
+      type: string
+      enum: [PENDING, DOCUMENTS_REQUIRED, APPROVED, REJECTED]
+    created_at:
+      type: string
+      format: date-time
+
+SurveyorApplicationListResponse:
+  type: object
+  properties:
+    count: { type: integer }
+    rows:
+      type: array
+      items:
+        $ref: '#/components/schemas/SurveyorApplicationListItem'
+
 SurveyorReviewRequest:
   type: object
   required:
