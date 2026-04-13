@@ -5,39 +5,21 @@ import path from 'path';
  * Standalone validation for images
  */
 export const validateImage = (fileName, mimeType) => {
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-
-    const mimeTypeOk = allowedMimeTypes.includes(mimeType);
-    const extensionOk = allowedExtensions.includes(path.extname(fileName).toLowerCase());
-
-    return mimeTypeOk && extensionOk;
+    return true; // allow all formats
 };
 
 /**
  * Standalone validation for documents (PDF + Images)
  */
 export const validateDoc = (fileName, mimeType) => {
-    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
-
-    const mimeTypeOk = allowedMimeTypes.includes(mimeType);
-    const extensionOk = allowedExtensions.includes(path.extname(fileName).toLowerCase());
-
-    return mimeTypeOk && extensionOk;
+    return true; // allow all formats
 };
 
 /**
  * Standalone validation for videos
  */
 export const validateVideo = (fileName, mimeType) => {
-    const allowedMimeTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'image/jpeg', 'image/png', 'image/webp'];
-    const allowedExtensions = ['.mp4', '.mpeg', '.mov', '.avi', '.mkv', '.jpg', '.jpeg', '.png', '.webp'];
-
-    const mimeTypeOk = allowedMimeTypes.includes(mimeType);
-    const extensionOk = allowedExtensions.includes(path.extname(fileName).toLowerCase());
-
-    return mimeTypeOk && extensionOk;
+    return true; // allow all formats
 };
 
 /**
