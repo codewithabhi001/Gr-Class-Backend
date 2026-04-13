@@ -63,18 +63,15 @@ const defaultLimits = {
 // Multer instances
 export const imageUpload = multer({
     storage: multer.memoryStorage(),
-    limits: defaultLimits,
-    fileFilter: imageFileFilter
+    limits: defaultLimits
 });
 
 export const docUpload = multer({
     storage: multer.memoryStorage(),
-    limits: defaultLimits,
-    fileFilter: docFileFilter
+    limits: defaultLimits
 });
 
 export const videoUpload = multer({
     storage: multer.memoryStorage(),
-    limits: defaultLimits,
-    fileFilter: videoFileFilter
+    limits: defaultLimits
 });
