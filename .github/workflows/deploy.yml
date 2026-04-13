@@ -41,6 +41,7 @@ jobs:
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "cd $DEPLOY_DIR && \
              git fetch origin ${{ github.ref_name }} && \
+             git pull origin ${{ github.ref_name }} && \
              git reset --hard origin/${{ github.ref_name }} && \
              npm install --omit=dev && \
              pm2 reload $PM2_NAME --update-env || pm2 start src/server.js --name $PM2_NAME --update-env && pm2 save"
