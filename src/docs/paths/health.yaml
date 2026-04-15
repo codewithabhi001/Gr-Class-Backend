@@ -5,7 +5,7 @@
     description: Returns server health status. No authentication required.
     security: []
     operationId: getHealth
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200":
         description: Server is healthy

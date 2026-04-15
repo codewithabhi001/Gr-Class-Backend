@@ -4,7 +4,7 @@
     summary: Global search
     description: Search across vessels, jobs, and certificates. Results are filtered by user's role and scope.
     operationId: globalSearch
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     parameters:
       - name: q
         in: query

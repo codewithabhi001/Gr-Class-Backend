@@ -22,7 +22,7 @@ router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), paymentControl
 router.post('/invoice', authorizeRoles('ADMIN', 'GM', 'TM'), paymentController.createInvoice);
 
 // Mark an invoice as paid
-router.put('/:id/pay', authorizeRoles('ADMIN', 'GM', 'TM', 'TA'), upload.single('receipt'), paymentController.markPaid);
+router.put('/:id/pay', authorizeRoles('ADMIN', 'GM', 'TM'), upload.single('receipt'), paymentController.markPaid);
 
 // Process Refund
 router.post('/:id/refund', authorizeRoles('ADMIN', 'GM'), paymentController.refund);

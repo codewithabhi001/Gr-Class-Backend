@@ -6,6 +6,6 @@ import * as dashboardController from './dashboard.controller.js';
 const router = express.Router();
 router.use(authenticate);
 
-router.get('/', authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN'), dashboardController.getDashboard);
+router.get('/', authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT'), dashboardController.getDashboard);
 
 export default router;

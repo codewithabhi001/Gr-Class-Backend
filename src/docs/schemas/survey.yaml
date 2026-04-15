@@ -44,6 +44,9 @@ SurveyReportResponse:
     survey_statement_pdf_url:
       type: string
       format: uri
+    signed_checklist_files:
+      type: array
+      items: { type: string }
     started_at:
       type: string
       format: date-time
@@ -112,6 +115,9 @@ SurveyListResponse:
     survey_statement_pdf_url:
       type: string
       format: uri
+    signed_checklist_files:
+      type: array
+      items: { type: string }
     JobRequest:
       type: object
       properties:

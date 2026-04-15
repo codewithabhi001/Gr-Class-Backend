@@ -22,6 +22,17 @@ router.post(
 );
 
 /**
+ * @route   GET /api/v1/checklist-templates/get-upload-url
+ * @desc    Get a pre-signed URL for uploading a checklist template PDF
+ * @access  ADMIN only
+ */
+router.get(
+    '/get-upload-url',
+    authorizeRoles('ADMIN'),
+    checklistTemplateController.getUploadUrl
+);
+
+/**
  * @route   GET /api/v1/checklist-templates
  * @desc    Get all checklist templates (with optional filters)
  * @access  ADMIN, GM, TM, SURVEYOR
@@ -31,6 +42,18 @@ router.get(
     '/',
     authorizeRoles('ADMIN', 'GM', 'TM', 'SURVEYOR'),
     checklistTemplateController.getChecklistTemplates
+);
+
+/**
+ * @route   GET /api/v1/checklist-templates/job/:jobId/download
+ * @desc    Download a job-specific, auto-filled checklist DOCX (generated + cached)
+ * @access  SURVEYOR, ADMIN, GM, TM, TO
+ * @query   ?force=true to regenerate
+ */
+router.get(
+    '/job/:jobId/download',
+    authorizeRoles('SURVEYOR', 'ADMIN', 'GM', 'TM', 'TO'),
+    checklistTemplateController.downloadChecklistTemplateForJob
 );
 
 /**

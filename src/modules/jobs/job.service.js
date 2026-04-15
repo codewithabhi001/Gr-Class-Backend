@@ -207,7 +207,7 @@ export const createJobForClient = async (data, clientId, userId) => {
 
 const ALLOWED_JOB_FILTERS = ['id', 'vessel_id', 'certificate_type_id', 'requested_by_user_id',
     'assigned_surveyor_id', 'assigned_by_user_id', 'target_port', 'target_date'];
-const INTERNAL_RECENT_ROLES = new Set(['ADMIN', 'GM', 'TM', 'TO', 'TA', 'FLAG_ADMIN']);
+const INTERNAL_RECENT_ROLES = new Set(['ADMIN', 'GM', 'TM', 'TO']);
 const RECENT_JOBS_DEFAULT_DAYS = 30;
 
 const parseCsvOrSingle = (value) => {

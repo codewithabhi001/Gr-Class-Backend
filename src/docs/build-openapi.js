@@ -14,7 +14,7 @@ const DOCS_DIR = __dirname;
 const SCHEMAS_DIR = path.join(DOCS_DIR, 'schemas');
 const PATHS_DIR = path.join(DOCS_DIR, 'paths');
 
-const ROLES = ['ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN', 'PUBLIC'];
+const ROLES = ['ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'PUBLIC'];
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
 
 /**

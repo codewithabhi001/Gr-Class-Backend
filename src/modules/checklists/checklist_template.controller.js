@@ -64,6 +64,38 @@ export const getChecklistTemplateForJob = async (req, res, next) => {
 };
 
 /**
+ * Download an auto-filled checklist DOCX for a job (generated + cached)
+ */
+export const downloadChecklistTemplateForJob = async (req, res, next) => {
+    try {
+        const force = String(req.query.force || '').toLowerCase() === 'true';
+        const data = await checklistTemplateService.downloadChecklistTemplateForJob(req.params.jobId, req.user, { force });
+        res.json({ success: true, data });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get a pre-signed URL for uploading a checklist template PDF
+ */
+export const getUploadUrl = async (req, res, next) => {
+    try {
+        const { fileName, contentType } = req.query;
+        if (!fileName || !contentType) {
+            return res.status(400).json({ success: false, message: 'fileName and contentType are required' });
+        }
+        const data = await checklistTemplateService.getUploadUrl(fileName, contentType, req.user.id);
+        res.json({
+            success: true,
+            data
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * Update a checklist template
  */
 export const updateChecklistTemplate = async (req, res, next) => {

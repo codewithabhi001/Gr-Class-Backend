@@ -17,6 +17,7 @@
               description: { type: string }
               certificate_type_id: { type: string, format: uuid }
               sections: { type: array }
+              template_files: { type: array, items: { type: string } }
               status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
           example:
             name: "Safety Equipment Inspection"
@@ -53,6 +54,37 @@
       "200": { description: List of templates }
       "403": { description: Forbidden }
 
+/api/v1/checklist-templates/get-upload-url:
+  get:
+    tags: [Checklist Templates]
+    summary: Get upload URL for checklist template
+    operationId: getChecklistTemplateUploadUrl
+    x-roles: [ADMIN]
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string }
+      - name: contentType
+        in: query
+        required: true
+        schema: { type: string }
+    responses:
+      "200":
+        description: Upload URL generated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    uploadUrl: { type: string }
+                    fileKey: { type: string }
+      "403": { description: Forbidden }
+
 /api/v1/checklist-templates/job/{jobId}:
   get:
     tags: [Checklist Templates]
@@ -66,6 +98,41 @@
         schema: { type: string, format: uuid }
     responses:
       "200": { description: Template for job }
+      "403": { description: Forbidden }
+
+/api/v1/checklist-templates/job/{jobId}/download:
+  get:
+    tags: [Checklist Templates]
+    summary: Download auto-filled checklist DOCX for job
+    description: Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.
+    operationId: downloadChecklistTemplateForJob
+    x-roles: [SURVEYOR, ADMIN, GM, TM, TO]
+    parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: force
+        in: query
+        required: false
+        schema: { type: boolean, default: false }
+        description: Regenerate even if cached document exists
+    responses:
+      "200":
+        description: Signed URL for filled DOCX
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    fileName: { type: string }
+                    contentType: { type: string }
+                    expiresAt: { type: string, format: date-time, nullable: true }
+                    signedUrl: { type: string }
       "403": { description: Forbidden }
 
 /api/v1/checklist-templates/{id}:

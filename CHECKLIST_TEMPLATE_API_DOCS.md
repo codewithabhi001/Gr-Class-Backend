@@ -63,13 +63,21 @@ All endpoints are prefixed with: `/api/v1/checklist-templates`
     }
   ],
   "status": "ACTIVE",
+  "template_files": [
+     "checklist-templates/blank-hull-form.pdf",
+     "checklist-templates/machinery-annex.docx"
+  ],
   "metadata": {
     "version": "1.0",
-    "applicable_vessel_types": ["CARGO", "TANKER", "PASSENGER"],
-    "estimated_completion_time_minutes": 45
+    "applicable_vessel_types": ["CARGO", "TANKER", "PASSENGER"]
   }
 }
 ```
+
+### New Endpoint: Get Upload URL for Templates
+**Endpoint:** `GET /api/v1/checklist-templates/get-upload-url?fileName=test.pdf&contentType=application/pdf`  
+**Access:** ADMIN only  
+**Description:** Get an S3 pre-signed URL to upload a blank master template.
 
 ### Response
 ```json
@@ -170,12 +178,36 @@ GET /api/v1/checklist-templates/job/job-uuid-123
         ]
       }
     ],
+    "template_files": [
+       "https://.../signed-download-link-1",
+       "https://.../signed-download-link-2"
+    ],
     "CertificateType": {
       "id": "cert-type-uuid",
       "name": "Safety Equipment Certificate",
       "issuing_authority": "CLASS"
     }
   }
+}
+```
+
+---
+
+## 4. Surveyor Hybrid Flow (Signed Scans)
+
+When a survey is handled physically, use these endpoints to manage the signed scans.
+
+### 4.1 Get Upload URL for Signed Scans
+**Endpoint:** `GET /api/v1/surveys/jobs/:jobId/signed-checklist-upload-url?fileName=scan.pdf&contentType=application/pdf`  
+**Access:** SURVEYOR  
+
+### 4.2 Save Signed File Keys
+**Endpoint:** `PUT /api/v1/surveys/jobs/:jobId/signed-checklist`  
+**Access:** SURVEYOR  
+**Body:**
+```json
+{
+  "fileKeys": ["surveys/signed-checklists/job123/scan.pdf"]
 }
 ```
 

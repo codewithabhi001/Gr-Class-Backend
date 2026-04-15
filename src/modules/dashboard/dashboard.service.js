@@ -29,10 +29,8 @@ export const getAdminDashboard = async () => {
                 gm: roleCounts.GM || 0,
                 tm: roleCounts.TM || 0,
                 to: roleCounts.TO || 0,
-                ta: roleCounts.TA || 0,
                 surveyors: stats.surveyorCount,
                 clients: roleCounts.CLIENT || 0,
-                flag_admin: roleCounts.FLAG_ADMIN || 0,
             },
         },
         client_with_vessels: stats.client_with_vessels,
@@ -299,18 +297,6 @@ export const getTODashboard = async (user) => {
     };
 }
 
-export const getTADashboard = async (user) => {
-    const stats = await getOperationalStats();
-    return {
-        role: 'TA',
-        summary: stats.summary,
-        recent_activities: {
-            jobs: stats.recent_activities.jobs,
-            surveys: stats.recent_activities.surveys
-        }
-    };
-}
-
 export const getSurveyorDashboard = async (user) => {
     const [assignedJobs, allJobsRaw, allSurveysRaw, openNCsCount, profile] = await Promise.all([
         JobRequest.findAll({
@@ -556,34 +542,6 @@ export const getClientDashboard = async (clientId) => {
             }))
     };
 };
-
-export const getFlagAdminDashboard = async () => {
-    let flags = 0, flagsActive = 0;
-    try {
-        [flags, flagsActive] = await Promise.all([
-            FlagAdministration.count(),
-            FlagAdministration.count({ where: { status: 'ACTIVE' } }),
-        ]);
-    } catch (_) {
-        // FlagAdministration table may not exist or be empty
-    }
-
-    let flagList = [];
-    try {
-        flagList = await FlagAdministration.findAll({
-            attributes: ['id', 'flag_state_name', 'country', 'status'],
-            raw: true,
-        });
-    } catch (_) { }
-    return {
-        role: 'FLAG_ADMIN',
-        summary: {
-            flags_total: flags,
-            flags_active: flagsActive,
-        },
-        flags: flagList,
-    };
-}
 
 export const getDefaultDashboard = async (user) => {
     return {

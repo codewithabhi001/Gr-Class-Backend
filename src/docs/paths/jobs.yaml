@@ -8,7 +8,7 @@
 #             review, send-back, reject, cancel, priority, history, notes, messages
 #   ADMIN   : full access (all endpoints)
 #   TO      : list, get, verify-documents, review, send-back, history, notes, messages
-#   TA/FLAG_ADMIN : list only
+#   ADMIN/GM/TM/TO/SURVEYOR/CLIENT : role-based access only
 #   SURVEYOR: list (assigned jobs), get, messages
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -21,13 +21,13 @@
       Returns a paginated list of job requests. Visible set depends on caller role:
       - **CLIENT** – Only jobs for their fleet (vessel_id filtered to client).
       - **SURVEYOR** – Only jobs assigned to them (`assigned_surveyor_id = me`).
-      - **ADMIN / GM / TM / TO / TA / FLAG_ADMIN** – All jobs; defaults to last 30 days
+      - **ADMIN / GM / TM / TO** – All jobs; defaults to last 30 days
         unless explicit filters are supplied.
 
       Supply `status` as a **comma-separated** string to filter by multiple statuses,
       e.g. `?status=ASSIGNED,SURVEY_AUTHORIZED`.
     operationId: getJobs
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, TA, FLAG_ADMIN, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
     parameters:
       - name: page
         in: query

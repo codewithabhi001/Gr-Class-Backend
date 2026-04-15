@@ -1,8 +1,12 @@
 import db from '../../models/index.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
+import * as s3Service from '../../services/s3.service.js';
+import { fillDocxContentControls } from '../../utils/docxFill.util.js';
 
 const ChecklistTemplate = db.ChecklistTemplate;
 const CertificateType = db.CertificateType;
 const JobRequest = db.JobRequest;
+const Document = db.Document;
 
 /**
  * Create a new checklist template
@@ -13,6 +17,7 @@ export const createChecklistTemplate = async (data, userId) => {
         code: data.code,
         description: data.description,
         sections: data.sections,
+        template_files: data.template_files,
         certificate_type_id: data.certificate_type_id,
         status: data.status || 'DRAFT',
         metadata: data.metadata || {},
@@ -78,7 +83,7 @@ export const getChecklistTemplateById = async (id) => {
         throw { statusCode: 404, message: 'Checklist template not found' };
     }
 
-    return template;
+    return await fileAccessService.resolveEntity(template);
 };
 
 /**
@@ -117,7 +122,133 @@ export const getChecklistTemplateForJob = async (jobId) => {
         };
     }
 
-    return template;
+    return await fileAccessService.resolveEntity(template);
+};
+
+const buildTagValuesForJob = (job) => {
+    const vessel = job?.Vessel || job?.Vessel?.dataValues || null;
+    const client = vessel?.Client || vessel?.Client?.dataValues || null;
+    const surveyor = job?.surveyor || job?.surveyor?.dataValues || null;
+    const certType = job?.CertificateType || job?.CertificateType?.dataValues || null;
+
+    const toDate = (v) => {
+        if (!v) return '';
+        try {
+            const d = (v instanceof Date) ? v : new Date(v);
+            if (Number.isNaN(d.getTime())) return String(v);
+            return d.toISOString().slice(0, 10);
+        } catch {
+            return String(v);
+        }
+    };
+
+    return {
+        vessel_name: vessel?.vessel_name || '',
+        imo_number: vessel?.imo_number || '',
+        call_sign: vessel?.call_sign || '',
+        mmsi_number: vessel?.mmsi_number || '',
+        port_of_registry: vessel?.port_of_registry || '',
+        year_built: vessel?.year_built ?? '',
+        ship_type: vessel?.ship_type || '',
+        gross_tonnage: vessel?.gross_tonnage ?? '',
+        net_tonnage: vessel?.net_tonnage ?? '',
+        deadweight: vessel?.deadweight ?? '',
+
+        owner_operators: client?.company_name || '',
+
+        survey_commenced_date: toDate(job?.target_date || job?.createdAt || job?.created_at),
+        survey_completed_date: '',
+        place_of_survey: job?.target_port || '',
+        job_id: job?.id || '',
+        certificate_type: certType?.name || '',
+
+        surveyor_name: surveyor?.name || '',
+    };
+};
+
+/**
+ * Download a job-specific auto-filled checklist (DOCX), generate + cache in documents table.
+ */
+export const downloadChecklistTemplateForJob = async (jobId, user, { force = false } = {}) => {
+    const job = await JobRequest.findByPk(jobId, {
+        include: [
+            { model: db.Vessel, include: [{ model: db.Client, as: 'Client' }] },
+            { model: db.User, as: 'surveyor' },
+            { model: db.CertificateType },
+        ]
+    });
+    if (!job) throw { statusCode: 404, message: 'Job not found' };
+
+    // Find active template (raw keys, no resolveEntity here)
+    const template = await ChecklistTemplate.findOne({
+        where: { certificate_type_id: job.certificate_type_id, status: 'ACTIVE' },
+    });
+    if (!template) {
+        throw { statusCode: 404, message: 'No active checklist template found for this job' };
+    }
+
+    const templateFiles = Array.isArray(template.template_files) ? template.template_files : [];
+    const templateKey = templateFiles[0];
+    if (!templateKey) {
+        throw { statusCode: 400, message: 'Checklist template has no template_files configured' };
+    }
+
+    const cacheDescription = `prefilled-checklist:${template.id}:${templateKey}`;
+    if (!force) {
+        const existing = await Document.findOne({
+            where: {
+                entity_type: 'JOB',
+                entity_id: jobId,
+                document_type: 'CHECKLIST_PREFILLED',
+                description: cacheDescription,
+            },
+            order: [['uploaded_at', 'DESC']],
+        });
+
+        if (existing) {
+            return await fileAccessService.processFileAccess(existing.get({ plain: true }), user);
+        }
+    }
+
+    // Fetch master docx, fill, upload, store Document, return signed URL.
+    const masterBuffer = await s3Service.getFileContent(templateKey);
+    const tagValues = buildTagValuesForJob(job);
+    const filledBuffer = await fillDocxContentControls(masterBuffer, tagValues);
+
+    const outKey = `documents/jobs/${jobId}/checklists/${Date.now()}-${template.code || template.id}.docx`;
+    await s3Service.uploadFile(
+        filledBuffer,
+        `${template.code || template.id}.docx`,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '',
+        outKey
+    );
+
+    const doc = await Document.create({
+        entity_type: 'JOB',
+        entity_id: jobId,
+        file_url: outKey,
+        file_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        document_type: 'CHECKLIST_PREFILLED',
+        description: cacheDescription,
+        uploaded_by: user?.id || null,
+        uploaded_at: new Date(),
+    });
+
+    return await fileAccessService.processFileAccess(doc.get({ plain: true }), user);
+};
+
+/**
+ * Generate a pre-signed URL for uploading a checklist template PDF
+ */
+export const getUploadUrl = async (fileName, contentType, userId) => {
+    const key = `checklist-templates/${Date.now()}_${fileName}`;
+    const signedUrl = await s3Service.getUploadSignedUrl(key, contentType);
+
+    return {
+        uploadUrl: signedUrl,
+        fileKey: key,
+    };
 };
 
 /**
@@ -134,10 +265,10 @@ export const updateChecklistTemplate = async (id, data, userId) => {
         throw { statusCode: 400, message: 'Cannot modify a finalized Checklist Template. Please clone and version increment instead.' };
     }
 
-    return await template.update({
+    return await fileAccessService.resolveEntity(await template.update({
         ...data,
         updated_by: userId
-    });
+    }));
 };
 
 /**

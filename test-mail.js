@@ -4,7 +4,7 @@ dotenv.config();
 import * as emailService from './src/services/email.service.js';
 
 const testMail = async () => {
-    const to = 'abhivishwkarmaa52@gmail.com';
+    const to = 'abhisheksingh9709844475@gmail.com';
     const name = 'Abhinav Vishwakarma';
     const email = to;
     const password = 'TestPassword@123';

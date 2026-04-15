@@ -3,7 +3,7 @@
     tags: [Support]
     summary: Create support ticket
     operationId: createSupportTicket
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     requestBody:
       content:
         application/json:
@@ -26,7 +26,7 @@
     tags: [Support]
     summary: Get support tickets
     operationId: getSupportTickets
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200": { description: List of tickets }
 
@@ -35,7 +35,7 @@
     tags: [Support]
     summary: Get ticket by ID
     operationId: getSupportTicketById
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     parameters:
       - name: id
         in: path

@@ -54,7 +54,7 @@
     summary: Logout
     description: Invalidate current session. Clears tokens; response includes accessToken and refreshToken as null.
     operationId: logout
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200":
         description: Logged out successfully
@@ -187,7 +187,7 @@
     summary: Change password
     description: Change password for currently logged-in user.
     operationId: changePassword
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     requestBody:
       required: true
       content:

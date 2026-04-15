@@ -28,7 +28,7 @@
     tags: [Users]
     summary: Get current user profile
     operationId: getMyProfile
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200": { description: Current user profile }
       "401": { description: Unauthorized }
@@ -94,7 +94,7 @@
     summary: Update FCM device token for push notifications
     description: Registers or updates the Firebase Cloud Messaging (FCM) token for the currently authenticated user.
     operationId: updateFcmToken
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     requestBody:
       required: true
       content:
@@ -119,7 +119,7 @@
     summary: Update profile picture
     description: Upload a new profile picture (multipart) or provide a pre-signed S3 key (JSON).
     operationId: updateProfilePic
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     requestBody:
       content:
         multipart/form-data:

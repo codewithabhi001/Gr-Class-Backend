@@ -46,7 +46,7 @@ ClientCreateRequest:
           example: 'SecurePass123'
         role:
           type: string
-          enum: [CLIENT, ADMIN, GM, TM, TO, TA, SURVEYOR, FLAG_ADMIN]
+          enum: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
           default: CLIENT
         phone:
           type: string

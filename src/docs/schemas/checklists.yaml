@@ -94,6 +94,9 @@ ChecklistTemplateResponse:
     status:
       type: string
       enum: [ACTIVE, INACTIVE, DRAFT]
+    template_files:
+      type: array
+      items: { type: string }
     metadata:
       type: object
     created_by:
@@ -130,6 +133,7 @@ ChecklistTemplateCreateRequest:
                 text: { type: string }
                 type: { type: string }
     status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
+    template_files: { type: array, items: { type: string } }
     metadata: { type: object }
 
 ChecklistTemplateUpdateRequest:
@@ -154,4 +158,5 @@ ChecklistTemplateUpdateRequest:
                 text: { type: string }
                 type: { type: string }
     status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
+    template_files: { type: array, items: { type: string } }
     metadata: { type: object }

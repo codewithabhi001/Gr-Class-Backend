@@ -96,6 +96,11 @@ export default (sequelize, DataTypes) => {
         survey_statement_pdf_url: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        signed_checklist_files: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            comment: 'Array of S3 keys for the final signed scans uploaded by surveyor'
         }
     }, {
         tableName: 'surveys',

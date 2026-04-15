@@ -3,7 +3,7 @@
     tags: [Notifications]
     summary: Get notifications
     operationId: getNotifications
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200":
         description: List of notifications retrieved successfully
@@ -26,7 +26,7 @@
     tags: [Notifications]
     summary: Mark as read
     operationId: markNotificationRead
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     parameters:
       - name: id
         in: path
@@ -40,6 +40,6 @@
     tags: [Notifications]
     summary: Mark all as read
     operationId: markAllNotificationsRead
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200": { description: All marked as read }

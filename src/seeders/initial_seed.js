@@ -29,17 +29,7 @@ const seed = async () => {
         });
         console.log('Client seeded');
 
-        // 3. Sample Flag Admin
-        await db.User.create({
-            name: 'Flag Admin',
-            email: 'flag@panama.com',
-            password_hash: adminPassword,
-            role: 'FLAG_ADMIN',
-            status: 'ACTIVE'
-        });
-        console.log('Flag Admin seeded');
-
-        // 4. Sample Surveyor
+        // 3. Sample Surveyor
         const surveyorUser = await db.User.create({
             name: 'John Surveyor',
             email: 'surveyor@grclass.com',

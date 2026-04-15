@@ -35,7 +35,8 @@ const allowedOrigins = [
     'https://www.ops.grclass.com',
     'http://localhost:3000',
     'http://localhost:3001',
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'http://localhost:5000',
 ];
 
 /** Webmail origins that POST for RFC 8058 List-Unsubscribe one-click (e.g. Gmail next to sender). */

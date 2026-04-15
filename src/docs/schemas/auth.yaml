@@ -66,7 +66,7 @@ UserSummary:
       format: email
     role:
       type: string
-      enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+      enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     status:
       type: string
       enum: [ACTIVE, INACTIVE, SUSPENDED]
@@ -130,7 +130,7 @@ RegistrationRequest:
       pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
     role:
       type: string
-      enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+      enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     company_name:
       type: string
     client_id:

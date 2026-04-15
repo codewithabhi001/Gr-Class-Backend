@@ -10,7 +10,7 @@ UserResponse:
       format: email
     role:
       type: string
-      enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+      enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     phone:
       type: string
       nullable: true
@@ -60,7 +60,7 @@ UserCreateRequest:
       pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
     role:
       type: string
-      enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+      enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     phone:
       type: string
     client_id:
@@ -90,7 +90,7 @@ UserUpdateRequest:
       format: email
     role:
       type: string
-      enum: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+      enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     phone:
       type: string
     status:

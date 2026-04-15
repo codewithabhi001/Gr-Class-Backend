@@ -107,3 +107,27 @@ export const syncOfflineData = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+// GET /surveys/jobs/:jobId/signed-checklist-upload-url
+export const getSignedChecklistUploadUrl = async (req, res, next) => {
+    try {
+        const { fileName, contentType } = req.query;
+        if (!fileName || !contentType) {
+            return res.status(400).json({ success: false, message: 'fileName and contentType are required query parameters.' });
+        }
+        const result = await surveyService.getSignedChecklistUploadUrl(req.params.jobId, fileName, contentType, req.user.id);
+        res.json({ success: true, data: result });
+    } catch (error) { next(error); }
+};
+
+// PUT /surveys/jobs/:jobId/signed-checklist
+export const updateSignedChecklist = async (req, res, next) => {
+    try {
+        const { fileKeys } = req.body;
+        if (!fileKeys) {
+            return res.status(400).json({ success: false, message: 'fileKeys (array of strings) is required in the body.' });
+        }
+        const result = await surveyService.updateSignedChecklist(req.params.jobId, fileKeys, req.user.id);
+        res.json({ success: true, message: 'Signed checklist updated successfully.', data: result });
+    } catch (error) { next(error); }
+};
+

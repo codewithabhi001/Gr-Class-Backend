@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const REQ_ROLES = ['GM', 'TA', 'TM', 'TO'];
+const REQ_ROLES = ['GM', 'TM', 'TO'];
 
 async function fetchSpec(role) {
     const res = await fetch(`http://localhost:5000/api-docs/spec.json?role=${role}`);

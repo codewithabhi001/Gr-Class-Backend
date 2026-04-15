@@ -13,7 +13,7 @@
     tags: [System]
     summary: Get system health
     operationId: getSystemHealth
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200": { description: Health status }
 
@@ -22,7 +22,7 @@
     tags: [System]
     summary: Get system readiness
     operationId: getSystemReadiness
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200": { description: Readiness status }
 
@@ -31,7 +31,7 @@
     tags: [System]
     summary: Get system version
     operationId: getSystemVersion
-    x-roles: [ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     responses:
       "200": { description: Version info }
 

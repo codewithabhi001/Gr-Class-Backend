@@ -12,7 +12,7 @@ export default (sequelize, DataTypes) => {
         },
         sections: {
             type: DataTypes.JSON,
-            allowNull: false,
+            allowNull: true,
             defaultValue: [],
             comment: 'Array of sections with questions: [{ title, items: [{ code, text, type }] }]'
         },
@@ -21,6 +21,11 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.JSON,
             defaultValue: {},
             comment: 'Additional config like version, applicable_vessel_types, etc.'
+        },
+        template_files: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            comment: 'Array of S3 keys for blank master templates'
         },
         created_by: DataTypes.UUID,
         updated_by: DataTypes.UUID

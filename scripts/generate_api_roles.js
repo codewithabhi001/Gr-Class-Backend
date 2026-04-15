@@ -10,7 +10,7 @@ const srcDir = path.join(projectRoot, 'src');
 const modulesDir = path.join(srcDir, 'modules');
 const routesFile = path.join(srcDir, 'routes.js');
 
-const ROLES = ['ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN'];
+const ROLES = ['ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT'];
 
 // Map to store final permissions: { Role: [ "METHOD /api/path" ] }
 const rolePermissions = {};

@@ -105,7 +105,7 @@ export const register = async (userData, options = {}) => {
     }
 
     // Role-based Client ID validation
-    const internalRoles = ['ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'FLAG_ADMIN'];
+    const internalRoles = ['ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'];
     if (internalRoles.includes(userData.role) && userData.client_id) {
         throw { statusCode: 400, message: `Role ${userData.role} cannot be associated with a Client ID.` };
     }
@@ -257,5 +257,4 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     await user.update({ password_hash: hashedPassword });
 };
-
 

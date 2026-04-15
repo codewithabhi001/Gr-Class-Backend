@@ -213,6 +213,11 @@ export const submitSurveyReport = async (data, files, userId) => {
         throw { statusCode: 400, message: 'Please complete the inspection checklist before submitting the final report.' };
     }
 
+    // Guard: signed checklist document upload required
+    if (!survey.signed_checklist_files || !Array.isArray(survey.signed_checklist_files) || survey.signed_checklist_files.length === 0) {
+        throw { statusCode: 400, message: 'Please upload the filled and signed checklist document before submitting the survey report.' };
+    }
+
     // ── Compliance Enforcement: GPS & Photo ──
     if (!submit_latitude || !submit_longitude) {
         throw { statusCode: 400, message: "GPS location must be recorded onsite before submission." };
@@ -603,6 +608,55 @@ export const streamLocation = async (jobId, { latitude, longitude }, userId) => 
 
     const record = await GpsTracking.create({ surveyor_id: userId, job_id: jobId, latitude, longitude });
     return record;
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HYBRID FLOW — Signed Checklist Uploads
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Generates a pre-signed URL for the surveyor to upload a signed checklist scan.
+ */
+export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId) => {
+    await assertJobAccessible(jobId, userId, { checkSurveyor: true });
+    
+    const key = `surveys/signed-checklists/${jobId}/${Date.now()}_${fileName}`;
+    const signedUrl = await s3Service.getUploadSignedUrl(key, contentType);
+
+    return {
+        uploadUrl: signedUrl,
+        fileKey: key,
+    };
+};
+
+/**
+ * Saves the array of S3 keys for the signed checklist scans.
+ */
+export const updateSignedChecklist = async (jobId, fileKeys, userId) => {
+    if (!Array.isArray(fileKeys)) {
+        throw { statusCode: 400, message: 'fileKeys must be an array of S3 keys strings.' };
+    }
+
+    await assertJobAccessible(jobId, userId, { checkSurveyor: true });
+    const survey = await requireSurvey(jobId);
+    assertSurveyNotFinalized(survey);
+
+    const txn = await db.sequelize.transaction();
+    try {
+        await survey.update({ signed_checklist_files: fileKeys }, { transaction: txn });
+
+        // If survey was in STARTED, move it to CHECKLIST_SUBMITTED (logical equivalent for hybrid)
+        if (survey.survey_status === 'STARTED') {
+             await lifecycleService.updateSurveyStatus(survey.id, 'CHECKLIST_SUBMITTED', userId, 'Hybrid signed checklist uploaded', { transaction: txn });
+        }
+
+        await txn.commit();
+        return await fileAccessService.resolveEntity(survey, { id: userId });
+    } catch (error) {
+        if (!txn.finished) await txn.rollback();
+        throw error;
+    }
 };
 
 export const flagViolation = async (jobId, userId) => {

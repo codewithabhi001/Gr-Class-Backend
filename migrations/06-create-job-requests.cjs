@@ -116,6 +116,11 @@ module.exports = {
                 type: Sequelize.INTEGER,
                 defaultValue: 0,
                 allowNull: false
+            },
+            priority: {
+                type: Sequelize.ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT'),
+                defaultValue: 'NORMAL',
+                allowNull: false
             }
         });
 

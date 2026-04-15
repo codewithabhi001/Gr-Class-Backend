@@ -17,7 +17,7 @@ import { fileURLToPath } from 'url';
 import yaml from 'yamljs';
 import { buildFullSpec, clearCache, getSpecForRole } from '../docs/build-openapi.js';
 
-const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'ta', 'flag_admin', 'public'];
+const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'public'];
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MODULE_SWAGGER_DIR = path.resolve(__dirname, '../../docs/swagger-by-module');
@@ -82,10 +82,8 @@ const ROLE_MAP = {
   gm: 'GM',
   tm: 'TM',
   to: 'TO',
-  ta: 'TA',
   surveyor: 'SURVEYOR',
   client: 'CLIENT',
-  flag_admin: 'FLAG_ADMIN',
   public: 'PUBLIC',
 };
 
@@ -126,10 +124,8 @@ export function setupSwagger(app) {
     { url: '/api-docs/spec.json?role=GM', name: 'GM' },
     { url: '/api-docs/spec.json?role=TM', name: 'TM' },
     { url: '/api-docs/spec.json?role=TO', name: 'TO' },
-    { url: '/api-docs/spec.json?role=TA', name: 'TA' },
     { url: '/api-docs/spec.json?role=SURVEYOR', name: 'SURVEYOR' },
     { url: '/api-docs/spec.json?role=CLIENT', name: 'CLIENT' },
-    { url: '/api-docs/spec.json?role=FLAG_ADMIN', name: 'FLAG_ADMIN' },
     { url: '/api-docs/spec.json?role=PUBLIC', name: 'PUBLIC' },
   ];
 
