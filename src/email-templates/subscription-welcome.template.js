@@ -1,53 +1,44 @@
-import { escapeHtml, wrapGrclassEmail } from './layout.js';
+import { escapeHtml, wrapEmailHtml } from './layout.js';
 import { emailTheme as theme } from './theme.js';
 
 /**
- * Thank you for subscribing email.
- * Expected data: { email: string, unsubscribeUrl: string }
+ * Subscription welcome email.
+ * Expected data: { email: string }
  */
 export const templateName = 'SUBSCRIPTION_WELCOME';
 
 export const render = (data) => {
     const userEmail = escapeHtml(data.email);
-    const unsubscribeUrl = data.unsubscribeUrl || '';
-
-    const subject = 'Welcome to GR Class Insights';
+    const subject = 'Welcome to GR Class Network';
 
     const innerHtml = `
       <p style="margin: 0; font-size: 11px; font-weight: 700; color: ${theme.colors.brand.main}; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">
-        Subscription Confirmed
+        Communication
       </p>
       <h1 style="margin: 0; color: ${theme.colors.text.core}; font-size: 22px; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em;">
-        Welcome to GR Class
+        Network Joined
       </h1>
       <p style="margin: 20px 0; color: ${theme.colors.text.body}; font-size: 14px; line-height: 1.6;">
-        Thank you for joining the <strong>GR Class Newsletter</strong>. You are now subscribed to receive the latest maritime insights, regulatory updates, and technological advancements directly at <strong>${userEmail}</strong>.
+        Welcome to the <strong>GR Class</strong> professional network. Your subscription to our maritime insights and technical bulletins at <strong>${userEmail}</strong> has been successfully registered.
       </p>
       
-      <div style="background-color: ${theme.colors.brand.surface}; border: 1px solid ${theme.colors.brand.faded}; border-radius: ${theme.radius.lg}; padding: 24px; margin-bottom: 30px;">
+      <div style="background-color: ${theme.colors.brand.surface}; border: 1px solid ${theme.colors.brand.faded}; border-radius: 0; padding: 24px; margin-bottom: 30px;">
         <p style="margin: 0; font-size: 13px; color: ${theme.colors.text.body}; line-height: 1.6;">
-            <strong>Stay Informed</strong><br>
-            You will receive periodic updates regarding maritime classification, certification standards, and vessel inspection innovations to help you stay informed in an evolving industry.
+            <strong>Information Stream</strong><br>
+            You will now receive periodic technical updates regarding maritime classification, statutory regulations, and vessel inspection standards handled by our global division.
         </p>
       </div>
 
       <div align="center" style="margin-bottom: 30px;">
-        <a href="https://grclass.com" style="background-color: ${theme.colors.brand.main}; color: ${theme.colors.text.white}; padding: 14px 28px; border-radius: ${theme.radius.md}; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
-          Explore Our Services
+        <a href="https://grclass.com" style="background-color: ${theme.colors.brand.main}; color: ${theme.colors.text.white}; padding: 15px 35px; border-radius: 0; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em;">
+          Access Resources
         </a>
       </div>
-
-      <p style="margin: 0; font-size: 12px; color: ${theme.colors.text.muted}; line-height: 1.6; border-top: 1px solid ${theme.colors.brand.faded}; padding-top: 20px; text-align: center;">
-        We respect your inbox. You can manage your preferences or <a href="${unsubscribeUrl}" style="color: ${theme.colors.text.muted}; text-decoration: underline;">unsubscribe</a> at any time.
-      </p>
     `;
 
     return {
         subject,
-        html: wrapGrclassEmail({ 
-            title: subject, 
-            innerHtml 
-        }),
-        type: 'notification',
+        html: wrapEmailHtml({ title: subject, innerHtml }),
+        type: 'communication',
     };
 };

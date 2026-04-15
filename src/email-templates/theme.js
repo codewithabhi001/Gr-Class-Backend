@@ -5,24 +5,24 @@ export const emailTheme = {
     brand: {
       primary: '#1e1b4b',   // Deep Navy (Header)
       deep: '#4338ca',      // Deep Indigo (Footer)
-      main: '#4f46e5',      // Indigo (CTA)
-      accent: '#818cf8',    // Light Indigo
+      main: '#2563eb',      // Vibrant Industrial Blue (from ref image)
+      accent: '#3b82f6',    // Bright Blue
       navy_sec: '#0f172a',  // Secondary Navy
-      surface: '#f8faff',   // Surface Indigo
-      faded: '#e0e7ff',     // Faded Indigo (Borders)
+      surface: '#f8fafc',   // Very Light Surface
+      faded: '#e2e8f0',     // Border Color
     },
     functional: {
-      blue: '#2563eb',      // Accent Blue
-      success: '#059669',   // Success Teal
-      warning: '#d97706',   // Warning Gold
+      blue: '#2563eb',
+      success: '#059669',
+      warning: '#d97706',
     },
     text: {
-      core: '#0f172a',      // Secondary Navy
-      body: '#475569',      // Slate 600
-      muted: '#64748b',     // Slate 500
-      light: '#94a3b8',     // Slate 400
+      core: '#0f172a',
+      body: '#334155',      // Slate 700 for better readability
+      muted: '#64748b',
+      light: '#94a3b8',
       white: '#ffffff',
-      link: '#4338ca',
+      link: '#2563eb',
     },
     neutral: {
       50: '#fafafa',
@@ -33,10 +33,10 @@ export const emailTheme = {
     }
   },
   radius: {
-    sm: '4px',
-    md: '6px',
-    lg: '8px',
-    xl: '12px',
+    sm: '0px',
+    md: '0px',
+    lg: '0px',
+    xl: '0px',
   },
   typography: {
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
