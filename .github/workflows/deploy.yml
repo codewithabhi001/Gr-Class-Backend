@@ -27,10 +27,10 @@ jobs:
         run: |
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "DEPLOY_DIR=/var/www/Gr-Class-Backend" >> $GITHUB_ENV
-            echo "PM2_NAME=girik" >> $GITHUB_ENV
+            echo "PM2_NAME=gr-class" >> $GITHUB_ENV
           else
             echo "DEPLOY_DIR=/var/www/dev/Gr-Class-Backend" >> $GITHUB_ENV
-            echo "PM2_NAME=girik-dev" >> $GITHUB_ENV
+            echo "PM2_NAME=gr-class-dev" >> $GITHUB_ENV
           fi
 
       - name: Deploy Backend
