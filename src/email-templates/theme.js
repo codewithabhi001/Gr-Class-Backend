@@ -1,49 +1,44 @@
 export const emailTheme = {
   colors: {
-    background: '#fafaf9',
-    foreground: '#1c1917',
+    background: '#fafafa',
+    white: '#ffffff',
     brand: {
-      50: '#f0fdfa',
-      100: '#ccfbf1',
-      200: '#99f6e4',
-      300: '#5eead4',
-      400: '#2dd4bf',
-      500: '#14b8a6',
-      600: '#0d9488',
-      700: '#0f766e',
-      800: '#115e59',
-      900: '#134e4a',
-      950: '#042f2e',
+      primary: '#1e1b4b',   // Deep Navy (Header)
+      deep: '#4338ca',      // Deep Indigo (Footer)
+      main: '#2563eb',      // Vibrant Industrial Blue (from ref image)
+      accent: '#3b82f6',    // Bright Blue
+      navy_sec: '#0f172a',  // Secondary Navy
+      surface: '#f8fafc',   // Very Light Surface
+      faded: '#e2e8f0',     // Border Color
+    },
+    functional: {
+      blue: '#2563eb',
+      success: '#059669',
+      warning: '#d97706',
+    },
+    text: {
+      core: '#0f172a',
+      body: '#334155',      // Slate 700 for better readability
+      muted: '#64748b',
+      light: '#94a3b8',
+      white: '#ffffff',
+      link: '#2563eb',
     },
     neutral: {
       50: '#fafafa',
-      100: '#f4f4f5',
-      200: '#e4e4e7',
-      300: '#d4d4d8',
-      400: '#a1a1aa',
-      500: '#71717a',
-      600: '#52525b',
-      700: '#4b5563',
-      800: '#374151',
-      900: '#1f2937',
-      950: '#111827',
-    },
-    navy: {
-      800: '#134e4a',
-      900: '#0f766e',
-      950: '#115e59',
-    },
-    accent: {
-      400: '#fbbf24',
-      500: '#f59e0b',
+      100: '#f1f5f9',
+      200: '#e2e8f0',
+      300: '#cbd5e1',
+      400: '#94a3b8',
     }
   },
   radius: {
-    sm: '4px',
-    md: '6px',
-    lg: '8px',
+    sm: '0px',
+    md: '0px',
+    lg: '0px',
+    xl: '0px',
   },
   typography: {
-    sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   }
 };

@@ -1,83 +1,87 @@
-import { escapeHtml, wrapGrclassEmail } from './layout.js';
+import { escapeHtml, wrapEmailHtml } from './layout.js';
+import { emailTheme as theme } from './theme.js';
 
-/**
- * Plain text → HTML paragraphs + preserved line breaks.
- * @param {string} text
- * @returns {string}
- */
-const messageToHtml = (text) => {
-    const escaped = escapeHtml(text);
-    return escaped.split(/\r?\n/).filter(Boolean).map((line) => `<p style="margin:0 0 12px;">${line}</p>`).join('')
-        || `<p style="margin:0;">${escaped}</p>`;
+export const messageToHtml = (text) => {
+    if (!text) return '';
+    return text.split('\n').map(line => `<p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:${theme.colors.text.body};">${escapeHtml(line)}</p>`).join('');
 };
 
 /**
- * Builds branded HTML for generic notification / legacy switch templates.
- * Prefers `data.title` and `data.message` (from notification formatter) over fallbacks.
- *
- * @param {{
- *   templateName: string,
- *   data: Record<string, unknown>,
- *   fallbackSubject: string,
- *   fallbackBody: string
- * }} opts
- * @returns {{ subject: string, html: string }}
+ * Modern notification builder for GR Class alerts.
  */
-export const buildTransactionalNotificationEmail = ({
-    templateName,
-    data,
-    fallbackSubject,
-    fallbackBody
-}) => {
-    const cleanTitle = data.title ? String(data.title).replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim() : '';
-    const subject = (data.subject && String(data.subject).trim())
-        || (cleanTitle && data.vesselName ? `${cleanTitle} · ${data.vesselName}` : cleanTitle)
-        || fallbackSubject
-        || 'GR Class notification';
+export const buildTransactionalNotificationEmail = (options) => {
+    const {
+        templateName = 'NOTIFICATION',
+        data = {},
+        fallbackSubject = '',
+        fallbackBody = ''
+    } = options;
 
-    const messageText = (data.message && String(data.message).trim())
-        || fallbackBody
-        || '';
-
-    const headline = (data.title && String(data.title).trim())
-        || fallbackSubject
-        || 'Notification';
-
+    const subject = fallbackSubject || `GR Class - ${templateName.replace(/_/g, ' ')}`;
     const label = templateName.replace(/_/g, ' ');
+    const headline = data.title || (data.vesselName ? `Update: ${data.vesselName}` : 'System Update');
+    const messageText = fallbackBody || data.message || '';
+
+    const labelStyle = `color:${theme.colors.text.muted}; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; width:110px; padding:10px 0; border-bottom:1px solid ${theme.colors.brand.faded};`;
+    const valueStyle = `color:${theme.colors.text.core}; font-size:13px; font-weight:600; padding:10px 0; border-bottom:1px solid ${theme.colors.brand.faded};`;
+    const metaCellStyle = `padding: 10px 0; vertical-align: top; font-family:${theme.typography.fontFamily};`;
 
     const metaRows = [];
     if (data.jobId) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;width:120px;">Job reference</td><td style="padding:6px 12px;font-size:13px;color:#134e4a;">${escapeHtml(String(data.jobId))}</td></tr>`
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Reference ID</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.jobId))}</td></tr>`
         );
     }
     if (data.status) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;">Status</td><td style="padding:6px 12px;font-size:13px;color:#0f766e;font-weight:600;">${escapeHtml(String(data.status))}</td></tr>`
+            `<tr><td style="${metaCellStyle} ${labelStyle}">New Status</td><td style="${metaCellStyle} ${valueStyle} color:${theme.colors.brand.main};">${escapeHtml(String(data.status))}</td></tr>`
         );
     }
     if (data.vesselName) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;">Vessel</td><td style="padding:6px 12px;font-size:13px;color:#134e4a;">${escapeHtml(String(data.vesselName))}</td></tr>`
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Vessel Asset</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.vesselName))}</td></tr>`
+        );
+    }
+    if (data.certificateNumber) {
+        metaRows.push(
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Certificate</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.certificateNumber))}</td></tr>`
         );
     }
 
     const metaTable = metaRows.length
-        ? `<table role="presentation" width="100%" style="margin:20px 0 0;border-collapse:collapse;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">${metaRows.join('')}</table>`
+        ? `<div style="background-color:${theme.colors.brand.surface}; border:1px solid ${theme.colors.brand.faded}; border-radius:0; overflow:hidden; margin-top:24px;">
+             <table role="presentation" width="100%" style="border-collapse:collapse; margin: 0 20px; width: calc(100% - 40px);">${metaRows.join('')}</table>
+           </div>`
         : '';
 
     const innerHtml = `
-      <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#0d9488;">${escapeHtml(label)}</p>
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f766e;line-height:1.3;letter-spacing:-0.02em;">${escapeHtml(headline)}</h1>
-      <div style="font-size:15px;color:#4b5563;">${messageToHtml(messageText)}</div>
+      <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:${theme.colors.brand.main};">${escapeHtml(label)}</p>
+      <h1 style="margin:0 0 16px; font-size:20px; font-weight:800; color:${theme.colors.text.core}; line-height:1.2; letter-spacing:-0.02em;">${escapeHtml(headline)}</h1>
+      <div style="margin-bottom:20px;">${messageToHtml(messageText)}</div>
       ${metaTable}
+      <div style="margin-top: 30px; border-top: 1px solid ${theme.colors.brand.faded}; padding-top: 20px;">
+        <p style="font-size: 11px; color: ${theme.colors.text.muted}; margin: 0;">
+            This is an automated operational notification from the <strong>GR Class</strong> maritime network. Please login to the portal for detailed reports.
+        </p>
+      </div>
     `;
 
-    const html = wrapGrclassEmail({
-        title: subject,
-        preheader: messageText.slice(0, 140) || subject,
-        innerHtml
-    });
+    return {
+        subject,
+        html: wrapEmailHtml({
+            title: subject,
+            innerHtml
+        })
+    };
+};
 
-    return { subject, html };
+export const buildNotificationHtml = (options) => {
+    // Alias for backward compatibility if needed, though service uses the long name
+    const result = buildTransactionalNotificationEmail({
+        data: options.data,
+        fallbackSubject: options.title,
+        fallbackBody: options.messageText,
+        templateName: options.label || 'NOTIFICATION'
+    });
+    return result.html;
 };

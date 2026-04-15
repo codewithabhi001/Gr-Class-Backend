@@ -1,43 +1,44 @@
-import { escapeHtml, wrapGrclassEmail } from './layout.js';
+import { escapeHtml, wrapEmailHtml } from './layout.js';
+import { emailTheme as theme } from './theme.js';
 
 /**
- * Thank you for subscribing email.
- * Expected data: { email: string, unsubscribeUrl: string }
+ * Subscription welcome email.
+ * Expected data: { email: string }
  */
 export const templateName = 'SUBSCRIPTION_WELCOME';
 
 export const render = (data) => {
     const userEmail = escapeHtml(data.email);
-    const unsubscribeUrl = data.unsubscribeUrl || '';
-
-    const subject = 'Welcome to the GR Class Newsletter!';
+    const subject = 'Welcome to GR Class Network';
 
     const innerHtml = `
-      <p style="margin:0 0 16px;">Welcome,</p>
-      <p style="margin:0 0 16px;">Thank you for joining the <strong>GR Class Newsletter</strong>. We are pleased to provide you with the latest maritime insights, regulatory updates, and technological advancements directly at <strong>${userEmail}</strong>.</p>
+      <p style="margin: 0; font-size: 11px; font-weight: 700; color: ${theme.colors.brand.main}; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">
+        Communication
+      </p>
+      <h1 style="margin: 0; color: ${theme.colors.text.core}; font-size: 22px; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em;">
+        Network Joined
+      </h1>
+      <p style="margin: 20px 0; color: ${theme.colors.text.body}; font-size: 14px; line-height: 1.6;">
+        Welcome to the <strong>GR Class</strong> professional network. Your subscription to our maritime insights and technical bulletins at <strong>${userEmail}</strong> has been successfully registered.
+      </p>
       
-      <p style="margin:0 0 20px;">You will now receive periodic updates regarding maritime classification, certification standards, and vessel inspection innovations to help you stay informed in an evolving industry.</p>
-      
-      <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
-        <p style="margin:0; font-size: 14px; color: #4b5563;">
-            We promise not to spam you. You can manage your preferences or unsubscribe at any time using the link in the footer of our emails.
+      <div style="background-color: ${theme.colors.brand.surface}; border: 1px solid ${theme.colors.brand.faded}; border-radius: 0; padding: 24px; margin-bottom: 30px;">
+        <p style="margin: 0; font-size: 13px; color: ${theme.colors.text.body}; line-height: 1.6;">
+            <strong>Information Stream</strong><br>
+            You will now receive periodic technical updates regarding maritime classification, statutory regulations, and vessel inspection standards handled by our global division.
         </p>
       </div>
 
-      <p style="margin:0 0 20px;">
-        <a href="https://grclass.com" style="display:inline-block;background:#14b8a6;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600;font-size:14px;">Visit our Website</a>
-      </p>
-
-      <p style="margin:0;color:#71717a;font-size:14px;">Best regards,<br>The GR Class Team</p>
+      <div align="center" style="margin-bottom: 30px;">
+        <a href="https://grclass.com" style="background-color: ${theme.colors.brand.main}; color: ${theme.colors.text.white}; padding: 15px 35px; border-radius: 0; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em;">
+          Access Resources
+        </a>
+      </div>
     `;
 
     return {
         subject,
-        html: wrapGrclassEmail({ 
-            title: subject, 
-            innerHtml,
-            unsubscribeUrl
-        }),
-        type: 'notification',
+        html: wrapEmailHtml({ title: subject, innerHtml }),
+        type: 'communication',
     };
 };
