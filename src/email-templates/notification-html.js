@@ -9,14 +9,18 @@ export const messageToHtml = (text) => {
 /**
  * Modern notification builder for GR Class alerts.
  */
-export const buildNotificationHtml = (options) => {
+export const buildTransactionalNotificationEmail = (options) => {
     const {
-        title = 'System Alert',
-        label = 'Notification',
-        headline = 'New Update',
-        messageText = '',
-        data = {}
+        templateName = 'NOTIFICATION',
+        data = {},
+        fallbackSubject = '',
+        fallbackBody = ''
     } = options;
+
+    const subject = fallbackSubject || `GR Class - ${templateName.replace(/_/g, ' ')}`;
+    const label = templateName.replace(/_/g, ' ');
+    const headline = data.title || (data.vesselName ? `Update: ${data.vesselName}` : 'System Update');
+    const messageText = fallbackBody || data.message || '';
 
     const labelStyle = `color:${theme.colors.text.muted}; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; width:110px; padding:10px 0; border-bottom:1px solid ${theme.colors.brand.faded};`;
     const valueStyle = `color:${theme.colors.text.core}; font-size:13px; font-weight:600; padding:10px 0; border-bottom:1px solid ${theme.colors.brand.faded};`;
@@ -38,6 +42,11 @@ export const buildNotificationHtml = (options) => {
             `<tr><td style="${metaCellStyle} ${labelStyle}">Vessel Asset</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.vesselName))}</td></tr>`
         );
     }
+    if (data.certificateNumber) {
+        metaRows.push(
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Certificate</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.certificateNumber))}</td></tr>`
+        );
+    }
 
     const metaTable = metaRows.length
         ? `<div style="background-color:${theme.colors.brand.surface}; border:1px solid ${theme.colors.brand.faded}; border-radius:0; overflow:hidden; margin-top:24px;">
@@ -57,8 +66,22 @@ export const buildNotificationHtml = (options) => {
       </div>
     `;
 
-    return wrapEmailHtml({
-        title: title || label || headline,
-        innerHtml
+    return {
+        subject,
+        html: wrapEmailHtml({
+            title: subject,
+            innerHtml
+        })
+    };
+};
+
+export const buildNotificationHtml = (options) => {
+    // Alias for backward compatibility if needed, though service uses the long name
+    const result = buildTransactionalNotificationEmail({
+        data: options.data,
+        fallbackSubject: options.title,
+        fallbackBody: options.messageText,
+        templateName: options.label || 'NOTIFICATION'
     });
+    return result.html;
 };
