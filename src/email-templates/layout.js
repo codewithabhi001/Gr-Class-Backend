@@ -1,14 +1,5 @@
 import { emailTheme as theme } from './theme.js';
 
-// (getLogoPath and getLogoCid removed — using CSS logo instead)
-
-const EMAIL_FONT_STACK = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-
-/**
- * Escapes text for safe use inside HTML body content.
- * @param {unknown} value
- * @returns {string}
- */
 export const escapeHtml = (value) => {
   if (value === null || value === undefined) return '';
   return String(value)
@@ -20,79 +11,94 @@ export const escapeHtml = (value) => {
 };
 
 /**
- * GR Class branded transactional shell (table layout for email clients).
- * @param {{ title: string, innerHtml: string, preheader?: string, unsubscribeUrl?: string }} opts
- * @returns {string}
+ * Professional Maritime/Industrial Email Wrapper
+ * @param {{ title: string, innerHtml: string, preheader?: string }} opts
  */
-export const wrapGrclassEmail = ({ title, innerHtml, preheader = '', unsubscribeUrl }) => {
+export const wrapGrclassEmail = ({ title, innerHtml, preheader = '' }) => {
   const safeTitle = escapeHtml(title);
   const pre = escapeHtml(preheader).slice(0, 200);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${safeTitle}</title>
   <style>
-    body, table, td, p, a, span {
-      font-family: ${EMAIL_FONT_STACK} !important;
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+      background-color: ${theme.colors.background};
+      font-family: ${theme.typography.fontFamily};
+    }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    table { border-collapse: collapse !important; }
+    @media only screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .content { padding: 20px !important; }
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:${EMAIL_FONT_STACK};">
+<body style="background-color: ${theme.colors.background}; margin: 0; padding: 40px 0;">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0">${pre}</span>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:40px 16px;font-family:${EMAIL_FONT_STACK};">
-    <tr>
-        <td align="center" style="font-family:${EMAIL_FONT_STACK};">
-        <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:${theme.radius.lg};overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,0.05);font-family:${EMAIL_FONT_STACK};">
-          <!-- Header -->
-          <tr>
-            <td style="background:linear-gradient(135deg, ${theme.colors.brand[50]} 0%, #f0f9ff 100%); padding:32px 32px 32px; border-bottom:3px solid ${theme.colors.brand[500]}; font-family:${EMAIL_FONT_STACK};">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-family:${EMAIL_FONT_STACK};">
-                <tr>
-                  <td valign="middle" style="padding-right:20px; width:100px; font-family:${EMAIL_FONT_STACK};">
-                    <a href="https://grclass.com" target="_blank" style="display:inline-block; text-decoration:none; font-family:${EMAIL_FONT_STACK};">
-                      <img src="https://grclass.com/grclass-logo.webp" alt="GR Class" style="display:block; border:none; outline:none; height:70px; width:auto; max-width:180px;" />
-                    </a>
-                  </td>
-                  <td valign="middle" style="border-left:2px solid ${theme.colors.brand[100]}; padding-left:20px; font-family:${EMAIL_FONT_STACK};">
-                    <div style="font-size:24px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;color:${theme.colors.brand[700]};font-family:${EMAIL_FONT_STACK};">GR Class</div>
-                    <div style="font-size:14px;color:${theme.colors.brand[600]};margin-top:4px;font-weight:500;font-family:${EMAIL_FONT_STACK};">Classification &amp; certification</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <!-- Content -->
-          <tr>
-            <td style="padding:40px 32px;font-size:16px;line-height:1.6;color:${theme.colors.neutral[600]};font-family:${EMAIL_FONT_STACK};">
-              ${innerHtml}
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:0 32px 32px; font-family:${EMAIL_FONT_STACK};">
-              <table role="presentation" width="100%" style="border-top:1px solid ${theme.colors.neutral[100]};padding-top:24px; font-family:${EMAIL_FONT_STACK};">
-                <tr>
-                  <td style="font-size:13px;color:${theme.colors.neutral[500]};line-height:1.6;text-align:center; font-family:${EMAIL_FONT_STACK};">
-                    This is an automated message from <strong style="color:${theme.colors.brand[700]}; font-family:${EMAIL_FONT_STACK};">GR Class</strong> (<a href="https://grclass.com" style="color:${theme.colors.brand[600]};text-decoration:none; font-family:${EMAIL_FONT_STACK};">grclass.com</a>).<br> Please do not reply to this email.
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-        <p style="max-width:600px;margin:24px auto 0;font-size:12px;color:${theme.colors.neutral[400]};text-align:center; font-family:${EMAIL_FONT_STACK};">&copy; ${new Date().getFullYear()} GR Class. All rights reserved.</p>
-      </td>
-    </tr>
-  </table>
+  <center>
+    <table border="0" cellpadding="0" cellspacing="0" width="600" class="container" style="background-color: ${theme.colors.white}; border-radius: ${theme.radius.xl}; overflow: hidden; box-shadow: 0 10px 30px rgba(30, 27, 75, 0.08); border: 1px solid ${theme.colors.brand.faded};">
+      
+      <!-- HEADER -->
+      <tr>
+        <td align="center" style="background-color: ${theme.colors.brand.primary}; padding: 30px 40px; border-bottom: 4px solid ${theme.colors.brand.main};">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <div style="color: ${theme.colors.text.white}; font-size: 18px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">
+                  GIRIK <span style="color: ${theme.colors.brand.accent};">SHIPPING</span>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <!-- CONTENT BODY -->
+      <tr>
+        <td class="content" style="padding: 40px 40px 30px 40px;">
+          ${innerHtml}
+        </td>
+      </tr>
+
+      <!-- FOOTER -->
+      <tr>
+        <td align="center" style="background-color: ${theme.colors.brand.deep}; padding: 30px 40px;">
+          <p style="margin: 0; font-size: 11px; color: ${theme.colors.brand.accent}; letter-spacing: 0.05em; font-weight: 500;">
+            © ${new Date().getFullYear()} Girik Shipping. All Rights Reserved.
+          </p>
+          <div style="margin-top: 15px;">
+            <a href="https://grclass.com/privacy" style="color: ${theme.colors.text.white}; font-size: 11px; text-decoration: none; margin: 0 10px; font-weight: 600;">Privacy Policy</a>
+            <span style="color: ${theme.colors.brand.accent}; font-size: 11px;">|</span>
+            <a href="#" style="color: ${theme.colors.text.white}; font-size: 11px; text-decoration: none; margin: 0 10px; font-weight: 600;">Unsubscribe</a>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- COMPLIANCE/LEGAL -->
+    <table border="0" cellpadding="0" cellspacing="0" width="600" style="margin-top: 20px;">
+      <tr>
+        <td align="center">
+          <p style="font-size: 10px; color: ${theme.colors.text.light}; line-height: 1.5;">
+            You are receiving this email because you are a registered user of the Girik Maritime Portal.<br>
+            123 Maritime Plaza, Port Authority District.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </center>
 </body>
 </html>`;
 };
 
-/**
- * @deprecated Use wrapGrclassEmail — kept for existing template imports.
- */
 export const wrapEmailHtml = (opts) => wrapGrclassEmail(opts);
 

@@ -1,4 +1,5 @@
 import { escapeHtml, wrapGrclassEmail } from './layout.js';
+import { emailTheme as theme } from './theme.js';
 
 /**
  * Plain text → HTML paragraphs + preserved line breaks.
@@ -7,14 +8,12 @@ import { escapeHtml, wrapGrclassEmail } from './layout.js';
  */
 const messageToHtml = (text) => {
     const escaped = escapeHtml(text);
-    return escaped.split(/\r?\n/).filter(Boolean).map((line) => `<p style="margin:0 0 12px;">${line}</p>`).join('')
-        || `<p style="margin:0;">${escaped}</p>`;
+    return escaped.split(/\r?\n/).filter(Boolean).map((line) => `<p style="margin:0 0 12px; font-size: 14px; line-height: 1.6; color: ${theme.colors.text.body};">${line}</p>`).join('')
+        || `<p style="margin:0; font-size: 14px; line-height: 1.6; color: ${theme.colors.text.body};">${escaped}</p>`;
 };
 
 /**
  * Builds branded HTML for generic notification / legacy switch templates.
- * Prefers `data.title` and `data.message` (from notification formatter) over fallbacks.
- *
  * @param {{
  *   templateName: string,
  *   data: Record<string, unknown>,
@@ -33,7 +32,7 @@ export const buildTransactionalNotificationEmail = ({
     const subject = (data.subject && String(data.subject).trim())
         || (cleanTitle && data.vesselName ? `${cleanTitle} · ${data.vesselName}` : cleanTitle)
         || fallbackSubject
-        || 'GR Class notification';
+        || 'GR Class Notification';
 
     const messageText = (data.message && String(data.message).trim())
         || fallbackBody
@@ -41,35 +40,41 @@ export const buildTransactionalNotificationEmail = ({
 
     const headline = (data.title && String(data.title).trim())
         || fallbackSubject
-        || 'Notification';
+        || 'Action Required';
 
     const label = templateName.replace(/_/g, ' ');
 
     const metaRows = [];
+    const metaCellStyle = `padding:8px 12px; font-size:12px; border-bottom:1px solid ${theme.colors.brand.faded};`;
+    const labelStyle = `color:${theme.colors.text.muted}; width:110px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;`;
+    const valueStyle = `color:${theme.colors.text.core}; font-weight:600;`;
+
     if (data.jobId) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;width:120px;">Job reference</td><td style="padding:6px 12px;font-size:13px;color:#134e4a;">${escapeHtml(String(data.jobId))}</td></tr>`
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Reference</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.jobId))}</td></tr>`
         );
     }
     if (data.status) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;">Status</td><td style="padding:6px 12px;font-size:13px;color:#0f766e;font-weight:600;">${escapeHtml(String(data.status))}</td></tr>`
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Status</td><td style="${metaCellStyle} ${valueStyle} color:${theme.colors.brand.deep};">${escapeHtml(String(data.status))}</td></tr>`
         );
     }
     if (data.vesselName) {
         metaRows.push(
-            `<tr><td style="padding:6px 12px;color:#0d9488;font-size:12px;">Vessel</td><td style="padding:6px 12px;font-size:13px;color:#134e4a;">${escapeHtml(String(data.vesselName))}</td></tr>`
+            `<tr><td style="${metaCellStyle} ${labelStyle}">Vessel</td><td style="${metaCellStyle} ${valueStyle}">${escapeHtml(String(data.vesselName))}</td></tr>`
         );
     }
 
     const metaTable = metaRows.length
-        ? `<table role="presentation" width="100%" style="margin:20px 0 0;border-collapse:collapse;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">${metaRows.join('')}</table>`
+        ? `<div style="background-color:${theme.colors.brand.surface}; border:1px solid ${theme.colors.brand.faded}; border-radius:${theme.radius.md}; overflow:hidden; margin-top:24px;">
+             <table role="presentation" width="100%" style="border-collapse:collapse;">${metaRows.join('')}</table>
+           </div>`
         : '';
 
     const innerHtml = `
-      <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#0d9488;">${escapeHtml(label)}</p>
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f766e;line-height:1.3;letter-spacing:-0.02em;">${escapeHtml(headline)}</h1>
-      <div style="font-size:15px;color:#4b5563;">${messageToHtml(messageText)}</div>
+      <p style="margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:${theme.colors.brand.main};">${escapeHtml(label)}</p>
+      <h1 style="margin:0 0 16px; font-size:20px; font-weight:800; color:${theme.colors.text.core}; line-height:1.2; letter-spacing:-0.02em;">${escapeHtml(headline)}</h1>
+      <div style="margin-bottom:20px;">${messageToHtml(messageText)}</div>
       ${metaTable}
     `;
 
