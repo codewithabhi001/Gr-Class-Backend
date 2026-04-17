@@ -76,10 +76,10 @@ router.post(
 // MANAGEMENT ACTIONS (TM / GM)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Finalize survey — TM / ADMIN ONLY
+// Finalize survey — TM ONLY
 router.put(
     '/jobs/:jobId/finalize',
-    authorizeRoles('ADMIN', 'TM'),
+    authorizeRoles('TM'),
     preventSelfApproval('JobRequest', 'assigned_by_user_id'),
     surveyController.finalizeSurvey
 );
@@ -91,25 +91,25 @@ router.put(
     surveyController.requestRework
 );
 
-// Flag a violation (ADMIN / TM)
+// Flag a violation (TM)
 router.post(
     '/jobs/:jobId/violation',
-    authorizeRoles('ADMIN', 'TM'),
+    authorizeRoles('TM'),
     surveyController.flagViolation
 );
 
-// Draft Survey Statement (Surveyor / TM / GM / ADMIN)
+// Draft Survey Statement (Surveyor / TM)
 router.post(
     '/jobs/:jobId/statement/draft',
-    authorizeRoles('SURVEYOR', 'ADMIN', 'TM'),
+    authorizeRoles('SURVEYOR', 'TM'),
     validate(schemas.draftSurveyStatement),
     surveyController.draftStatement
 );
 
-// Issue Survey Statement (TM / ADMIN ONLY - requires signed PDF)
+// Issue Survey Statement (TM ONLY - requires signed PDF)
 router.post(
     '/jobs/:jobId/statement/issue',
-    authorizeRoles('ADMIN', 'TM'),
+    authorizeRoles('TM'),
     upload.single('statement'),
     surveyController.issueStatement
 );

@@ -22,21 +22,21 @@ router.post('/', authorizeRoles('CLIENT', 'ADMIN', 'GM'), validate(schemas.creat
 
 // ─── Explicit Semantic Workflow Transitions ───────────────
 // CREATED → DOCUMENT_VERIFIED  (TO / GM)
-router.put('/:id/verify-documents', authorizeRoles('ADMIN', 'TO', 'GM'), jobController.verifyJobDocuments);
+router.put('/:id/verify-documents', authorizeRoles('TO'), jobController.verifyJobDocuments);
 
 // DOCUMENT_VERIFIED → APPROVED   (GM / ADMIN)
-router.put('/:id/approve-request', authorizeRoles('ADMIN', 'GM'), jobController.approveRequest);
+router.put('/:id/approve-request', authorizeRoles('GM'), jobController.approveRequest);
 
 // APPROVED → FINALIZED (for non-survey jobs)
-router.put('/:id/finalize', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.finalizeJob);
+router.put('/:id/finalize', authorizeRoles('GM', 'TM'), jobController.finalizeJob);
 
 // APPROVED → ASSIGNED  (ADMIN / GM — requires surveyorId in body)
-router.put('/:id/assign', authorizeRoles('ADMIN', 'GM'), validate(schemas.assignJob), jobController.assignSurveyor);
+router.put('/:id/assign', authorizeRoles('GM'), validate(schemas.assignJob), jobController.assignSurveyor);
 // Re-assign surveyor without status change (GM ONLY)
-router.put('/:id/reassign', authorizeRoles('ADMIN', 'GM'), validate(schemas.reassignJob), jobController.reassignSurveyor);
+router.put('/:id/reassign', authorizeRoles('GM'), validate(schemas.reassignJob), jobController.reassignSurveyor);
 
 // Reschedule
-router.put('/:id/reschedule', authorizeRoles('ADMIN', 'GM'), validate(schemas.rescheduleJob), jobController.rescheduleJob);
+router.put('/:id/reschedule', authorizeRoles('GM'), validate(schemas.rescheduleJob), jobController.rescheduleJob);
 
 // ASSIGNED → SURVEY_AUTHORIZED (see RBAC.AUTHORIZE_SURVEY)
 router.put('/:id/authorize-survey', authorizeRoles(...RBAC.AUTHORIZE_SURVEY), jobController.authorizeSurvey);
@@ -44,24 +44,24 @@ router.put('/:id/authorize-survey', authorizeRoles(...RBAC.AUTHORIZE_SURVEY), jo
 // IN_PROGRESS / REWORK_REQUESTED → automatically handled by survey lifecycle
 
 // SURVEY_DONE → REVIEWED   (TO — technical review)
-router.put('/:id/review', authorizeRoles('ADMIN', 'TO'), jobController.reviewJob);
+router.put('/:id/review', authorizeRoles('TO'), jobController.reviewJob);
 
 // REVIEWED → REWORK_REQUESTED  (ADMIN / TM / TO — requests surveyor correction)
 // NOTE: preferred path is PUT /api/v1/surveys/:id/rework
-router.put('/:id/send-back', authorizeRoles('ADMIN', 'TM', 'TO'), jobController.sendBackJob);
+router.put('/:id/send-back', authorizeRoles('TM', 'TO'), jobController.sendBackJob);
 
 // PAYMENT_DONE → CERTIFIED  (triggered internally by certificate.service.generateCertificate)
 // No direct endpoint: finalization & certification happen via survey + certificate endpoints
 
 // ─── Rejection (terminal → REJECTED) ─────────────────────
 // ADMIN: any non-terminal | GM: CREATED only | TM: ASSIGNED, SURVEY_DONE, REVIEWED
-router.put('/:id/reject', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.rejectJob);
+router.put('/:id/reject', authorizeRoles('GM', 'TM'), jobController.rejectJob);
 
 // ─── Cancellation ────────────────────────────────────────
 router.put('/:id/cancel', authorizeRoles('CLIENT', 'GM', 'TM', 'ADMIN'), jobController.cancelJob);
 
 // ─── Priority ────────────────────────────────────────────
-router.put('/:id/priority', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.updatePriority);
+router.put('/:id/priority', authorizeRoles('GM', 'TM'), jobController.updatePriority);
 
 // ─── History & Notes ─────────────────────────────────────
 router.get('/:id/history', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), jobController.getHistory);

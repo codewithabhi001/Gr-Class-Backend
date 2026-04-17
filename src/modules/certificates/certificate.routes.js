@@ -45,13 +45,13 @@ router.get('/vessel/:vesselId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'T
 router.get('/job/:jobId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateByJobId);
 
 // Generate a new certificate (Draft)
-router.post('/', authorizeRoles('ADMIN', 'GM', 'TM'), certController.generateCertificate);
+router.post('/', authorizeRoles('TM', 'GM'), certController.generateCertificate);
 
 // Update draft details
-router.put('/:id', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.updateCertificateDraft), certController.updateDraft);
+router.put('/:id', authorizeRoles('TM', 'GM'), validate(schemas.updateCertificateDraft), certController.updateDraft);
 
 // Issue certificate (Status -> ISSUED, Generate PDF)
-router.post('/:id/issue', authorizeRoles('ADMIN', 'GM'), validate(schemas.updateCertificateDraft), certController.issueCertificate);
+router.post('/:id/issue', authorizeRoles('GM'), validate(schemas.updateCertificateDraft), certController.issueCertificate);
 
 // Get specific certificate details
 router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateById);
@@ -60,28 +60,28 @@ router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR
 router.get('/:id/download', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.downloadCertificate);
 
 // Suspend/Revoke/Restore
-router.put('/:id/suspend', authorizeRoles('ADMIN', 'TM'), validate(schemas.certAction), certController.suspendCertificate);
-router.put('/:id/revoke', authorizeRoles('ADMIN', 'TM'), validate(schemas.certAction), certController.revokeCertificate);
-router.put('/:id/restore', authorizeRoles('ADMIN', 'TM'), validate(schemas.certAction), certController.restoreCertificate);
+router.put('/:id/suspend', authorizeRoles('TM'), validate(schemas.certAction), certController.suspendCertificate);
+router.put('/:id/revoke', authorizeRoles('TM'), validate(schemas.certAction), certController.revokeCertificate);
+router.put('/:id/restore', authorizeRoles('TM'), validate(schemas.certAction), certController.restoreCertificate);
 
 // Renew
-router.put('/:id/renew', authorizeRoles('ADMIN', 'TM'), validate(schemas.renewCert), certController.renewCertificate);
-router.post('/bulk-renew', authorizeRoles('ADMIN', 'TM'), certController.bulkRenew);
+router.put('/:id/renew', authorizeRoles('TM'), validate(schemas.renewCert), certController.renewCertificate);
+router.post('/bulk-renew', authorizeRoles('TM'), certController.bulkRenew);
 
 // Reissue (Version +1, Revoke Old)
-router.post('/:id/reissue', authorizeRoles('ADMIN', 'TM'), certController.reissueCertificate);
+router.post('/:id/reissue', authorizeRoles('TM'), certController.reissueCertificate);
 
 // Preview & Signature
 router.get('/:id/preview', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.previewCertificate);
-router.post('/:id/sign', authorizeRoles('ADMIN', 'GM'), certController.signCertificate);
+router.post('/:id/sign', authorizeRoles('GM'), certController.signCertificate);
 router.get('/:id/signature', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getSignature);
 
 // History
 router.get('/:id/history', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getHistory);
 
 // Advanced Management
-router.post('/:id/transfer', authorizeRoles('ADMIN', 'GM'), validate(schemas.certAction), certController.transferCertificate);
-router.post('/:id/extend', authorizeRoles('ADMIN', 'GM'), validate(schemas.certAction), certController.extendCertificate);
-router.put('/:id/downgrade', authorizeRoles('ADMIN', 'GM'), validate(schemas.certAction), certController.downgradeCertificate);
+router.post('/:id/transfer', authorizeRoles('GM'), validate(schemas.certAction), certController.transferCertificate);
+router.post('/:id/extend', authorizeRoles('GM'), validate(schemas.certAction), certController.extendCertificate);
+router.put('/:id/downgrade', authorizeRoles('GM'), validate(schemas.certAction), certController.downgradeCertificate);
 
 export default router;
