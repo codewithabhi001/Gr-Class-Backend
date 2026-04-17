@@ -6,6 +6,7 @@ import { validate, schemas } from '../../middlewares/validate.middleware.js';
 
 const router = express.Router();
 
+
 // All routes require authentication
 router.use(authenticate);
 

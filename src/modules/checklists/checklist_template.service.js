@@ -36,7 +36,7 @@ export const getChecklistTemplates = async (filters = {}) => {
     if (filters.certificate_type_id) where.certificate_type_id = filters.certificate_type_id;
     if (filters.code) where.code = filters.code;
 
-    return await ChecklistTemplate.findAll({
+    const templates = await ChecklistTemplate.findAll({
         where,
         attributes: { exclude: ['sections', 'metadata'] }, // Exclude heavy JSON fields for list view
         include: [
@@ -53,6 +53,8 @@ export const getChecklistTemplates = async (filters = {}) => {
         ],
         order: [['created_at', 'DESC']]
     });
+
+    return await fileAccessService.resolveEntity(templates);
 };
 
 /**
@@ -188,54 +190,69 @@ export const downloadChecklistTemplateForJob = async (jobId, user, { force = fal
     }
 
     const templateFiles = Array.isArray(template.template_files) ? template.template_files : [];
-    const templateKey = templateFiles[0];
-    if (!templateKey) {
+    if (templateFiles.length === 0) {
         throw { statusCode: 400, message: 'Checklist template has no template_files configured' };
     }
 
-    const cacheDescription = `prefilled-checklist:${template.id}:${templateKey}`;
-    if (!force) {
-        const existing = await Document.findOne({
-            where: {
+    const tagValues = buildTagValuesForJob(job);
+    const results = [];
+
+    for (const templateKey of templateFiles) {
+        const cacheDescription = `prefilled-checklist:${template.id}:${templateKey}`;
+        let docRecord = null;
+
+        if (!force) {
+            const existing = await Document.findOne({
+                where: {
+                    entity_type: 'JOB',
+                    entity_id: jobId,
+                    document_type: 'CHECKLIST_PREFILLED',
+                    description: cacheDescription,
+                },
+                order: [['uploaded_at', 'DESC']],
+            });
+            if (existing) {
+                docRecord = existing.get({ plain: true });
+            }
+        }
+
+        if (!docRecord) {
+            // Fetch master docx, fill, upload, store Document
+            const masterBuffer = await s3Service.getFileContent(templateKey);
+            const filledBuffer = await fillDocxContentControls(masterBuffer, tagValues);
+
+            // Give it a meaningful name from the original key or use template code
+            const originalNameMatch = templateKey.match(/[^/]+$/);
+            const baseFileName = originalNameMatch ? originalNameMatch[0].replace(/^[0-9]+-/, '') : `${template.code || template.id}.docx`;
+            
+            const outKey = `documents/jobs/${jobId}/checklists/${Date.now()}-${baseFileName}`;
+            await s3Service.uploadFile(
+                filledBuffer,
+                baseFileName,
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                '',
+                outKey
+            );
+
+            const doc = await Document.create({
                 entity_type: 'JOB',
                 entity_id: jobId,
+                file_url: outKey,
+                file_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 document_type: 'CHECKLIST_PREFILLED',
                 description: cacheDescription,
-            },
-            order: [['uploaded_at', 'DESC']],
-        });
-
-        if (existing) {
-            return await fileAccessService.processFileAccess(existing.get({ plain: true }), user);
+                uploaded_by: user?.id || null,
+                uploaded_at: new Date(),
+            });
+            docRecord = doc.get({ plain: true });
         }
+
+        const accessInfo = await fileAccessService.processFileAccess(docRecord, user);
+        results.push(accessInfo);
     }
 
-    // Fetch master docx, fill, upload, store Document, return signed URL.
-    const masterBuffer = await s3Service.getFileContent(templateKey);
-    const tagValues = buildTagValuesForJob(job);
-    const filledBuffer = await fillDocxContentControls(masterBuffer, tagValues);
-
-    const outKey = `documents/jobs/${jobId}/checklists/${Date.now()}-${template.code || template.id}.docx`;
-    await s3Service.uploadFile(
-        filledBuffer,
-        `${template.code || template.id}.docx`,
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '',
-        outKey
-    );
-
-    const doc = await Document.create({
-        entity_type: 'JOB',
-        entity_id: jobId,
-        file_url: outKey,
-        file_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        document_type: 'CHECKLIST_PREFILLED',
-        description: cacheDescription,
-        uploaded_by: user?.id || null,
-        uploaded_at: new Date(),
-    });
-
-    return await fileAccessService.processFileAccess(doc.get({ plain: true }), user);
+    // Return the array of signed documents!
+    return results;
 };
 
 /**
