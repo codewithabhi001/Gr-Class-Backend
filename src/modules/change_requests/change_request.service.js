@@ -43,6 +43,14 @@ export const getChangeRequests = async (filters = {}) => {
     return changeRequests;
 };
 
+export const getChangeRequestById = async (id) => {
+    const changeRequest = await ChangeRequest.findByPk(id);
+    if (!changeRequest) {
+        throw { statusCode: 404, message: 'Change request not found' };
+    }
+    return changeRequest;
+};
+
 /**
  * Approve a change request
  */

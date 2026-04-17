@@ -45,6 +45,23 @@ export const getChangeRequests = async (req, res, next) => {
 };
 
 /**
+ * Get a change request by ID
+ */
+export const getChangeRequestById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const changeRequest = await changeRequestService.getChangeRequestById(id);
+
+        res.json({
+            change_request: changeRequest
+        });
+    } catch (error) {
+        logger.error('Get change request error:', error);
+        next(error);
+    }
+};
+
+/**
  * Approve a change request
  */
 export const approveChangeRequest = async (req, res, next) => {

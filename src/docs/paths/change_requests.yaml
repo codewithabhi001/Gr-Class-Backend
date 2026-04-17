@@ -35,6 +35,22 @@
       "200": { description: List of change requests }
       "403": { description: Forbidden }
 
+/api/v1/change-requests/{id}:
+  get:
+    tags: [Change Requests]
+    summary: Get change request by ID
+    operationId: getChangeRequestById
+    x-roles: [ADMIN, GM, TM, CLIENT]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200": { description: Change request details }
+      "403": { description: Forbidden }
+      "404": { description: Change request not found }
+
 /api/v1/change-requests/{id}/approve:
   put:
     tags: [Change Requests]
