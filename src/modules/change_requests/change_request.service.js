@@ -44,7 +44,12 @@ export const getChangeRequests = async (filters = {}) => {
 };
 
 export const getChangeRequestById = async (id) => {
-    const changeRequest = await ChangeRequest.findByPk(id);
+    const changeRequest = await ChangeRequest.findByPk(id, {
+        include: [
+            { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+            { model: User, as: 'approver', attributes: ['id', 'name', 'email'] }
+        ]
+    });
     if (!changeRequest) {
         throw { statusCode: 404, message: 'Change request not found' };
     }
