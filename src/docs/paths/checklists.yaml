@@ -135,3 +135,66 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+
+/api/v1/checklists/jobs/{jobId}/get-upload-url:
+  get:
+    tags:
+      - Checklists
+    summary: Get upload URL for checklist item evidence
+    description: Generates a pre-signed S3 URL so the surveyor can directly upload photo evidence for a specific checklist item (e.g. failing items). The returned fileKey is then passed as file_url in the checklist submission.
+    operationId: getChecklistItemUploadUrl
+    security:
+      - bearerAuth: []
+    x-roles: [SURVEYOR]
+    parameters:
+      - in: path
+        name: jobId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: Unique identifier of the job
+      - in: query
+        name: fileName
+        schema:
+          type: string
+        required: true
+        description: The filename with extension (e.g. proof.jpg)
+      - in: query
+        name: contentType
+        schema:
+          type: string
+        required: true
+        description: The MIME type of the file (e.g. image/jpeg)
+    responses:
+      '200':
+        description: Upload URL generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    uploadUrl: { type: string, format: uri }
+                    fileKey: { type: string }
+      '400':
+        description: Bad Request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Job Not Found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

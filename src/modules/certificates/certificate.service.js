@@ -631,10 +631,11 @@ export const getCertificateById = async (id, user) => {
 };
 
 const CERT_TRANSITIONS = {
-    VALID: ['SUSPENDED', 'REVOKED', 'EXPIRED'],
-    SUSPENDED: ['VALID', 'REVOKED'],
+    ISSUED: ['SUSPENDED', 'REVOKED', 'EXPIRED'],
+    VALID: ['SUSPENDED', 'REVOKED', 'EXPIRED'], // legacy/external
+    SUSPENDED: ['ISSUED', 'VALID', 'REVOKED'],
     REVOKED: [],
-    EXPIRED: ['VALID']
+    EXPIRED: ['ISSUED', 'VALID']
 };
 
 export const updateStatus = async (id, status, reason, userId) => {
@@ -675,7 +676,11 @@ export const renewCertificate = async (id, validityYears, reason, userId) => {
         certificate_number: await generateUniqueCertificateNumber(oldCert.CertificateType?.short_code),
         issue_date: issueDate,
         expiry_date: expiryDate,
-        status: 'VALID',
+        status: 'DRAFT', // Using DRAFT instead of VALID so admins can generate a new PDF
+        manual_text: oldCert.manual_text,
+        certificate_term: oldCert.certificate_term,
+        flag_administration_id: oldCert.flag_administration_id,
+        certificate_authority_id: oldCert.certificate_authority_id,
         issued_by_user_id: userId
     });
 

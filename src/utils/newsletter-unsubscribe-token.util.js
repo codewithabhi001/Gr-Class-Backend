@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import env from '../config/env.js';
 
-const getSecret = () => env.newsletterUnsubscribeSecret;
+const getSecret = () => env.newsletterUnsubscribeSecret || process.env.JWT_SECRET || 'fallback-newsletter-secret';
 
 /**
  * Signed token for RFC 8058 one-click unsubscribe (per recipient).

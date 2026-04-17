@@ -1,6 +1,7 @@
 import db from '../../models/index.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
+import * as s3Service from '../../services/s3.service.js';
 
 const { ActivityPlanning, JobRequest, Survey } = db;
 
@@ -97,4 +98,30 @@ export const submitChecklist = async (jobId, items, userId) => {
         await txn.rollback();
         throw error;
     }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPLOAD URL
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getSignedUploadUrl = async (jobId, fileName, contentType, userId) => {
+    const job = await JobRequest.findByPk(jobId);
+    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
+    
+    // Guard: Only assigned surveyor can upload proof for checklist
+    if (job.assigned_surveyor_id !== userId) {
+        throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
+    }
+    
+    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
+        throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
+    }
+    
+    const key = `surveys/checklist-evidence/${jobId}/${Date.now()}_${fileName}`;
+    const signedUrl = await s3Service.getUploadSignedUrl(key, contentType);
+
+    return {
+        uploadUrl: signedUrl,
+        fileKey: key,
+    };
 };
