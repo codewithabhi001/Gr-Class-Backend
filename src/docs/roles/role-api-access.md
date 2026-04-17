@@ -175,12 +175,6 @@ Base API prefix: `/api/v1`
   - Template and checklist-template create/update/delete/activate/clone
   - Flags create/update
   - Payment write-off
-
-## TA
-
-- No route-level endpoint currently includes `TA` in `authorizeRoles(...)` or `hasRole(...)`.
-- TA can still access authenticated common APIs listed above.
-
 ## FLAG_ADMIN
 
 - No route-level endpoint currently includes `FLAG_ADMIN` in `authorizeRoles(...)` or `hasRole(...)`.
@@ -199,7 +193,6 @@ This file lists API endpoints (method + path) grouped by role. Paths use the API
 
 Notes:
 - Source: route-level authorizations declared with `authorizeRoles(...)` across `src/**/routes.js`.
-- TA and FLAG_ADMIN exist in the user model but currently have no role-specific routes.
 
 ---
 
@@ -371,8 +364,6 @@ Notes:
 
 ---
 
-## TA
-- No route-level authorizations currently include `TA`. (Role exists in `src/models/user.model.js` but is not used in `authorizeRoles(...)`).
 
 ---
 

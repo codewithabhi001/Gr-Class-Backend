@@ -36,7 +36,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist.routes.js:10`
 - Controller: `src/modules/checklists/checklist.controller.js:3`
-- Service: `src/modules/checklists/checklist.service.js:11` (`checklistService.getChecklist`)
+- Service: `src/modules/checklists/checklist.service.js:12` (`checklistService.getChecklist`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -81,6 +81,35 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist.routes.js:11`
 - Controller: `src/modules/checklists/checklist.controller.js:10`
-- Service: `src/modules/checklists/checklist.service.js:47` (`checklistService.submitChecklist`)
+- Service: `src/modules/checklists/checklist.service.js:48` (`checklistService.submitChecklist`)
 - Models touched: JobRequest.findByPk, Survey.findOne, ActivityPlanning.destroy, ActivityPlanning.bulkCreate
 - Service returns (detected): await fileAccessService.resolveEntity(results, { id: userId })
+
+### 3. GET /api/v1/checklists/jobs/{jobId}/get-upload-url
+- Summary: Get upload URL for checklist item evidence
+- Operation ID: `getChecklistItemUploadUrl`
+- Access Roles: SURVEYOR
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `jobId` (path, required, string)
+- `fileName` (query, required, string)
+- `contentType` (query, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Upload URL generated successfully (application/json => object)
+- `400`: Bad Request (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
+- `404`: Job Not Found (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s): N/A
+
+Implementation Trace
+- Route file: `N/A`
+- Controller: `N/A`
+- Services: N/A

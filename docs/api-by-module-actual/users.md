@@ -57,7 +57,7 @@ Joi.object({
         name: Joi.string().required(),
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').required(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').required(),
         phone: Joi.string().optional().allow('', null),
         client_id: Joi.string().guid().optional().allow(null, ''),
         license_number: Joi.string().optional().allow(''),
@@ -86,7 +86,7 @@ Implementation Trace
 ### 3. GET /api/v1/users/me
 - Summary: Get current user profile
 - Operation ID: `getMyProfile`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -126,7 +126,7 @@ Request (Code + Schema)
 Joi.object({
         name: Joi.string().optional(),
         email: Joi.string().email().optional(),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').optional(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'FLAG_ADMIN').optional(),
         phone: Joi.string().optional().allow(''),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'SUSPENDED').optional(),
         client_id: Joi.string().guid().optional().allow(null),
@@ -215,8 +215,8 @@ Implementation Trace
 ### 7. PUT /api/v1/users/fcm-token
 - Summary: Update FCM device token for push notifications
 - Operation ID: `updateFcmToken`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -256,8 +256,8 @@ Implementation Trace
 ### 8. PUT /api/v1/users/profile-pic
 - Summary: Update profile picture
 - Operation ID: `updateProfilePic`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
 
 Request (Code + Schema)
 - Route Params/Query from YAML:

@@ -14,6 +14,7 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - `is_active` (query, optional, boolean)
 - `certificate_type_id` (query, optional, string)
+- `certificate_term` (query, optional, string)
 - Request Body from YAML:
 - None
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
@@ -31,7 +32,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:14`
 - Controller: `src/modules/templates/template.controller.js:10`
-- Service: `src/modules/templates/template.service.js:15` (`templateService.getTemplates`)
+- Service: `src/modules/templates/template.service.js:16` (`templateService.getTemplates`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -48,11 +49,12 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:317`
+- Joi schema source: `src/middlewares/validate.middleware.js:325`
 ```js
 Joi.object({
         template_name: Joi.string().required(),
         certificate_type_id: Joi.string().guid().required(),
+        certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional().allow(null),
         template_content: Joi.string().required(),
         variables: Joi.array().items(Joi.string()).optional(),
         is_active: Joi.boolean().optional().default(true)
@@ -77,6 +79,7 @@ Implementation Trace
 - Service returns (detected): await CertificateTemplate.create({
         template_name: data.template_name,
         certificate_type_id: data.certificate_type_id,
+        certificate_term: data.certificate_term ?? null,
         template_content: data.template_content,
         variables: data.variables || [],
         is_active: data.is_active !== false
@@ -109,7 +112,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:17`
 - Controller: `src/modules/templates/template.controller.js:17`
-- Service: `src/modules/templates/template.service.js:27` (`templateService.getTemplateById`)
+- Service: `src/modules/templates/template.service.js:29` (`templateService.getTemplateById`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): template
 
@@ -126,11 +129,12 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:324`
+- Joi schema source: `src/middlewares/validate.middleware.js:333`
 ```js
 Joi.object({
         template_name: Joi.string().optional(),
         certificate_type_id: Joi.string().guid().optional(),
+        certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional().allow(null),
         template_content: Joi.string().optional(),
         variables: Joi.array().items(Joi.string()).optional(),
         is_active: Joi.boolean().optional()
@@ -151,7 +155,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:20`
 - Controller: `src/modules/templates/template.controller.js:24`
-- Service: `src/modules/templates/template.service.js:35` (`templateService.updateTemplate`)
+- Service: `src/modules/templates/template.service.js:37` (`templateService.updateTemplate`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): await template.update(data)
 
@@ -182,6 +186,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:23`
 - Controller: `src/modules/templates/template.controller.js:31`
-- Service: `src/modules/templates/template.service.js:42` (`templateService.deleteTemplate`)
+- Service: `src/modules/templates/template.service.js:44` (`templateService.deleteTemplate`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): { message: 'Template deleted successfully' }

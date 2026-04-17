@@ -1104,7 +1104,7 @@ CLIENT can only download certificates for their vessels.
 
 ### PUT `/api/v1/checklists/jobs/{jobId}`
 **Summary:** Submit checklist for a job
-**Description:** Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (STARTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).
+**Description:** Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (SRTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): Unique identifier of the job

@@ -10,7 +10,6 @@
 | `GM` | General Manager |
 | `TM` | Technical Manager |
 | `TO` | Technical Officer |
-| `TA` | Technical Assistant |
 | `SURVEYOR` | Field Surveyor |
 | `CLIENT` | Ship Owner / Operator |
 | `FLAG_ADMIN` | Flag State Administration |
@@ -47,7 +46,7 @@
 | [26_COMPLIANCE.md](./26_COMPLIANCE.md) | Compliance (GDPR) | Data Export, Anonymize |
 | [27_SYSTEM.md](./27_SYSTEM.md) | System Administration | Health, Metrics, Audit Logs, Maintenance |
 | [28_WEBSITE.md](./28_WEBSITE.md) | Website Management | Video CRUD |
-| [29_CONTACT.md](./29_CONTACT.md) | Contact Enquiries | Submit, Manage |
+| [29_CONCT.md](./29_CONCT.md) | Contact Enquiries | Submit, Manage |
 | [30_CERT_TEMPLATES.md](./30_CERT_TEMPLATES.md) | Certificate Templates | CRUD |
 
 ## 🔐 Authentication

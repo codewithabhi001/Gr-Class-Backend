@@ -693,7 +693,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 **Summary:** Get presigned URL for certificate upload
 **Description:** Returns a presigned S3 URL for uploading external certificates. ADMIN, GM, TM only.
 
-**IMPORTANT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
+**IMPORNT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
 
 
 #### Parameters
@@ -2211,7 +2211,7 @@ CLIENT can only download certificates for their vessels.
 **Summary:** Get logo upload URL
 **Description:** Returns a presigned S3 URL for uploading an authority logo. ADMIN only.
 
-**IMPORTANT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
+**IMPORNT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
 
 
 #### Parameters
@@ -3397,7 +3397,7 @@ CLIENT can only download certificates for their vessels.
     "READ": 12,
     "REPLIED": 20,
     "ARCHIVED": 3,
-    "TOTAL": 40
+    "TOL": 40
   }
 }
 ```
@@ -3446,7 +3446,7 @@ CLIENT can only download certificates for their vessels.
     "replied_by": "123e4567-e89b-12d3-a456-426614174000",
     "replied_at": "2026-03-07T12:00:00Z",
     "ip_address": "192.168.1.1",
-    "source_page": "CONTACT",
+    "source_page": "CONCT",
     "created_at": "2026-03-07T12:00:00Z",
     "updated_at": "2026-03-07T12:00:00Z",
     "Responder": {
@@ -3548,7 +3548,7 @@ CLIENT can only download certificates for their vessels.
     "replied_by": "123e4567-e89b-12d3-a456-426614174000",
     "replied_at": "2026-03-07T12:00:00Z",
     "ip_address": "192.168.1.1",
-    "source_page": "CONTACT",
+    "source_page": "CONCT",
     "created_at": "2026-03-07T12:00:00Z",
     "updated_at": "2026-03-07T12:00:00Z",
     "Responder": {

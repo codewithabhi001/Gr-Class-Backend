@@ -337,7 +337,7 @@ GET /certificates/types/:id  ─────────────────
         └──────────►──────────────────────────┘
                    │
                    ▼
-USER FILLS REASON, TARGET_PORT, TARGET_DATE
+USER FILLS REASONRGET_PORTRGET_DATE
                    │
                    ▼
 POST /jobs  ───────────────────────────────────────────────────────────►  job.id, job_status: "CREATED"

@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/jobs.yaml`
 ### 1. GET /api/v1/jobs
 - Summary: List jobs (role-filtered)
 - Operation ID: `getJobs`
-- Access Roles: CLIENT, ADMIN, GM, TM, TO, TA, FLAG_ADMIN, SURVEYOR
+- Access Roles: CLIENT, ADMIN, GM, TM, TO, FLAG_ADMIN, SURVEYOR
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)

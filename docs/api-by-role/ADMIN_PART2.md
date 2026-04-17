@@ -63,7 +63,7 @@
 {
   "success": true,
   "data": [
-    { "event": "SURVEY_STARTED", "timestamp": "2026-03-05T18:00:00.000Z", "latitude": 25.2048, "longitude": 55.2708 },
+    { "event": "SURVEY_SRTED", "timestamp": "2026-03-05T18:00:00.000Z", "latitude": 25.2048, "longitude": 55.2708 },
     { "event": "CHECKLIST_SUBMITTED", "timestamp": "2026-03-05T19:00:00.000Z" },
     { "event": "PROOF_UPLOADED", "timestamp": "2026-03-05T19:30:00.000Z" },
     { "event": "SURVEY_SUBMITTED", "timestamp": "2026-03-05T20:00:00.000Z", "latitude": 25.2050, "longitude": 55.2710 }

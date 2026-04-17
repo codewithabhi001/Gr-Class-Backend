@@ -84,7 +84,7 @@
   "success": true,
   "data": {
     "id": "uuid",
-    "entity_type": "STANDALONE",
+    "entity_type": "SNDALONE",
     "file_key": "uploads/abc/report.pdf",
     "document_type": "Survey Report"
   }

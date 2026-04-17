@@ -52,7 +52,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/VesselCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `createVessel`
-- Joi schema source: `src/middlewares/validate.middleware.js:363`
+- Joi schema source: `src/middlewares/validate.middleware.js:373`
 ```js
 Joi.object({
         client_id: Joi.string().guid().required(),
@@ -175,7 +175,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/VesselUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `updateVessel`
-- Joi schema source: `src/middlewares/validate.middleware.js:390`
+- Joi schema source: `src/middlewares/validate.middleware.js:400`
 ```js
 Joi.object({
         client_id: Joi.string().guid().optional(),

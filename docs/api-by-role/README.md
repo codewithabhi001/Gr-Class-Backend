@@ -13,7 +13,7 @@
 | [GM.md](./GM.md) | 🏢 General Manager | Job approval, Assign surveyors, Payments, Clients |
 | [TM.md](./TM.md) | ⚙️ Technical Manager | Survey finalize, TOCA, Surveyor MGMT, Cert suspend/renew |
 | [TO.md](./TO.md) | 📋 Technical Officer | Document verify, Technical review, NC create/close |
-| [TA.md](./TA.md) | 📎 Technical Assistant | Jobs (read), Payment processing |
+| [.md](./.md) | 📎 Technical Assistant | Jobs (read), Payment processing |
 | [SURVEYOR.md](./SURVEYOR.md) | 🔍 Field Surveyor | Full survey workflow, GPS, availability |
 | [CLIENT.md](./CLIENT.md) | 🚢 Ship Owner | Job create, Own vessels/certs, Feedback, Incidents |
 | [FLAG_ADMIN.md](./FLAG_ADMIN.md) | 🏴 Flag State | Jobs (read only), Dashboard |

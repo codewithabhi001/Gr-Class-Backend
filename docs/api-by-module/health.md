@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/health.yaml`
 ### 1. GET /api/v1/health
 - Summary: Health check
 - Operation ID: `getHealth`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)

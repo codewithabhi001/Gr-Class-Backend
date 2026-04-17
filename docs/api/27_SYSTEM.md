@@ -101,7 +101,7 @@
 | `limit` | number | optional | Items per page (default 50) |
 | `entity_type` | string | optional | `JOB`, `SURVEY`, `CERTIFICATE`, `USER`, etc. |
 | `user_id` | UUID | optional | Filter by user |
-| `action` | string | optional | e.g. `UPDATE_STATUS`, `CREATE`, `DELETE` |
+| `action` | string | optional | e.g. `UPDATE_STUS`, `CREATE`, `DELETE` |
 | `from_date` | string | optional | — |
 | `to_date` | string | optional | — |
 
@@ -114,7 +114,7 @@
       {
         "id": "uuid",
         "user_id": "uuid",
-        "action": "UPDATE_STATUS",
+        "action": "UPDATE_STUS",
         "entity_type": "JOB",
         "entity_id": "uuid",
         "old_value": "CREATED",
@@ -229,7 +229,7 @@
   "data": {
     "flags": {
       "NEW_UI": true,
-      "BETA_REPORTS": false
+      "BE_REPORTS": false
     }
   }
 }

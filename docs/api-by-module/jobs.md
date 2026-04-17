@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/jobs.yaml`
 ### 1. GET /api/v1/jobs
 - Summary: List jobs (role-filtered)
 - Operation ID: `getJobs`
-- Access Roles: CLIENT, ADMIN, GM, TM, TO, TA, FLAG_ADMIN, SURVEYOR
+- Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -161,8 +161,8 @@ Implementation Trace
 ### 5. PUT /api/v1/jobs/{id}/approve-request
 - Summary: GM/ADMIN: Approve request → APPROVED
 - Operation ID: `approveRequest`
-- Access Roles: ADMIN, GM
-- Change Access: ADMIN, GM
+- Access Roles: GM
+- Change Access: GM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -194,8 +194,8 @@ Implementation Trace
 ### 6. PUT /api/v1/jobs/{id}/finalize
 - Summary: ADMIN/GM/TM: Finalize non-survey job → FINALIZED
 - Operation ID: `finalizeJob`
-- Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
+- Access Roles: GM, TM
+- Change Access: GM, TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -227,8 +227,8 @@ Implementation Trace
 ### 7. PUT /api/v1/jobs/{id}/assign
 - Summary: ADMIN/GM: Assign surveyor → ASSIGNED
 - Operation ID: `assignSurveyor`
-- Access Roles: ADMIN, GM
-- Change Access: ADMIN, GM
+- Access Roles: GM
+- Change Access: GM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -237,7 +237,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/AssignSurveyorRequest
 - Req usage in controller: params=[id], query=[], body=[surveyorId, surveyor_id], user=[], files=[]
 - Validation schema key: `assignJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:275`
+- Joi schema source: `src/middlewares/validate.middleware.js:283`
 ```js
 Joi.object({
         surveyorId: Joi.string().guid().optional(),
@@ -278,7 +278,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ReassignJobRequest
 - Req usage in controller: params=[id], query=[], body=[surveyorId, surveyor_id, reason], user=[], files=[]
 - Validation schema key: `reassignJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:288`
 ```js
 Joi.object({
         surveyorId: Joi.string().guid().optional(),
@@ -309,8 +309,8 @@ Implementation Trace
 ### 9. PUT /api/v1/jobs/{id}/authorize-survey
 - Summary: ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED
 - Operation ID: `authorizeSurvey`
-- Access Roles: ADMIN, TM
-- Change Access: ADMIN, TM
+- Access Roles: TM
+- Change Access: TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -375,8 +375,8 @@ Implementation Trace
 ### 11. PUT /api/v1/jobs/{id}/send-back
 - Summary: ADMIN/TM/TO: Request rework → REWORK_REQUESTED
 - Operation ID: `sendBackJob`
-- Access Roles: ADMIN, TM, TO
-- Change Access: ADMIN, TM, TO
+- Access Roles: TM, TO
+- Change Access: TM, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -408,8 +408,8 @@ Implementation Trace
 ### 12. PUT /api/v1/jobs/{id}/reschedule
 - Summary: ADMIN/GM: Reschedule job date/port
 - Operation ID: `rescheduleJob`
-- Access Roles: ADMIN, GM
-- Change Access: ADMIN, GM
+- Access Roles: GM
+- Change Access: GM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -418,7 +418,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/RescheduleJobRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `rescheduleJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:285`
+- Joi schema source: `src/middlewares/validate.middleware.js:293`
 ```js
 Joi.object({
         new_target_date: Joi.date().iso().required(),
@@ -451,8 +451,8 @@ Implementation Trace
 ### 13. PUT /api/v1/jobs/{id}/reject
 - Summary: ADMIN/GM/TM: Reject job → REJECTED (terminal)
 - Operation ID: `rejectJob`
-- Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
+- Access Roles: GM, TM
+- Change Access: GM, TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:

@@ -7,7 +7,7 @@
 
 ## GET `/api/v1/dashboard`
 
-> **Access:** ALL roles (`ADMIN`, `GM`, `TM`, `TO`, `TA`, `SURVEYOR`, `CLIENT`, `FLAG_ADMIN`)  
+> **Access:** ALL roles (`ADMIN`, `GM`, `TM`, `TO`, ``, `SURVEYOR`, `CLIENT`, `FLAG_ADMIN`)  
 > Returns role-specific dashboard data. The backend automatically detects the user's role and returns appropriate data.
 
 ### Request Body

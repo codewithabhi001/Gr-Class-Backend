@@ -148,7 +148,7 @@
 
 ## 5. PUT `/api/v1/payments/:id/pay`
 
-> **Access:** `ADMIN`, `GM`, `TM`, `TA`  
+> **Access:** `ADMIN`, `GM`, `TM`, ``  
 > Mark a payment as paid. Upload receipt.  
 > **Content-Type:** `multipart/form-data`
 

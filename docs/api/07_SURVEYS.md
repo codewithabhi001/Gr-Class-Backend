@@ -5,7 +5,7 @@
 
 ## Survey Status Flow
 ```
-NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED → FINALIZED
+NOT_SRTED → SRTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED → FINALIZED
                                                                     ↓
                                                             REWORK_REQUIRED → (re-submit)
 ```
@@ -41,7 +41,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
     "id": "019514a2-7e3b-7000-8000-000000000200",
     "job_id": "019514a2-7e3b-7000-8000-000000000100",
     "surveyor_id": "019514a2-7e3b-7000-8000-000000000002",
-    "survey_status": "STARTED",
+    "survey_status": "SRTED",
     "start_latitude": 25.2048,
     "start_longitude": 55.2708,
     "started_at": "2026-03-05T18:00:00.000Z",
@@ -434,7 +434,7 @@ None required
   "success": true,
   "data": [
     {
-      "event": "SURVEY_STARTED",
+      "event": "SURVEY_SRTED",
       "timestamp": "2026-03-05T18:00:00.000Z",
       "user": "John Surveyor",
       "details": { "latitude": 25.2048, "longitude": 55.2708 }

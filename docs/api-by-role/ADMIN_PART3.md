@@ -272,7 +272,7 @@ _(GET /:id, GET /:entityType/:entityId, POST upload, POST register — same as C
 
 ---
 
-## ⭐ FEEDBACK | 📧 CONTACT | 📋 CERT TEMPLATES
+## ⭐ FEEDBACK | 📧 CONCT | 📋 CERT TEMPLATES
 
 ### GET `/api/v1/customer-feedback`
 **Response `200`:**
@@ -352,10 +352,10 @@ Fields: `video`/`videoKey`, `thumbnail`/`thumbnailKey`, `section` (✅), `title`
 ```
 
 ### GET `/api/v1/system/audit-logs`
-**Query:** `?page=1&limit=50&entity_type=JOB&user_id=uuid&action=UPDATE_STATUS`
+**Query:** `?page=1&limit=50&entity_type=JOB&user_id=uuid&action=UPDATE_STUS`
 **Response `200`:**
 ```json
-{ "success": true, "data": { "rows": [{ "id": "uuid", "user_id": "uuid", "action": "UPDATE_STATUS", "entity_type": "JOB", "entity_id": "uuid", "old_value": "CREATED", "new_value": "DOCUMENT_VERIFIED", "ip_address": "192.168.1.100", "user_agent": "Mozilla/5.0...", "created_at": "2026-03-05T19:10:00.000Z", "User": { "name": "TO User", "role": "TO" } }], "count": 500 } }
+{ "success": true, "data": { "rows": [{ "id": "uuid", "user_id": "uuid", "action": "UPDATE_STUS", "entity_type": "JOB", "entity_id": "uuid", "old_value": "CREATED", "new_value": "DOCUMENT_VERIFIED", "ip_address": "192.168.1.100", "user_agent": "Mozilla/5.0...", "created_at": "2026-03-05T19:10:00.000Z", "User": { "name": "TO User", "role": "TO" } }], "count": 500 } }
 ```
 
 ### POST `/api/v1/system/users/:id/logout`
@@ -374,7 +374,7 @@ Fields: `video`/`videoKey`, `thumbnail`/`thumbnailKey`, `section` (✅), `title`
 **Response `200`:** `{ "success": true, "data": { "maintenance_mode": true, "performed_by": "admin@grclass.com" } }`
 
 ### GET `/api/v1/system/feature-flags`
-**Response `200`:** `{ "success": true, "data": { "flags": { "NEW_UI": true, "BETA_REPORTS": false } } }`
+**Response `200`:** `{ "success": true, "data": { "flags": { "NEW_UI": true, "BE_REPORTS": false } } }`
 
 ### GET `/api/v1/system/locales`
 **Response `200`:** `{ "success": true, "data": [{ "code": "en", "name": "English", "active": true }, { "code": "ar", "name": "Arabic", "active": true }] }`

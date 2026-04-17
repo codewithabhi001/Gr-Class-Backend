@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/support.yaml`
 ### 1. GET /api/v1/support
 - Summary: Get support tickets
 - Operation ID: `getSupportTickets`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -31,8 +31,8 @@ Implementation Trace
 ### 2. POST /api/v1/support
 - Summary: Create support ticket
 - Operation ID: `createSupportTicket`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -55,7 +55,7 @@ Implementation Trace
 ### 3. GET /api/v1/support/{id}
 - Summary: Get ticket by ID
 - Operation ID: `getSupportTicketById`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)

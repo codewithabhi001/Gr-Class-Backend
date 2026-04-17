@@ -21,7 +21,6 @@ The system uses **Role-Based Access Control (RBAC)**. Each role has a specific "
 | `GM` | Gen. Manager | Business flows, Client/Surveyor onboarding, Job Approval. | Global |
 | `TM` | Tech. Manager | Technical oversight, Final Survey Approval, Cert Issuance. | Global |
 | `TO` | Tech. Officer | **Document Verification**, Technical review of checklists. | Global |
-| `TA` | Tech. Assistant| Operational support, help with logs. | Global |
 | `SURVEYOR`| Inspector | Performing vessel surveys, uploading reports. | Assigned Jobs Only |
 | `CLIENT` | Ship Owner | Vessel management, requesting surveys, cert downloads. | Own Organization Only|
 | `FLAG_ADMIN`| Port State | Regulatory oversight of vessels under their flag. | Flag-Specific |

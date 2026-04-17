@@ -32,9 +32,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:30`
+- Route file: `src/modules/checklists/checklist_template.routes.js:42`
 - Controller: `src/modules/checklists/checklist_template.controller.js:22`
-- Service: `src/modules/checklists/checklist_template.service.js:27` (`checklistTemplateService.getChecklistTemplates`)
+- Service: `src/modules/checklists/checklist_template.service.js:32` (`checklistTemplateService.getChecklistTemplates`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -51,7 +51,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `createChecklistTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:331`
+- Joi schema source: `src/middlewares/validate.middleware.js:341`
 ```js
 Joi.object({
         name: Joi.string().required(),
@@ -85,15 +85,16 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:17`
+- Route file: `src/modules/checklists/checklist_template.routes.js:18`
 - Controller: `src/modules/checklists/checklist_template.controller.js:6`
-- Service: `src/modules/checklists/checklist_template.service.js:10` (`checklistTemplateService.createChecklistTemplate`)
+- Service: `src/modules/checklists/checklist_template.service.js:14` (`checklistTemplateService.createChecklistTemplate`)
 - Models touched: ChecklistTemplate.create
 - Service returns (detected): await ChecklistTemplate.create({
         name: data.name,
         code: data.code,
         description: data.description,
         sections: data.sections,
+        template_files: data.template_files,
         certificate_type_id: data.certificate_type_id,
         status: data.status || 'DRAFT',
         metadata: data.metadata || {},
@@ -101,7 +102,33 @@ Implementation Trace
         updated_by: userId
     })
 
-### 3. GET /api/v1/checklist-templates/job/{jobId}
+### 3. GET /api/v1/checklist-templates/get-upload-url
+- Summary: Get upload URL for checklist template
+- Operation ID: `getChecklistTemplateUploadUrl`
+- Access Roles: ADMIN
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `fileName` (query, required, string)
+- `contentType` (query, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Upload URL generated (application/json => object)
+- `403`: Forbidden
+- Controller response envelope(s): N/A
+
+Implementation Trace
+- Route file: `N/A`
+- Controller: `N/A`
+- Services: N/A
+
+### 4. GET /api/v1/checklist-templates/job/{jobId}
 - Summary: Get template for job
 - Operation ID: `getChecklistTemplateForJob`
 - Access Roles: SURVEYOR, ADMIN, GM, TM, TO
@@ -129,13 +156,44 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:41`
+- Route file: `src/modules/checklists/checklist_template.routes.js:65`
 - Controller: `src/modules/checklists/checklist_template.controller.js:53`
-- Service: `src/modules/checklists/checklist_template.service.js:88` (`checklistTemplateService.getChecklistTemplateForJob`)
+- Service: `src/modules/checklists/checklist_template.service.js:95` (`checklistTemplateService.getChecklistTemplateForJob`)
 - Models touched: JobRequest.findByPk, ChecklistTemplate.findOne
-- Service returns (detected): template
+- Service returns (detected): await fileAccessService.resolveEntity(template)
 
-### 4. GET /api/v1/checklist-templates/{id}
+### 5. GET /api/v1/checklist-templates/job/{jobId}/download
+- Summary: Download auto-filled checklist DOCX for job
+- Operation ID: `downloadChecklistTemplateForJob`
+- Access Roles: SURVEYOR, ADMIN, GM, TM, TO
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `jobId` (path, required, string)
+- `force` (query, optional, boolean)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[jobId], query=[force], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Signed URL for filled DOCX (application/json => object)
+- `403`: Forbidden
+- Controller response envelope(s):
+```js
+{ success: true, data }
+```
+
+Implementation Trace
+- Route file: `src/modules/checklists/checklist_template.routes.js:54`
+- Controller: `src/modules/checklists/checklist_template.controller.js:69`
+- Service: `src/modules/checklists/checklist_template.service.js:174` (`checklistTemplateService.downloadChecklistTemplateForJob`)
+- Models touched: N/A
+- Service returns (detected): N/A
+
+### 6. GET /api/v1/checklist-templates/{id}
 - Summary: Get template by ID
 - Operation ID: `getChecklistTemplateById`
 - Access Roles: ADMIN, GM, TM, SURVEYOR
@@ -162,13 +220,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:52`
+- Route file: `src/modules/checklists/checklist_template.routes.js:76`
 - Controller: `src/modules/checklists/checklist_template.controller.js:37`
-- Service: `src/modules/checklists/checklist_template.service.js:56` (`checklistTemplateService.getChecklistTemplateById`)
+- Service: `src/modules/checklists/checklist_template.service.js:63` (`checklistTemplateService.getChecklistTemplateById`)
 - Models touched: ChecklistTemplate.findByPk
-- Service returns (detected): template
+- Service returns (detected): await fileAccessService.resolveEntity(template)
 
-### 5. PUT /api/v1/checklist-templates/{id}
+### 7. PUT /api/v1/checklist-templates/{id}
 - Summary: Update template
 - Operation ID: `updateChecklistTemplate`
 - Access Roles: ADMIN
@@ -181,7 +239,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `updateChecklistTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:347`
+- Joi schema source: `src/middlewares/validate.middleware.js:357`
 ```js
 Joi.object({
         name: Joi.string().optional(),
@@ -215,16 +273,16 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:63`
-- Controller: `src/modules/checklists/checklist_template.controller.js:69`
-- Service: `src/modules/checklists/checklist_template.service.js:126` (`checklistTemplateService.updateChecklistTemplate`)
+- Route file: `src/modules/checklists/checklist_template.routes.js:87`
+- Controller: `src/modules/checklists/checklist_template.controller.js:101`
+- Service: `src/modules/checklists/checklist_template.service.js:274` (`checklistTemplateService.updateChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk
-- Service returns (detected): await template.update({
+- Service returns (detected): await fileAccessService.resolveEntity(await template.update({
         ...data,
         updated_by: userId
-    })
+    }))
 
-### 6. DELETE /api/v1/checklist-templates/{id}
+### 8. DELETE /api/v1/checklist-templates/{id}
 - Summary: Delete template
 - Operation ID: `deleteChecklistTemplate`
 - Access Roles: ADMIN
@@ -251,13 +309,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:97`
-- Controller: `src/modules/checklists/checklist_template.controller.js:89`
-- Service: `src/modules/checklists/checklist_template.service.js:146` (`checklistTemplateService.deleteChecklistTemplate`)
+- Route file: `src/modules/checklists/checklist_template.routes.js:121`
+- Controller: `src/modules/checklists/checklist_template.controller.js:121`
+- Service: `src/modules/checklists/checklist_template.service.js:294` (`checklistTemplateService.deleteChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk
 - Service returns (detected): { message: 'Checklist template deleted successfully' }
 
-### 7. PUT /api/v1/checklist-templates/{id}/activate
+### 9. PUT /api/v1/checklist-templates/{id}/activate
 - Summary: Activate template
 - Operation ID: `activateChecklistTemplate`
 - Access Roles: ADMIN
@@ -285,9 +343,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:75`
-- Controller: `src/modules/checklists/checklist_template.controller.js:104`
-- Service: `src/modules/checklists/checklist_template.service.js:162` (`checklistTemplateService.activateChecklistTemplate`)
+- Route file: `src/modules/checklists/checklist_template.routes.js:99`
+- Controller: `src/modules/checklists/checklist_template.controller.js:136`
+- Service: `src/modules/checklists/checklist_template.service.js:310` (`checklistTemplateService.activateChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk, ChecklistTemplate.update
 - Service returns (detected): await db.sequelize.transaction(async (t) => {
         const template = await ChecklistTemplate.findByPk(id, { transaction: t }) | await template.update({
@@ -295,7 +353,7 @@ Implementation Trace
             updated_by: userId
         }, { transaction: t })
 
-### 8. POST /api/v1/checklist-templates/{id}/clone
+### 10. POST /api/v1/checklist-templates/{id}/clone
 - Summary: Clone template
 - Operation ID: `cloneChecklistTemplate`
 - Access Roles: ADMIN
@@ -323,8 +381,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/checklists/checklist_template.routes.js:86`
-- Controller: `src/modules/checklists/checklist_template.controller.js:123`
-- Service: `src/modules/checklists/checklist_template.service.js:195` (`checklistTemplateService.cloneChecklistTemplate`)
+- Route file: `src/modules/checklists/checklist_template.routes.js:110`
+- Controller: `src/modules/checklists/checklist_template.controller.js:155`
+- Service: `src/modules/checklists/checklist_template.service.js:343` (`checklistTemplateService.cloneChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk, ChecklistTemplate.create
 - Service returns (detected): newTemplate

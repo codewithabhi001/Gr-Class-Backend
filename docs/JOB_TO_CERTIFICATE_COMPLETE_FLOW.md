@@ -17,7 +17,6 @@
 | `GM` | General Manager | Business approval. Assigns surveyor. Requests rework. |
 | `TM` | Technical Manager | Senior technical authority. **Only role that can finalize survey.** |
 | `TO` | Technical Officer | Field reviewer. Marks survey work as reviewed. |
-| `TA` | Technical Assistant | Finance helper. Can mark payments as paid. |
 | `SURVEYOR` | Surveyor | Field engineer. Performs the physical inspection. |
 
 ---
@@ -34,7 +33,7 @@ CREATED → APPROVED → ASSIGNED → SURVEY_AUTHORIZED → IN_PROGRESS → SURV
 
 ### Survey Statuses (in order)
 ```
-NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED → FINALIZED
+NOT_SRTED → SRTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED → FINALIZED
                                                                           ↕ REWORK_REQUIRED
 ```
 
@@ -88,7 +87,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 ┌──────────────────────────────────────────▼──────────────────────────────────┐
 │  PHASE 6: PAYMENT                                                           │
 │  POST /payments/invoice              [ADMIN/GM/TM]                          │
-│  PUT  /payments/:id/pay              [ADMIN/GM/TM/TA]   FINALIZED→PAYMENT_DONE│
+│  PUT  /payments/:id/pay              [ADMIN/GM/TM/]   FINALIZED→PAYMENT_DONE│
 └──────────────────────────────────────────┬──────────────────────────────────┘
                                            │
 ┌──────────────────────────────────────────▼──────────────────────────────────┐
@@ -320,7 +319,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 |:---|:---|
 | **Who** | `SURVEYOR` |
 | **Job Status Required** | `SURVEY_AUTHORIZED` |
-| **Survey Status** | `NOT_STARTED` → `STARTED` |
+| **Survey Status** | `NOT_SRTED` → `SRTED` |
 | **Job Status After** | `IN_PROGRESS` *(auto-synced)* |
 
 **Request Body:**
@@ -344,14 +343,14 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 
 **Guards:**
 - Job must be `SURVEY_AUTHORIZED` — not `IN_PROGRESS`, not any other status.
-- Cannot re-start a survey already in `STARTED` or beyond.
+- Cannot re-start a survey already in `SRTED` or beyond.
 - GPS coordinates are logged to `gps_tracking`.
 
 **Error Responses:**
 | Code | Message |
 |:---|:---|
 | `400` | `This action requires job to be in: SURVEY_AUTHORIZED. Current: IN_PROGRESS` |
-| `400` | `Survey cannot be started: already in STARTED state.` |
+| `400` | `Survey cannot be started: already in SRTED state.` |
 | `403` | `You are not the assigned surveyor for this job.` |
 
 ---
@@ -362,7 +361,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 | Field | Value |
 |:---|:---|
 | **Who** | `SURVEYOR` |
-| **Survey Status Required** | `STARTED` or `REWORK_REQUIRED` |
+| **Survey Status Required** | `SRTED` or `REWORK_REQUIRED` |
 | **Survey Status After** | `CHECKLIST_SUBMITTED` |
 
 **Request Body:**
@@ -392,14 +391,14 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 ```
 
 **Guards:**
-- Survey must be `STARTED` or `REWORK_REQUIRED`. Cannot submit before starting.
+- Survey must be `SRTED` or `REWORK_REQUIRED`. Cannot submit before starting.
 - Cannot submit if survey is `FINALIZED` or job is `PAYMENT_DONE`/`CERTIFIED`.
 - Previous checklist entries are replaced (idempotent within same phase).
 
 **Error Responses:**
 | Code | Message |
 |:---|:---|
-| `400` | `Checklist can only be submitted when survey is STARTED or REWORK_REQUIRED. Current: NOT_STARTED` |
+| `400` | `Checklist can only be submitted when survey is SRTED or REWORK_REQUIRED. Current: NOT_SRTED` |
 | `400` | `Survey is finalized and cannot be modified.` |
 | `400` | `Checklist cannot be updated when job is PAYMENT_DONE.` |
 | `403` | `You are not the assigned surveyor for this job.` |
@@ -437,7 +436,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 **Error Responses:**
 | Code | Message |
 |:---|:---|
-| `400` | `Proof can only be uploaded when survey is CHECKLIST_SUBMITTED or REWORK_REQUIRED. Current: STARTED` |
+| `400` | `Proof can only be uploaded when survey is CHECKLIST_SUBMITTED or REWORK_REQUIRED. Current: SRTED` |
 | `400` | `Survey is finalized and cannot be modified.` |
 
 ---
@@ -484,7 +483,7 @@ NOT_STARTED → STARTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED
 **Error Responses:**
 | Code | Message |
 |:---|:---|
-| `400` | `Survey cannot be submitted from STARTED state. Upload proof first.` |
+| `400` | `Survey cannot be submitted from SRTED state. Upload proof first.` |
 | `400` | `Checklist must be submitted before the survey report.` |
 | `400` | `Survey submission is not allowed when job is PAYMENT_DONE.` |
 
@@ -678,7 +677,6 @@ Two options. Use **Option A** when the issue is in the survey; **Option B** for 
 
 | Field | Value |
 |:---|:---|
-| **Who** | `ADMIN`, `GM`, `TM`, `TA` |
 | **Job Status Required** | `FINALIZED` |
 | **Job Status After** | `PAYMENT_DONE` *(via lifecycle.service in same transaction)* |
 | **Content-Type** | `multipart/form-data` |
@@ -801,12 +799,12 @@ The job is now `CERTIFIED`. No further lifecycle changes allowed on the job or s
 
 ---
 
-## SURVEY STATUS — Standalone Reference
+## SURVEY STUS — Standalone Reference
 
 | From | To | Who | Endpoint | Job Sync |
 |:---|:---|:---|:---|:---|
-| `NOT_STARTED` | `STARTED` | `SURVEYOR` | `POST /surveys/start` | → `IN_PROGRESS` |
-| `STARTED` | `CHECKLIST_SUBMITTED` | `SURVEYOR` | `POST /checklists/:jobId` | — |
+| `NOT_SRTED` | `SRTED` | `SURVEYOR` | `POST /surveys/start` | → `IN_PROGRESS` |
+| `SRTED` | `CHECKLIST_SUBMITTED` | `SURVEYOR` | `POST /checklists/:jobId` | — |
 | `CHECKLIST_SUBMITTED` | `PROOF_UPLOADED` | `SURVEYOR` | `POST /surveys/:id/proof` | — |
 | `PROOF_UPLOADED` | `SUBMITTED` | `SURVEYOR` | `POST /surveys` | → `SURVEY_DONE` |
 | `SUBMITTED` | `REWORK_REQUIRED` | `GM`, `TM` | `PUT /surveys/:id/rework` | → `REWORK_REQUESTED` |
@@ -818,7 +816,7 @@ The job is now `CERTIFIED`. No further lifecycle changes allowed on the job or s
 
 ---
 
-## JOB STATUS — Standalone Reference
+## JOB STUS — Standalone Reference
 
 | From | To | Who | Endpoint | Notes |
 |:---|:---|:---|:---|:---|
@@ -842,7 +840,6 @@ The job is now `CERTIFIED`. No further lifecycle changes allowed on the job or s
 | Action | Method | Endpoint | Roles |
 |:---|:---|:---|:---|
 | **List Jobs** | GET | `/jobs` | All roles |
-| **Job Detail** | GET | `/jobs/:id` | All except `TA` |
 | **Job History** | GET | `/jobs/:id/history` | `ADMIN`, `GM`, `TM`, `TO` |
 | **Add Internal Note** | POST | `/jobs/:id/notes` | `ADMIN`, `GM`, `TM`, `TO` |
 | **Survey Timeline** | GET | `/surveys/:id/timeline` | `ADMIN`, `GM`, `TM` |

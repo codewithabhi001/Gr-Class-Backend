@@ -45,8 +45,8 @@ Implementation Trace
 ### 2. POST /api/v1/auth/logout
 - Summary: Logout
 - Operation ID: `logout`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -194,8 +194,8 @@ Implementation Trace
 ### 6. POST /api/v1/auth/change-password
 - Summary: Change password
 - Operation ID: `changePassword`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT, FLAG_ADMIN
 
 Request (Code + Schema)
 - Route Params/Query from YAML:

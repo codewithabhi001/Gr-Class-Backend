@@ -100,7 +100,6 @@ None
 |-------|------|----------|-------------|
 | `page` | number | optional | Page number (default 1) |
 | `limit` | number | optional | Items per page (default 20) |
-| `role` | string | optional | Filter by role: `ADMIN`, `GM`, `TM`, `TO`, `TA`, `SURVEYOR`, `CLIENT`, `FLAG_ADMIN` |
 | `status` | string | optional | Filter by status: `ACTIVE`, `INACTIVE`, `SUSPENDED` |
 | `search` | string | optional | Search by name or email |
 
@@ -167,7 +166,6 @@ None
 | `name` | string | ✅ | — |
 | `email` | string | ✅ | Must be valid email, unique |
 | `password` | string | ✅ | Min 8 chars, must have uppercase + lowercase + digit |
-| `role` | string | ✅ | One of: `ADMIN`, `GM`, `TM`, `TO`, `TA`, `SURVEYOR`, `CLIENT`, `FLAG_ADMIN` |
 | `phone` | string | optional | — |
 | `client_id` | UUID | optional | Required for CLIENT role users |
 
@@ -217,7 +215,6 @@ None
 |-------|------|----------|------------|
 | `name` | string | optional | — |
 | `email` | string | optional | Must be valid email |
-| `role` | string | optional | One of: `ADMIN`, `GM`, `TM`, `TO`, `TA`, `SURVEYOR`, `CLIENT`, `FLAG_ADMIN` |
 | `phone` | string | optional | — |
 | `status` | string | optional | `ACTIVE`, `INACTIVE`, `SUSPENDED` |
 | `client_id` | UUID | optional | Nullable |

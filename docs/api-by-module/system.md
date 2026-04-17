@@ -32,7 +32,7 @@ Implementation Trace
 ### 2. GET /api/v1/system/health
 - Summary: Get system health
 - Operation ID: `getSystemHealth`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -56,7 +56,7 @@ Implementation Trace
 ### 3. GET /api/v1/system/readiness
 - Summary: Get system readiness
 - Operation ID: `getSystemReadiness`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -80,7 +80,7 @@ Implementation Trace
 ### 4. GET /api/v1/system/version
 - Summary: Get system version
 - Operation ID: `getSystemVersion`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -322,7 +322,7 @@ Response (Actual)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
-{ success: true, data: { flags: { 'NEW_UI': true, 'BETA_REPORTS': false } } }
+{ success: true, data: { flags: { 'NEW_UI': true, 'BE_REPORTS': false } } }
 ```
 
 Implementation Trace

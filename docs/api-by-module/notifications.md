@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/notifications.yaml`
 ### 1. GET /api/v1/notifications
 - Summary: Get notifications
 - Operation ID: `getNotifications`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -41,8 +41,8 @@ Implementation Trace
 ### 2. PUT /api/v1/notifications/{id}/read
 - Summary: Mark as read
 - Operation ID: `markNotificationRead`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -65,8 +65,8 @@ Implementation Trace
 ### 3. PUT /api/v1/notifications/read-all
 - Summary: Mark all as read
 - Operation ID: `markAllNotificationsRead`
-- Access Roles: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
-- Change Access: ADMIN, GM, TM, TO, TA, SURVEYOR, CLIENT, FLAG_ADMIN
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 
 Request (Code + Schema)
 - Route Params/Query from YAML:

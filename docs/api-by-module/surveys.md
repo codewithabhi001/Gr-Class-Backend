@@ -17,7 +17,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `startSurvey`
-- Joi schema source: `src/middlewares/validate.middleware.js:267`
+- Joi schema source: `src/middlewares/validate.middleware.js:275`
 ```js
 Joi.object({
         job_id: Joi.string().guid().required(),
@@ -65,9 +65,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:108`
+- Route file: `src/modules/surveys/survey.routes.js:122`
 - Controller: `src/modules/surveys/survey.controller.js:64`
-- Service: `src/modules/surveys/survey.service.js:537` (`surveyService.getSurveyReports`)
+- Service: `src/modules/surveys/survey.service.js:542` (`surveyService.getSurveyReports`)
 - Models touched: Survey.findAndCountAll
 - Service returns (detected): { count, rows: await fileAccessService.resolveEntity(rows, { id: user?.id }) }
 
@@ -107,7 +107,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:53`
+- Route file: `src/modules/surveys/survey.routes.js:67`
 - Controller: `src/modules/surveys/survey.controller.js:32`
 - Service: `src/modules/surveys/survey.service.js:192` (`surveyService.submitSurveyReport`)
 - Models touched: ActivityPlanning.count, ActivityPlanning.findAll, GpsTracking.create, JobRequest.findByPk
@@ -137,9 +137,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:123`
+- Route file: `src/modules/surveys/survey.routes.js:137`
 - Controller: `src/modules/surveys/survey.controller.js:72`
-- Service: `src/modules/surveys/survey.service.js:561` (`surveyService.getSurveyDetails`)
+- Service: `src/modules/surveys/survey.service.js:566` (`surveyService.getSurveyDetails`)
 - Models touched: Survey.findOne
 - Service returns (detected): await fileAccessService.resolveEntity(survey, { id: user?.id })
 
@@ -167,9 +167,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:66`
+- Route file: `src/modules/surveys/survey.routes.js:80`
 - Controller: `src/modules/surveys/survey.controller.js:40`
-- Service: `src/modules/surveys/survey.service.js:312` (`surveyService.finalizeSurvey`)
+- Service: `src/modules/surveys/survey.service.js:317` (`surveyService.finalizeSurvey`)
 - Models touched: JobRequest.findByPk
 - Service returns (detected): { message: 'Survey finalized. Job is now FINALIZED.' }
 
@@ -198,9 +198,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:74`
+- Route file: `src/modules/surveys/survey.routes.js:88`
 - Controller: `src/modules/surveys/survey.controller.js:48`
-- Service: `src/modules/surveys/survey.service.js:345` (`surveyService.requestRework`)
+- Service: `src/modules/surveys/survey.service.js:350` (`surveyService.requestRework`)
 - Models touched: JobRequest.findByPk
 - Service returns (detected): { message: 'Rework requested.' }
 
@@ -236,7 +236,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/surveys/survey.routes.js:38`
 - Controller: `src/modules/surveys/survey.controller.js:24`
-- Service: `src/modules/surveys/survey.service.js:586` (`surveyService.streamLocation`)
+- Service: `src/modules/surveys/survey.service.js:591` (`surveyService.streamLocation`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -273,7 +273,78 @@ Implementation Trace
 - Models touched: N/A
 - Service returns (detected): N/A
 
-### 9. GET /api/v1/surveys/jobs/{jobId}/timeline
+### 9. GET /api/v1/surveys/jobs/{jobId}/signed-checklist-upload-url
+- Summary: Get upload URL for signed checklist scan
+- Operation ID: `getSignedChecklistUploadUrl`
+- Access Roles: SURVEYOR
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `jobId` (path, required, string)
+- `fileName` (query, required, string)
+- `contentType` (query, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[jobId], query=[], body=[], user=[id], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Upload URL generated (application/json => object)
+- `403`: Forbidden
+- Controller response envelope(s):
+```js
+{ success: false, message: 'fileName and contentType are required query parameters.' }
+```
+```js
+{ success: true, data: result }
+```
+
+Implementation Trace
+- Route file: `src/modules/surveys/survey.routes.js:46`
+- Controller: `src/modules/surveys/survey.controller.js:111`
+- Service: `src/modules/surveys/survey.service.js:621` (`surveyService.getSignedChecklistUploadUrl`)
+- Models touched: N/A
+- Service returns (detected): {
+        uploadUrl: signedUrl,
+        fileKey: key,
+    }
+
+### 10. PUT /api/v1/surveys/jobs/{jobId}/signed-checklist
+- Summary: Save signed checklist scan keys
+- Operation ID: `updateSignedChecklist`
+- Access Roles: SURVEYOR
+- Change Access: SURVEYOR
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `jobId` (path, required, string)
+- Request Body from YAML:
+- `application/json`: object
+- Req usage in controller: params=[jobId], query=[], body=[], user=[id], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Keys updated (application/json => object)
+- `403`: Forbidden
+- Controller response envelope(s):
+```js
+{ success: false, message: 'fileKeys (array of strings) is required in the body.' }
+```
+```js
+{ success: true, message: 'Signed checklist updated successfully.', data: result }
+```
+
+Implementation Trace
+- Route file: `src/modules/surveys/survey.routes.js:53`
+- Controller: `src/modules/surveys/survey.controller.js:123`
+- Service: `src/modules/surveys/survey.service.js:636` (`surveyService.updateSignedChecklist`)
+- Models touched: N/A
+- Service returns (detected): await fileAccessService.resolveEntity(survey, { id: userId })
+
+### 11. GET /api/v1/surveys/jobs/{jobId}/timeline
 - Summary: Get survey execution timeline
 - Operation ID: `getSurveyTimeline`
 - Access Roles: ADMIN, GM, TM
@@ -297,7 +368,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 10. POST /api/v1/surveys/jobs/{jobId}/violation
+### 12. POST /api/v1/surveys/jobs/{jobId}/violation
 - Summary: Flag survey violation
 - Operation ID: `flagViolation`
 - Access Roles: ADMIN, TM
@@ -320,13 +391,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:81`
+- Route file: `src/modules/surveys/survey.routes.js:95`
 - Controller: `src/modules/surveys/survey.controller.js:56`
-- Service: `src/modules/surveys/survey.service.js:608` (`surveyService.flagViolation`)
+- Service: `src/modules/surveys/survey.service.js:662` (`surveyService.flagViolation`)
 - Models touched: AuditLog.create
 - Service returns (detected): { message: 'Violation flagged and admins notified.' }
 
-### 11. POST /api/v1/surveys/jobs/{jobId}/statement/draft
+### 13. POST /api/v1/surveys/jobs/{jobId}/statement/draft
 - Summary: Draft survey statement / Generate Preview
 - Operation ID: `draftSurveyStatement`
 - Access Roles: SURVEYOR, TM, ADMIN
@@ -350,7 +421,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 12. POST /api/v1/surveys/jobs/{jobId}/statement/issue
+### 14. POST /api/v1/surveys/jobs/{jobId}/statement/issue
 - Summary: Issue signed survey statement (PDF)
 - Operation ID: `issueSurveyStatement`
 - Access Roles: TM

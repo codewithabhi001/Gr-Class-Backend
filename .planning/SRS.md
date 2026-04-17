@@ -12,7 +12,6 @@ The system employs a strict RBAC model. Each user is assigned one of the followi
 | **General Manager** | `GM` | Business operations lead. Manages clients, approves job requests, and assigns surveyors. |
 | **Technical Manager** | `TM` | Technical authority. Authorizes surveys, finalizes technical reports, and issues/renews certificates. |
 | **Technical Officer** | `TO` | Technical reviewer. Verifies vessel documents and performs technical reviews of survey reports. |
-| **Technical Assistant**| `TA` | Operational support. Assist with documentation and viewing reports. |
 | **Surveyor** | `SURVEYOR` | External inspectors. Perform physical vessel surveys, submit checklists, and evidence. |
 | **Client** | `CLIENT` | Vessel owners or managers. Request jobs, track progress, and download certificates. |
 | **Flag Admin** | `FLAG_ADMIN` | Government or Port authority representatives with read-only access to specific vessel records. |

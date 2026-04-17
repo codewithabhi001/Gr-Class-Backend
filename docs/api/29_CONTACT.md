@@ -19,7 +19,7 @@
   "company": "Smith Shipping Ltd",
   "phone": "+971501234567",
   "subject": "Fleet Classification Services",
-  "source_page": "CONTACT"
+  "source_page": "CONCT"
 }
 ```
 
@@ -31,7 +31,7 @@
 | `company` | string | optional | — |
 | `phone` | string | optional | — |
 | `subject` | string | optional | — |
-| `source_page` | string | optional | `CONTACT`, `HOME`, etc. |
+| `source_page` | string | optional | `CONCT`, `HOME`, etc. |
 
 ### Response `201 Created`
 ```json
@@ -79,7 +79,7 @@
       "replied_by": null,
       "replied_at": null,
       "ip_address": "192.168.1.100",
-      "source_page": "CONTACT",
+      "source_page": "CONCT",
       "created_at": "2026-03-05T18:00:00.000Z",
       "updated_at": "2026-03-05T18:00:00.000Z"
     }
@@ -137,7 +137,7 @@
     "replied_by": null,
     "replied_at": null,
     "ip_address": "192.168.1.100",
-    "source_page": "CONTACT",
+    "source_page": "CONCT",
     "created_at": "2026-03-05T18:00:00.000Z",
     "Responder": null
   }

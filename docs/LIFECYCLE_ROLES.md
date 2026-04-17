@@ -10,7 +10,7 @@ This document defines which roles are authorized to perform specific status tran
 | **APPROVE** (`DOCUMENT_VERIFIED` → `APPROVED`) | ADMIN, GM | Managed via `PUT /api/v1/jobs/:id/approve-request` |
 | **ASSIGN** (`APPROVED` → `ASSIGNED`) | ADMIN, GM | Reassign: `PUT .../reassign` |
 | **AUTHORIZE** (`ASSIGNED` → `SURVEY_AUTHORIZED`) | **ADMIN, TM** | Source of truth: `src/config/rbac.config.js` → `RBAC.AUTHORIZE_SURVEY` |
-| **START** (`SURVEY_AUTHORIZED` → `IN_PROGRESS`) | **SURVEYOR ONLY** | Triggered by the `startSurvey` check-in action |
+| **SRT** (`SURVEY_AUTHORIZED` → `IN_PROGRESS`) | **SURVEYOR ONLY** | Triggered by the `startSurvey` check-in action |
 | **SUBMIT** (`IN_PROGRESS` → `SURVEY_DONE`) | **SURVEYOR ONLY** | Triggered by the `submitSurvey` check-out action |
 | **REVIEW** (`SURVEY_DONE` → `REVIEWED`) | ADMIN, TO | `PUT .../review` |
 | **REWORK** (→ `REWORK_REQUESTED`) | ADMIN, TM, TO | Also via survey rework endpoints |
@@ -22,7 +22,7 @@ This document defines which roles are authorized to perform specific status tran
 
 | Survey Status Transition | Authorized Roles | Implementation Detail |
 | :--- | :--- | :--- |
-| **START SURVEY** | **SURVEYOR ONLY** | Sets `started_at` timestamp |
+| **SRT SURVEY** | **SURVEYOR ONLY** | Sets `started_at` timestamp |
 | **UPDATE CHECKLIST** | **SURVEYOR ONLY** | Blocked if Survey is locked/finalized |
 | **UPLOAD PROOF** | **SURVEYOR ONLY** | Blocked if Survey is locked/finalized |
 | **SUBMIT SURVEY** | **SURVEYOR ONLY** | Requires Proof + Checklist; increments `submission_count` |

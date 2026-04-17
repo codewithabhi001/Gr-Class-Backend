@@ -68,7 +68,7 @@ Joi.object({
             name: Joi.string().required(),
             email: Joi.string().email().required(),
             password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
-            role: Joi.string().valid('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'TA', 'SURVEYOR', 'FLAG_ADMIN').optional().default('CLIENT'),
+            role: Joi.string().valid('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'FLAG_ADMIN').optional().default('CLIENT'),
             phone: Joi.string().optional().allow(''),
         }).optional(),
     })

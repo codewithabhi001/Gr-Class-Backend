@@ -207,7 +207,7 @@ Authorization: Bearer <accessToken>
 > ⚠️ **These 4 steps must be done IN ORDER. Each step unlocks the next.**
 
 ```
-Step 1: POST /surveys/start          → Survey STARTED, Job IN_PROGRESS
+Step 1: POST /surveys/start          → Survey SRTED, Job IN_PROGRESS
 Step 2: PUT  /checklists/jobs/:id/checklist → Survey CHECKLIST_SUBMITTED
 Step 3: POST /surveys/jobs/:id/proof → Survey PROOF_UPLOADED
 Step 4: POST /surveys                → Survey SUBMITTED, Job SURVEY_DONE
@@ -250,13 +250,13 @@ Content-Type: application/json
 
 **Save the `survey_id` locally** — you'll need it for the timeline endpoint.
 
-> **After this:** Job becomes `IN_PROGRESS`. Survey becomes `STARTED`.
+> **After this:** Job becomes `IN_PROGRESS`. Survey becomes `SRTED`.
 
 **Errors:**
 | Code | Message | What to show |
 |:---|:---|:---|
 | `400` | `This action requires job to be in: SURVEY_AUTHORIZED. Current: IN_PROGRESS` | "Survey already started" |
-| `400` | `Survey cannot be started: already in STARTED state.` | "Survey already started" |
+| `400` | `Survey cannot be started: already in SRTED state.` | "Survey already started" |
 | `403` | `You are not the assigned surveyor for this job.` | Show error and go back |
 
 ---
@@ -264,7 +264,7 @@ Content-Type: application/json
 ### Step 2: Submit Checklist
 
 > **Trigger:** Surveyor completes all inspection checklist items.
-> **Requires:** Survey status = `STARTED` (or `REWORK_REQUIRED`)
+> **Requires:** Survey status = `SRTED` (or `REWORK_REQUIRED`)
 
 **`PUT /checklists/jobs/:jobId/checklist`**
 
@@ -322,12 +322,12 @@ Content-Type: application/json
 
 > **After this:** Survey becomes `CHECKLIST_SUBMITTED`.
 
-> 💡 **Re-submission:** You can re-submit the checklist multiple times while in `STARTED` or `REWORK_REQUIRED`. Previous items are replaced.
+> 💡 **Re-submission:** You can re-submit the checklist multiple times while in `SRTED` or `REWORK_REQUIRED`. Previous items are replaced.
 
 **Errors:**
 | Code | Message | What to show |
 |:---|:---|:---|
-| `400` | `Checklist can only be submitted when survey is STARTED or REWORK_REQUIRED. Current: SUBMITTED` | "Cannot edit after submission" |
+| `400` | `Checklist can only be submitted when survey is SRTED or REWORK_REQUIRED. Current: SUBMITTED` | "Cannot edit after submission" |
 | `400` | `Survey is finalized and cannot be modified.` | "Survey is complete" |
 
 ---
@@ -394,7 +394,7 @@ Form:
 | Code | Message | What to show |
 |:---|:---|:---|
 | `400` | `No proof file uploaded.` | "Please select a file" |
-| `400` | `Proof can only be uploaded when survey is CHECKLIST_SUBMITTED or REWORK_REQUIRED. Current: STARTED` | "Submit checklist first" |
+| `400` | `Proof can only be uploaded when survey is CHECKLIST_SUBMITTED or REWORK_REQUIRED. Current: SRTED` | "Submit checklist first" |
 | `400` | `Survey is finalized and cannot be modified.` | "Survey is already complete" |
 
 ---
@@ -402,7 +402,7 @@ Form:
 ### Step 3b: Stream GPS Location
 
 > **Trigger:** Call periodically (every 30–60 sec) while on-site. Non-blocking background call.
-> **Requires:** Survey in `STARTED`, `CHECKLIST_SUBMITTED`, or `PROOF_UPLOADED`
+> **Requires:** Survey in `SRTED`, `CHECKLIST_SUBMITTED`, or `PROOF_UPLOADED`
 
 **`POST /surveys/jobs/:jobId/location`**
 
@@ -478,7 +478,7 @@ Content-Type: multipart/form-data
 **Errors:**
 | Code | Message | What to show |
 |:---|:---|:---|
-| `400` | `Survey cannot be submitted from STARTED state. Upload proof first.` | "Please upload evidence first" |
+| `400` | `Survey cannot be submitted from SRTED state. Upload proof first.` | "Please upload evidence first" |
 | `400` | `Checklist must be submitted before the survey report.` | "Please fill in the checklist" |
 | `400` | `Survey submission is not allowed when job is PAYMENT_DONE.` | "Job has already been processed" |
 
@@ -699,8 +699,8 @@ Authorization: Bearer <accessToken>
       "started_at": "2026-02-20T05:00:00Z",
       "submitted_at": "2026-02-20T08:15:00Z",
       "SurveyStatusHistories": [
-        { "previous_status": null, "new_status": "STARTED", "created_at": "..." },
-        { "previous_status": "STARTED", "new_status": "CHECKLIST_SUBMITTED", "created_at": "..." },
+        { "previous_status": null, "new_status": "SRTED", "created_at": "..." },
+        { "previous_status": "SRTED", "new_status": "CHECKLIST_SUBMITTED", "created_at": "..." },
         { "previous_status": "CHECKLIST_SUBMITTED", "new_status": "PROOF_UPLOADED", "created_at": "..." },
         { "previous_status": "PROOF_UPLOADED", "new_status": "SUBMITTED", "created_at": "..." }
       ]
@@ -733,8 +733,8 @@ Authorization: Bearer <accessToken>
 
 | Status | What it means | Next Step |
 |:---|:---|:---|
-| `NOT_STARTED` | Initialized, not started yet | `POST /surveys/start` |
-| `STARTED` | Checked in | `PUT /checklists/jobs/:id/checklist` |
+| `NOT_SRTED` | Initialized, not started yet | `POST /surveys/start` |
+| `SRTED` | Checked in | `PUT /checklists/jobs/:id/checklist` |
 | `CHECKLIST_SUBMITTED` | Checklist done | `POST /surveys/jobs/:id/proof` |
 | `PROOF_UPLOADED` | Evidence uploaded | `POST /surveys` (submit) |
 | `SUBMITTED` | Report submitted | Wait for office |
@@ -772,10 +772,10 @@ Every error returns this shape:
 | Message | Handle By |
 |:---|:---|
 | `This action requires job to be in: SURVEY_AUTHORIZED` | Refresh job status, show current state |
-| `Survey cannot be started: already in STARTED state.` | Navigate to ongoing survey screen |
-| `Checklist can only be submitted when survey is STARTED or REWORK_REQUIRED` | Refresh survey state |
+| `Survey cannot be started: already in SRTED state.` | Navigate to ongoing survey screen |
+| `Checklist can only be submitted when survey is SRTED or REWORK_REQUIRED` | Refresh survey state |
 | `Proof can only be uploaded when survey is CHECKLIST_SUBMITTED or REWORK_REQUIRED` | Tell user to submit checklist first |
-| `Survey cannot be submitted from STARTED state. Upload proof first.` | Tell user to upload evidence |
+| `Survey cannot be submitted from SRTED state. Upload proof first.` | Tell user to upload evidence |
 | `Checklist must be submitted before the survey report.` | Tell user to fill checklist |
 | `Location can only be streamed during an active survey.` | Stop GPS polling silently |
 
@@ -812,11 +812,11 @@ Use this to decide which screen/buttons to show based on job status:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Job Status        │ Show Screen              │ CTA       │
+│ Job Status        │ Show Screen              │ C       │
 ├───────────────────┼──────────────────────────┼───────────┤
 │ SURVEY_AUTHORIZED │ Ready to Start           │ Start     │
 │ IN_PROGRESS       │ Survey in Progress       │ Continue  │
-│   survey=STARTED  │   → Show checklist form  │           │
+│   survey=SRTED  │   → Show checklist form  │           │
 │   survey=CHECKLIST│   → Show proof upload    │           │
 │   survey=PROOF    │   → Show checkout form   │           │
 │ SURVEY_DONE       │ Submitted — Awaiting     │ (read)    │

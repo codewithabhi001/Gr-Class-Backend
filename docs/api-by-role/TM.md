@@ -779,7 +779,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 **Summary:** Get presigned URL for certificate upload
 **Description:** Returns a presigned S3 URL for uploading external certificates. ADMIN, GM, TM only.
 
-**IMPORTANT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
+**IMPORNT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
 
 
 #### Parameters

@@ -127,8 +127,8 @@ Implementation Trace
 ### 5. PUT /api/v1/payments/{id}/pay
 - Summary: Mark invoice as paid
 - Operation ID: `markPaymentPaid`
-- Access Roles: ADMIN, GM, TM, TA
-- Change Access: ADMIN, GM, TM, TA
+- Access Roles: ADMIN, GM, TM
+- Change Access: ADMIN, GM, TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
