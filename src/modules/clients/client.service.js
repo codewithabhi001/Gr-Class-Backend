@@ -103,8 +103,26 @@ export const getProfile = async (userId) => {
 };
 
 export const updateProfile = async (userId, data) => {
-    const { name, phone } = data;
+    const { name, phone, contact_person_name, contact_person_email, address } = data;
+
+    // Update user fields (name, phone)
     await User.update({ name, phone }, { where: { id: userId } });
+
+    // Get user to find client_id
+    const user = await User.findByPk(userId, { attributes: ['client_id'] });
+    if (user && user.client_id) {
+        // Update client fields (contact_person_name, contact_person_email, phone, address)
+        const clientUpdateData = {};
+        if (contact_person_name !== undefined) clientUpdateData.contact_person_name = contact_person_name;
+        if (contact_person_email !== undefined) clientUpdateData.contact_person_email = contact_person_email;
+        if (phone !== undefined) clientUpdateData.phone = phone;
+        if (address !== undefined) clientUpdateData.address = address;
+
+        if (Object.keys(clientUpdateData).length > 0) {
+            await Client.update(clientUpdateData, { where: { id: user.client_id } });
+        }
+    }
+
     return await getProfile(userId);
 };
 
