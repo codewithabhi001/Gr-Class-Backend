@@ -49,35 +49,38 @@ graph TD
 
 ---
 
-## 🛠️ 2. Step-by-Step API Guide
+## 🛠️ 2. Step-by-Step API Guide (Strict RBAC Enforced)
+
+> [!CAUTION]
+> **Segregation of Duties (SoD)** is strictly enforced. No role (including `ADMIN`) can bypass these assigned operational authorities.
 
 ### Phase 1: Initiation & Planning
-| Step | Action | Endpoint | Role | Status Change |
+| Step | Action | Endpoint | Role Allowed | Status Change |
 | :--- | :--- | :--- | :--- | :--- |
-| 1 | **Request Job** | `POST /api/v1/jobs` | CLIENT | `CREATED` |
-| 2 | **Update Priority** | `PUT /api/v1/jobs/:id/priority` | GM | `URGENT / NORMAL` |
-| 3 | **Verify Docs** | `PUT /api/v1/jobs/:id/verify-documents` | TO | `DOCUMENT_VERIFIED` |
-| 4 | **Approve** | `PUT /api/v1/jobs/:id/approve-request` | GM | `APPROVED` |
-| 5 | **Assign** | `PUT /api/v1/jobs/:id/assign` | GM | `ASSIGNED` |
+| 1 | **Request Job** | `POST /api/v1/jobs` | `CLIENT`, `GM` | `CREATED` |
+| 2 | **Update Priority** | `PUT /api/v1/jobs/:id/priority` | `GM`, `TM` | `URGENT / NORMAL` |
+| 3 | **Verify Docs** | `PUT /api/v1/jobs/:id/verify-documents` | **ONLY `TO`** | `DOCUMENT_VERIFIED` |
+| 4 | **Approve** | `PUT /api/v1/jobs/:id/approve-request` | **ONLY `GM`** | `APPROVED` |
+| 5 | **Assign** | `PUT /api/v1/jobs/:id/assign` | **ONLY `GM`** | `ASSIGNED` |
 
 ### Phase 2: Authorization & Field Work (The Hybrid Flow)
-| Step | Action | Endpoint | Role | Notes |
+| Step | Action | Endpoint | Role Allowed | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| 6 | **Authorize** | `PUT /api/v1/jobs/:id/authorize-survey` | TM | Unlocks surveyor actions. |
-| 7 | **Check-in** | `POST /api/v1/surveys/start` | SURVEYOR | Records GPS/Timestamp. |
-| 8 | **Fetch Templates**| `GET /api/v1/checklist-templates/job/:id`| SURVEYOR | Downloads PDF/Docs blanks. |
-| 9 | **Upload Evidence**| `POST /api/v1/surveys/jobs/:id/proof` | SURVEYOR | On-site photos. |
-| 10 | **Upload Scans** | `PUT /api/v1/surveys/jobs/:id/signed-checklist`| SURVEYOR | **[New]** Scanned wet-signatures. |
-| 11 | **Submit Report** | `POST /api/v1/surveys` | SURVEYOR | Moves to `SURVEY_DONE`. |
+| 6 | **Authorize** | `PUT /api/v1/jobs/:id/authorize-survey` | **ONLY `TM`** | Unlocks surveyor actions. |
+| 7 | **Check-in** | `POST /api/v1/surveys/start` | **ONLY `SURVEYOR`** | Records GPS/Timestamp. |
+| 8 | **Fetch Templates**| `GET /api/v1/checklist-templates/job/:id`| **ONLY `SURVEYOR`** | Downloads PDF/Docs blanks. |
+| 9 | **Item Evidence** | `GET /api/v1/checklists/jobs/:id/get-upload-url` | **ONLY `SURVEYOR`** | Photo evidence upload URL. |
+| 10 | **Upload Scans** | `PUT /api/v1/surveys/jobs/:id/signed-checklist`| **ONLY `SURVEYOR`** | Scanned wet-signatures. |
+| 11 | **Submit Report** | `POST /api/v1/surveys` | **ONLY `SURVEYOR`** | Moves to `SURVEY_DONE`. |
 
 ### Phase 3: Review, Rework & Certification
-| Step | Action | Endpoint | Role | Status Change |
+| Step | Action | Endpoint | Role Allowed | Status Change |
 | :--- | :--- | :--- | :--- | :--- |
-| 12 | **Tech Review** | `PUT /api/v1/jobs/:id/review` | TO | `REVIEWED` |
-| 13 | **Request Rework**| `PUT /api/v1/surveys/jobs/:id/rework` | TO/TM | Back to `IN_PROGRESS`. |
-| 14 | **Finalize** | `PUT /api/v1/surveys/jobs/:id/finalize` | TM | `FINALIZED` |
-| 15 | **Draft Cert** | `POST /api/v1/certificates` | GM/TM | Creates cert draft. |
-| 16 | **Issue Cert** | `POST /api/v1/certificates/:id/issue` | GM/TM | **FINISH** (Watermark off). |
+| 12 | **Tech Review** | `PUT /api/v1/jobs/:id/review` | **ONLY `TO`** | `REVIEWED` |
+| 13 | **Request Rework**| `PUT /api/v1/surveys/jobs/:id/rework` | `TM`, `GM` | Back to `IN_PROGRESS`. |
+| 14 | **Finalize** | `PUT /api/v1/surveys/jobs/:id/finalize` | **ONLY `TM`** | `FINALIZED` |
+| 15 | **Draft Cert** | `POST /api/v1/certificates` | `TM`, `GM` | Creates cert draft. |
+| 16 | **Issue Cert** | `POST /api/v1/certificates/:id/issue` | **ONLY `GM`** | **FINISH** (Generates PDF). |
 
 ---
 
