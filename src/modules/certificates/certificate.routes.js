@@ -71,10 +71,8 @@ router.post('/bulk-renew', authorizeRoles('TM'), certController.bulkRenew);
 // Reissue (Version +1, Revoke Old)
 router.post('/:id/reissue', authorizeRoles('TM'), certController.reissueCertificate);
 
-// Preview & Signature
+// Preview
 router.get('/:id/preview', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.previewCertificate);
-router.post('/:id/sign', authorizeRoles('GM'), certController.signCertificate);
-router.get('/:id/signature', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getSignature);
 
 // History
 router.get('/:id/history', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getHistory);

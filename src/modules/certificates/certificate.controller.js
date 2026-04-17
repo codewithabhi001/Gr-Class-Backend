@@ -188,21 +188,6 @@ export const previewCertificate = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-export const signCertificate = async (req, res, next) => {
-    res.json({
-        success: true,
-        message: 'Certificate signed successfully',
-        data: { signature: 'SHA256-SIG' }
-    });
-};
-
-export const getSignature = async (req, res, next) => {
-    res.json({
-        success: true,
-        message: 'Certificate signature fetched',
-        data: { public_key: 'KEY-XYZ', signature: 'SHA256-SIG' }
-    });
-};
 
 export const getHistory = async (req, res, next) => {
     try {

@@ -55,7 +55,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/download`
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
-- `GET /api/certificates/:id/signature`
 - `GET /api/certificates/expiring`
 - `GET /api/certificates/job/:jobId`
 - `GET /api/certificates/types`
@@ -216,7 +215,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/download`
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
-- `GET /api/certificates/:id/signature`
 - `GET /api/certificates/expiring`
 - `GET /api/certificates/job/:jobId`
 - `GET /api/certificates/types`
@@ -295,7 +293,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/certificates`
 - `POST /api/certificates/:id/extend`
 - `POST /api/certificates/:id/issue`
-- `POST /api/certificates/:id/sign`
 - `POST /api/certificates/:id/transfer`
 - `POST /api/certificates/vessel/:vesselId/external`
 - `POST /api/change-requests`
@@ -352,7 +349,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/download`
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
-- `GET /api/certificates/:id/signature`
 - `GET /api/certificates/expiring`
 - `GET /api/certificates/job/:jobId`
 - `GET /api/certificates/types`
@@ -485,7 +481,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/download`
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
-- `GET /api/certificates/:id/signature`
 - `GET /api/certificates/expiring`
 - `GET /api/certificates/job/:jobId`
 - `GET /api/certificates/types`
@@ -554,7 +549,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/download`
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
-- `GET /api/certificates/:id/signature`
 - `GET /api/certificates/job/:jobId`
 - `GET /api/certificates/types`
 - `GET /api/certificates/types/:id`
@@ -628,7 +622,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/download`
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
-- `GET /api/certificates/:id/signature`
 - `GET /api/certificates/expiring`
 - `GET /api/certificates/job/:jobId`
 - `GET /api/certificates/types`

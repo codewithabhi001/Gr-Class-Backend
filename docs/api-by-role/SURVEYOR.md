@@ -821,24 +821,6 @@ CLIENT can only download certificates for their vessels.
 
 ---
 
-### GET `/api/v1/certificates/{id}/signature`
-**Summary:** Get certificate signature
-**Description:** Get signature details for a certificate.
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Signature details</summary>
-
-```json
-{}
-```
-
-</details>
-
----
-
 ### GET `/api/v1/certificates/{id}/history`
 **Summary:** Get certificate history
 **Description:** Get certificate change history.

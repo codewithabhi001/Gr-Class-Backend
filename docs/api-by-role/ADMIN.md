@@ -2120,45 +2120,6 @@ CLIENT can only download certificates for their vessels.
 
 ---
 
-### POST `/api/v1/certificates/{id}/sign`
-**Summary:** Sign certificate
-**Description:** Digitally sign a certificate. ADMIN, GM only.
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate signed</summary>
-
-```json
-{
-  "success": true,
-  "message": "string"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/{id}/signature`
-**Summary:** Get certificate signature
-**Description:** Get signature details for a certificate.
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Signature details</summary>
-
-```json
-{}
-```
-
-</details>
-
----
-
 ### GET `/api/v1/certificates/{id}/history`
 **Summary:** Get certificate history
 **Description:** Get certificate change history.

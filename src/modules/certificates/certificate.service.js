@@ -887,8 +887,7 @@ export const uploadExternalCertificate = async (vesselId, data, userId) => {
 };
 
 export const previewCertificate = async (id, user) => {
-    const cert = await getCertificateById(id, user);
-    return { preview_url: `https://mock-pdf.com/preview/${id}`, data: cert };
+    return await getCertificateById(id, user);
 };
 
 export const getHistory = async (id, user) => {
