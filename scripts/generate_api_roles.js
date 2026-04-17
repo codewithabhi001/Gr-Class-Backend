@@ -152,8 +152,6 @@ mounts.forEach(module => {
 
         if (effectiveRoles) {
             effectiveRoles.forEach(r => finalRolesStart.add(r));
-            // Always add ADMIN if strictly role protected (unless explicitly excluded? No, rbac says admin bypasses)
-            finalRolesStart.add('ADMIN');
         } else {
             // No role restriction found on file or route.
             // Check if it's protected by Auth middleware (assumed yes for /api)

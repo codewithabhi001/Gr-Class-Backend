@@ -301,9 +301,9 @@
       General Manager or Admin formally approves the job request after document
       verification. Records `approved_by_user_id` on the job.
 
-      **Roles:** ADMIN, GM
+      **Roles:** GM
     operationId: approveRequest
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path
@@ -359,9 +359,9 @@
       require a survey, finalization happens automatically when the survey is
       completed and the TM finalizes the survey report.
 
-      **Roles:** ADMIN, GM, TM
+      **Roles:** GM, TM
     operationId: finalizeJob
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [GM, TM]
     parameters:
       - name: id
         in: path
@@ -417,9 +417,9 @@
       `role = SURVEYOR`. Records `assigned_surveyor_id` and `assigned_by_user_id`
       and sends a push notification to the surveyor.
 
-      **Roles:** ADMIN, GM
+      **Roles:** GM
     operationId: assignSurveyor
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path
@@ -532,9 +532,9 @@
       Requires a surveyor to already be assigned. Notifies the surveyor and the
       client. The surveyor can now call `POST /api/v1/surveys/start` to begin.
 
-      **Roles:** ADMIN, TM
+      **Roles:** TM
     operationId: authorizeSurvey
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -651,9 +651,9 @@
       - **TM** – `SURVEY_DONE` or `REVIEWED`.
       - **TO** – `SURVEY_DONE` only.
 
-      **Roles:** ADMIN, TM, TO
+      **Roles:** TM, TO
     operationId: sendBackJob
-    x-roles: [ADMIN, TM, TO]
+    x-roles: [TM, TO]
     parameters:
       - name: id
         in: path
@@ -711,9 +711,9 @@
       Logs the old and new values in `job_reschedules` and notifies the
       assigned surveyor (if any).
 
-      **Roles:** ADMIN, GM
+      **Roles:** GM
     operationId: rescheduleJob
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path
@@ -774,9 +774,9 @@
       - **GM** – Only in `CREATED` state.
       - **TM** – Only in `ASSIGNED`, `SURVEY_DONE`, or `REVIEWED` states.
 
-      **Roles:** ADMIN, GM, TM
+      **Roles:** GM, TM
     operationId: rejectJob
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [GM, TM]
     parameters:
       - name: id
         in: path

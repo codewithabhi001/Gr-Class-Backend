@@ -75,13 +75,13 @@ To satisfy maritime legal requirements for wet signatures on complex layouts, th
 | :--- | :--- | :--- | :--- |
 | `GET` | `/` | List jobs with status/client filters. | All (Scoped) |
 | `POST` | `/` | Request a new survey/cert. | CLIENT, GM, ADMIN |
-| `PUT` | `/:id/verify-documents` | Mark docs as checked. | TO, GM, ADMIN |
-| `PUT` | `/:id/approve-request` | Approve for surveyor assignment. | GM, ADMIN |
-| `PUT` | `/:id/assign` | Link a Surveyor to the job. | GM, ADMIN |
-| `PUT` | `/:id/authorize-survey` | Unlocks survey flow for surveyor. | TM, ADMIN |
-| `PUT` | `/:id/review` | Mark technical review complete. | TO, ADMIN |
-| `PUT` | `/:id/finalize` | Final signature before billing. | TM, ADMIN |
-| `PUT` | `/:id/priority` | Update job urgency (URGENT/NORMAL).| GM, TM, ADMIN |
+| `PUT` | `/:id/verify-documents` | Mark docs as checked. | TO |
+| `PUT` | `/:id/approve-request` | Approve for surveyor assignment. | GM |
+| `PUT` | `/:id/assign` | Link a Surveyor to the job. | GM |
+| `PUT` | `/:id/authorize-survey` | Unlocks survey flow for surveyor. | TM |
+| `PUT` | `/:id/review` | Mark technical review complete. | TO |
+| `PUT` | `/:id/finalize` | Final signature before billing. | TM, GM |
+| `PUT` | `/:id/priority` | Update job urgency (URGENT/NORMAL).| GM, TM |
 
 ### 4.3 Survey Operations (`/surveys`)
 - `POST /surveys/start`: Record check-in coordinates.
@@ -167,12 +167,12 @@ Surveyors often work in areas with 0 connectivity. The Frontend should:
 | | PUT | `/vessels/:id` | ADMIN, GM, TM |
 | **Jobs** | GET | `/jobs` | All (Scoped) |
 | | POST | `/jobs` | CLIENT, ADMIN, GM |
-| | PUT | `/jobs/:id/verify-documents` | ADMIN, TO, GM |
-| | PUT | `/jobs/:id/approve-request` | ADMIN, GM |
-| | PUT | `/jobs/:id/assign` | ADMIN, GM |
-| | PUT | `/jobs/:id/authorize-survey` | ADMIN, TM |
-| | PUT | `/jobs/:id/review` | ADMIN, TO |
-| | PUT | `/jobs/:id/finalize` | ADMIN, GM, TM |
+| | PUT | `/jobs/:id/verify-documents` | TO |
+| | PUT | `/jobs/:id/approve-request` | GM |
+| | PUT | `/jobs/:id/assign` | GM |
+| | PUT | `/jobs/:id/authorize-survey` | TM |
+| | PUT | `/jobs/:id/review` | TO |
+| | PUT | `/jobs/:id/finalize` | TM, GM |
 | **Surveys** | POST | `/surveys/start` | SURVEYOR |
 | | POST | `/surveys/jobs/:id/proof` | SURVEYOR |
 | | GET | `/surveys/jobs/:id/signed-checklist-upload-url` | SURVEYOR |
@@ -180,13 +180,13 @@ Surveyors often work in areas with 0 connectivity. The Frontend should:
 | | POST | `/surveys/jobs/:id/location` | SURVEYOR |
 | | POST | `/surveys/jobs/:id/sync` | SURVEYOR |
 | | POST | `/surveys` | SURVEYOR (Final Submission) |
-| | PUT | `/surveys/jobs/:id/finalize` | ADMIN, TM |
+| | PUT | `/surveys/jobs/:id/finalize` | TM |
 | **Certificates**| GET | `/certificates/types` | All (Scoped) |
-| | POST | `/certificates` | ADMIN, GM, TM |
-| | POST | `/certificates/:id/issue` | ADMIN, GM |
+| | POST | `/certificates` | TM, GM |
+| | POST | `/certificates/:id/issue` | GM |
 | | GET | `/certificates/:id/download`| All (Scoped) |
-| | PUT | `/certificates/:id/suspend` | ADMIN, TM |
-| | PUT | `/certificates/:id/revoke` | ADMIN, TM |
+| | PUT | `/certificates/:id/suspend` | TM |
+| | PUT | `/certificates/:id/revoke` | TM |
 | **Clients** | GET | `/clients` | ADMIN, GM, TM, TO |
 | | POST | `/clients` | ADMIN, GM, TM |
 | | GET | `/clients/:id` | ADMIN, GM, TM, TO |

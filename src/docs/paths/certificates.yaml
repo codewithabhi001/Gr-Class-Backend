@@ -87,10 +87,10 @@
   post:
     tags: [Certificates]
     summary: Generate certificate
-    description: Generate a new certificate for a completed job. ADMIN, GM, TM only.
+    description: Generate a new certificate for a completed job. GM, TM only.
     security: [{ bearerAuth: [] }]
     operationId: generateCertificate
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [GM, TM]
     requestBody:
       required: true
       content:
@@ -902,9 +902,9 @@
   put:
     tags: [Certificates]
     summary: Suspend certificate
-    description: Suspend a certificate. ADMIN, TM only.
+    description: Suspend a certificate. TM only.
     operationId: suspendCertificate
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -946,9 +946,9 @@
   put:
     tags: [Certificates]
     summary: Revoke certificate
-    description: Revoke a certificate. ADMIN, TM only.
+    description: Revoke a certificate. TM only.
     operationId: revokeCertificate
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -984,9 +984,9 @@
   put:
     tags: [Certificates]
     summary: Restore certificate
-    description: Restore a suspended certificate. ADMIN, TM only.
+    description: Restore a suspended certificate. TM only.
     operationId: restoreCertificate
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -1022,9 +1022,9 @@
   put:
     tags: [Certificates]
     summary: Renew certificate
-    description: Renew an expiring certificate. ADMIN, TM only.
+    description: Renew an expiring certificate. TM, GM only.
     operationId: renewCertificate
-    x-roles: [ADMIN, TM]
+    x-roles: [TM, GM]
     parameters:
       - name: id
         in: path
@@ -1279,10 +1279,10 @@
   post:
     tags: [Certificates]
     summary: Issue certificate
-    description: Sets a DRAFT certificate to ISSUED and generates the official PDF. ADMIN, GM only.
+    description: Sets a DRAFT certificate to ISSUED and generates the official PDF. GM only.
     security: [{ bearerAuth: [] }]
     operationId: issueCertificate
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path

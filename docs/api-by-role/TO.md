@@ -7,7 +7,13 @@
 ---
 
 ### GET `/api/v1/activity-requests`
-**Summary:** Get activity requests
+**Summary:** Get activity requests (List)
+**Description:** Returns a list of activity requests with minimal details.
+
+#### Parameters
+- **page** (`query` | `integer` | *Optional*): 
+- **limit** (`query` | `integer` | *Optional*): 
+- **status** (`query` | `string` | *Optional*): 
 
 #### Responses
 <details><summary><strong>200</strong> - List of requests</summary>
@@ -15,7 +21,25 @@
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": [
+    {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "request_number": "string",
+      "activity_type": "string",
+      "requested_service": "string",
+      "proposed_date": "string",
+      "status": "string",
+      "Vessel": {
+        "id": "...",
+        "vessel_name": "...",
+        "imo_number": "...",
+        "flag_administration_id": "...",
+        "ship_type": "...",
+        "class_status": "..."
+      },
+      "created_at": "2026-03-07T12:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -26,8 +50,11 @@
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -36,7 +63,8 @@
 ---
 
 ### GET `/api/v1/activity-requests/{id}`
-**Summary:** Get request by ID
+**Summary:** Get request by ID (Detailed)
+**Description:** Returns full details of an activity request including associations.
 
 #### Parameters
 - **id** (`path` | `string` | *Required*): 
@@ -47,7 +75,7 @@
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": null
 }
 ```
 
@@ -58,8 +86,26 @@
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -94,10 +140,14 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 {
   "user": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "name": "John Doe",
-    "email": "admin@grclass.com",
-    "role": "CLIENT",
-    "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+    "name": "string",
+    "email": "string",
+    "role": "string",
+    "status": "string",
+    "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "profile_pic_url": "string",
+    "force_password_reset": true,
+    "last_login_at": "2026-03-07T12:00:00Z"
   },
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -111,8 +161,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -123,8 +176,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -154,8 +210,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -185,10 +244,14 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 {
   "user": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "name": "John Doe",
-    "email": "admin@grclass.com",
-    "role": "CLIENT",
-    "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+    "name": "string",
+    "email": "string",
+    "role": "string",
+    "status": "string",
+    "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "profile_pic_url": "string",
+    "force_password_reset": true,
+    "last_login_at": "2026-03-07T12:00:00Z"
   },
   "accessToken": "string",
   "refreshToken": "string"
@@ -202,8 +265,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -240,8 +306,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -279,8 +348,69 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### POST `/api/v1/auth/change-password`
+**Summary:** Change password
+**Description:** Change password for currently logged-in user.
+
+#### Request Body
+**Content-Type:** `application/json`
+
+```json
+{
+  "oldPassword": "string",
+  "newPassword": "string"
+}
+```
+
+#### Responses
+<details><summary><strong>200</strong> - Password changed successfully</summary>
+
+```json
+{
+  "success": true,
+  "message": "Request successful"
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Validation error</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>401</strong> - Unauthorized</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -289,56 +419,6 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ---
 
 ## 🚀 Certificates
-
----
-
-### GET `/api/v1/certificates/verify/{number}`
-**Summary:** Verify certificate (public)
-**Description:** Public verification of certificate by number. No auth required.
-
-#### Parameters
-- **number** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate verified</summary>
-
-```json
-{
-  "valid": true,
-  "certificate": {
-    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_number": "GIR-CERT-2026-001234",
-    "issue_date": "string",
-    "expiry_date": "string",
-    "status": "VALID",
-    "qr_code_url": "string",
-    "pdf_file_url": "string",
-    "CertificateType": {
-      "name": "Safety Construction"
-    },
-    "Vessel": {
-      "vessel_name": "Ocean Pioneer",
-      "imo_number": "9123456"
-    }
-  }
-}
-```
-
-</details>
-
-<details><summary><strong>404</strong> - Certificate not found</summary>
-
-```json
-{
-  "success": false,
-  "message": "Validation Error",
-  "error": "string"
-}
-```
-
-</details>
 
 ---
 
@@ -366,18 +446,19 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "GIR-CERT-2026-001234",
+      "certificate_number": "string",
       "issue_date": "string",
       "expiry_date": "string",
-      "status": "VALID",
-      "qr_code_url": "string",
-      "pdf_file_url": "string",
-      "CertificateType": {
-        "name": "Safety Construction"
-      },
+      "status": "string",
+      "created_at": "2026-03-07T12:00:00Z",
       "Vessel": {
-        "vessel_name": "Ocean Pioneer",
-        "imo_number": "9123456"
+        "id": "...",
+        "vessel_name": "string",
+        "imo_number": "string"
+      },
+      "CertificateType": {
+        "id": "...",
+        "name": "string"
       }
     }
   ]
@@ -391,8 +472,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -403,8 +487,11 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -452,8 +539,11 @@ Pass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -464,8 +554,11 @@ Pass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -495,18 +588,22 @@ documents must be uploaded.
 {
   "success": true,
   "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "name": "Class Certificate",
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "name": "string",
+    "short_code": "string",
     "issuing_authority": "string",
-    "validity_years": 5,
+    "validity_years": 0,
     "status": "string",
-    "description": "Annual classification survey certificate",
+    "description": "string",
     "requires_survey": true,
     "CertificateRequiredDocuments": [
       {
         "id": "...",
+        "certificate_type_id": "...",
         "document_name": "...",
-        "is_mandatory": "..."
+        "is_mandatory": "...",
+        "created_at": "...",
+        "updated_at": "..."
       }
     ]
   }
@@ -520,8 +617,11 @@ documents must be uploaded.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -532,8 +632,11 @@ documents must be uploaded.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -544,8 +647,11 @@ documents must be uploaded.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -571,18 +677,19 @@ documents must be uploaded.
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "GIR-CERT-2026-001234",
+      "certificate_number": "string",
       "issue_date": "string",
       "expiry_date": "string",
-      "status": "VALID",
-      "qr_code_url": "string",
-      "pdf_file_url": "string",
-      "CertificateType": {
-        "name": "Safety Construction"
-      },
+      "status": "string",
+      "created_at": "2026-03-07T12:00:00Z",
       "Vessel": {
-        "vessel_name": "Ocean Pioneer",
-        "imo_number": "9123456"
+        "id": "...",
+        "vessel_name": "string",
+        "imo_number": "string"
+      },
+      "CertificateType": {
+        "id": "...",
+        "name": "string"
       }
     }
   ]
@@ -613,19 +720,41 @@ documents must be uploaded.
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_number": "GIR-CERT-2026-001234",
+    "certificate_number": "string",
     "issue_date": "string",
     "expiry_date": "string",
-    "status": "VALID",
+    "status": "string",
     "qr_code_url": "string",
     "pdf_file_url": "string",
+    "uploaded_file_url": "string",
+    "generated_pdf_url": "string",
+    "issued_at": "2026-03-07T12:00:00Z",
+    "issued_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
     "CertificateType": {
-      "name": "Safety Construction"
+      "name": "string"
     },
     "Vessel": {
-      "vessel_name": "Ocean Pioneer",
-      "imo_number": "9123456"
-    }
+      "vessel_name": "string",
+      "imo_number": "string"
+    },
+    "FlagState": {
+      "flag_state_name": "string"
+    },
+    "Authority": {
+      "id": "...",
+      "name": "string",
+      "code": "string",
+      "country": "string",
+      "logo_url": "string",
+      "status": "string"
+    },
+    "source_type": "string",
+    "version": 0,
+    "certificate_term": "string",
+    "manual_text": {},
+    "remarks": "string"
   }
 }
 ```
@@ -637,8 +766,11 @@ documents must be uploaded.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -664,18 +796,19 @@ documents must be uploaded.
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "GIR-CERT-2026-001234",
+      "certificate_number": "string",
       "issue_date": "string",
       "expiry_date": "string",
-      "status": "VALID",
-      "qr_code_url": "string",
-      "pdf_file_url": "string",
-      "CertificateType": {
-        "name": "Safety Construction"
-      },
+      "status": "string",
+      "created_at": "2026-03-07T12:00:00Z",
       "Vessel": {
-        "vessel_name": "Ocean Pioneer",
-        "imo_number": "9123456"
+        "id": "...",
+        "vessel_name": "string",
+        "imo_number": "string"
+      },
+      "CertificateType": {
+        "id": "...",
+        "name": "string"
       }
     }
   ]
@@ -704,19 +837,41 @@ documents must be uploaded.
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_number": "GIR-CERT-2026-001234",
+    "certificate_number": "string",
     "issue_date": "string",
     "expiry_date": "string",
-    "status": "VALID",
+    "status": "string",
     "qr_code_url": "string",
     "pdf_file_url": "string",
+    "uploaded_file_url": "string",
+    "generated_pdf_url": "string",
+    "issued_at": "2026-03-07T12:00:00Z",
+    "issued_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
     "CertificateType": {
-      "name": "Safety Construction"
+      "name": "string"
     },
     "Vessel": {
-      "vessel_name": "Ocean Pioneer",
-      "imo_number": "9123456"
-    }
+      "vessel_name": "string",
+      "imo_number": "string"
+    },
+    "FlagState": {
+      "flag_state_name": "string"
+    },
+    "Authority": {
+      "id": "...",
+      "name": "string",
+      "code": "string",
+      "country": "string",
+      "logo_url": "string",
+      "status": "string"
+    },
+    "source_type": "string",
+    "version": 0,
+    "certificate_term": "string",
+    "manual_text": {},
+    "remarks": "string"
   }
 }
 ```
@@ -728,8 +883,11 @@ documents must be uploaded.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -740,8 +898,11 @@ documents must be uploaded.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -842,7 +1003,13 @@ CLIENT can only download certificates for their vessels.
 {
   "success": true,
   "data": [
-    null
+    {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "status": "string",
+      "changed_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "change_reason": "string",
+      "changed_at": "2026-03-07T12:00:00Z"
+    }
   ]
 }
 ```
@@ -878,8 +1045,53 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### GET `/api/v1/checklist-templates/job/{jobId}/download`
+**Summary:** Download auto-filled checklist DOCX for job
+**Description:** Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.
+
+#### Parameters
+- **jobId** (`path` | `string` | *Required*): 
+- **force** (`query` | `boolean` | *Optional*): Regenerate even if cached document exists
+
+#### Responses
+<details><summary><strong>200</strong> - Signed URL for filled DOCX</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "fileName": "string",
+    "contentType": "string",
+    "expiresAt": "2026-03-07T12:00:00Z",
+    "signedUrl": "string"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -909,8 +1121,8 @@ CLIENT can only download certificates for their vessels.
   "success": true,
   "data": [
     {
-      "id": "123e4567-e89b-12d3-a456-426614174000",
-      "job_id": "123e4567-e89b-12d3-a456-426614174000",
+      "id": "...",
+      "job_id": "...",
       "question_code": "string",
       "question_text": "string",
       "answer": "string",
@@ -930,8 +1142,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -942,8 +1157,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -954,8 +1172,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -966,8 +1187,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -999,9 +1223,12 @@ CLIENT can only download certificates for their vessels.
       "company_name": "string",
       "company_code": "string",
       "email": "string",
-      "address": "string",
-      "country": "string",
-      "status": "string"
+      "phone": "string",
+      "contact_person_name": "string",
+      "contact_person_email": "string",
+      "status": "string",
+      "has_user": true,
+      "created_at": "2026-03-07T12:00:00Z"
     }
   ]
 }
@@ -1014,8 +1241,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1067,7 +1297,12 @@ CLIENT can only download certificates for their vessels.
     "email": "string",
     "address": "string",
     "country": "string",
-    "status": "string"
+    "phone": "string",
+    "contact_person_name": "string",
+    "contact_person_email": "string",
+    "status": "string",
+    "has_user": true,
+    "created_at": "2026-03-07T12:00:00Z"
   }
 }
 ```
@@ -1079,63 +1314,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
-}
-```
-
-</details>
-
----
-
-## 🚀 Contact
-
----
-
-### POST `/api/v1/contact`
-**Summary:** Submit a contact enquiry (public)
-**Description:** Anyone visiting the GR-Class Shipping portfolio website can send a message via this endpoint. No authentication is required.
-
-
-#### Request Body
-**Content-Type:** `application/json`
-
-```json
-{
-  "full_name": "John Maritime",
-  "company": "Pacific Shipping Co. Ltd",
-  "corporate_email": "john@pacificshipping.com",
-  "message": "We are interested in classification services for our fleet of 5 vessels.",
-  "phone": "+91 98765 43210",
-  "subject": "Fleet Classification Inquiry",
-  "source_page": "CONTACT"
-}
-```
-
-#### Responses
-<details><summary><strong>201</strong> - Enquiry submitted successfully</summary>
-
-```json
-{
-  "success": true,
-  "message": "Your message has been received. We will get back to you shortly.",
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "full_name": "string",
-    "created_at": "2026-03-07T12:00:00Z"
-  }
-}
-```
-
-</details>
-
-<details><summary><strong>400</strong> - Validation error</summary>
-
-```json
-{
-  "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1189,8 +1372,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1234,8 +1420,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1272,8 +1461,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1284,8 +1476,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1304,10 +1499,17 @@ CLIENT can only download certificates for their vessels.
 <details><summary><strong>200</strong> - List of flags</summary>
 
 ```json
-{
-  "success": true,
-  "message": "Request successful"
-}
+[
+  {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "flag_state_name": "string",
+    "country": "string",
+    "authority_name": "string",
+    "contact_email": "string",
+    "logo_url": "string",
+    "status": "string"
+  }
+]
 ```
 
 </details>
@@ -1317,8 +1519,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1372,8 +1577,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1404,8 +1612,11 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1422,7 +1633,7 @@ CLIENT can only download certificates for their vessels.
 **Description:** Returns a paginated list of job requests. Visible set depends on caller role:
 - **CLIENT** – Only jobs for their fleet (vessel_id filtered to client).
 - **SURVEYOR** – Only jobs assigned to them (`assigned_surveyor_id = me`).
-- **ADMIN / GM / TM / TO / TA / FLAG_ADMIN** – All jobs; defaults to last 30 days
+- **ADMIN / GM / TM / TO** – All jobs; defaults to last 30 days
   unless explicit filters are supplied.
 
 Supply `status` as a **comma-separated** string to filter by multiple statuses,
@@ -1444,53 +1655,40 @@ filter is given. Default is 30.
 
 
 #### Responses
-<details><summary><strong>200</strong> - Paginated list of jobs</summary>
+<details><summary><strong>200</strong> - List of jobs</summary>
 
 ```json
 {
   "success": true,
   "data": {
-    "total": 42,
+    "total": 48,
     "page": 1,
     "limit": 10,
     "totalPages": 5,
     "jobs": [
       {
         "id": "...",
+        "job_status": "string",
         "vessel_id": "...",
         "certificate_type_id": "...",
-        "reason": "string",
         "target_port": "string",
         "target_date": "string",
-        "assigned_surveyor_id": "...",
-        "assigned_by_user_id": "...",
-        "approved_by_user_id": "...",
-        "generated_certificate_id": "...",
-        "remarks": "string",
-        "job_status": "CREATED",
-        "survey": {
-          "id": "...",
-          "survey_status": "...",
-          "survey_statement_status": "...",
-          "started_at": "...",
-          "submitted_at": "...",
-          "start_latitude": "...",
-          "start_longitude": "...",
-          "submit_latitude": "...",
-          "submit_longitude": "...",
-          "declared_by": "...",
-          "declared_at": "...",
-          "declaration_hash": "...",
-          "SurveyStatusHistories": "..."
-        },
         "priority": "string",
-        "vessel": "...",
-        "certificate_type": {
+        "createdAt": "2026-03-07T12:00:00Z",
+        "Vessel": {
+          "id": "...",
+          "vessel_name": "...",
+          "imo_number": "..."
+        },
+        "CertificateType": {
           "id": "...",
           "name": "..."
         },
-        "created_at": "2026-03-07T12:00:00Z",
-        "updated_at": "2026-03-07T12:00:00Z"
+        "survey": {
+          "id": "...",
+          "survey_status": "..."
+        },
+        "payment_status": "string"
       }
     ]
   }
@@ -1504,8 +1702,11 @@ filter is given. Default is 30.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1516,8 +1717,11 @@ filter is given. Default is 30.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1547,54 +1751,80 @@ applicable).
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "reason": "string",
     "target_port": "string",
     "target_date": "string",
+    "job_status": "string",
+    "priority": "string",
     "assigned_surveyor_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "assigned_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "approved_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "generated_certificate_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "remarks": "string",
-    "job_status": "CREATED",
-    "survey": {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "survey_status": "NOT_STARTED",
-      "survey_statement_status": "NOT_PREPARED",
-      "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z",
-      "start_latitude": 0,
-      "start_longitude": 0,
-      "submit_latitude": 0,
-      "submit_longitude": 0,
-      "declared_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "declared_at": "2026-03-07T12:00:00Z",
-      "declaration_hash": "string",
-      "SurveyStatusHistories": [
-        {
-          "id": "...",
-          "previous_status": "...",
-          "new_status": "...",
-          "changed_by": "...",
-          "reason": "...",
-          "created_at": "..."
-        }
-      ]
-    },
-    "priority": "string",
-    "vessel": {
+    "is_survey_required": true,
+    "reschedule_count": 0,
+    "payment_status": "UNPAID",
+    "certificate_url": "string",
+    "certificate_number": "string",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
+    "Vessel": {
       "id": "...",
       "vessel_name": "Ocean Pioneer",
       "imo_number": "9123456",
       "flag_administration_id": "...",
-      "ship_type": "Cargo"
+      "ship_type": "Cargo",
+      "class_status": "string"
     },
-    "certificate_type": {
+    "CertificateType": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "string",
+      "issuing_authority": "string"
+    },
+    "survey": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "survey_status": "string",
+      "survey_statement_status": "string",
+      "started_at": "2026-03-07T12:00:00Z",
+      "submitted_at": "2026-03-07T12:00:00Z"
+    },
+    "Payments": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "invoice_number": "...",
+        "amount": "...",
+        "currency": "...",
+        "payment_status": "...",
+        "payment_date": "...",
+        "receipt_url": "...",
+        "verified_by_user_id": "...",
+        "refunded_amount": "...",
+        "amount_paid": "...",
+        "net_amount": "...",
+        "created_at": "...",
+        "updated_at": "...",
+        "JobRequest": "..."
+      }
+    ],
+    "requester": {
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "name": "string"
+      "name": "string",
+      "email": "string",
+      "role": "string"
     },
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z"
+    "surveyor": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "email": "string"
+    },
+    "approver": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "role": "string"
+    }
   }
 }
 ```
@@ -1606,8 +1836,11 @@ applicable).
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1618,8 +1851,11 @@ applicable).
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1630,8 +1866,11 @@ applicable).
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1663,54 +1902,80 @@ uploaded, the request is rejected with a `400` listing the missing documents.
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "reason": "string",
     "target_port": "string",
     "target_date": "string",
+    "job_status": "string",
+    "priority": "string",
     "assigned_surveyor_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "assigned_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "approved_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "generated_certificate_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "remarks": "string",
-    "job_status": "CREATED",
-    "survey": {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "survey_status": "NOT_STARTED",
-      "survey_statement_status": "NOT_PREPARED",
-      "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z",
-      "start_latitude": 0,
-      "start_longitude": 0,
-      "submit_latitude": 0,
-      "submit_longitude": 0,
-      "declared_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "declared_at": "2026-03-07T12:00:00Z",
-      "declaration_hash": "string",
-      "SurveyStatusHistories": [
-        {
-          "id": "...",
-          "previous_status": "...",
-          "new_status": "...",
-          "changed_by": "...",
-          "reason": "...",
-          "created_at": "..."
-        }
-      ]
-    },
-    "priority": "string",
-    "vessel": {
+    "is_survey_required": true,
+    "reschedule_count": 0,
+    "payment_status": "UNPAID",
+    "certificate_url": "string",
+    "certificate_number": "string",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
+    "Vessel": {
       "id": "...",
       "vessel_name": "Ocean Pioneer",
       "imo_number": "9123456",
       "flag_administration_id": "...",
-      "ship_type": "Cargo"
+      "ship_type": "Cargo",
+      "class_status": "string"
     },
-    "certificate_type": {
+    "CertificateType": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "string",
+      "issuing_authority": "string"
+    },
+    "survey": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "survey_status": "string",
+      "survey_statement_status": "string",
+      "started_at": "2026-03-07T12:00:00Z",
+      "submitted_at": "2026-03-07T12:00:00Z"
+    },
+    "Payments": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "invoice_number": "...",
+        "amount": "...",
+        "currency": "...",
+        "payment_status": "...",
+        "payment_date": "...",
+        "receipt_url": "...",
+        "verified_by_user_id": "...",
+        "refunded_amount": "...",
+        "amount_paid": "...",
+        "net_amount": "...",
+        "created_at": "...",
+        "updated_at": "...",
+        "JobRequest": "..."
+      }
+    ],
+    "requester": {
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "name": "string"
+      "name": "string",
+      "email": "string",
+      "role": "string"
     },
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z"
+    "surveyor": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "email": "string"
+    },
+    "approver": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "role": "string"
+    }
   }
 }
 ```
@@ -1722,8 +1987,11 @@ uploaded, the request is rejected with a `400` listing the missing documents.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1734,8 +2002,11 @@ uploaded, the request is rejected with a `400` listing the missing documents.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1746,8 +2017,11 @@ uploaded, the request is rejected with a `400` listing the missing documents.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1758,8 +2032,11 @@ uploaded, the request is rejected with a `400` listing the missing documents.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1799,54 +2076,80 @@ Only a TO can call this endpoint.
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "reason": "string",
     "target_port": "string",
     "target_date": "string",
+    "job_status": "string",
+    "priority": "string",
     "assigned_surveyor_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "assigned_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "approved_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "generated_certificate_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "remarks": "string",
-    "job_status": "CREATED",
-    "survey": {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "survey_status": "NOT_STARTED",
-      "survey_statement_status": "NOT_PREPARED",
-      "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z",
-      "start_latitude": 0,
-      "start_longitude": 0,
-      "submit_latitude": 0,
-      "submit_longitude": 0,
-      "declared_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "declared_at": "2026-03-07T12:00:00Z",
-      "declaration_hash": "string",
-      "SurveyStatusHistories": [
-        {
-          "id": "...",
-          "previous_status": "...",
-          "new_status": "...",
-          "changed_by": "...",
-          "reason": "...",
-          "created_at": "..."
-        }
-      ]
-    },
-    "priority": "string",
-    "vessel": {
+    "is_survey_required": true,
+    "reschedule_count": 0,
+    "payment_status": "UNPAID",
+    "certificate_url": "string",
+    "certificate_number": "string",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
+    "Vessel": {
       "id": "...",
       "vessel_name": "Ocean Pioneer",
       "imo_number": "9123456",
       "flag_administration_id": "...",
-      "ship_type": "Cargo"
+      "ship_type": "Cargo",
+      "class_status": "string"
     },
-    "certificate_type": {
+    "CertificateType": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "string",
+      "issuing_authority": "string"
+    },
+    "survey": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "survey_status": "string",
+      "survey_statement_status": "string",
+      "started_at": "2026-03-07T12:00:00Z",
+      "submitted_at": "2026-03-07T12:00:00Z"
+    },
+    "Payments": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "invoice_number": "...",
+        "amount": "...",
+        "currency": "...",
+        "payment_status": "...",
+        "payment_date": "...",
+        "receipt_url": "...",
+        "verified_by_user_id": "...",
+        "refunded_amount": "...",
+        "amount_paid": "...",
+        "net_amount": "...",
+        "created_at": "...",
+        "updated_at": "...",
+        "JobRequest": "..."
+      }
+    ],
+    "requester": {
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "name": "string"
+      "name": "string",
+      "email": "string",
+      "role": "string"
     },
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z"
+    "surveyor": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "email": "string"
+    },
+    "approver": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "role": "string"
+    }
   }
 }
 ```
@@ -1858,8 +2161,11 @@ Only a TO can call this endpoint.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1870,8 +2176,11 @@ Only a TO can call this endpoint.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1882,8 +2191,11 @@ Only a TO can call this endpoint.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1894,8 +2206,11 @@ Only a TO can call this endpoint.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -1915,7 +2230,7 @@ Role-specific from-state constraints:
 - **TM** – `SURVEY_DONE` or `REVIEWED`.
 - **TO** – `SURVEY_DONE` only.
 
-**Roles:** ADMIN, TM, TO
+**Roles:** TM, TO
 
 
 #### Parameters
@@ -1940,54 +2255,80 @@ Role-specific from-state constraints:
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "reason": "string",
     "target_port": "string",
     "target_date": "string",
+    "job_status": "string",
+    "priority": "string",
     "assigned_surveyor_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "assigned_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "approved_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "generated_certificate_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "remarks": "string",
-    "job_status": "CREATED",
-    "survey": {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "survey_status": "NOT_STARTED",
-      "survey_statement_status": "NOT_PREPARED",
-      "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z",
-      "start_latitude": 0,
-      "start_longitude": 0,
-      "submit_latitude": 0,
-      "submit_longitude": 0,
-      "declared_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "declared_at": "2026-03-07T12:00:00Z",
-      "declaration_hash": "string",
-      "SurveyStatusHistories": [
-        {
-          "id": "...",
-          "previous_status": "...",
-          "new_status": "...",
-          "changed_by": "...",
-          "reason": "...",
-          "created_at": "..."
-        }
-      ]
-    },
-    "priority": "string",
-    "vessel": {
+    "is_survey_required": true,
+    "reschedule_count": 0,
+    "payment_status": "UNPAID",
+    "certificate_url": "string",
+    "certificate_number": "string",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
+    "Vessel": {
       "id": "...",
       "vessel_name": "Ocean Pioneer",
       "imo_number": "9123456",
       "flag_administration_id": "...",
-      "ship_type": "Cargo"
+      "ship_type": "Cargo",
+      "class_status": "string"
     },
-    "certificate_type": {
+    "CertificateType": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "string",
+      "issuing_authority": "string"
+    },
+    "survey": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "survey_status": "string",
+      "survey_statement_status": "string",
+      "started_at": "2026-03-07T12:00:00Z",
+      "submitted_at": "2026-03-07T12:00:00Z"
+    },
+    "Payments": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "invoice_number": "...",
+        "amount": "...",
+        "currency": "...",
+        "payment_status": "...",
+        "payment_date": "...",
+        "receipt_url": "...",
+        "verified_by_user_id": "...",
+        "refunded_amount": "...",
+        "amount_paid": "...",
+        "net_amount": "...",
+        "created_at": "...",
+        "updated_at": "...",
+        "JobRequest": "..."
+      }
+    ],
+    "requester": {
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "name": "string"
+      "name": "string",
+      "email": "string",
+      "role": "string"
     },
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z"
+    "surveyor": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "email": "string"
+    },
+    "approver": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "role": "string"
+    }
   }
 }
 ```
@@ -1999,8 +2340,11 @@ Role-specific from-state constraints:
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2011,8 +2355,11 @@ Role-specific from-state constraints:
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2023,8 +2370,11 @@ Role-specific from-state constraints:
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2035,8 +2385,11 @@ Role-specific from-state constraints:
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2061,22 +2414,33 @@ including who made each change and the reason.
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "old_status": "string",
-      "new_status": "string",
-      "changed_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "change_reason": "string",
-      "created_at": "2026-03-07T12:00:00Z",
-      "User": {
-        "name": "string",
-        "email": "string",
-        "role": "string"
+  "data": {
+    "job_history": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "previous_status": "...",
+        "new_status": "...",
+        "changed_by": "...",
+        "reason": "...",
+        "created_at": "...",
+        "User": "..."
       }
-    }
-  ]
+    ],
+    "survey_history": [
+      {
+        "id": "...",
+        "survey_id": "...",
+        "previous_status": "...",
+        "new_status": "...",
+        "changed_by": "...",
+        "reason": "...",
+        "submission_iteration": "...",
+        "created_at": "...",
+        "User": "..."
+      }
+    ]
+  }
 }
 ```
 
@@ -2087,8 +2451,11 @@ including who made each change and the reason.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2099,8 +2466,11 @@ including who made each change and the reason.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2111,8 +2481,11 @@ including who made each change and the reason.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2165,8 +2538,11 @@ Notes are not visible to CLIENT or SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2177,8 +2553,11 @@ Notes are not visible to CLIENT or SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2189,8 +2568,11 @@ Notes are not visible to CLIENT or SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2240,8 +2622,11 @@ staff, and the assigned SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2252,8 +2637,11 @@ staff, and the assigned SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2303,8 +2691,11 @@ visible to CLIENT or SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2315,8 +2706,11 @@ visible to CLIENT or SURVEYOR.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2390,8 +2784,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2402,8 +2799,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2414,8 +2814,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2458,8 +2861,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2499,8 +2905,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2520,7 +2929,19 @@ with a file attachment.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": [
+    {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "description": "string",
+      "severity": "string",
+      "status": "string",
+      "closure_remarks": "string",
+      "closed_at": "2026-03-07T12:00:00Z",
+      "created_at": "2026-03-07T12:00:00Z",
+      "updated_at": "2026-03-07T12:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -2531,8 +2952,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2604,82 +3028,6 @@ with a file attachment.
 
 ---
 
-## 🚀 Public
-
----
-
-### GET `/api/v1/public/certificate/verify/{number}`
-**Summary:** Verify certificate (public)
-**Description:** Public verification - no auth required
-
-#### Parameters
-- **number** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate verification result</summary>
-
-```json
-{
-  "success": true,
-  "message": "Request successful"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/public/vessel/{imo}`
-**Summary:** Verify vessel by IMO (public)
-**Description:** Public vessel verification - no auth required
-
-#### Parameters
-- **imo** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Vessel verification result</summary>
-
-```json
-{
-  "success": true,
-  "message": "Request successful"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/public/website/videos`
-**Summary:** Get all website videos (Public)
-**Description:** Retrieve a list of uploaded videos. This endpoint is public and used by the website frontend.
-
-#### Parameters
-- **section** (`query` | `string` | *Optional*): Filter by website section (e.g. HOME, PORTFOLIO)
-
-#### Responses
-<details><summary><strong>200</strong> - List of videos</summary>
-
-```json
-[
-  {
-    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "section": "HOME",
-    "title": "Introduction Video",
-    "description": "A brief introduction to our services.",
-    "video_url": "https://bucket.s3.region.amazonaws.com/website/videos/video.mp4",
-    "thumbnail_url": "https://bucket.s3.region.amazonaws.com/website/videos/thumb.jpg",
-    "uploaded_by": "01933c5e-user-id",
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z"
-  }
-]
-```
-
-</details>
-
----
-
 ## 🚀 Search
 
 ---
@@ -2705,46 +3053,34 @@ with a file attachment.
         "vessel_name": "Ocean Pioneer",
         "imo_number": "9123456",
         "flag_administration_id": "...",
-        "ship_type": "Cargo"
+        "ship_type": "Cargo",
+        "class_status": "string"
       }
     ],
     "jobs": [
       {
         "id": "...",
+        "job_status": "string",
         "vessel_id": "...",
         "certificate_type_id": "...",
-        "reason": "string",
         "target_port": "string",
         "target_date": "string",
-        "assigned_surveyor_id": "...",
-        "assigned_by_user_id": "...",
-        "approved_by_user_id": "...",
-        "generated_certificate_id": "...",
-        "remarks": "string",
-        "job_status": "CREATED",
-        "survey": {
-          "id": "...",
-          "survey_status": "...",
-          "survey_statement_status": "...",
-          "started_at": "...",
-          "submitted_at": "...",
-          "start_latitude": "...",
-          "start_longitude": "...",
-          "submit_latitude": "...",
-          "submit_longitude": "...",
-          "declared_by": "...",
-          "declared_at": "...",
-          "declaration_hash": "...",
-          "SurveyStatusHistories": "..."
-        },
         "priority": "string",
-        "vessel": "...",
-        "certificate_type": {
+        "createdAt": "2026-03-07T12:00:00Z",
+        "Vessel": {
+          "id": "...",
+          "vessel_name": "...",
+          "imo_number": "..."
+        },
+        "CertificateType": {
           "id": "...",
           "name": "..."
         },
-        "created_at": "2026-03-07T12:00:00Z",
-        "updated_at": "2026-03-07T12:00:00Z"
+        "survey": {
+          "id": "...",
+          "survey_status": "..."
+        },
+        "payment_status": "string"
       }
     ],
     "certificates": [
@@ -2752,18 +3088,19 @@ with a file attachment.
         "id": "...",
         "vessel_id": "...",
         "certificate_type_id": "...",
-        "certificate_number": "GIR-CERT-2026-001234",
+        "certificate_number": "string",
         "issue_date": "string",
         "expiry_date": "string",
-        "status": "VALID",
-        "qr_code_url": "string",
-        "pdf_file_url": "string",
-        "CertificateType": {
-          "name": "..."
-        },
+        "status": "string",
+        "created_at": "2026-03-07T12:00:00Z",
         "Vessel": {
+          "id": "...",
           "vessel_name": "...",
           "imo_number": "..."
+        },
+        "CertificateType": {
+          "id": "...",
+          "name": "..."
         }
       }
     ]
@@ -2845,78 +3182,6 @@ with a file attachment.
 
 ---
 
-## 🚀 Surveyors
-
----
-
-### POST `/api/v1/surveyors/apply`
-**Summary:** Public surveyor application
-
-#### Request Body
-**Content-Type:** `application/json`
-
-```json
-{
-  "full_name": "string",
-  "email": "string",
-  "phone": "string",
-  "nationality": "string",
-  "qualification": "string",
-  "years_of_experience": 0,
-  "cvKey": "string",
-  "idProofKey": "string",
-  "certificateKeys": [
-    "string"
-  ]
-}
-```
-
-#### Request Body (File Upload)
-**Content-Type:** `multipart/form-data`
-
-> **Note for Frontend:** Use `FormData` object in JS. Append fields normally. For files, use `formData.append('fieldName', fileObject)`.
-
-**Form Fields:**
-- `full_name` (Required): `string` 
-- `email` (Required): `string` 
-- `phone` (Required): `string` 
-- `nationality` (Required): `string` 
-- `qualification` (Required): `string` 
-- `years_of_experience` (Required): `integer` 
-- `cv` (Optional): `FILE` 
-- `id_proof` (Optional): `FILE` 
-- `certificates` (Optional): `array` 
-
-```json
-{
-  "full_name": "string",
-  "email": "string",
-  "phone": "string",
-  "nationality": "string",
-  "qualification": "string",
-  "years_of_experience": 0,
-  "cv": "<FILE_UPLOAD>",
-  "id_proof": "<FILE_UPLOAD>",
-  "certificates": [
-    "<FILE_UPLOAD>"
-  ]
-}
-```
-
-#### Responses
-<details><summary><strong>201</strong> - Application submitted</summary>
-
-```json
-{
-  "success": true,
-  "message": "Request successful"
-}
-```
-
-</details>
-
----
-
 ## 🚀 Surveys
 
 ---
@@ -2941,6 +3206,10 @@ with a file attachment.
       "submitted_at": "2026-03-07T12:00:00Z",
       "finalized_at": "2026-03-07T12:00:00Z",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
+      "signed_checklist_files": [
+        "string"
+      ],
       "JobRequest": {
         "id": "...",
         "job_status": "string",
@@ -2994,6 +3263,9 @@ with a file attachment.
     "survey_statement": "string",
     "survey_statement_status": "string",
     "survey_statement_pdf_url": "string",
+    "signed_checklist_files": [
+      "string"
+    ],
     "started_at": "2026-03-07T12:00:00Z",
     "submitted_at": "2026-03-07T12:00:00Z",
     "finalized_at": "2026-03-07T12:00:00Z"
@@ -3008,8 +3280,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -3096,8 +3371,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -3135,8 +3413,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -3147,8 +3428,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -3201,8 +3485,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -3228,27 +3515,22 @@ with a file attachment.
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "vessel_name": "Ocean Pioneer",
-      "imo_number": "9123456",
-      "flag_administration_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "ship_type": "Cargo",
-      "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "call_sign": "9VSP",
-      "mmsi_number": "563123456",
-      "port_of_registry": "Singapore",
-      "year_built": 2015,
-      "gross_tonnage": 30000,
-      "net_tonnage": 15000,
-      "deadweight": 45000,
-      "class_status": "ACTIVE",
-      "current_class_society": "DNV",
-      "engine_type": "Diesel",
-      "builder_name": "Hyundai Heavy Industries"
-    }
-  ]
+  "data": {
+    "count": 1,
+    "rows": [
+      {
+        "company": {
+          "id": "123e4567-e89b-12d3-a456-426614174000",
+          "name": "string",
+          "code": "string",
+          "status": "string"
+        },
+        "vessels": [
+          "..."
+        ]
+      }
+    ]
+  }
 }
 ```
 
@@ -3259,8 +3541,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -3282,23 +3567,35 @@ with a file attachment.
 {
   "success": true,
   "data": {
-    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "vessel_name": "Ocean Pioneer",
-    "imo_number": "9123456",
-    "flag_administration_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "ship_type": "Cargo",
-    "client_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "call_sign": "9VSP",
-    "mmsi_number": "563123456",
-    "port_of_registry": "Singapore",
-    "year_built": 2015,
-    "gross_tonnage": 30000,
-    "net_tonnage": 15000,
-    "deadweight": 45000,
+    "id": "019ccbf7-f67a-7443-bd21-17f16ef06cbb",
+    "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e",
+    "flag_administration_id": "019cbf1d-b478-704f-a4af-7462034a800e",
+    "vessel_name": "MT Blue Horizon",
+    "imo_number": "9876506",
+    "call_sign": "D5IJ6",
+    "mmsi_number": "538007106",
+    "port_of_registry": "Majuro",
+    "year_built": 2021,
+    "ship_type": "Oil Tanker",
+    "gross_tonnage": "82300.25",
+    "net_tonnage": "44100.00",
+    "deadweight": "158000.00",
     "class_status": "ACTIVE",
     "current_class_society": "DNV",
-    "engine_type": "Diesel",
-    "builder_name": "Hyundai Heavy Industries"
+    "engine_type": "MAN B&W 7G80ME-C",
+    "builder_name": "Hyundai Samho Heavy Industries",
+    "createdAt": "2026-03-05T17:48:51.000Z",
+    "updatedAt": "2026-03-05T17:48:51.000Z",
+    "Client": {
+      "id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e",
+      "company_name": "Pacific Maritime Corp",
+      "company_code": "PMC001",
+      "email": "ops@pacificmaritime.com",
+      "status": "INACTIVE"
+    },
+    "FlagAdministration": {
+      "flag_state_name": "Marshall Islands Maritime Administrator"
+    }
   }
 }
 ```
@@ -3310,8 +3607,11 @@ with a file attachment.
 ```json
 {
   "success": false,
-  "message": "Validation Error",
-  "error": "string"
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
