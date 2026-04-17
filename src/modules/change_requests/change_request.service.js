@@ -52,6 +52,25 @@ export const getChangeRequestById = async (id) => {
 };
 
 /**
+ * Get change request by ID with scope filtering
+ */
+export const getChangeRequestById = async (id, scopeFilters = {}) => {
+    const changeRequest = await ChangeRequest.findOne({
+        where: { id, ...scopeFilters },
+        include: [
+            { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+            { model: User, as: 'approver', attributes: ['id', 'name', 'email'] }
+        ]
+    });
+
+    if (!changeRequest) {
+        throw { statusCode: 404, message: 'Change request not found' };
+    }
+
+    return changeRequest;
+};
+
+/**
  * Approve a change request
  */
 export const approveChangeRequest = async (id, approvedBy, remarks) => {

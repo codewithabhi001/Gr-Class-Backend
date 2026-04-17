@@ -13,7 +13,6 @@ export const globalSearch = async (query, user) => {
     };
 
     // Scoped Search
-    // Scoped Search
     let vesselWhere = {
         [Op.or]: [
             { vessel_name: { [Op.like]: `%${q}%` } },
@@ -33,13 +32,36 @@ export const globalSearch = async (query, user) => {
     };
 
     const vesselInclude = [];
-
     const certInclude = [];
+    let clientVesselIds = null;
 
+    // CLIENT role: Get all vessel IDs for the client to filter jobs and certificates
     if (user.role === 'CLIENT') {
         vesselWhere.client_id = user.client_id;
-        // For CLIENT, we might also want to restrict Jobs and Certs to their vessels,
-        // but current logic only restricts Vessels. Preserving existing pattern for CLIENT unless requested.
+
+        // Get all vessel IDs for this client to filter jobs and certificates
+        const clientVessels = await db.Vessel.findAll({
+            where: { client_id: user.client_id },
+            attributes: ['id'],
+            raw: true
+        });
+        clientVesselIds = clientVessels.map(v => v.id);
+
+        // Filter jobs to only show client's vessels' jobs
+        if (clientVesselIds.length > 0) {
+            jobWhere.vessel_id = { [Op.in]: clientVesselIds };
+        } else {
+            // No vessels, return empty jobs
+            jobWhere = { id: null }; // Force empty result
+        }
+
+        // Filter certificates to only show client's vessels' certificates
+        if (clientVesselIds.length > 0) {
+            certWhere.vessel_id = { [Op.in]: clientVesselIds };
+        } else {
+            // No vessels, return empty certificates
+            certWhere = { id: null }; // Force empty result
+        }
     }
 
     if (user.role === 'SURVEYOR') {
@@ -55,7 +77,6 @@ export const globalSearch = async (query, user) => {
         jobWhere.assigned_surveyor_id = user.id;
 
         // Surveyor sees Certificates linked to Vessels they have jobs on
-        // Logic: Certificate -> belongsTo Vessel -> hasMany JobRequest (where surveyor matches)
         certInclude.push({
             model: db.Vessel,
             attributes: [],
@@ -79,6 +100,7 @@ export const globalSearch = async (query, user) => {
     results.jobs = await db.JobRequest.findAll({
         where: jobWhere,
         attributes: ['id', 'job_status', 'vessel_id', 'created_at'],
+        include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }],
         limit: 10
     });
 

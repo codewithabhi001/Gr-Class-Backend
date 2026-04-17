@@ -1,6 +1,15 @@
 import * as changeRequestService from './change_request.service.js';
 import logger from '../../utils/logger.js';
 
+// Scope helper for CLIENT role
+const getScopeFilters = (user) => {
+    const scopeFilters = {};
+    if (user.role === 'CLIENT') {
+        scopeFilters.requested_by = user.id;
+    }
+    return scopeFilters;
+};
+
 /**
  * Create a new change request
  */
@@ -12,6 +21,7 @@ export const createChangeRequest = async (req, res, next) => {
         });
 
         res.status(201).json({
+            success: true,
             message: 'Change request created successfully',
             change_request: changeRequest
         });
@@ -26,15 +36,18 @@ export const createChangeRequest = async (req, res, next) => {
  */
 export const getChangeRequests = async (req, res, next) => {
     try {
+        const scopeFilters = getScopeFilters(req.user);
         const filters = {
             status: req.query.status,
             entity_type: req.query.entity_type,
-            requested_by: req.query.requested_by
+            requested_by: req.query.requested_by,
+            ...scopeFilters
         };
 
         const changeRequests = await changeRequestService.getChangeRequests(filters);
 
         res.json({
+            success: true,
             change_requests: changeRequests,
             total: changeRequests.length
         });
@@ -45,6 +58,7 @@ export const getChangeRequests = async (req, res, next) => {
 };
 
 /**
+<<<<<<< Updated upstream
  * Get a change request by ID
  */
 export const getChangeRequestById = async (req, res, next) => {
@@ -57,6 +71,21 @@ export const getChangeRequestById = async (req, res, next) => {
         });
     } catch (error) {
         logger.error('Get change request error:', error);
+=======
+ * Get change request by ID
+ */
+export const getChangeRequestById = async (req, res, next) => {
+    try {
+        const scopeFilters = getScopeFilters(req.user);
+        const changeRequest = await changeRequestService.getChangeRequestById(req.params.id, scopeFilters);
+
+        res.json({
+            success: true,
+            change_request: changeRequest
+        });
+    } catch (error) {
+        logger.error('Get change request by ID error:', error);
+>>>>>>> Stashed changes
         next(error);
     }
 };
