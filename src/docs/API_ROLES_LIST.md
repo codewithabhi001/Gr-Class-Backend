@@ -35,6 +35,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/notifications/:id/read`
 - `PUT /api/notifications/read-all`
 - `PUT /api/users/fcm-token`
+- `PUT /api/users/me`
 - `PUT /api/users/profile-pic`
 
 ## 👤 Role: ADMIN
@@ -629,8 +630,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/verify/:number`
 - `GET /api/certificates/vessel/:vesselId`
 - `GET /api/checklists/jobs/:jobId`
-- `GET /api/clients/dashboard`
-- `GET /api/clients/profile`
 - `GET /api/clients/profile/documents`
 - `GET /api/compliance/export/:id`
 - `GET /api/customer-feedback/job/:jobId`
@@ -680,7 +679,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/portfolio-feedback`
 - `POST /api/support`
 - `POST /api/surveyors/apply`
-- `PUT /api/clients/profile`
 - `PUT /api/jobs/:id/cancel`
 - `PUT /api/notifications/:id/read`
 - `PUT /api/notifications/read-all`
