@@ -54,27 +54,6 @@ export const deleteClient = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-// --- Self Service (CLIENT role) ---
-export const getProfile = async (req, res, next) => {
-    try {
-        const profile = await clientService.getProfile(req.user.id);
-        res.json({ success: true, data: profile });
-    } catch (e) { next(e); }
-};
-
-export const updateProfile = async (req, res, next) => {
-    try {
-        const profile = await clientService.updateProfile(req.user.id, req.body);
-        res.json({ success: true, data: profile });
-    } catch (e) { next(e); }
-};
-
-export const getDashboard = async (req, res, next) => {
-    try {
-        const data = await clientService.getDashboardData(req.user.client_id);
-        res.json({ success: true, data });
-    } catch (e) { next(e); }
-};
 
 export const getClientDocuments = async (req, res, next) => {
     try {

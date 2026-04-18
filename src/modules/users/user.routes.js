@@ -11,6 +11,7 @@ router.use(authenticate);
 
 // Get own profile
 router.get('/me', userController.getProfile);
+router.put('/me', userController.updateSelfProfile);
 
 // Update profile picture
 router.put('/profile-pic', upload.single('profile_pic'), userController.updateProfilePic);

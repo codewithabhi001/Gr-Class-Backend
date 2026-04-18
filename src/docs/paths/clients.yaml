@@ -74,71 +74,6 @@
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
-/api/v1/clients/profile:
-  get:
-    tags: [Clients]
-    summary: Get client profile
-    description: Get current user's client profile. CLIENT role only.
-    operationId: getClientProfile
-    x-roles: [CLIENT]
-    responses:
-      "200":
-        description: Client profile
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
-                  $ref: '#/components/schemas/ClientResponse'
-      "403":
-        description: Forbidden
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ErrorResponse'
-
-  put:
-    tags: [Clients]
-    summary: Update client profile
-    description: Update current user's client profile. CLIENT role only.
-    operationId: updateClientProfile
-    x-roles: [CLIENT]
-    requestBody:
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              company_name:
-                type: string
-              contact_person_name:
-                type: string
-              contact_person_email:
-                type: string
-              phone:
-                type: string
-          example:
-            company_name: "Marine Shipping Co"
-            contact_person_name: "John Smith"
-            contact_person_email: "john@marineshipping.com"
-            phone: "+65 6123 4567"
-    responses:
-      "200":
-        description: Profile updated
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
-                  $ref: '#/components/schemas/ClientResponse'
 
 /api/v1/clients/profile/documents:
   get:
@@ -176,26 +111,6 @@
                       expiresAt: { type: string, format: date-time }
                       uploaded_at: { type: string, format: date-time }
 
-/api/v1/clients/dashboard:
-  get:
-    tags: [Clients]
-    summary: Get client dashboard
-    description: Get dashboard for client users. CLIENT role only.
-    operationId: getClientDashboard
-    x-roles: [CLIENT]
-    responses:
-      "200":
-        description: Client dashboard data
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
-                  type: object
 
 /api/v1/clients/{id}/documents:
   get:

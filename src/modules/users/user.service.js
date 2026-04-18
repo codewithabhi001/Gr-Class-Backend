@@ -100,3 +100,49 @@ export const updateProfilePic = async (userId, file, data = {}) => {
     await user.update({ profile_pic_url: profilePicUrl });
     return await fileAccessService.resolveEntity(user);
 };
+
+export const updateSelfProfile = async (id, role, data) => {
+    const user = await User.findByPk(id);
+    if (!user) throw { statusCode: 404, message: 'User not found' };
+
+    // Update basic user fields
+    const userUpdates = {};
+    if (data.name) userUpdates.name = data.name;
+    if (data.phone) userUpdates.phone = data.phone;
+    
+    if (Object.keys(userUpdates).length > 0) {
+        await user.update(userUpdates);
+    }
+
+    // Handle Client specific profile update
+    if (role === 'CLIENT' && user.client_id) {
+        const client = await db.Client.findByPk(user.client_id);
+        if (client) {
+            const clientUpdates = {};
+            if (data.contact_person_name) clientUpdates.contact_person_name = data.contact_person_name;
+            if (data.contact_person_email) clientUpdates.contact_person_email = data.contact_person_email;
+            if (data.address) clientUpdates.address = data.address;
+            if (data.phone) clientUpdates.phone = data.phone;
+            
+            if (Object.keys(clientUpdates).length > 0) {
+                await client.update(clientUpdates);
+            }
+        }
+    } 
+    // Handle Surveyor specific profile update
+    else if (role === 'SURVEYOR') {
+        const profile = await db.SurveyorProfile.findOne({ where: { user_id: id } });
+        if (profile) {
+            const profileUpdates = {};
+            if (data.nationality) profileUpdates.nationality = data.nationality;
+            if (data.qualification) profileUpdates.qualification = data.qualification;
+            if (data.years_of_experience) profileUpdates.years_of_experience = data.years_of_experience;
+            
+            if (Object.keys(profileUpdates).length > 0) {
+                await profile.update(profileUpdates);
+            }
+        }
+    }
+
+    return await getProfile(id, role);
+};

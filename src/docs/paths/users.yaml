@@ -33,6 +33,38 @@
       "200": { description: Current user profile }
       "401": { description: Unauthorized }
 
+  put:
+    tags: [Users]
+    summary: Update current user profile
+    operationId: updateMyProfile
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name: { type: string }
+              phone: { type: string }
+              contact_person_name: { type: string, description: "Client specific" }
+              contact_person_email: { type: string, description: "Client specific" }
+              address: { type: string, description: "Client/Surveyor specific" }
+              nationality: { type: string, description: "Surveyor specific" }
+              qualification: { type: string, description: "Surveyor specific" }
+              years_of_experience: { type: integer, description: "Surveyor specific" }
+    responses:
+      "200":
+        description: Profile updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { type: object }
+      "401": { description: Unauthorized }
+
 /api/v1/users/{id}:
   put:
     tags: [Users]

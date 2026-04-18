@@ -7,6 +7,13 @@ export const getProfile = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+export const updateSelfProfile = async (req, res, next) => {
+    try {
+        const user = await userService.updateSelfProfile(req.user.id, req.user.role, req.body);
+        res.json({ success: true, message: 'Profile updated successfully', data: user });
+    } catch (e) { next(e); }
+};
+
 export const getUsers = async (req, res, next) => {
     try {
         const users = await userService.getUsers(req.query, req.user.id);

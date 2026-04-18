@@ -9,12 +9,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Profile
-router.get('/profile', authorizeRoles('CLIENT'), clientController.getProfile);
-router.put('/profile', authorizeRoles('CLIENT'), clientController.updateProfile);
 router.get('/profile/documents', authorizeRoles('CLIENT'), clientController.getClientDocuments);
-
-// Dashboard
-router.get('/dashboard', authorizeRoles('CLIENT'), clientController.getDashboard);
 
 // Management (Admin/Staff)
 router.post('/', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.createClient), clientController.createClient);
