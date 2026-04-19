@@ -33,13 +33,15 @@ export const submitEnquiry = async (data, ipAddress) => {
         ['ADMIN', 'GM'],
         'NEW_WEBSITE_ENQUIRY',
         {
-            full_name,
+            fullName: full_name,
             company: company || 'N/A',
-            corporate_email,
+            email: corporate_email,
             message,
             phone: phone || 'N/A',
             subject: subject || 'N/A',
-            enquiry_id: enquiry.id
+            enquiry_id: enquiry.id,
+            // Keep full_name for the notification formatter (push/in-app)
+            full_name: full_name 
         }
     ).catch(err => logger.error('Failed to notify roles for new enquiry', err));
 
@@ -47,7 +49,7 @@ export const submitEnquiry = async (data, ipAddress) => {
     emailService.sendTemplateEmail(
         corporate_email,
         'CONTACT_ACKNOWLEDGEMENT',
-        { full_name }
+        { fullName: full_name, email: corporate_email }
     ).catch(err => logger.error(`Failed to send contact acknowledgement email to ${corporate_email}`, err));
 
     return enquiry;
