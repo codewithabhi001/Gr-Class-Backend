@@ -21,12 +21,14 @@ export const getIncidents = async (query, scopeFilters = {}) => {
     const { page = 1, limit = 10, ...filters } = query;
     return await Incident.findAll({
         where: { ...filters, ...scopeFilters },
+        attributes: ['id', 'vessel_id', 'reported_by', 'title', 'status', 'created_at'],
         include: [{ model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] }],
         order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: (page - 1) * limit
+        limit: parseInt(limit, 10),
+        offset: (parseInt(page, 10) - 1) * parseInt(limit, 10)
     });
 };
+
 
 export const getIncidentById = async (id, scopeFilters = {}) => {
     const incident = await Incident.findOne({

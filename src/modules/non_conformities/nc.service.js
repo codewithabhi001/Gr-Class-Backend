@@ -21,9 +21,33 @@ export const closeNC = async (id, remarks) => {
     return nc;
 };
 
+const NC_LIST_ATTRIBUTES = ['id', 'job_id', 'severity', 'status', 'created_at'];
+
+export const getNCs = async (query) => {
+    const { page = 1, limit = 10, job_id, status } = query;
+    const where = {};
+    if (job_id) where.job_id = job_id;
+    if (status) where.status = status;
+
+    return await NonConformity.findAndCountAll({
+        where,
+        attributes: NC_LIST_ATTRIBUTES,
+        limit: parseInt(limit, 10),
+        offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
+        order: [['createdAt', 'DESC']]
+    });
+};
+
+export const getNCById = async (id) => {
+    const nc = await NonConformity.findByPk(id);
+    if (!nc) throw { statusCode: 404, message: 'Non-Conformity not found' };
+    return nc;
+};
+
 export const getByJob = async (jobId) => {
     return await NonConformity.findAll({
         where: { job_id: jobId },
-        attributes: ['id', 'job_id', 'description', 'severity', 'status', 'closure_remarks', 'closed_at', 'created_at', 'updated_at']
+        attributes: NC_LIST_ATTRIBUTES
     });
 };
+

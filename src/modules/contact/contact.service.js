@@ -41,7 +41,7 @@ export const submitEnquiry = async (data, ipAddress) => {
             subject: subject || 'N/A',
             enquiry_id: enquiry.id,
             // Keep full_name for the notification formatter (push/in-app)
-            full_name: full_name 
+            full_name: full_name
         }
     ).catch(err => logger.error('Failed to notify roles for new enquiry', err));
 

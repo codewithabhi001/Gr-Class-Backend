@@ -45,28 +45,36 @@ export const getFeedbackForJob = async (jobId) => {
     });
 };
 
+export const getFeedbackById = async (id) => {
+    const feedback = await CustomerFeedback.findByPk(id, {
+        include: [
+            { model: db.User, as: 'Client', attributes: ['id', 'name', 'email'] },
+            { model: db.JobRequest, as: 'Job', attributes: ['id', 'job_status'] }
+        ]
+    });
+    if (!feedback) throw { statusCode: 404, message: 'Feedback not found' };
+    return feedback;
+};
+
 export const getAllFeedback = async (query) => {
     const { page = 1, limit = 10 } = query;
     return await CustomerFeedback.findAndCountAll({
-        limit: parseInt(limit),
-        offset: (page - 1) * limit,
-        order: [['created_at', 'DESC']], // Use created_at if submitted_at doesn't exist
+        limit: parseInt(limit, 10),
+        offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
+        order: [['createdAt', 'DESC']],
         attributes: [
             'id',
             'job_id',
             'client_id',
             'rating',
-            'timeliness',
-            'professionalism',
-            'documentation',
-            'remarks',
-            'submitted_at',
-            'created_at'
+            'created_at',
+            'submitted_at'
         ],
         include: [{
             model: db.User,
             as: 'Client',
-            attributes: ['id', 'name', 'email']
+            attributes: ['id', 'name']
         }]
     });
 };
+

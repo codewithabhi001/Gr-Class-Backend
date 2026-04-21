@@ -19,8 +19,9 @@ export const getUsers = async (query, excludeId) => {
 
     const users = await User.findAll({
         where,
-        attributes: { exclude: ['password_hash'] }
+        attributes: ['id', 'name', 'email', 'role', 'status', 'created_at']
     });
+
 
     return await fileAccessService.resolveEntity(users);
 };

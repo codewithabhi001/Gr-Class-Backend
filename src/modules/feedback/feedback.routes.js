@@ -11,6 +11,8 @@ router.post('/', authorizeRoles('CLIENT'), feedbackController.submitFeedback);
 
 // View Feedback
 router.get('/', authorizeRoles('ADMIN', 'GM'), feedbackController.getAllFeedback);
+router.get('/:id', authorizeRoles('ADMIN', 'GM'), feedbackController.getFeedbackById);
 router.get('/job/:jobId', authorizeRoles('ADMIN', 'GM', 'CLIENT'), feedbackController.getFeedbackForJob);
+
 
 export default router;

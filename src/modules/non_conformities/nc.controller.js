@@ -3,7 +3,7 @@ import * as ncService from './nc.service.js';
 export const createNC = async (req, res, next) => {
     try {
         const nc = await ncService.createNC(req.body, req.user);
-        res.status(201).json(nc);
+        res.status(201).json({ success: true, data: nc });
     } catch (error) {
         next(error);
     }
@@ -12,7 +12,26 @@ export const createNC = async (req, res, next) => {
 export const closeNC = async (req, res, next) => {
     try {
         const nc = await ncService.closeNC(req.params.id, req.body.closure_remarks);
-        res.json(nc);
+        res.json({ success: true, data: nc });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+export const getNCs = async (req, res, next) => {
+    try {
+        const result = await ncService.getNCs(req.query);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getNCById = async (req, res, next) => {
+    try {
+        const nc = await ncService.getNCById(req.params.id);
+        res.json({ success: true, data: nc });
     } catch (error) {
         next(error);
     }
@@ -21,8 +40,9 @@ export const closeNC = async (req, res, next) => {
 export const getByJob = async (req, res, next) => {
     try {
         const list = await ncService.getByJob(req.params.jobId);
-        res.json(list);
+        res.json({ success: true, data: list });
     } catch (error) {
         next(error);
     }
 };
+

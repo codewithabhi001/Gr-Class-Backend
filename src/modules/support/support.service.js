@@ -56,11 +56,13 @@ export const getTickets = async (query, user) => {
 
     return await SupportTicket.findAndCountAll({
         where,
+        attributes: ['id', 'ticket_number', 'subject', 'priority', 'status', 'category', 'user_id', 'created_at'],
         limit: Math.max(1, parseInt(limit, 10)),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * Math.max(1, parseInt(limit, 10)),
         include: [{ model: User, as: 'Creator', attributes: ['name', 'email'] }],
         order: [['createdAt', 'DESC']]
     });
+
 };
 
 export const getTicketById = async (id, user) => {

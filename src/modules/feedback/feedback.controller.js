@@ -20,3 +20,11 @@ export const getAllFeedback = async (req, res, next) => {
         res.json({ success: true, data: result });
     } catch (error) { next(error); }
 };
+
+export const getFeedbackById = async (req, res, next) => {
+    try {
+        const feedback = await feedbackService.getFeedbackById(req.params.id);
+        res.json({ success: true, data: feedback });
+    } catch (error) { next(error); }
+};
+

@@ -52,11 +52,9 @@ export const getClients = async (query) => {
             'company_code',
             'status',
             'email',
-            'phone',
-            'contact_person_name',
-            'contact_person_email',
             'created_at'
         ],
+
         include: [{ model: User, attributes: ['id'] }],
         distinct: true,
         limit: parseInt(limit),
