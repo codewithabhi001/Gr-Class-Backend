@@ -23,6 +23,65 @@
       "201": { description: NC created }
       "403": { description: Forbidden }
 
+  get:
+    tags: [Non-Conformities]
+    summary: Get all NCs
+    operationId: getNCs
+    x-roles: [ADMIN, GM, TM, TO]
+    parameters:
+      - name: job_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: status
+        in: query
+        schema: { type: string, enum: [OPEN, CLOSED] }
+      - name: page
+        in: query
+        schema: { type: integer, default: 1 }
+      - name: limit
+        in: query
+        schema: { type: integer, default: 10 }
+    responses:
+      "200":
+        description: List of NCs
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    count: { type: integer }
+                    rows:
+                      type: array
+                      items: { $ref: '#/components/schemas/NonConformityListItem' }
+      "403": { description: Forbidden }
+
+/api/v1/non-conformities/{id}:
+  get:
+    tags: [Non-Conformities]
+    summary: Get NC by ID
+    operationId: getNCById
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: NC detail
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/NonConformityResponse' }
+      "404": { description: Not found }
+
 /api/v1/non-conformities/{id}/close:
   put:
     tags: [Non-Conformities]
@@ -72,5 +131,6 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/NonConformityResponse'
+                    $ref: '#/components/schemas/NonConformityListItem'
       "403": { description: Forbidden }
+

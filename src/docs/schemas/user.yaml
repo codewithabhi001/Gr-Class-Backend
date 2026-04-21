@@ -40,6 +40,27 @@ UserResponse:
       type: string
       format: date-time
 
+UserListItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    name:
+      type: string
+    email:
+      type: string
+      format: email
+    role:
+      type: string
+      enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED]
+    created_at:
+      type: string
+      format: date-time
+
+
 UserCreateRequest:
   type: object
   required:

@@ -96,21 +96,15 @@ ClientListItem:
       type: string
     company_code:
       type: string
-    email:
-      type: string
-      format: email
-    phone:
-      type: string
-    contact_person_name:
-      type: string
-    contact_person_email:
-      type: string
-      format: email
     status:
       type: string
       enum: [ACTIVE, INACTIVE]
-    has_user:
-      type: boolean
+    email:
+      type: string
+      format: email
     created_at:
       type: string
       format: date-time
+    has_user:
+      type: boolean
+

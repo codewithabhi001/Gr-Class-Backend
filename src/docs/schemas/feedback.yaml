@@ -34,16 +34,27 @@ CustomerFeedback:
       format: date-time
 
 CustomerFeedbackListItem:
-  allOf:
-    - $ref: '#/components/schemas/CustomerFeedback'
-    - type: object
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    client_id:
+      $ref: '#/components/schemas/UUID'
+    rating:
+      type: integer
+    submitted_at:
+      type: string
+      format: date-time
+    created_at:
+      type: string
+      format: date-time
+    Client:
+      type: object
       properties:
-        Client:
-          type: object
-          properties:
-            id: { type: string, format: uuid }
-            name: { type: string }
-            email: { type: string }
+        id: { type: string, format: uuid }
+        name: { type: string }
 
 CustomerFeedbackListResponse:
   type: object

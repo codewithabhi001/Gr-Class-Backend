@@ -28,9 +28,14 @@
                   type: boolean
                   example: true
                 data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/ClientListItem'
+                  type: object
+                  properties:
+                    count: { type: integer }
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ClientListItem'
+
       "403":
         description: Forbidden
         content:

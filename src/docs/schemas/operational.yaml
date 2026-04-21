@@ -27,6 +27,24 @@ NonConformityResponse:
       type: string
       format: date-time
 
+NonConformityListItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    job_id:
+      $ref: '#/components/schemas/UUID'
+    severity:
+      type: string
+      enum: [MINOR, MAJOR, CRITICAL]
+    status:
+      type: string
+      enum: [OPEN, CLOSED]
+    created_at:
+      type: string
+      format: date-time
+
+
 IncidentResponse:
   type: object
   properties:
@@ -52,6 +70,25 @@ IncidentResponse:
     updated_at:
       type: string
       format: date-time
+
+IncidentListItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    vessel_id:
+      $ref: '#/components/schemas/UUID'
+    reported_by:
+      $ref: '#/components/schemas/UUID'
+    title:
+      type: string
+    status:
+      type: string
+      enum: [OPEN, INVESTIGATING, RESOLVED, CLOSED]
+    created_at:
+      type: string
+      format: date-time
+
 
 SupportTicketResponse:
   type: object
@@ -86,6 +123,31 @@ SupportTicketResponse:
     updated_at:
       type: string
       format: date-time
+
+SupportTicketListItem:
+  type: object
+  properties:
+    id:
+      $ref: '#/components/schemas/UUID'
+    ticket_number:
+      type: string
+    subject:
+      type: string
+    priority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, URGENT]
+    status:
+      type: string
+      enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED]
+    category:
+      type: string
+      nullable: true
+    user_id:
+      $ref: '#/components/schemas/UUID'
+    created_at:
+      type: string
+      format: date-time
+
 
 FlagAdministrationResponse:
   type: object

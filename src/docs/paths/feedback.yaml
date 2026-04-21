@@ -40,6 +40,27 @@
                   $ref: '#/components/schemas/CustomerFeedbackListResponse'
       "403": { description: Forbidden }
 
+/api/v1/customer-feedback/{id}:
+  get:
+    tags: [Feedback]
+    summary: Get feedback detail
+    operationId: getFeedbackById
+    x-roles: [ADMIN, GM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: Feedback detail
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerFeedbackResponse'
+      "404": { description: Not found }
+
+
 /api/v1/customer-feedback/job/{jobId}:
   get:
     tags: [Feedback]

@@ -4,9 +4,24 @@
     summary: Get all users
     operationId: getUsers
     x-roles: [ADMIN]
+    parameters:
+      - name: role
+        in: query
+        schema: { type: string, enum: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT] }
     responses:
-      "200": { description: List of users }
+      "200":
+        description: List of users
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items: { $ref: '#/components/schemas/UserListItem' }
       "403": { description: Forbidden }
+
 
   post:
     tags: [Users]

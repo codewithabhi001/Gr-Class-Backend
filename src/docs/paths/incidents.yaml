@@ -31,7 +31,17 @@
     operationId: getIncidents
     x-roles: [CLIENT, ADMIN, GM, TM, TO]
     responses:
-      "200": { description: List of incidents }
+      "200":
+        description: List of incidents
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items: { $ref: '#/components/schemas/IncidentListItem' }
       "403": { description: Forbidden }
 
 /api/v1/incidents/{id}:
@@ -46,8 +56,17 @@
         required: true
         schema: { type: string, format: uuid }
     responses:
-      "200": { description: Incident details }
+      "200":
+        description: Incident detail
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/IncidentResponse' }
       "403": { description: Forbidden }
+
 
   
 /api/v1/incidents/{id}/status:
