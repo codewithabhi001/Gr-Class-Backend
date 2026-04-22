@@ -5,7 +5,7 @@ export default (sequelize, DataTypes) => {
         invoice_number: DataTypes.STRING,
         amount: DataTypes.DECIMAL(10, 2),
         currency: DataTypes.STRING,
-        payment_status: { type: DataTypes.ENUM('UNPAID', 'PAID', 'ON_HOLD'), defaultValue: 'UNPAID' },
+        payment_status: { type: DataTypes.ENUM('UNPAID', 'PARTIALLY_PAID', 'PAID', 'ON_HOLD'), defaultValue: 'UNPAID' },
         payment_date: DataTypes.DATE,
         receipt_url: DataTypes.STRING,
         verified_by_user_id: DataTypes.UUID,

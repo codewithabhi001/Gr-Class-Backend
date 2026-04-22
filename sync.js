@@ -9,6 +9,7 @@ async function run() {
         // Sync models that might have missing columns
         await db.VesselDocument.sync({ alter: true });
         await db.Survey.sync({ alter: true });
+        await db.SupportTicket.sync({ alter: true });
         console.log('Done!');
         process.exit(0);
     } catch (e) {

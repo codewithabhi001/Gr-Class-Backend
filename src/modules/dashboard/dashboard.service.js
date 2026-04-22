@@ -465,7 +465,7 @@ export const getClientDashboard = async (clientId) => {
             const daysToExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             return daysToExpiry <= 30 && daysToExpiry >= 0;
         }).length,
-        pending_payments: payments.filter(p => p.payment_status === 'UNPAID').length,
+        pending_payments: payments.filter(p => ['UNPAID', 'PARTIALLY_PAID'].includes(p.payment_status)).length,
         open_non_conformities: ncs.filter(n => n.status === 'OPEN').length
     };
 
@@ -516,7 +516,7 @@ export const getClientDashboard = async (clientId) => {
             severity: n.severity,
             date: n.createdAt
         })),
-        pending_payments: payments.filter(p => p.payment_status === 'UNPAID').map(p => ({
+        pending_payments: payments.filter(p => ['UNPAID', 'PARTIALLY_PAID'].includes(p.payment_status)).map(p => ({
             id: p.id,
             invoice_number: p.invoice_number,
             amount: p.amount,

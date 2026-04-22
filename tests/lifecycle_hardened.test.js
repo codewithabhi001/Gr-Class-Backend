@@ -51,12 +51,14 @@ async function createFixtures() {
     const clientId = uuidv7();
     const vesselId = uuidv7();
     const certTypeId = uuidv7();
+    const flagId = uuidv7();
 
     await db.User.create({ id: surveyorId, name: 'Test Surveyor', email: `s_${Date.now()}@test.com`, role: 'SURVEYOR', password_hash: 'x' });
     await db.User.create({ id: tmId, name: 'Test TM', email: `t_${Date.now()}@test.com`, role: 'TM', password_hash: 'x' });
     await db.User.create({ id: requesterId, name: 'Requester', email: `r_${Date.now()}@test.com`, role: 'GM', password_hash: 'x' });
     await db.Client.create({ id: clientId, company_name: 'Test Corp', email: `c_${Date.now()}@test.com`, status: 'ACTIVE' });
-    await db.Vessel.create({ id: vesselId, vessel_name: 'MV Test', imo_number: `IMO${Math.floor(Math.random() * 9999999)}`, client_id: clientId });
+    await db.FlagAdministration.create({ id: flagId, flag_state_name: `Test-${Date.now()}-${Math.random()}`, country: 'Test', authority_name: 'Test', status: 'ACTIVE' });
+    await db.Vessel.create({ id: vesselId, vessel_name: 'MV Test', imo_number: `${Math.floor(1000000 + Math.random() * 8999999)}`, client_id: clientId, flag_administration_id: flagId });
     await db.CertificateType.create({ id: certTypeId, name: 'Annual Survey', issuing_authority: 'CLASS', validity_years: 1 });
 
     return { surveyorId, tmId, requesterId, clientId, vesselId, certTypeId };
@@ -108,6 +110,11 @@ async function run() {
         });
 
         await test('PROOF_UPLOADED → SUBMITTED syncs Job to SURVEY_DONE', async () => {
+            await db.Survey.update({
+                attendance_photo_url: 'https://test.com/photo.jpg',
+                submit_latitude: 1.2844,
+                submit_longitude: 103.8511
+            }, { where: { id: surveyId } });
             await lifecycle.updateSurveyStatus(surveyId, 'SUBMITTED', surveyorId, 'Submitted');
             const job = await db.JobRequest.findByPk(jobId);
             if (job.job_status !== 'SURVEY_DONE') throw new Error(`Expected SURVEY_DONE, got ${job.job_status}`);
@@ -134,6 +141,11 @@ async function run() {
         const surveyId = await makeSurvey(jobId, surveyorId, 'SUBMITTED');
 
         await expectError('Cannot SUBMIT from SUBMITTED (idempotency / illegal transition)', 409, async () => {
+            await db.Survey.update({
+                attendance_photo_url: 'https://test.com/photo.jpg',
+                submit_latitude: 1.2844,
+                submit_longitude: 103.8511
+            }, { where: { id: surveyId } });
             await lifecycle.updateSurveyStatus(surveyId, 'SUBMITTED', surveyorId, 'double submit');
         });
     }

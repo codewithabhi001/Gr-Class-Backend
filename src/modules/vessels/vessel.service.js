@@ -125,6 +125,7 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
 };
 
 export const getVesselById = async (id, scopeFilters = {}, user = null) => {
+    if (!id) throw { statusCode: 400, message: 'Vessel ID is required' };
     const vessel = await Vessel.findOne({
         where: { id, ...scopeFilters },
         include: [
@@ -201,6 +202,7 @@ export const getVesselsByClientId = async (clientId) => {
 };
 
 export const updateVessel = async (id, data, scopeFilters = {}, userId = null) => {
+    if (!id) throw { statusCode: 400, message: 'Vessel ID is required for update' };
     // We use Vessel.findOne to get the Sequelize instance for .update()
     const vesselQuery = await Vessel.findOne({
         where: { id, ...scopeFilters }

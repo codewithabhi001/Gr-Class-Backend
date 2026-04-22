@@ -4,7 +4,7 @@ export default (sequelize, DataTypes) => {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
         invoice_id: DataTypes.UUID,
         job_id: DataTypes.UUID,
-        transaction_type: { type: DataTypes.ENUM('CHARGE', 'PAYMENT', 'REFUND', 'ADJUSTMENT', 'WRITEOFF'), allowNull: false },
+        transaction_type: { type: DataTypes.ENUM('CHARGE', 'PAYMENT', 'ADVANCE', 'PARTIAL_PAYMENT', 'REFUND', 'ADJUSTMENT', 'WRITEOFF'), allowNull: false },
         amount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
         currency: { type: DataTypes.STRING(3), defaultValue: 'USD' },
         reference_id: DataTypes.STRING,

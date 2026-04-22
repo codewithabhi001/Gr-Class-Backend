@@ -5,6 +5,7 @@ const Certificate = db.Certificate;
 const Vessel = db.Vessel;
 
 export const verifyCertificate = async (certificateNumber) => {
+    if (!certificateNumber) throw { statusCode: 400, message: 'Certificate number is required' };
     const cert = await Certificate.findOne({
         where: { certificate_number: certificateNumber },
         include: [
@@ -38,6 +39,7 @@ export const verifyCertificate = async (certificateNumber) => {
 };
 
 export const verifyVessel = async (imoNumber) => {
+    if (!imoNumber) throw { statusCode: 400, message: 'IMO number is required' };
     const vessel = await Vessel.findOne({ where: { imo_number: imoNumber } });
     if (!vessel) throw { statusCode: 404, message: 'Vessel not found' };
 

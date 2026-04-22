@@ -46,8 +46,9 @@ async function seedBase() {
             return id;
         })()
     ]);
-    const vesselId = uuidv7(), certTypeId = uuidv7();
-    await db.Vessel.create({ id: vesselId, vessel_name: 'MV Prod', imo_number: `IMO${Date.now()}`, client_id: clientId });
+    const vesselId = uuidv7(), certTypeId = uuidv7(), flagId = uuidv7();
+    await db.FlagAdministration.create({ id: flagId, flag_state_name: `Test-${Date.now()}-${Math.random()}`, country: 'Test', authority_name: 'Test', status: 'ACTIVE' });
+    await db.Vessel.create({ id: vesselId, vessel_name: 'MV Prod', imo_number: `${Math.floor(1000000 + Math.random() * 8999999)}`, client_id: clientId, flag_administration_id: flagId });
     await db.CertificateType.create({ id: certTypeId, name: 'Annual Survey', issuing_authority: 'CLASS', validity_years: 1 });
     return { surveyorId, tmId, requesterId, vesselId, certTypeId };
 }
@@ -100,6 +101,11 @@ async function run() {
             lifecycle.updateSurveyStatus(surveyId, 'PROOF_UPLOADED', fx.surveyorId));
 
         await test('PROOF_UPLOADED → SUBMITTED syncs job to SURVEY_DONE', async () => {
+            await db.Survey.update({
+                attendance_photo_url: 'https://test.com/photo.jpg',
+                submit_latitude: 1.2844,
+                submit_longitude: 103.8511
+            }, { where: { id: surveyId } });
             await lifecycle.updateSurveyStatus(surveyId, 'SUBMITTED', fx.surveyorId);
             const j = await db.JobRequest.findByPk(jobId);
             if (j.job_status !== 'SURVEY_DONE') throw new Error(`Got ${j.job_status}`);
@@ -314,8 +320,14 @@ async function run() {
     {
         const jobId = await makeJob(fx, 'IN_PROGRESS');
         const surveyId = await makeSurvey(jobId, fx.surveyorId, 'SUBMITTED', 1);
-        await expectStatus('Double SUBMITTED → 409', 409, async () =>
-            lifecycle.updateSurveyStatus(surveyId, 'SUBMITTED', fx.surveyorId));
+        await db.Survey.update({
+            attendance_photo_url: 'https://test.com/photo.jpg',
+            submit_latitude: 1.2844,
+            submit_longitude: 103.8511
+        }, { where: { id: surveyId } });
+        await expectStatus('Double SUBMITTED → 409', 409, async () => {
+            await lifecycle.updateSurveyStatus(surveyId, 'SUBMITTED', fx.surveyorId);
+        });
     }
 
     // ══════════════════════════════════════════════════════════

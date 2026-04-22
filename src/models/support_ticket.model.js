@@ -9,6 +9,11 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.UUID,
             allowNull: false
         },
+        ticket_number: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            unique: true
+        },
         subject: {
             type: DataTypes.STRING,
             allowNull: false

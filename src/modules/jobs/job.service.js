@@ -196,6 +196,7 @@ export const createJob = async (data, userId) => {
 };
 
 export const createJobForClient = async (data, clientId, userId) => {
+    if (!data.vessel_id) throw { statusCode: 400, message: 'Vessel ID is required' };
     const vessel = await Vessel.findOne({ where: { id: data.vessel_id, client_id: clientId } });
     if (!vessel) throw { statusCode: 403, message: 'Access denied: you do not have permission to select this vessel.' };
     return createJob(data, userId);
@@ -787,7 +788,7 @@ export const rejectJob = async (id, remarks, user) => {
 };
 
 /**
- * → REJECTED (cancel path — CLIENT-accessible with ownership check)
+ * → REJECTED (cancel path — ADMIN / GM can cancel any non-terminal job)
  */
 export const cancelJob = async (id, reason, userId) => {
     const job = await requireJob(id);
@@ -797,14 +798,21 @@ export const cancelJob = async (id, reason, userId) => {
     return await lifecycleService.updateJobStatus(id, 'REJECTED', userId, reason || 'Job cancelled');
 };
 
+/**
+ * → REJECTED (CLIENT cancel path — allowed ONLY when job is in CREATED status)
+ * Once the job progresses beyond CREATED (e.g. DOCUMENT_VERIFIED), only ADMIN/GM can cancel.
+ */
 export const cancelJobForClient = async (id, reason, clientId, userId) => {
     const job = await JobRequest.findByPk(id, { include: ['Vessel'] });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
     if (job.Vessel.client_id !== clientId) {
         throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
     }
-    if (['FINALIZED', 'CERTIFIED', 'REJECTED', 'PAYMENT_DONE'].includes(job.job_status)) {
-        throw { statusCode: 400, message: `This job is already closed (${job.job_status}) and cannot be cancelled.` };
+    if (job.job_status !== 'CREATED') {
+        throw {
+            statusCode: 400,
+            message: 'You can only cancel a job that is still in CREATED status. Please contact the GR-CLASS team for further assistance.'
+        };
     }
     return await lifecycleService.updateJobStatus(id, 'REJECTED', userId, reason || 'Cancelled by client');
 };

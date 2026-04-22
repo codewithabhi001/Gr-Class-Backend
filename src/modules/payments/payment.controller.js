@@ -74,7 +74,7 @@ export const refund = async (req, res, next) => {
 
 export const recordPartial = async (req, res, next) => {
     try {
-        const result = await paymentService.recordPartialPayment(req.params.id, req.body.amount, req.user.id);
+        const result = await paymentService.recordPartialPayment(req.params.id, req.body.amount, req.user.id, req.body);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };

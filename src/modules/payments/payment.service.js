@@ -10,6 +10,43 @@ const FinancialLedger = db.FinancialLedger;
 const Vessel = db.Vessel;
 const AuditLog = db.AuditLog;
 
+// Ledger types that count towards "amount collected"
+const COLLECTION_TYPES = ['ADVANCE', 'PARTIAL_PAYMENT', 'PAYMENT'];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Calculate total collected and refunded from ledger entries for a payment.
+ */
+const calculateLedgerTotals = (ledgers) => {
+    const collected = ledgers
+        .filter(l => COLLECTION_TYPES.includes(l.transaction_type))
+        .reduce((sum, l) => sum + parseFloat(l.amount), 0);
+
+    const refunded = ledgers
+        .filter(l => l.transaction_type === 'REFUND')
+        .reduce((sum, l) => sum + Math.abs(parseFloat(l.amount)), 0);
+
+    return { collected, refunded };
+};
+
+/**
+ * Enrich a plain payment object with ledger-derived financial data.
+ */
+const enrichPaymentWithLedger = (plain, ledgers) => {
+    const { collected, refunded } = calculateLedgerTotals(ledgers);
+
+    plain.amount_collected = collected.toFixed(2);
+    plain.refunded_amount = refunded > 0 ? refunded.toFixed(2) : "0.00";
+    plain.amount_paid = collected.toFixed(2);
+    plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
+    plain.remaining = Math.max(0, parseFloat(plain.amount) - collected + refunded).toFixed(2);
+
+    return plain;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE INVOICE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,15 +54,15 @@ const AuditLog = db.AuditLog;
 export const createInvoice = async (data, userId = null) => {
     const { job_id, amount, currency } = data;
 
-    // Job must be FINALIZED before an invoice can be raised
+    // Invoice can be created at any active job stage — only block terminal states
     const job = await JobRequest.findByPk(job_id);
     if (!job) throw { statusCode: 404, message: 'Job not found' };
-    if (job.job_status !== 'FINALIZED') {
-        throw { statusCode: 400, message: `Invoice can only be created for a FINALIZED job. Current status: ${job.job_status}` };
+    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
+        throw { statusCode: 400, message: `Cannot create invoice: Job is in a terminal state (${job.job_status}).` };
     }
 
     // Prevent double-invoice for the same job
-    const existing = await Payment.findOne({ where: { job_id, payment_status: ['UNPAID', 'PAID'] } });
+    const existing = await Payment.findOne({ where: { job_id, payment_status: ['UNPAID', 'PARTIALLY_PAID', 'PAID'] } });
     if (existing) {
         throw { statusCode: 409, message: 'An invoice already exists for this job.' };
     }
@@ -45,13 +82,13 @@ export const createInvoice = async (data, userId = null) => {
         new_values: { job_id, amount, currency: payment.currency, payment_status: 'UNPAID' }
     });
 
-    logger.info({ entity: 'PAYMENT', event: 'INVOICE_CREATED', jobId: job_id, paymentId: payment.id, triggeredBy: userId });
+    logger.info({ entity: 'PAYMENT', event: 'INVOICE_CREATED', jobId: job_id, paymentId: payment.id, jobStatus: job.job_status, triggeredBy: userId });
 
     return payment;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK PAID
+// MARK PAID (Admin override — marks full payment at once)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const markPaid = async (paymentId, userId, receiptFile = null, data = {}) => {
@@ -67,15 +104,12 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             throw { statusCode: 409, message: 'Payment has already been marked as paid.' };
         }
 
-        // ── Guard 2: Job must be FINALIZED ──
+        // ── Guard 2: Only block terminal job states ──
         const job = await JobRequest.findByPk(payment.job_id, { transaction: txn, lock: txn.LOCK.UPDATE });
         if (!job) throw { statusCode: 404, message: 'Job not found for this payment' };
 
         if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
             throw { statusCode: 400, message: `Cannot process payment: Job is in a terminal state (${job.job_status}).` };
-        }
-        if (job.job_status !== 'FINALIZED') {
-            throw { statusCode: 400, message: `Payment can only be marked as paid when job is FINALIZED. Current: ${job.job_status}` };
         }
 
         // ── Upload receipt (optional) ──
@@ -88,6 +122,24 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             );
         }
 
+        // ── Calculate remaining after previous partial/advance collections ──
+        const existingLedgers = await FinancialLedger.findAll({
+            where: { invoice_id: paymentId },
+            transaction: txn
+        });
+        const { collected } = calculateLedgerTotals(existingLedgers);
+        const remainingAmount = Math.max(0, parseFloat(payment.amount) - collected);
+
+        // ── Log full settlement in ledger ──
+        if (remainingAmount > 0) {
+            await FinancialLedger.create({
+                invoice_id: paymentId, job_id: payment.job_id,
+                transaction_type: 'PAYMENT', amount: remainingAmount,
+                performed_by: userId, remarks: remarks || 'Full payment / settlement',
+                balance_after: 0
+            }, { transaction: txn });
+        }
+
         // ── Update payment ──
         await payment.update({
             payment_status: 'PAID',
@@ -95,8 +147,6 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             verified_by_user_id: userId,
             receipt_url: receiptUrl
         }, { transaction: txn });
-
-        // Status update removed as payment is now a parallel track guard.
 
         await AuditLog.create({
             user_id: userId, action: 'MARK_PAYMENT_PAID',
@@ -147,7 +197,7 @@ export const getPayments = async (query, scopeFilters = {}) => {
             attributes: ['id', 'job_status', 'vessel_id'],
             include: [{ model: Vessel, attributes: ['vessel_name'] }]
         }],
-        order: [['payment_date', 'DESC']]
+        order: [['created_at', 'DESC']]
     });
 
     const paymentIds = result.rows.map(r => r.id);
@@ -156,20 +206,7 @@ export const getPayments = async (query, scopeFilters = {}) => {
     const enrichedRows = result.rows.map(row => {
         const plain = row.get({ plain: true });
         const pLedgers = ledgers.filter(l => l.invoice_id === plain.id);
-
-        const refunded = pLedgers.filter(l => l.transaction_type === 'REFUND').reduce((sum, l) => sum + Math.abs(parseFloat(l.amount)), 0);
-        const partialPaid = pLedgers.filter(l => l.transaction_type === 'PARTIAL_PAYMENT').reduce((sum, l) => sum + parseFloat(l.amount), 0);
-
-        plain.refunded_amount = refunded > 0 ? refunded.toFixed(2) : "0.00";
-
-        if (plain.payment_status === 'PAID') {
-            plain.amount_paid = (partialPaid > 0 ? partialPaid : parseFloat(plain.amount)).toFixed(2);
-        } else {
-            plain.amount_paid = partialPaid.toFixed(2);
-        }
-
-        plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
-        return plain;
+        return enrichPaymentWithLedger(plain, pLedgers);
     });
 
     return { count: result.count, rows: enrichedRows };
@@ -185,30 +222,106 @@ export const getPaymentById = async (id, scopeFilters = {}) => {
     const plain = payment.get({ plain: true });
     const ledgers = await FinancialLedger.findAll({ where: { invoice_id: id } });
 
-    const refunded = ledgers.filter(l => l.transaction_type === 'REFUND').reduce((sum, l) => sum + Math.abs(parseFloat(l.amount)), 0);
-    const partialPaid = ledgers.filter(l => l.transaction_type === 'PARTIAL_PAYMENT').reduce((sum, l) => sum + parseFloat(l.amount), 0);
-
-    plain.refunded_amount = refunded > 0 ? refunded.toFixed(2) : "0.00";
-    if (plain.payment_status === 'PAID') {
-        plain.amount_paid = (partialPaid > 0 ? partialPaid : parseFloat(plain.amount)).toFixed(2);
-    } else {
-        plain.amount_paid = partialPaid.toFixed(2);
-    }
-    plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
-
-    return plain;
+    return enrichPaymentWithLedger(plain, ledgers);
 };
 
 
 export const getFinancialSummary = async (scopeFilters = {}) => {
     const payments = await Payment.findAll({ where: scopeFilters });
+    const paymentIds = payments.map(p => p.id);
+
+    // Use ledger as source of truth for actual collections
+    const ledgers = paymentIds.length > 0 ? await FinancialLedger.findAll({ where: { invoice_id: paymentIds } }) : [];
+
     const totalInvoiced = payments.reduce((s, p) => s + parseFloat(p.amount), 0);
-    const totalPaid = payments.filter(p => p.payment_status === 'PAID').reduce((s, p) => s + parseFloat(p.amount), 0);
-    return { total_invoiced: totalInvoiced, total_paid: totalPaid, pending_balance: totalInvoiced - totalPaid, currency: 'USD' };
+    const totalCollected = ledgers
+        .filter(l => COLLECTION_TYPES.includes(l.transaction_type))
+        .reduce((s, l) => s + parseFloat(l.amount), 0);
+    const totalRefunded = ledgers
+        .filter(l => l.transaction_type === 'REFUND')
+        .reduce((s, l) => s + Math.abs(parseFloat(l.amount)), 0);
+
+    return {
+        total_invoiced: totalInvoiced,
+        total_collected: totalCollected,
+        total_refunded: totalRefunded,
+        total_paid: totalCollected - totalRefunded,
+        pending_balance: totalInvoiced - totalCollected + totalRefunded,
+        currency: 'USD'
+    };
 };
 
 export const getLedger = async (paymentId) =>
     await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']] });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLLECT PAYMENT (Advance / Partial — each becomes a ledger entry)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const recordPartialPayment = async (paymentId, amount, userId, data = {}) => {
+    const txn = await db.sequelize.transaction();
+    try {
+        const payment = await Payment.findByPk(paymentId, { transaction: txn, lock: txn.LOCK.UPDATE });
+        if (!payment) throw { statusCode: 404, message: 'Payment not found' };
+
+        if (payment.payment_status === 'PAID') {
+            throw { statusCode: 409, message: 'Invoice is already fully paid.' };
+        }
+
+        const payingNow = parseFloat(amount);
+        if (payingNow <= 0) throw { statusCode: 400, message: 'Payment amount must be greater than 0.' };
+
+        // Determine transaction type: ADVANCE or PARTIAL_PAYMENT
+        const transactionType = (data.type === 'ADVANCE') ? 'ADVANCE' : 'PARTIAL_PAYMENT';
+        const remarks = data.remarks || (transactionType === 'ADVANCE' ? 'Advance payment collected' : 'Partial payment recorded');
+
+        // Calculate total collected so far
+        const existingLedgers = await FinancialLedger.findAll({
+            where: { invoice_id: paymentId },
+            transaction: txn
+        });
+        const { collected: previouslyCollected } = calculateLedgerTotals(existingLedgers);
+
+        // Create ledger entry
+        const totalAfterThis = previouslyCollected + payingNow;
+        const remainingAfterThis = Math.max(0, parseFloat(payment.amount) - totalAfterThis);
+
+        await FinancialLedger.create({
+            invoice_id: paymentId, job_id: payment.job_id,
+            transaction_type: transactionType, amount: payingNow,
+            performed_by: userId, remarks,
+            balance_after: remainingAfterThis
+        }, { transaction: txn });
+
+        // Update payment status based on total collected
+        if (remainingAfterThis <= 0 && payment.payment_status !== 'PAID') {
+            await payment.update({
+                payment_status: 'PAID',
+                payment_date: new Date(),
+                verified_by_user_id: userId
+            }, { transaction: txn });
+        } else if (totalAfterThis > 0 && payment.payment_status === 'UNPAID') {
+            // Some money collected but not full — mark as PARTIALLY_PAID
+            await payment.update({
+                payment_status: 'PARTIALLY_PAID'
+            }, { transaction: txn });
+        }
+
+        logger.info({
+            entity: 'PAYMENT', event: transactionType,
+            jobId: payment.job_id, paymentId,
+            amount: payingNow, totalCollected: totalAfterThis,
+            remaining: remainingAfterThis,
+            triggeredBy: userId
+        });
+
+        await txn.commit();
+        return { id: payment.id, amount_paid: totalAfterThis.toFixed(2), remaining: remainingAfterThis.toFixed(2), payment_status: payment.payment_status };
+    } catch (e) {
+        await txn.rollback();
+        throw e;
+    }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEDGER OPS (non-state-changing)
@@ -249,45 +362,6 @@ export const processRefund = async (paymentId, amount, reason, userId) => {
 
         await txn.commit();
         return { id: payment.id, refunded_amount: refundAmount };
-    } catch (e) {
-        await txn.rollback();
-        throw e;
-    }
-};
-
-export const recordPartialPayment = async (paymentId, amount, userId) => {
-    const txn = await db.sequelize.transaction();
-    try {
-        const payment = await Payment.findByPk(paymentId, { transaction: txn, lock: txn.LOCK.UPDATE });
-        if (!payment) throw { statusCode: 404, message: 'Payment not found' };
-
-        const payingNow = parseFloat(amount);
-
-        const ledgers = await FinancialLedger.findAll({
-            where: { invoice_id: paymentId, transaction_type: 'PARTIAL_PAYMENT' },
-            transaction: txn
-        });
-        const previouslyPaid = ledgers.reduce((sum, l) => sum + parseFloat(l.amount), 0);
-
-        await FinancialLedger.create({
-            invoice_id: paymentId, job_id: payment.job_id,
-            transaction_type: 'PARTIAL_PAYMENT', amount: payingNow,
-            performed_by: userId, remarks: 'Partial payment recorded', balance_after: 0
-        }, { transaction: txn });
-
-        const totalPaid = previouslyPaid + payingNow;
-        const remaining = Math.max(0, parseFloat(payment.amount) - totalPaid).toFixed(2);
-
-        if (remaining <= 0 && payment.payment_status !== 'PAID') {
-            await payment.update({
-                payment_status: 'PAID',
-                payment_date: new Date(),
-                verified_by_user_id: userId
-            }, { transaction: txn });
-        }
-
-        await txn.commit();
-        return { id: payment.id, amount_paid: totalPaid.toFixed(2), remaining };
     } catch (e) {
         await txn.rollback();
         throw e;

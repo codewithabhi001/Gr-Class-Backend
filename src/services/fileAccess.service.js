@@ -211,6 +211,7 @@ export const resolveEntity = async (data, user = null) => {
  * @returns {Promise<boolean>}
  */
 export const validateUserEntityAccess = async (user, entityType, entityId) => {
+    if (!entityId) return false;
     if (user.role === 'ADMIN' || user.role === 'GM' || user.role === 'TM' || user.role === 'TO') return true; // Admins/Internal staff access all
 
     if (user.role === 'CLIENT') {

@@ -13,7 +13,7 @@ PaymentResponse:
       type: string
     payment_status:
       type: string
-      enum: [UNPAID, PAID, ON_HOLD]
+      enum: [UNPAID, PARTIALLY_PAID, PAID, ON_HOLD]
     payment_date:
       type: string
       format: date-time
@@ -25,12 +25,18 @@ PaymentResponse:
     verified_by_user_id:
       $ref: '#/components/schemas/UUID'
       nullable: true
+    amount_collected:
+      type: string
+      description: Total collected via advance + partial payments
     refunded_amount:
       type: string
     amount_paid:
       type: string
     net_amount:
       type: string
+    remaining:
+      type: string
+      description: Remaining amount to be collected
     created_at:
       type: string
       format: date-time
@@ -87,6 +93,11 @@ PartialPaymentRequest:
       type: number
       format: decimal
       minimum: 0
+    type:
+      type: string
+      enum: [ADVANCE, PARTIAL_PAYMENT]
+      default: PARTIAL_PAYMENT
+      description: Use ADVANCE for upfront payments before work begins, PARTIAL_PAYMENT for installments during/after work
     remarks:
       type: string
 
