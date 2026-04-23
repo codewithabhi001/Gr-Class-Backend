@@ -85,6 +85,10 @@
                     page: { type: integer, example: 1 }
                     limit: { type: integer, example: 10 }
                     totalPages: { type: integer, example: 5 }
+                    status_counts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/StatusCount'
                     jobs:
                       type: array
                       items:

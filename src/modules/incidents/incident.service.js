@@ -19,15 +19,41 @@ export const reportIncident = async (data, userId, clientId) => {
 };
 
 export const getIncidents = async (query, scopeFilters = {}) => {
-    const { page = 1, limit = 10, ...filters } = query;
-    return await Incident.findAll({
-        where: { ...filters, ...scopeFilters },
+    const { page = 1, limit = 10, status, ...rest } = query;
+    const where = { ...rest, ...scopeFilters };
+    if (status) where.status = status;
+
+    const { count, rows } = await Incident.findAndCountAll({
+        where,
         attributes: ['id', 'vessel_id', 'reported_by', 'title', 'status', 'created_at'],
         include: [{ model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] }],
         order: [['createdAt', 'DESC']],
         limit: parseInt(limit, 10),
         offset: (parseInt(page, 10) - 1) * parseInt(limit, 10)
     });
+
+    // Calculate status counts
+    const statusWhere = { ...where };
+    delete statusWhere.status;
+    const statusCounts = await Incident.findAll({
+        where: statusWhere,
+        attributes: [
+            ['status', 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('status')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+    });
+
+    const pageLimit = parseInt(limit, 10) || 10;
+    return {
+        total: count,
+        page: parseInt(page),
+        limit: pageLimit,
+        totalPages: Math.ceil(count / pageLimit),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
+        rows
+    };
 };
 
 

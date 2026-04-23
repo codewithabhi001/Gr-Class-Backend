@@ -58,7 +58,7 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
 
     // For CLIENT role, return paginated vessels as before
     if (userRole === 'CLIENT') {
-        return await Vessel.findAndCountAll({
+        const { count, rows } = await Vessel.findAndCountAll({
             where,
             attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
             limit: parseInt(limit),
@@ -69,6 +69,28 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
             ],
             order: [['created_at', 'DESC']]
         });
+
+        // Calculate status counts
+        const statusWhere = { ...where };
+        delete statusWhere.class_status;
+        const statusCounts = await Vessel.findAll({
+            where: statusWhere,
+            attributes: [
+                ['class_status', 'status'],
+                [db.sequelize.fn('COUNT', db.sequelize.col('class_status')), 'count']
+            ],
+            group: ['class_status'],
+            raw: true
+        });
+
+        return {
+            total: count,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(count / limit),
+            status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
+            rows
+        };
     }
 
     // For other roles, group by company name
@@ -88,6 +110,19 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
             }
         ],
         order: [['created_at', 'DESC']]
+    });
+
+    // Calculate status counts for non-client roles
+    const statusWhere = { ...where };
+    delete statusWhere.class_status;
+    const statusCounts = await Vessel.findAll({
+        where: statusWhere,
+        attributes: [
+            ['class_status', 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('class_status')), 'count']
+        ],
+        group: ['class_status'],
+        raw: true
     });
 
     // Group vessels by company
@@ -120,6 +155,7 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
 
     return {
         count: vessels.length,
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
         rows: result
     };
 };

@@ -53,7 +53,14 @@
                 data:
                   type: object
                   properties:
-                    count: { type: integer }
+                    total: { type: integer, example: 42 }
+                    page: { type: integer, example: 1 }
+                    limit: { type: integer, example: 10 }
+                    totalPages: { type: integer, example: 5 }
+                    status_counts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/StatusCount'
                     rows:
                       type: array
                       items: { $ref: '#/components/schemas/NonConformityListItem' }

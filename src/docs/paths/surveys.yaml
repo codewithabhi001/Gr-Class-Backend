@@ -85,6 +85,19 @@
     summary: List survey reports
     operationId: getSurveyReports
     x-roles: [ADMIN, GM, TM, TO]
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, default: 1 }
+      - name: limit
+        in: query
+        schema: { type: integer, default: 10 }
+      - name: survey_status
+        in: query
+        schema: { type: string }
+      - name: surveyor_id
+        in: query
+        schema: { type: string, format: uuid }
     responses:
       "200":
         description: List of survey reports
@@ -95,9 +108,20 @@
               properties:
                 success: { type: boolean, example: true }
                 data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/SurveyListResponse'
+                  type: object
+                  properties:
+                    total: { type: integer, example: 50 }
+                    page: { type: integer, example: 1 }
+                    limit: { type: integer, example: 10 }
+                    totalPages: { type: integer, example: 5 }
+                    status_counts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/StatusCount'
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/SurveyListResponse'
 
 /api/v1/surveys/jobs/{jobId}:
   get:

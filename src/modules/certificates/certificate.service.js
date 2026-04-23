@@ -556,13 +556,37 @@ export const getCertificates = async (query, user) => {
         }
     });
 
-    return await Certificate.findAndCountAll({
+    const { count, rows } = await Certificate.findAndCountAll({
         where,
         attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
         include: [{ model: db.Vessel, attributes: ['id', 'vessel_name', 'imo_number'] }, { model: db.CertificateType, attributes: ['id', 'name'] }],
+        order: [['createdAt', 'DESC']]
     });
+
+    // Calculate status counts
+    const statusWhere = { ...where };
+    delete statusWhere.status;
+    const statusCounts = await Certificate.findAll({
+        where: statusWhere,
+        attributes: [
+            ['status', 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('status')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+    });
+
+    const pageLimit = parseInt(limit, 10) || 10;
+    return {
+        total: count,
+        page: parseInt(page),
+        limit: pageLimit,
+        totalPages: Math.ceil(count / pageLimit),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
+        rows
+    };
 };
 
 export const getCertificatesByVessel = async (vesselId, user) => {

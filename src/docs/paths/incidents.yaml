@@ -30,6 +30,16 @@
     summary: Get incidents
     operationId: getIncidents
     x-roles: [CLIENT, ADMIN, GM, TM, TO]
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, default: 1 }
+      - name: limit
+        in: query
+        schema: { type: integer, default: 10 }
+      - name: status
+        in: query
+        schema: { type: string }
     responses:
       "200":
         description: List of incidents
@@ -40,8 +50,19 @@
               properties:
                 success: { type: boolean, example: true }
                 data:
-                  type: array
-                  items: { $ref: '#/components/schemas/IncidentListItem' }
+                  type: object
+                  properties:
+                    total: { type: integer, example: 10 }
+                    page: { type: integer, example: 1 }
+                    limit: { type: integer, example: 10 }
+                    totalPages: { type: integer, example: 1 }
+                    status_counts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/StatusCount'
+                    rows:
+                      type: array
+                      items: { $ref: '#/components/schemas/IncidentListItem' }
       "403": { description: Forbidden }
 
 /api/v1/incidents/{id}:

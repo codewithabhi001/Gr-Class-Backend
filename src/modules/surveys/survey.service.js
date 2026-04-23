@@ -560,7 +560,24 @@ export const getSurveyReports = async (query, user) => {
         ],
         order: [['submitted_at', 'DESC']]
     });
-    return { count, rows: await fileAccessService.resolveEntity(rows, { id: user?.id }) };
+    const statusCounts = await Survey.findAll({
+        where: allowedFilters,
+        attributes: [
+            ['survey_status', 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('survey_status')), 'count']
+        ],
+        group: ['survey_status'],
+        raw: true
+    });
+
+    return {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count) })),
+        rows: await fileAccessService.resolveEntity(rows, { id: user?.id })
+    };
 };
 
 export const getSurveyDetails = async (jobId, user) => {

@@ -92,3 +92,13 @@ UUID:
   type: string
   format: uuid
   example: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+
+StatusCount:
+  type: object
+  properties:
+    status:
+      type: string
+      example: "CREATED"
+    count:
+      type: integer
+      example: 5

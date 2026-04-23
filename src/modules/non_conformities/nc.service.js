@@ -29,13 +29,36 @@ export const getNCs = async (query) => {
     if (job_id) where.job_id = job_id;
     if (status) where.status = status;
 
-    return await NonConformity.findAndCountAll({
+    const { count, rows } = await NonConformity.findAndCountAll({
         where,
         attributes: NC_LIST_ATTRIBUTES,
         limit: parseInt(limit, 10),
         offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
         order: [['createdAt', 'DESC']]
     });
+
+    // Calculate status counts
+    const statusWhere = { ...where };
+    delete statusWhere.status;
+    const statusCounts = await NonConformity.findAll({
+        where: statusWhere,
+        attributes: [
+            ['status', 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('status')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+    });
+
+    const pageLimit = parseInt(limit, 10) || 10;
+    return {
+        total: count,
+        page: parseInt(page),
+        limit: pageLimit,
+        totalPages: Math.ceil(count / pageLimit),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
+        rows
+    };
 };
 
 export const getNCById = async (id) => {

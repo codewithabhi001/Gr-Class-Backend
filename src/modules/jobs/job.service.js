@@ -277,6 +277,19 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
         order: [['updatedAt', 'DESC']], include
     });
 
+    // Calculate status counts
+    const statusWhere = { ...whereClause };
+    delete statusWhere.job_status;
+    const statusCounts = await JobRequest.findAll({
+        where: statusWhere,
+        attributes: [
+            ['job_status', 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('job_status')), 'count']
+        ],
+        group: ['job_status'],
+        raw: true
+    });
+
     const jobs = (await fileAccessService.resolveEntity(rows)).map(j => ({
         ...j,
         payment_status: j.Payments?.[0]?.payment_status || 'N/A'
@@ -284,6 +297,7 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     return {
         total: count, page: parseInt(page), limit: parseInt(limit),
         totalPages: Math.ceil(count / pageLimit),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
         jobs
     };
 };

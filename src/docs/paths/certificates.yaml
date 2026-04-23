@@ -68,9 +68,20 @@
                   type: boolean
                   example: true
                 data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/CertificateSummary'
+                  type: object
+                  properties:
+                    total: { type: integer, example: 100 }
+                    page: { type: integer, example: 1 }
+                    limit: { type: integer, example: 20 }
+                    totalPages: { type: integer, example: 5 }
+                    status_counts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/StatusCount'
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/CertificateSummary'
       "401":
         description: Unauthorized
         content:
