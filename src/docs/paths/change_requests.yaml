@@ -5,25 +5,44 @@
     operationId: createChangeRequest
     x-roles: [CLIENT, ADMIN, GM, TM]
     requestBody:
+      description: "Payload to create a change request for any entity (Vessel, Certificate, etc.)"
       content:
         application/json:
           schema:
             type: object
+            required: [entity_type, entity_id, change_description, old_value, new_value]
             properties:
-              entity_type: { type: string }
-              entity_id: { type: string, format: uuid }
-              change_type: { type: string }
-              description: { type: string }
-              requested_changes: { type: object }
+              entity_type:
+                type: string
+                description: "The type of entity being changed (e.g., VESSEL, CLIENT, CERTIFICATE)"
+              entity_id:
+                type: string
+                format: uuid
+                description: "The unique ID (UUID) of the entity"
+              change_description:
+                type: string
+                description: "Business reason or narrative for the requested change"
+              old_value:
+                type: object
+                description: "Current values of the fields in the database"
+              new_value:
+                type: object
+                description: "Desired new values for the fields"
+              priority:
+                type: string
+                enum: [LOW, MEDIUM, HIGH]
+                default: MEDIUM
           example:
             entity_type: "VESSEL"
             entity_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-            change_type: "UPDATE"
-            description: "Request to update vessel IMO number"
-            requested_changes:
-              imo_number: "9123457"
+            change_description: "Request to update vessel name from 'MV Star' to 'MV Pacific Star'"
+            old_value:
+              vessel_name: "MV Star"
+            new_value:
+              vessel_name: "MV Pacific Star"
+            priority: "MEDIUM"
     responses:
-      "201": { description: Change request created }
+      "201": { description: Change request created successfully }
       "403": { description: Forbidden }
 
   get:
