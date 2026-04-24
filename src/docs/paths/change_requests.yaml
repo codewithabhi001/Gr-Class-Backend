@@ -62,6 +62,15 @@
         in: path
         required: true
         schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              remarks: { type: string }
+          example:
+            remarks: "Approved after document verification"
     responses:
       "200": { description: Request approved }
       "403": { description: Forbidden }
@@ -77,6 +86,15 @@
         in: path
         required: true
         schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              remarks: { type: string }
+          example:
+            remarks: "Rejected due to incorrect vessel data"
     responses:
       "200": { description: Request rejected }
       "403": { description: Forbidden }
