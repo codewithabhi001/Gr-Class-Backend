@@ -297,6 +297,38 @@ const seedOperationalData = async () => {
             console.log('Payments seeded for Pacific');
         }
 
+        // 10. Seed Activity Requests for Pacific
+        const activityCount = await db.ActivityRequest.count();
+        if (activityCount < 3) {
+            await db.ActivityRequest.bulkCreate([
+                {
+                    request_number: 'REQ-PAC-001',
+                    requested_by: pacificUser.id,
+                    vessel_id: pacificVessel.id,
+                    activity_type: 'INSPECTION',
+                    requested_service: 'Annual Hull Inspection',
+                    priority: 'MEDIUM',
+                    description: 'Regular hull check requested before dry-docking.',
+                    location_port: 'Singapore',
+                    proposed_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
+                    status: 'PENDING'
+                },
+                {
+                    request_number: 'REQ-PAC-002',
+                    requested_by: pacificUser.id,
+                    vessel_id: pacificVessels[1].id,
+                    activity_type: 'AUDIT',
+                    requested_service: 'Safety Management Audit',
+                    priority: 'HIGH',
+                    description: 'Internal audit requested to prepare for PSC inspection.',
+                    location_port: 'Dubai',
+                    proposed_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+                    status: 'APPROVED'
+                }
+            ]);
+            console.log('Activity Requests seeded for Pacific');
+        }
+
         // 13. Seed Audit Logs
         await db.AuditLog.bulkCreate([
             {
