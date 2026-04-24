@@ -766,7 +766,7 @@ export const issueCertificate = async (id, user) => {
 
         const issuedAt = new Date();
         await cert.update({
-            status: 'ISSUED',
+            status: 'VALID',
             issued_at: issuedAt,
             issued_by_user_id: user.id
         }, { transaction });
