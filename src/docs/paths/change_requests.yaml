@@ -30,7 +30,7 @@
     tags: [Change Requests]
     summary: Get change requests
     operationId: getChangeRequests
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [ADMIN, GM, TM, CLIENT]
     responses:
       "200": { description: List of change requests }
       "403": { description: Forbidden }

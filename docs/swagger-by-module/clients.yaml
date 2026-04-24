@@ -310,7 +310,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         status:
           type: string
           enum:
@@ -381,7 +380,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         company_name:
           type: string
         client_id:
@@ -749,10 +747,44 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/UUID'
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
         document_name:
           type: string
         is_mandatory:
           type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CertificateRequiredDocumentCreateRequest:
+      type: object
+      required:
+        - document_name
+      properties:
+        document_name:
+          type: string
+          example: 'Registry Certificate'
+        is_mandatory:
+          type: boolean
+          default: true
+      example:
+        document_name: 'Registry Certificate'
+        is_mandatory: true
+    CertificateRequiredDocumentUpdateRequest:
+      type: object
+      properties:
+        document_name:
+          type: string
+          example: 'Registry Certificate (Updated)'
+        is_mandatory:
+          type: boolean
+          example: false
+      example:
+        document_name: 'Registry Certificate (Updated)'
+        is_mandatory: false
     CertificateAuthorityResponse:
       type: object
       properties:
@@ -987,6 +1019,10 @@ components:
             - ACTIVE
             - INACTIVE
             - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
         metadata:
           type: object
         created_by:
@@ -1033,6 +1069,10 @@ components:
             - ACTIVE
             - INACTIVE
             - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
         metadata:
           type: object
     ChecklistTemplateUpdateRequest:
@@ -1065,6 +1105,10 @@ components:
             - ACTIVE
             - INACTIVE
             - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
         metadata:
           type: object
     ClientCreateRequest:
@@ -1127,7 +1171,6 @@ components:
                 - TM
                 - TO
                 - SURVEYOR
-                - FLAG_ADMIN
               default: CLIENT
             phone:
               type: string
@@ -1177,26 +1220,19 @@ components:
           type: string
         company_code:
           type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        contact_person_name:
-          type: string
-        contact_person_email:
-          type: string
-          format: email
         status:
           type: string
           enum:
             - ACTIVE
             - INACTIVE
-        has_user:
-          type: boolean
+        email:
+          type: string
+          format: email
         created_at:
           type: string
           format: date-time
+        has_user:
+          type: boolean
     ErrorResponse:
       type: object
       required:
@@ -1286,6 +1322,15 @@ components:
       type: string
       format: uuid
       example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    StatusCount:
+      type: object
+      properties:
+        status:
+          type: string
+          example: CREATED
+        count:
+          type: integer
+          example: 5
     DashboardResponse:
       type: object
       description: 'Role-specific dashboard data. Structure varies by role (ADMIN, GM, TM, TO, SURVEYOR, CLIENT)'
@@ -1416,22 +1461,30 @@ components:
           type: string
           format: date-time
     CustomerFeedbackListItem:
-      allOf:
-        -
-          $ref: '#/components/schemas/CustomerFeedback'
-        -
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        rating:
+          type: integer
+        submitted_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        Client:
           type: object
           properties:
-            Client:
-              type: object
-              properties:
-                id:
-                  type: string
-                  format: uuid
-                name:
-                  type: string
-                email:
-                  type: string
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
     CustomerFeedbackListResponse:
       type: object
       properties:
@@ -2009,6 +2062,27 @@ components:
         updated_at:
           type: string
           format: date-time
+    NonConformityListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        severity:
+          type: string
+          enum:
+            - MINOR
+            - MAJOR
+            - CRITICAL
+        status:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+        created_at:
+          type: string
+          format: date-time
     IncidentResponse:
       type: object
       properties:
@@ -2036,6 +2110,27 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+    IncidentListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        reported_by:
+          $ref: '#/components/schemas/UUID'
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - INVESTIGATING
+            - RESOLVED
+            - CLOSED
+        created_at:
           type: string
           format: date-time
     SupportTicketResponse:
@@ -2077,6 +2172,37 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+    SupportTicketListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        ticket_number:
+          type: string
+        subject:
+          type: string
+        priority:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - URGENT
+        status:
+          type: string
+          enum:
+            - OPEN
+            - IN_PROGRESS
+            - RESOLVED
+            - CLOSED
+        category:
+          type: string
+          nullable: true
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
           type: string
           format: date-time
     FlagAdministrationResponse:
@@ -2146,6 +2272,7 @@ components:
           type: string
           enum:
             - UNPAID
+            - PARTIALLY_PAID
             - PAID
             - ON_HOLD
         payment_date:
@@ -2159,12 +2286,18 @@ components:
         verified_by_user_id:
           $ref: '#/components/schemas/UUID'
           nullable: true
+        amount_collected:
+          type: string
+          description: 'Total collected via advance + partial payments'
         refunded_amount:
           type: string
         amount_paid:
           type: string
         net_amount:
           type: string
+        remaining:
+          type: string
+          description: 'Remaining amount to be collected'
         created_at:
           type: string
           format: date-time
@@ -2222,6 +2355,13 @@ components:
           type: number
           format: decimal
           minimum: 0
+        type:
+          type: string
+          enum:
+            - ADVANCE
+            - PARTIAL_PAYMENT
+          default: PARTIAL_PAYMENT
+          description: 'Use ADVANCE for upfront payments before work begins, PARTIAL_PAYMENT for installments during/after work'
         remarks:
           type: string
     FinancialSummaryResponse:
@@ -2533,6 +2673,10 @@ components:
         survey_statement_pdf_url:
           type: string
           format: uri
+        signed_checklist_files:
+          type: array
+          items:
+            type: string
         started_at:
           type: string
           format: date-time
@@ -2613,6 +2757,10 @@ components:
         survey_statement_pdf_url:
           type: string
           format: uri
+        signed_checklist_files:
+          type: array
+          items:
+            type: string
         JobRequest:
           type: object
           properties:
@@ -2973,7 +3121,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         phone:
           type: string
           nullable: true
@@ -3005,6 +3152,34 @@ components:
         updated_at:
           type: string
           format: date-time
+    UserListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        created_at:
+          type: string
+          format: date-time
     UserCreateRequest:
       type: object
       required:
@@ -3032,7 +3207,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         phone:
           type: string
         client_id:
@@ -3068,7 +3242,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         phone:
           type: string
         status:
@@ -3688,11 +3861,12 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/ClientListItem'}}
+                  data: {type: object, properties: {count: {type: integer}, rows: {type: array, items: {$ref: '#/components/schemas/ClientListItem'}}}}
               example:
                 success: true
                 data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, company_name: string, company_code: string, email: user@example.com, phone: string, contact_person_name: string, contact_person_email: user@example.com, status: ACTIVE, has_user: true, created_at: '2026-03-15T10:00:00.000Z'}
+                  count: 1
+                  rows: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, company_name: string, company_code: string, status: ACTIVE, email: user@example.com, created_at: '2026-03-15T10:00:00.000Z', has_user: true}]
         '403':
           description: Forbidden
           content:
@@ -3764,105 +3938,6 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  /api/v1/clients/profile:
-    get:
-      tags:
-        - Clients
-      summary: 'Get client profile'
-      description: 'Get current user''s client profile. CLIENT role only.'
-      operationId: getClientProfile
-      x-roles:
-        - CLIENT
-      responses:
-        '200':
-          description: 'Client profile'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/ClientResponse'}
-              example:
-                success: true
-                data:
-                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-                  company_name: string
-                  company_code: string
-                  email: user@example.com
-                  address: string
-                  country: string
-                  phone: string
-                  contact_person_name: string
-                  contact_person_email: user@example.com
-                  status: ACTIVE
-                  has_user: true
-                  created_at: '2026-03-15T10:00:00.000Z'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-    put:
-      tags:
-        - Clients
-      summary: 'Update client profile'
-      description: 'Update current user''s client profile. CLIENT role only.'
-      operationId: updateClientProfile
-      x-roles:
-        - CLIENT
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                company_name:
-                  type: string
-                contact_person_name:
-                  type: string
-                contact_person_email:
-                  type: string
-                phone:
-                  type: string
-            example:
-              company_name: 'Marine Shipping Co'
-              contact_person_name: 'John Smith'
-              contact_person_email: john@marineshipping.com
-              phone: '+65 6123 4567'
-      responses:
-        '200':
-          description: 'Profile updated'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/ClientResponse'}
-              example:
-                success: true
-                data:
-                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-                  company_name: string
-                  company_code: string
-                  email: user@example.com
-                  address: string
-                  country: string
-                  phone: string
-                  contact_person_name: string
-                  contact_person_email: user@example.com
-                  status: ACTIVE
-                  has_user: true
-                  created_at: '2026-03-15T10:00:00.000Z'
   /api/v1/clients/profile/documents:
     get:
       tags:
@@ -3889,28 +3964,6 @@ paths:
                 count: 5
                 data:
                   - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, entity_type: JOB, entity_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, entity_name: string, document_type: string, signedUrl: string, fileName: string, expiresAt: '2026-03-15T10:00:00.000Z', uploaded_at: '2026-03-15T10:00:00.000Z'}
-  /api/v1/clients/dashboard:
-    get:
-      tags:
-        - Clients
-      summary: 'Get client dashboard'
-      description: 'Get dashboard for client users. CLIENT role only.'
-      operationId: getClientDashboard
-      x-roles:
-        - CLIENT
-      responses:
-        '200':
-          description: 'Client dashboard data'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object}
-              example:
-                success: true
-                data: {}
   '/api/v1/clients/{id}/documents':
     get:
       tags:

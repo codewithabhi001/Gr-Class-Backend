@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), changeRequestController.createChangeRequest);
-router.get('/', authorizeRoles('ADMIN', 'GM', 'TM'), changeRequestController.getChangeRequests);
+router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), changeRequestController.getChangeRequests);
 router.get('/:id', authorizeRoles('ADMIN', 'GM', 'TM', 'CLIENT'), changeRequestController.getChangeRequestById);
 router.put('/:id/approve', authorizeRoles('ADMIN', 'GM'), changeRequestController.approveChangeRequest);
 router.put('/:id/reject', authorizeRoles('ADMIN', 'GM'), changeRequestController.rejectChangeRequest);

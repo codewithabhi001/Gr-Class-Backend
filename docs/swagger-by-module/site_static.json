@@ -419,8 +419,7 @@
               "TM",
               "TO",
               "SURVEYOR",
-              "CLIENT",
-              "FLAG_ADMIN"
+              "CLIENT"
             ]
           },
           "status": {
@@ -513,8 +512,7 @@
               "TM",
               "TO",
               "SURVEYOR",
-              "CLIENT",
-              "FLAG_ADMIN"
+              "CLIENT"
             ]
           },
           "company_name": {
@@ -1043,12 +1041,60 @@
           "id": {
             "$ref": "#/components/schemas/UUID"
           },
+          "certificate_type_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
           "document_name": {
             "type": "string"
           },
           "is_mandatory": {
             "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
           }
+        }
+      },
+      "CertificateRequiredDocumentCreateRequest": {
+        "type": "object",
+        "required": [
+          "document_name"
+        ],
+        "properties": {
+          "document_name": {
+            "type": "string",
+            "example": "Registry Certificate"
+          },
+          "is_mandatory": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "example": {
+          "document_name": "Registry Certificate",
+          "is_mandatory": true
+        }
+      },
+      "CertificateRequiredDocumentUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "document_name": {
+            "type": "string",
+            "example": "Registry Certificate (Updated)"
+          },
+          "is_mandatory": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "example": {
+          "document_name": "Registry Certificate (Updated)",
+          "is_mandatory": false
         }
       },
       "CertificateAuthorityResponse": {
@@ -1393,6 +1439,12 @@
               "DRAFT"
             ]
           },
+          "template_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "metadata": {
             "type": "object"
           },
@@ -1469,6 +1521,12 @@
               "DRAFT"
             ]
           },
+          "template_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "metadata": {
             "type": "object"
           }
@@ -1525,6 +1583,12 @@
               "INACTIVE",
               "DRAFT"
             ]
+          },
+          "template_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "metadata": {
             "type": "object"
@@ -1605,8 +1669,7 @@
                   "GM",
                   "TM",
                   "TO",
-                  "SURVEYOR",
-                  "FLAG_ADMIN"
+                  "SURVEYOR"
                 ],
                 "default": "CLIENT"
               },
@@ -1682,20 +1745,6 @@
           "company_code": {
             "type": "string"
           },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "phone": {
-            "type": "string"
-          },
-          "contact_person_name": {
-            "type": "string"
-          },
-          "contact_person_email": {
-            "type": "string",
-            "format": "email"
-          },
           "status": {
             "type": "string",
             "enum": [
@@ -1703,12 +1752,16 @@
               "INACTIVE"
             ]
           },
-          "has_user": {
-            "type": "boolean"
+          "email": {
+            "type": "string",
+            "format": "email"
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "has_user": {
+            "type": "boolean"
           }
         }
       },
@@ -1832,6 +1885,19 @@
         "type": "string",
         "format": "uuid",
         "example": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+      },
+      "StatusCount": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "CREATED"
+          },
+          "count": {
+            "type": "integer",
+            "example": 5
+          }
+        }
       },
       "DashboardResponse": {
         "type": "object",
@@ -2020,31 +2086,41 @@
         }
       },
       "CustomerFeedbackListItem": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/CustomerFeedback"
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
           },
-          {
+          "job_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "client_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "rating": {
+            "type": "integer"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Client": {
             "type": "object",
             "properties": {
-              "Client": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string"
-                  }
-                }
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
               }
             }
           }
-        ]
+        }
       },
       "CustomerFeedbackListResponse": {
         "type": "object",
@@ -2868,6 +2944,36 @@
           }
         }
       },
+      "NonConformityListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "MINOR",
+              "MAJOR",
+              "CRITICAL"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "CLOSED"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "IncidentResponse": {
         "type": "object",
         "properties": {
@@ -2904,6 +3010,36 @@
             "format": "date-time"
           },
           "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IncidentListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "vessel_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "reported_by": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "INVESTIGATING",
+              "RESOLVED",
+              "CLOSED"
+            ]
+          },
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }
@@ -2960,6 +3096,49 @@
             "format": "date-time"
           },
           "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SupportTicketListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "ticket_number": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "IN_PROGRESS",
+              "RESOLVED",
+              "CLOSED"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }
@@ -3060,6 +3239,7 @@
             "type": "string",
             "enum": [
               "UNPAID",
+              "PARTIALLY_PAID",
               "PAID",
               "ON_HOLD"
             ]
@@ -3078,6 +3258,10 @@
             "$ref": "#/components/schemas/UUID",
             "nullable": true
           },
+          "amount_collected": {
+            "type": "string",
+            "description": "Total collected via advance + partial payments"
+          },
           "refunded_amount": {
             "type": "string"
           },
@@ -3086,6 +3270,10 @@
           },
           "net_amount": {
             "type": "string"
+          },
+          "remaining": {
+            "type": "string",
+            "description": "Remaining amount to be collected"
           },
           "created_at": {
             "type": "string",
@@ -3168,6 +3356,15 @@
             "type": "number",
             "format": "decimal",
             "minimum": 0
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ADVANCE",
+              "PARTIAL_PAYMENT"
+            ],
+            "default": "PARTIAL_PAYMENT",
+            "description": "Use ADVANCE for upfront payments before work begins, PARTIAL_PAYMENT for installments during/after work"
           },
           "remarks": {
             "type": "string"
@@ -3617,6 +3814,12 @@
             "type": "string",
             "format": "uri"
           },
+          "signed_checklist_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "started_at": {
             "type": "string",
             "format": "date-time"
@@ -3724,6 +3927,12 @@
           "survey_statement_pdf_url": {
             "type": "string",
             "format": "uri"
+          },
+          "signed_checklist_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "JobRequest": {
             "type": "object",
@@ -4241,8 +4450,7 @@
               "TM",
               "TO",
               "SURVEYOR",
-              "CLIENT",
-              "FLAG_ADMIN"
+              "CLIENT"
             ]
           },
           "phone": {
@@ -4288,6 +4496,44 @@
           }
         }
       },
+      "UserListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "GM",
+              "TM",
+              "TO",
+              "SURVEYOR",
+              "CLIENT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SUSPENDED"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "UserCreateRequest": {
         "type": "object",
         "required": [
@@ -4318,8 +4564,7 @@
               "TM",
               "TO",
               "SURVEYOR",
-              "CLIENT",
-              "FLAG_ADMIN"
+              "CLIENT"
             ]
           },
           "phone": {
@@ -4368,8 +4613,7 @@
               "TM",
               "TO",
               "SURVEYOR",
-              "CLIENT",
-              "FLAG_ADMIN"
+              "CLIENT"
             ]
           },
           "phone": {

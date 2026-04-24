@@ -307,7 +307,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         status:
           type: string
           enum:
@@ -378,7 +377,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         company_name:
           type: string
         client_id:
@@ -746,10 +744,44 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/UUID'
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
         document_name:
           type: string
         is_mandatory:
           type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CertificateRequiredDocumentCreateRequest:
+      type: object
+      required:
+        - document_name
+      properties:
+        document_name:
+          type: string
+          example: 'Registry Certificate'
+        is_mandatory:
+          type: boolean
+          default: true
+      example:
+        document_name: 'Registry Certificate'
+        is_mandatory: true
+    CertificateRequiredDocumentUpdateRequest:
+      type: object
+      properties:
+        document_name:
+          type: string
+          example: 'Registry Certificate (Updated)'
+        is_mandatory:
+          type: boolean
+          example: false
+      example:
+        document_name: 'Registry Certificate (Updated)'
+        is_mandatory: false
     CertificateAuthorityResponse:
       type: object
       properties:
@@ -984,6 +1016,10 @@ components:
             - ACTIVE
             - INACTIVE
             - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
         metadata:
           type: object
         created_by:
@@ -1030,6 +1066,10 @@ components:
             - ACTIVE
             - INACTIVE
             - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
         metadata:
           type: object
     ChecklistTemplateUpdateRequest:
@@ -1062,6 +1102,10 @@ components:
             - ACTIVE
             - INACTIVE
             - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
         metadata:
           type: object
     ClientCreateRequest:
@@ -1124,7 +1168,6 @@ components:
                 - TM
                 - TO
                 - SURVEYOR
-                - FLAG_ADMIN
               default: CLIENT
             phone:
               type: string
@@ -1174,26 +1217,19 @@ components:
           type: string
         company_code:
           type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        contact_person_name:
-          type: string
-        contact_person_email:
-          type: string
-          format: email
         status:
           type: string
           enum:
             - ACTIVE
             - INACTIVE
-        has_user:
-          type: boolean
+        email:
+          type: string
+          format: email
         created_at:
           type: string
           format: date-time
+        has_user:
+          type: boolean
     ErrorResponse:
       type: object
       required:
@@ -1283,6 +1319,15 @@ components:
       type: string
       format: uuid
       example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    StatusCount:
+      type: object
+      properties:
+        status:
+          type: string
+          example: CREATED
+        count:
+          type: integer
+          example: 5
     DashboardResponse:
       type: object
       description: 'Role-specific dashboard data. Structure varies by role (ADMIN, GM, TM, TO, SURVEYOR, CLIENT)'
@@ -1413,22 +1458,30 @@ components:
           type: string
           format: date-time
     CustomerFeedbackListItem:
-      allOf:
-        -
-          $ref: '#/components/schemas/CustomerFeedback'
-        -
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        rating:
+          type: integer
+        submitted_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        Client:
           type: object
           properties:
-            Client:
-              type: object
-              properties:
-                id:
-                  type: string
-                  format: uuid
-                name:
-                  type: string
-                email:
-                  type: string
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
     CustomerFeedbackListResponse:
       type: object
       properties:
@@ -2006,6 +2059,27 @@ components:
         updated_at:
           type: string
           format: date-time
+    NonConformityListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        severity:
+          type: string
+          enum:
+            - MINOR
+            - MAJOR
+            - CRITICAL
+        status:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+        created_at:
+          type: string
+          format: date-time
     IncidentResponse:
       type: object
       properties:
@@ -2033,6 +2107,27 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+    IncidentListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        reported_by:
+          $ref: '#/components/schemas/UUID'
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - INVESTIGATING
+            - RESOLVED
+            - CLOSED
+        created_at:
           type: string
           format: date-time
     SupportTicketResponse:
@@ -2074,6 +2169,37 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+    SupportTicketListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        ticket_number:
+          type: string
+        subject:
+          type: string
+        priority:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - URGENT
+        status:
+          type: string
+          enum:
+            - OPEN
+            - IN_PROGRESS
+            - RESOLVED
+            - CLOSED
+        category:
+          type: string
+          nullable: true
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
           type: string
           format: date-time
     FlagAdministrationResponse:
@@ -2143,6 +2269,7 @@ components:
           type: string
           enum:
             - UNPAID
+            - PARTIALLY_PAID
             - PAID
             - ON_HOLD
         payment_date:
@@ -2156,12 +2283,18 @@ components:
         verified_by_user_id:
           $ref: '#/components/schemas/UUID'
           nullable: true
+        amount_collected:
+          type: string
+          description: 'Total collected via advance + partial payments'
         refunded_amount:
           type: string
         amount_paid:
           type: string
         net_amount:
           type: string
+        remaining:
+          type: string
+          description: 'Remaining amount to be collected'
         created_at:
           type: string
           format: date-time
@@ -2219,6 +2352,13 @@ components:
           type: number
           format: decimal
           minimum: 0
+        type:
+          type: string
+          enum:
+            - ADVANCE
+            - PARTIAL_PAYMENT
+          default: PARTIAL_PAYMENT
+          description: 'Use ADVANCE for upfront payments before work begins, PARTIAL_PAYMENT for installments during/after work'
         remarks:
           type: string
     FinancialSummaryResponse:
@@ -2530,6 +2670,10 @@ components:
         survey_statement_pdf_url:
           type: string
           format: uri
+        signed_checklist_files:
+          type: array
+          items:
+            type: string
         started_at:
           type: string
           format: date-time
@@ -2610,6 +2754,10 @@ components:
         survey_statement_pdf_url:
           type: string
           format: uri
+        signed_checklist_files:
+          type: array
+          items:
+            type: string
         JobRequest:
           type: object
           properties:
@@ -2970,7 +3118,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         phone:
           type: string
           nullable: true
@@ -3002,6 +3149,34 @@ components:
         updated_at:
           type: string
           format: date-time
+    UserListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        created_at:
+          type: string
+          format: date-time
     UserCreateRequest:
       type: object
       required:
@@ -3029,7 +3204,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         phone:
           type: string
         client_id:
@@ -3065,7 +3239,6 @@ components:
             - TO
             - SURVEYOR
             - CLIENT
-            - FLAG_ADMIN
         phone:
           type: string
         status:
@@ -3758,11 +3931,16 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}
+                  data: {type: object, properties: {total: {type: integer, example: 100}, page: {type: integer, example: 1}, limit: {type: integer, example: 20}, totalPages: {type: integer, example: 5}, status_counts: {type: array, items: {$ref: '#/components/schemas/StatusCount'}}, rows: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}}}
               example:
                 success: true
                 data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, vessel_id: string, certificate_type_id: string, certificate_number: string, issue_date: '2026-03-15', expiry_date: '2026-03-15', status: DRAFT, created_at: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}}
+                  total: 100
+                  page: 1
+                  limit: 20
+                  totalPages: 5
+                  status_counts: [{status: CREATED, count: 5}]
+                  rows: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, vessel_id: string, certificate_type_id: string, certificate_number: string, issue_date: '2026-03-15', expiry_date: '2026-03-15', status: DRAFT, created_at: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}}]
         '401':
           description: Unauthorized
           content:
@@ -3793,13 +3971,12 @@ paths:
       tags:
         - Certificates
       summary: 'Generate certificate'
-      description: 'Generate a new certificate for a completed job. ADMIN, GM, TM only.'
+      description: 'Generate a new certificate for a completed job. GM, TM only.'
       security:
         -
           bearerAuth: []
       operationId: generateCertificate
       x-roles:
-        - ADMIN
         - GM
         - TM
       requestBody:
@@ -4097,7 +4274,7 @@ paths:
                   status: ACTIVE
                   description: string
                   requires_survey: true
-                  CertificateRequiredDocuments: [{id: string, document_name: string, is_mandatory: true}]
+                  CertificateRequiredDocuments: [{id: string, certificate_type_id: string, document_name: string, is_mandatory: true, created_at: '2026-03-15T10:00:00.000Z', updated_at: '2026-03-15T10:00:00.000Z'}]
         '401':
           description: Unauthorized
           content:
@@ -4284,7 +4461,7 @@ paths:
                   status: ACTIVE
                   description: string
                   requires_survey: true
-                  CertificateRequiredDocuments: [{id: string, document_name: string, is_mandatory: true}]
+                  CertificateRequiredDocuments: [{id: string, certificate_type_id: string, document_name: string, is_mandatory: true, created_at: '2026-03-15T10:00:00.000Z', updated_at: '2026-03-15T10:00:00.000Z'}]
         '401':
           description: Unauthorized
           content:
@@ -4313,6 +4490,416 @@ paths:
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
           description: 'Certificate type not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+  '/api/v1/certificates/types/{id}/required-documents':
+    get:
+      tags:
+        - Certificates
+      summary: 'List required documents for a certificate type'
+      description: "Returns the list of required documents configured for a certificate type.\n**Roles:** ADMIN, TM\n"
+      security:
+        -
+          bearerAuth: []
+      operationId: getCertificateTypeRequiredDocuments
+      x-roles:
+        - ADMIN
+        - TM
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 'Certificate type UUID'
+      responses:
+        '200':
+          description: 'Required documents list'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {type: array, items: {$ref: '#/components/schemas/CertificateRequiredDocument'}}
+              example:
+                success: true
+                data:
+                  - {id: 019c79a4-0001-0000-0000-000000000001, certificate_type_id: 019c79a4-55ba-773c-9454-f6bee169ab03, document_name: 'Registry Certificate', is_mandatory: true, created_at: '2026-04-13T12:00:00.000Z', updated_at: '2026-04-13T12:00:00.000Z'}
+                  - {id: 019c79a4-0001-0000-0000-000000000002, certificate_type_id: 019c79a4-55ba-773c-9454-f6bee169ab03, document_name: 'Previous Survey Report', is_mandatory: false, created_at: '2026-04-13T12:00:00.000Z', updated_at: '2026-04-13T12:00:00.000Z'}
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Certificate type not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    post:
+      tags:
+        - Certificates
+      summary: 'Add required document for a certificate type'
+      description: "Adds a single required document to a certificate type.\n**Roles:** ADMIN, TM\n"
+      security:
+        -
+          bearerAuth: []
+      operationId: addCertificateTypeRequiredDocument
+      x-roles:
+        - ADMIN
+        - TM
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificateRequiredDocumentCreateRequest'
+            example:
+              document_name: 'Registry Certificate'
+              is_mandatory: true
+      responses:
+        '201':
+          description: 'Required document created'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Required document added'}
+                  data: {$ref: '#/components/schemas/CertificateRequiredDocument'}
+              example:
+                success: true
+                message: 'Required document added'
+                data:
+                  id: 019c79a4-0001-0000-0000-000000000003
+                  certificate_type_id: 019c79a4-55ba-773c-9454-f6bee169ab03
+                  document_name: 'Registry Certificate'
+                  is_mandatory: true
+                  created_at: '2026-04-13T12:00:00.000Z'
+                  updated_at: '2026-04-13T12:00:00.000Z'
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Certificate type not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '409':
+          description: 'Required document already exists'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+  '/api/v1/certificates/types/{id}/required-documents/{docId}':
+    put:
+      tags:
+        - Certificates
+      summary: 'Update required document for a certificate type'
+      description: "Updates a single required document (name and/or is_mandatory).\n**Roles:** ADMIN, TM\n"
+      security:
+        -
+          bearerAuth: []
+      operationId: updateCertificateTypeRequiredDocument
+      x-roles:
+        - ADMIN
+        - TM
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        -
+          name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 'Required document UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificateRequiredDocumentUpdateRequest'
+            example:
+              document_name: 'Registry Certificate (Updated)'
+              is_mandatory: false
+      responses:
+        '200':
+          description: 'Required document updated'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Required document updated'}
+                  data: {$ref: '#/components/schemas/CertificateRequiredDocument'}
+              example:
+                success: true
+                message: 'Required document updated'
+                data:
+                  id: 019c79a4-0001-0000-0000-000000000003
+                  certificate_type_id: 019c79a4-55ba-773c-9454-f6bee169ab03
+                  document_name: 'Registry Certificate (Updated)'
+                  is_mandatory: false
+                  created_at: '2026-04-13T12:00:00.000Z'
+                  updated_at: '2026-04-13T12:05:00.000Z'
+        '400':
+          description: 'Validation error / wrong type mapping'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Document not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '409':
+          description: 'Duplicate document name'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    delete:
+      tags:
+        - Certificates
+      summary: 'Delete required document for a certificate type'
+      description: "Deletes a required document if it is not used in any job documents.\nIf already used, returns **409**.\n**Roles:** ADMIN, TM\n"
+      security:
+        -
+          bearerAuth: []
+      operationId: deleteCertificateTypeRequiredDocument
+      x-roles:
+        - ADMIN
+        - TM
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        -
+          name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Required document deleted'}
+                  data: {type: object, properties: {deleted: {type: boolean, example: true}}}
+              example:
+                success: true
+                message: 'Required document deleted'
+                data:
+                  deleted: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Document not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '409':
+          description: 'Cannot delete (document already used in jobs)'
           content:
             application/json:
               schema:
@@ -4682,10 +5269,9 @@ paths:
       tags:
         - Certificates
       summary: 'Suspend certificate'
-      description: 'Suspend a certificate. ADMIN, TM only.'
+      description: 'Suspend a certificate. TM only.'
       operationId: suspendCertificate
       x-roles:
-        - ADMIN
         - TM
       parameters:
         -
@@ -4760,10 +5346,9 @@ paths:
       tags:
         - Certificates
       summary: 'Revoke certificate'
-      description: 'Revoke a certificate. ADMIN, TM only.'
+      description: 'Revoke a certificate. TM only.'
       operationId: revokeCertificate
       x-roles:
-        - ADMIN
         - TM
       parameters:
         -
@@ -4825,10 +5410,9 @@ paths:
       tags:
         - Certificates
       summary: 'Restore certificate'
-      description: 'Restore a suspended certificate. ADMIN, TM only.'
+      description: 'Restore a suspended certificate. TM only.'
       operationId: restoreCertificate
       x-roles:
-        - ADMIN
         - TM
       parameters:
         -
@@ -4890,11 +5474,11 @@ paths:
       tags:
         - Certificates
       summary: 'Renew certificate'
-      description: 'Renew an expiring certificate. ADMIN, TM only.'
+      description: 'Renew an expiring certificate. TM, GM only.'
       operationId: renewCertificate
       x-roles:
-        - ADMIN
         - TM
+        - GM
       parameters:
         -
           name: id
@@ -5207,67 +5791,6 @@ paths:
               example:
                 success: true
                 data: {}
-  '/api/v1/certificates/{id}/sign':
-    post:
-      tags:
-        - Certificates
-      summary: 'Sign certificate'
-      description: 'Digitally sign a certificate. ADMIN, GM only.'
-      operationId: signCertificate
-      x-roles:
-        - ADMIN
-        - GM
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Certificate signed'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string}
-              example:
-                success: true
-                message: string
-  '/api/v1/certificates/{id}/signature':
-    get:
-      tags:
-        - Certificates
-      summary: 'Get certificate signature'
-      description: 'Get signature details for a certificate.'
-      operationId: getCertificateSignature
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Signature details'
-          content:
-            application/json:
-              schema:
-                type: object
-              example: {}
   '/api/v1/certificates/{id}/history':
     get:
       tags:
@@ -5309,13 +5832,12 @@ paths:
       tags:
         - Certificates
       summary: 'Issue certificate'
-      description: 'Sets a DRAFT certificate to ISSUED and generates the official PDF. ADMIN, GM only.'
+      description: 'Sets a DRAFT certificate to ISSUED and generates the official PDF. GM only.'
       security:
         -
           bearerAuth: []
       operationId: issueCertificate
       x-roles:
-        - ADMIN
         - GM
       parameters:
         -
