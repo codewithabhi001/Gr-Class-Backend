@@ -24,7 +24,10 @@ export async function buildCertificateScopeWhere(user, deps) {
         if (vesselIds.length === 0) {
             return { vessel_id: { [Op.in]: [null] } };
         }
-        return { vessel_id: { [Op.in]: vesselIds } };
+        return { 
+            vessel_id: { [Op.in]: vesselIds },
+            status: { [Op.ne]: 'DRAFT' } // Surveyors shouldn't see drafts unless they are the ones generating
+        };
     }
     if (role === 'CLIENT') {
         if (!user.client_id) {
@@ -39,7 +42,10 @@ export async function buildCertificateScopeWhere(user, deps) {
         if (vesselIds.length === 0) {
             return { vessel_id: { [Op.in]: [null] } };
         }
-        return { vessel_id: { [Op.in]: vesselIds } };
+        return { 
+            vessel_id: { [Op.in]: vesselIds },
+            status: { [Op.ne]: 'DRAFT' } // Hide drafts from clients
+        };
     }
     return { vessel_id: { [Op.in]: [null] } };
 }

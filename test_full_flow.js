@@ -218,7 +218,8 @@ async function runTest() {
             certificate_term: 'FULL_TERM'
         }, adminUser);
         updatedJob = await db.JobRequest.findByPk(job.id);
-        console.log(`Job Status: ${updatedJob.job_status}, Certificate draft: ${certDraft.certificate_number}`);
+        console.log(`Job Status: ${updatedJob.job_status}`);
+        console.log(`Certificate Created! Number: ${certDraft.certificate_number}, Status: ${certDraft.status} (Visible to Admin only)`);
 
         // 16. Attach Certificate Authority + Optional Flag Logo (Admin)
         console.log('\n[Step 15] Attaching Authority + Optional Flag Logos (Admin)...');
@@ -231,9 +232,9 @@ async function runTest() {
         console.log(`Authority set: ${authorityWithLogo.name}, Flag logo: ${flagWithLogo ? flagWithLogo.flag_state_name : 'None'}`);
 
         // 17. Issue Certificate (Admin)
-        console.log('\n[Step 16] Issuing Certificate (Admin)...');
+        console.log('\n[Step 16] Issuing Certificate (Admin -> Finalized)...');
         const certIssued = await certificateService.issueCertificate(certDraft.id, adminUser);
-        console.log(`Certificate Issued: ${certIssued.certificate_number}, Status: ${certIssued.status}`);
+        console.log(`Certificate Issued: ${certIssued.certificate_number}, Status: ${certIssued.status} (Now visible to Client)`);
 
         console.log('\n--- Full Flow Test Completed Successfully! ---');
 
