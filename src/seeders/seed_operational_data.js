@@ -298,35 +298,53 @@ const seedOperationalData = async () => {
         }
 
         // 10. Seed Activity Requests for Pacific
-        const activityCount = await db.ActivityRequest.count();
-        if (activityCount < 3) {
-            await db.ActivityRequest.bulkCreate([
-                {
-                    request_number: 'REQ-PAC-001',
-                    requested_by: pacificUser.id,
-                    vessel_id: pacificVessel.id,
-                    activity_type: 'INSPECTION',
-                    requested_service: 'Annual Hull Inspection',
-                    priority: 'MEDIUM',
-                    description: 'Regular hull check requested before dry-docking.',
-                    location_port: 'Singapore',
-                    proposed_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days later
-                    status: 'PENDING'
-                },
-                {
-                    request_number: 'REQ-PAC-002',
-                    requested_by: pacificUser.id,
-                    vessel_id: pacificVessels[1].id,
-                    activity_type: 'AUDIT',
-                    requested_service: 'Safety Management Audit',
-                    priority: 'HIGH',
-                    description: 'Internal audit requested to prepare for PSC inspection.',
-                    location_port: 'Dubai',
-                    proposed_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-                    status: 'APPROVED'
-                }
-            ]);
-            console.log('Activity Requests seeded for Pacific');
+        const pacificJob = await db.JobRequest.findOne({ where: { vessel_id: pacificVessel.id } });
+        const activityRequests = [
+            {
+                request_number: 'REQ-PAC-001',
+                requested_by: pacificUser.id,
+                vessel_id: pacificVessel.id,
+                activity_type: 'INSPECTION',
+                requested_service: 'Annual Hull Inspection',
+                priority: 'MEDIUM',
+                description: 'Regular hull check requested before dry-docking.',
+                location_port: 'Singapore',
+                proposed_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                status: 'PENDING'
+            },
+            {
+                request_number: 'REQ-PAC-002',
+                requested_by: pacificUser.id,
+                vessel_id: pacificVessels[1].id,
+                activity_type: 'AUDIT',
+                requested_service: 'Safety Management Audit',
+                priority: 'HIGH',
+                description: 'Internal audit requested to prepare for PSC inspection.',
+                location_port: 'Dubai',
+                proposed_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+                status: 'APPROVED'
+            },
+            {
+                request_number: 'REQ-PAC-003',
+                requested_by: pacificUser.id,
+                vessel_id: pacificVessel.id,
+                activity_type: 'OTHER',
+                requested_service: 'Technical Consultation',
+                priority: 'LOW',
+                description: 'Consultation linked to the current initial survey job.',
+                location_port: 'Singapore',
+                proposed_date: new Date(),
+                status: 'CONVERTED_TO_JOB',
+                linked_job_id: pacificJob ? pacificJob.id : null
+            }
+        ];
+
+        for (const reqData of activityRequests) {
+            const [activityReq, created] = await db.ActivityRequest.findOrCreate({
+                where: { request_number: reqData.request_number },
+                defaults: reqData
+            });
+            if (created) console.log(`Activity Request ${reqData.request_number} seeded`);
         }
 
         // 13. Seed Audit Logs
