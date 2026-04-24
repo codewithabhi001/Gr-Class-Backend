@@ -7,7 +7,11 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.ENUM('FULL_TERM', 'SHORT_TERM'),
             allowNull: true,
         },
-        template_content: DataTypes.TEXT,
+        template_file_url: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'S3 key for .docx template'
+        },
         variables: { type: DataTypes.JSON, defaultValue: [] },
         is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
     }, {

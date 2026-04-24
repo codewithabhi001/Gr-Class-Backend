@@ -403,12 +403,16 @@ const generateSurveyReportPdf = async (survey, user) => {
 
     // 2. Build HTML (QR removed as per user request for SOF)
     const isIssued = survey.survey_statement_status === 'ISSUED';
+    
+    // Resolve S3 keys into signed URLs for the PDF template
+    const resolvedSurvey = await fileAccessService.resolveEntity(survey, user);
+
     const html = buildSurveyReportHtml({
         job,
         vessel: job.Vessel,
         surveyor,
         survey: { 
-            ...survey.get(), 
+            ...resolvedSurvey, 
             is_draft: !isIssued 
         },
         checklist,

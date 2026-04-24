@@ -117,9 +117,33 @@ export const buildSurveyReportHtml = ({ job, vessel, surveyor, survey, checklist
         </div>
 
         <!-- 3. Final Statement -->
-        <div style="margin-bottom: 40px;">
+        <div style="margin-bottom: 30px;">
             <h3 style="font-size: 14px; text-transform: uppercase; color: #2c5282; margin-bottom: 10px; border-left: 4px solid #2c5282; padding-left: 10px;">Surveyor's Final Statement</h3>
-            <div style="background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 6px; font-size: 14px; color: #1a202c; min-height: 120px; line-height: 1.6; white-space: pre-wrap;">${statement}</div>
+            <div style="background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 6px; font-size: 14px; color: #1a202c; min-height: 100px; line-height: 1.6; white-space: pre-wrap;">${statement}</div>
+        </div>
+        
+        <!-- 3.5 Attached Documents -->
+        <div style="margin-bottom: 40px;">
+            <h3 style="font-size: 14px; text-transform: uppercase; color: #2c5282; margin-bottom: 10px; border-left: 4px solid #2c5282; padding-left: 10px;">Attached Evidence & Documents</h3>
+            <div style="font-size: 12px; color: #4a5568;">
+                ${survey?.evidence_proof_url ? `
+                    <div style="margin-bottom: 8px;">
+                        <strong>Inspection Evidence:</strong> 
+                        <a href="${survey.evidence_proof_url}" style="color: #2c5282; text-decoration: none;">View Proof File</a>
+                    </div>
+                ` : ''}
+                ${(survey?.signed_checklist_files && survey.signed_checklist_files.length > 0) ? `
+                    <div style="margin-bottom: 8px;">
+                        <strong>Signed Checklist Scans:</strong><br/>
+                        ${survey.signed_checklist_files.map((file, idx) => `
+                            <a href="${file}" style="color: #2c5282; text-decoration: none; margin-right: 15px;">[Scan ${idx + 1}]</a>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                ${(!survey?.evidence_proof_url && (!survey?.signed_checklist_files || survey.signed_checklist_files.length === 0)) ? `
+                    <div style="color: #a0aec0; font-style: italic;">No additional documents attached.</div>
+                ` : ''}
+            </div>
         </div>
 
         <!-- 4. Signatures -->

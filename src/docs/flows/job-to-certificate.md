@@ -146,34 +146,34 @@ export const submitSurveyReport = async (data, files, userId) => {
 };
 ```
 
-- Generate certificate — creates Certificate record, fills template, converts to PDF via Puppeteer, uploads to S3, updates job_status => `CERTIFIED`:
+- Generate certificate — creates Certificate record, fills dynamic tags, processes DOCX template via S3, and updates job_status => `CERTIFIED`:
 
 ```42:66:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/modules/certificates/certificate.service.js
 export const generateCertificate = async (data, userId) => {
     const { job_id, validity_years } = data;
     const job = await JobRequest.findByPk(job_id, { include: [Vessel, CertificateType] });
     ...
-    const cert = await Certificate.create({ vessel_id: job.vessel_id, certificate_type_id: job.certificate_type_id, certificate_number: certificateNumber, issue_date: issueDate, expiry_date: expiryDate, status: 'VALID', issued_by_user_id: userId });
-    // generate PDF using template (if exists) and upload to S3, then update cert.pdf_file_url
+    // New flow uses tagBuilder to collect survey answers and fillDocxContentControls to process master .docx
+    const dynamicTags = await buildTagValuesForJob(job_id);
+    const cert = await Certificate.create({ ... });
+    // result is a filled .docx uploaded to S3
     await job.update({ job_status: 'CERTIFIED' });
-    return await Certificate.findByPk(cert.id, { include: [...] });
+    return await Certificate.findByPk(cert.id);
 };
 ```
 
-- PDF generation and upload flow (uses Puppeteer + S3):
+- DOCX generation flow (uses jszip + xmldom):
 
-```35:56:/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/services/certificate-pdf.service.js
-export const htmlToPdfBuffer = async (html) => {
-    const puppeteer = await import('puppeteer');
-    const browser = await puppeteer.default.launch({ headless: true, args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: {...} });
-    return Buffer.from(pdfBuffer);
+```/Users/abhinavvishwakarma/work/Project/GR-CLASS_BACKEND/src/utils/docxFill.util.js
+export const fillDocxContentControls = async (buffer, data) => {
+    const zip = await JSZip.loadAsync(buffer);
+    const content = await zip.file("word/document.xml").async("text");
+    // XML parsing and placeholder replacement...
+    return await zip.generateAsync({ type: 'nodebuffer' });
 };
 ```
 
-Then `uploadCertificatePdf` calls the S3 service to upload and returns a public URL.
+The resulting file is uploaded via `s3Service.uploadFile` and the URL is stored in `pdf_file_url`.
 
 ## Typical sequence (concise)
 1. CLIENT (or ADMIN/GM) calls POST /jobs -> job created with `CREATED`.
@@ -182,7 +182,7 @@ Then `uploadCertificatePdf` calls the S3 service to upload and returns a public 
 4. SURVEYOR submits checklist entries (checklist module).
 5. SURVEYOR POST /surveys (with photo) -> SurveyReport created, job -> `SURVEY_DONE`.
 6. SURVEYOR (or TM) finalizes -> PUT /surveys/:id/finalize -> job -> `TM_FINAL`.
-7. ADMIN/GM/TM POST /certificates -> Certificate created, PDF generated and uploaded, job -> `CERTIFIED`.
+7. ADMIN/GM/TM POST /certificates -> Certificate created, DOCX generated from master template and uploaded to S3, job -> `CERTIFIED`.
 
 ## Edge cases and failure handling
 - PDF generation may fail (Puppeteer missing, Chromium issue). The certificate row is persisted even if PDF generation fails — the code logs a warning and the cert stays without `pdf_file_url`.
@@ -190,8 +190,8 @@ Then `uploadCertificatePdf` calls the S3 service to upload and returns a public 
 - Access control: many endpoints check role and scope — unauthorized access returns 403.
 
 ## Where to extend / customization points
-- Template content: CertificateTemplate entries (DB) — update template HTML to change certificate appearance.
-- PDF settings: adjust page size/margins in `certificate-pdf.service.htmlToPdfBuffer`.
+- Template content: CertificateTemplate entries (DB) — update `template_file_url` to point to a new master `.docx` file in S3.
+- PDF settings: The system currently stores the filled `.docx`. For future PDF conversion, a dedicated service or lambda can be integrated into the issue/generate flow.
 - Hook email/notification after certificate generation (notificationService is used elsewhere).
 
 ---

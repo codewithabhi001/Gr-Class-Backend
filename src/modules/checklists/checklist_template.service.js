@@ -2,6 +2,7 @@ import db from '../../models/index.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as s3Service from '../../services/s3.service.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
+import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
 
 const ChecklistTemplate = db.ChecklistTemplate;
 const CertificateType = db.CertificateType;
@@ -127,46 +128,6 @@ export const getChecklistTemplateForJob = async (jobId) => {
     return await fileAccessService.resolveEntity(template);
 };
 
-const buildTagValuesForJob = (job) => {
-    const vessel = job?.Vessel || job?.Vessel?.dataValues || null;
-    const client = vessel?.Client || vessel?.Client?.dataValues || null;
-    const surveyor = job?.surveyor || job?.surveyor?.dataValues || null;
-    const certType = job?.CertificateType || job?.CertificateType?.dataValues || null;
-
-    const toDate = (v) => {
-        if (!v) return '';
-        try {
-            const d = (v instanceof Date) ? v : new Date(v);
-            if (Number.isNaN(d.getTime())) return String(v);
-            return d.toISOString().slice(0, 10);
-        } catch {
-            return String(v);
-        }
-    };
-
-    return {
-        vessel_name: vessel?.vessel_name || '',
-        imo_number: vessel?.imo_number || '',
-        call_sign: vessel?.call_sign || '',
-        mmsi_number: vessel?.mmsi_number || '',
-        port_of_registry: vessel?.port_of_registry || '',
-        year_built: vessel?.year_built ?? '',
-        ship_type: vessel?.ship_type || '',
-        gross_tonnage: vessel?.gross_tonnage ?? '',
-        net_tonnage: vessel?.net_tonnage ?? '',
-        deadweight: vessel?.deadweight ?? '',
-
-        owner_operators: client?.company_name || '',
-
-        survey_commenced_date: toDate(job?.target_date || job?.createdAt || job?.created_at),
-        survey_completed_date: '',
-        place_of_survey: job?.target_port || '',
-        job_id: job?.id || '',
-        certificate_type: certType?.name || '',
-
-        surveyor_name: surveyor?.name || '',
-    };
-};
 
 /**
  * Download a job-specific auto-filled checklist (DOCX), generate + cache in documents table.
@@ -194,7 +155,7 @@ export const downloadChecklistTemplateForJob = async (jobId, user, { force = fal
         throw { statusCode: 400, message: 'Checklist template has no template_files configured' };
     }
 
-    const tagValues = buildTagValuesForJob(job);
+    const tagValues = await buildTagValuesForJob(jobId);
     const results = [];
 
     for (const templateKey of templateFiles) {

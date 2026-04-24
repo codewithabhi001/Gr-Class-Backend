@@ -3,7 +3,7 @@
     tags: [Certificate Templates]
     summary: Create certificate template
     operationId: createTemplate
-    description: Create a new HTML/text template for generating certificates
+    description: Create a new DOCX template (via S3 key) for generating certificates
     x-roles: [ADMIN]
     requestBody:
       required: true
@@ -11,7 +11,7 @@
         application/json:
           schema:
             type: object
-            required: [template_name, certificate_type_id, template_content]
+            required: [template_name, certificate_type_id, template_file_url]
             properties:
               template_name: { type: string, description: "Name of the certificate template" }
               certificate_type_id: { type: string, format: uuid, description: "ID of the associated certificate type" }
@@ -20,7 +20,7 @@
                 enum: [FULL_TERM, SHORT_TERM]
                 nullable: true
                 description: "If set, this template is used only for that term"
-              template_content: { type: string, description: "HTML or string layout containing placeholders" }
+              template_file_url: { type: string, description: "S3 key for the .docx template file" }
               variables: 
                 type: array
                 items:
@@ -31,8 +31,8 @@
             template_name: "IOPP Certificate v1"
             certificate_type_id: "019ccdfb-e89b-12d3-a456-426614174000"
             certificate_term: "FULL_TERM"
-            template_content: "<html><body><h1>IOPP CERTIFICATE</h1><p>Vessel: {{vesselName}}</p><p>Issued by: {{authority}}</p></body></html>"
-            variables: ["vesselName", "authority"]
+            template_file_url: "templates/certificates/iopp_v1.docx"
+            variables: ["vessel_name", "imo_number"]
             is_active: true
     responses:
       "201": { description: Template created }
@@ -93,7 +93,7 @@
               template_name: { type: string }
               certificate_type_id: { type: string, format: uuid }
               certificate_term: { type: string, enum: [FULL_TERM, SHORT_TERM], nullable: true }
-              template_content: { type: string }
+              template_file_url: { type: string }
               variables: 
                 type: array
                 items:

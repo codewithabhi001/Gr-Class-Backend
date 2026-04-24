@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import * as certificatePdfService from '../../services/certificate-pdf.service.js';
 import logger from '../../utils/logger.js';
 import { buildCertificateScopeWhere } from './certificate-scope.js';
-import { buildFallbackCertificateHtml } from './templates/fallback-certificate.template.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import env from '../../config/env.js';
@@ -11,6 +10,8 @@ import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
 import QRCode from 'qrcode';
 import * as emailService from '../../services/email.service.js';
 import * as s3Service from '../../services/s3.service.js';
+import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
+import { fillDocxContentControls } from '../../utils/docxFill.util.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -357,187 +358,186 @@ export const generateCertificate = async (data, user) => {
 
         await transaction.commit();
 
-        // Generate PDF outside transaction (non-critical, best-effort)
-        // Prefer a term-specific template; fallback to latest active template for the type.
-        const template = await CertificateTemplate.findOne({
-            where: {
-                certificate_type_id: job.certificate_type_id,
-                is_active: true,
-                ...(certificate_term ? { certificate_term } : {})
-            },
-            order: [['createdAt', 'DESC']]
-        }) || await CertificateTemplate.findOne({
-            where: { certificate_type_id: job.certificate_type_id, is_active: true },
-            order: [['createdAt', 'DESC']]
-        });
-        const vessel = job.Vessel;
-        let authority = null;
-        let flagState = null;
-        if (certificate_authority_id) {
-            authority = await db.CertificateAuthority.findByPk(certificate_authority_id);
-        }
-        if (flag_administration_id) {
-            flagState = await db.FlagAdministration.findByPk(flag_administration_id);
-        }
-        const grClassLogo = 'https://grclass.com/grclass-logo.webp';
-        let authorityLogo = null;
-        if (authority?.logo_url) {
-            authorityLogo = await fileAccessService.resolveUrl(authority.logo_url, user, true);
-        }
-        let flagLogo = null;
-        if (flagState?.logo_url) {
-            flagLogo = await fileAccessService.resolveUrl(flagState.logo_url, user, true);
-        }
-        const issuingAuthority = authority?.name || job.CertificateType?.issuing_authority || 'GR CLASS';
-        const variables = {
-            vessel_name: vessel?.vessel_name ?? '',
-            imo_number: vessel?.imo_number ?? '',
-            issue_date: issueDate,
-            expiry_date: expiryDate,
-            certificate_number: certificateNumber,
-            certificate_type: job.CertificateType?.name ?? '',
-            port: job.target_port ?? '',
-            place: job.target_port ?? '',
-            certificate_term: certificate_term || '',
-            issuing_authority: issuingAuthority,
-            flag_state: flagState?.flag_state_name || '',
-            gr_class_logo: grClassLogo,
-            authority_logo: authorityLogo,
-            flag_logo: flagLogo
-        };
-        let qrDataUrl = null;
         try {
-            const qrTargetUrl = buildCertificateQrTargetUrl(certificateNumber);
-
-            qrDataUrl = await QRCode.toDataURL(qrTargetUrl, {
-                margin: 1,
-                width: 300,
-                errorCorrectionLevel: 'H'
+            // Generate PDF outside transaction (non-critical, best-effort)
+            // Prefer a term-specific template; fallback to latest active template for the type.
+            const template = await CertificateTemplate.findOne({
+                where: {
+                    certificate_type_id: job.certificate_type_id,
+                    is_active: true,
+                    ...(certificate_term ? { certificate_term } : {})
+                },
+                order: [['createdAt', 'DESC']]
+            }) || await CertificateTemplate.findOne({
+                where: { certificate_type_id: job.certificate_type_id, is_active: true },
+                order: [['createdAt', 'DESC']]
             });
-        } catch (e) {
-            logger?.warn('QR generation failed', { err: e?.message });
-        }
-
-        variables.qr_image = qrDataUrl
-            ? `<img src="${qrDataUrl}" alt="QR" style="width:140px;height:140px;"/>`
-            : null;
-        variables.qr_data_url = qrDataUrl;
-
-        if (qrDataUrl) {
-            logger.info({ entity: 'CERTIFICATE', event: 'QR_GENERATED', jobId: job_id, qrLength: qrDataUrl.length });
-        } else {
-            logger.warn({ entity: 'CERTIFICATE', event: 'QR_FAILED', jobId: job_id });
-        }
-
-        let fullHtml;
-        if (template?.template_content) {
-            let content = template.template_content;
-            // Check if QR placeholder exists
-            if (!content.includes('{{qr_image}}') && !content.includes('{{qr_data_url}}')) {
-                // If missing, append it at the bottom with some styling
-                content += `\n<div style="margin-top: 40px; text-align: center;">{{qr_image}}<br/><span style="font-size: 10px; color: #666;">Scan to verify</span></div>`;
+            const vessel = job.Vessel;
+            let authority = null;
+            let flagState = null;
+            if (certificate_authority_id) {
+                authority = await db.CertificateAuthority.findByPk(certificate_authority_id);
             }
-            const hasLogoPlaceholder = /\{\{\s*(gr_class_logo|authority_logo|flag_logo)\s*\}\}/.test(content);
-            if (!hasLogoPlaceholder && (variables.gr_class_logo || variables.authority_logo || variables.flag_logo)) {
-                const header = `
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-  <div style="width:140px;">
-    ${variables.gr_class_logo ? `<img src="${variables.gr_class_logo}" style="max-width:140px;height:auto;" alt="GR CLASS"/>` : ''}
-  </div>
-  <div style="text-align:center;flex:1;font-weight:bold;font-size:13px;">
-    ${variables.issuing_authority ? `By ${variables.issuing_authority}` : ''}
-  </div>
-  <div style="width:160px;text-align:right;">
-    ${variables.flag_logo ? `<img src="${variables.flag_logo}" style="max-width:70px;max-height:50px;height:auto;margin-right:6px;" alt="Flag"/>` : ''}
-    ${variables.authority_logo ? `<img src="${variables.authority_logo}" style="max-width:90px;max-height:60px;height:auto;" alt="Authority"/>` : ''}
-  </div>
-</div>
-`;
-                content = header + content;
+            if (flag_administration_id) {
+                flagState = await db.FlagAdministration.findByPk(flag_administration_id);
             }
-            fullHtml = certificatePdfService.wrapHtmlForPdf(certificatePdfService.fillTemplate(content, variables));
-        } else {
-            fullHtml = certificatePdfService.wrapHtmlForPdf(buildFallbackCertificateHtml({
-                variables, issuingAuthority, qrDataUrl
-            }));
-        }
-        try {
-            const pdfBuffer = await certificatePdfService.htmlToPdfBuffer(fullHtml);
-            const pdfUrl = await certificatePdfService.uploadCertificatePdf(pdfBuffer, certificateNumber);
-            await cert.update({ pdf_file_url: pdfUrl });
-        } catch (err) {
-            logger?.warn('Certificate PDF generation/upload failed', { certId: cert.id, err: err?.message });
-        }
-
-        const finalCert = await Certificate.findByPk(cert.id, {
-            include: [
-                { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] },
-                { model: db.CertificateType, attributes: ['name'] }
-            ]
-        });
-        if (finalCert && finalCert.pdf_file_url) {
-            const key = fileAccessService.getKeyFromUrl(finalCert.pdf_file_url);
-            const signedUrl = await fileAccessService.generateSignedUrl(key, 3600, user);
-            finalCert.setDataValue('pdf_url', signedUrl);
-        }
-
-        // ── Non-blocking Notification Dispatch ──
-        (async () => {
+            const grClassLogo = 'https://grclass.com/grclass-logo.webp';
+            let authorityLogo = null;
+            if (authority?.logo_url) {
+                authorityLogo = await fileAccessService.resolveUrl(authority.logo_url, user, true);
+            }
+            let flagLogo = null;
+            if (flagState?.logo_url) {
+                flagLogo = await fileAccessService.resolveUrl(flagState.logo_url, user, true);
+            }
+            const issuingAuthority = authority?.name || job.CertificateType?.issuing_authority || 'GR CLASS';
+            
+            // Build dynamic tags including checklist answers (developer tags)
+            const dynamicTags = await buildTagValuesForJob(job_id);
+            
+            const variables = {
+                ...dynamicTags, // Spread all developer tags from checklist/vessel/etc.
+                vessel_name: vessel?.vessel_name ?? '',
+                imo_number: vessel?.imo_number ?? '',
+                issue_date: issueDate,
+                expiry_date: expiryDate,
+                certificate_number: certificateNumber,
+                certificate_type: job.CertificateType?.name ?? '',
+                port: job.target_port ?? '',
+                place: job.target_port ?? '',
+                certificate_term: certificate_term || '',
+                issuing_authority: issuingAuthority,
+                flag_state: flagState?.flag_state_name || '',
+                gr_class_logo: grClassLogo,
+                authority_logo: authorityLogo,
+                flag_logo: flagLogo,
+                // Merge manual_text if any (e.g. from draft update)
+                ...(cert.manual_text || {})
+            };
+            let qrDataUrl = null;
             try {
-                const vesselId = job.vessel_id;
-                const vesselFull = await Vessel.findByPk(vesselId, { attributes: ['client_id'] });
-                
-                const commonData = {
-                    certificateNumber,
-                    vesselName: vessel?.vessel_name,
-                    certificateType: job.CertificateType?.name,
-                    expiryDate: expiryDate.toLocaleDateString(),
-                    jobId: job.id,
-                    status: 'ISSUED'
-                };
+                const qrTargetUrl = buildCertificateQrTargetUrl(certificateNumber);
 
-                // 1. Notify Client Users
-                if (vesselFull?.client_id) {
-                    const clientUsers = await db.User.findAll({
-                        where: { client_id: vesselFull.client_id, role: 'CLIENT', status: 'ACTIVE' },
+                qrDataUrl = await QRCode.toDataURL(qrTargetUrl, {
+                    margin: 1,
+                    width: 300,
+                    errorCorrectionLevel: 'H'
+                });
+            } catch (e) {
+                logger?.warn('QR generation failed', { err: e?.message });
+            }
+
+            variables.qr_data_url = qrDataUrl;
+
+            if (qrDataUrl) {
+                logger.info({ entity: 'CERTIFICATE', event: 'QR_GENERATED', jobId: job_id, qrLength: qrDataUrl.length });
+            } else {
+                logger.warn({ entity: 'CERTIFICATE', event: 'QR_FAILED', jobId: job_id });
+            }
+
+            let filledDocxBuffer = null;
+
+            if (template?.template_file_url) {
+                // DOCX Template path
+                try {
+                    const masterBuffer = await s3Service.getFileContent(template.template_file_url);
+                    filledDocxBuffer = await fillDocxContentControls(masterBuffer, variables);
+                } catch (err) {
+                    logger.error('DOCX template filling failed', { err: err.message });
+                }
+            }
+
+            if (!filledDocxBuffer) {
+                logger.warn('No valid DOCX template found for this certificate type, skipping file generation.', { jobId: job_id, certId: cert.id });
+            } else {
+                try {
+                    // For now, if it's a DOCX template, we store the filled DOCX.
+                    const docxUrl = await s3Service.uploadFile(
+                        filledDocxBuffer,
+                        `${certificateNumber}.docx`,
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        s3Service.UPLOAD_FOLDERS.CERTIFICATES
+                    );
+                    await cert.update({ pdf_file_url: docxUrl, generated_pdf_url: docxUrl });
+                } catch (err) {
+                    logger?.warn('Certificate file generation/upload failed', { certId: cert.id, err: err?.message });
+                }
+            }
+
+            const finalCert = await Certificate.findByPk(cert.id, {
+                include: [
+                    { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] },
+                    { model: db.CertificateType, attributes: ['name'] }
+                ]
+            });
+            if (finalCert && finalCert.pdf_file_url) {
+                const key = fileAccessService.getKeyFromUrl(finalCert.pdf_file_url);
+                const signedUrl = await fileAccessService.generateSignedUrl(key, 3600, user);
+                finalCert.setDataValue('pdf_url', signedUrl);
+            }
+
+            // ── Non-blocking Notification Dispatch ──
+            (async () => {
+                try {
+                    const vesselId = job.vessel_id;
+                    const vesselFull = await db.Vessel.findByPk(vesselId, { attributes: ['client_id'] });
+                    
+                    const commonData = {
+                        certificateNumber,
+                        vesselName: vessel?.vessel_name,
+                        certificateType: job.CertificateType?.name,
+                        expiryDate: expiryDate.toLocaleDateString(),
+                        jobId: job.id,
+                        status: 'ISSUED'
+                    };
+
+                    // 1. Notify Client Users
+                    if (vesselFull?.client_id) {
+                        const clientUsers = await db.User.findAll({
+                            where: { client_id: vesselFull.client_id, role: 'CLIENT', status: 'ACTIVE' },
+                            attributes: ['email']
+                        });
+                        const clientEmails = clientUsers.map(u => u.email);
+                        if (clientEmails.length > 0) {
+                            await emailService.sendTemplateEmail(clientEmails, 'CERTIFICATE_GENERATED', { 
+                                ...commonData, 
+                                isInternal: false 
+                            });
+                        }
+                    }
+
+                    // 2. Notify Internal Managers (GM & TM)
+                    const internalUsers = await db.User.findAll({
+                        where: { role: { [Op.in]: ['GM', 'TM'] }, status: 'ACTIVE' },
                         attributes: ['email']
                     });
-                    const clientEmails = clientUsers.map(u => u.email);
-                    if (clientEmails.length > 0) {
-                        await emailService.sendTemplateEmail(clientEmails, 'CERTIFICATE_GENERATED', { 
+                    const internalEmails = internalUsers.map(u => u.email);
+                    
+                    // 3. Notify Assigned Surveyor
+                    if (job.assigned_surveyor_id) {
+                        const surveyor = await db.User.findByPk(job.assigned_surveyor_id, { attributes: ['email'] });
+                        if (surveyor?.email && !internalEmails.includes(surveyor.email)) {
+                            internalEmails.push(surveyor.email);
+                        }
+                    }
+
+                    if (internalEmails.length > 0) {
+                        await emailService.sendTemplateEmail(internalEmails, 'CERTIFICATE_GENERATED', { 
                             ...commonData, 
-                            isInternal: false 
+                            isInternal: true 
                         });
                     }
+                } catch (err) {
+                    logger.error('Failed to dispatch certificate generation emails', { certificateNumber, err: err.message });
                 }
+            })();
 
-                // 2. Notify Internal Managers (GM & TM)
-                const internalUsers = await db.User.findAll({
-                    where: { role: { [Op.in]: ['GM', 'TM'] }, status: 'ACTIVE' },
-                    attributes: ['email']
-                });
-                const internalEmails = internalUsers.map(u => u.email);
-                
-                // 3. Notify Assigned Surveyor
-                if (job.assigned_surveyor_id) {
-                    const surveyor = await db.User.findByPk(job.assigned_surveyor_id, { attributes: ['email'] });
-                    if (surveyor?.email && !internalEmails.includes(surveyor.email)) {
-                        internalEmails.push(surveyor.email);
-                    }
-                }
-
-                if (internalEmails.length > 0) {
-                    await emailService.sendTemplateEmail(internalEmails, 'CERTIFICATE_GENERATED', { 
-                        ...commonData, 
-                        isInternal: true 
-                    });
-                }
-            } catch (err) {
-                logger.error('Failed to dispatch certificate generation emails', { certificateNumber, err: err.message });
-            }
-        })();
-
-        return finalCert;
+            return finalCert;
+        } catch (postCommitErr) {
+            logger.error('Error in post-commit certificate generation logic', { jobId: job_id, err: postCommitErr.message });
+            // Return what we have
+            return await Certificate.findByPk(cert.id, { include: [db.Vessel, db.CertificateType] });
+        }
     } catch (error) {
         await transaction.rollback();
         throw error;
@@ -782,8 +782,14 @@ export const issueCertificate = async (id, user) => {
             flagLogo = await fileAccessService.resolveUrl(cert.FlagState.logo_url, user, true);
         }
 
+        const issuingAuthority = cert.Authority?.name || 'GR CLASS';
+        
+        // Build dynamic tags including checklist answers (developer tags)
+        const dynamicTags = await buildTagValuesForJob(cert.job_id);
+
         // Generate PDF
         const variables = {
+            ...dynamicTags, // Spread all developer tags
             vessel_name: cert.Vessel?.vessel_name || '',
             imo_number: cert.Vessel?.imo_number || '',
             certificate_number: cert.certificate_number,
@@ -792,12 +798,14 @@ export const issueCertificate = async (id, user) => {
             expiry_date: cert.expiry_date,
             certificate_term: cert.certificate_term,
             flag_state: cert.FlagState?.flag_state_name || '',
-            issuing_authority: cert.Authority?.name || 'GR CLASS',
-            manual_text: cert.manual_text ? JSON.parse(cert.manual_text) : {},
+            issuing_authority: issuingAuthority,
+            manual_text: cert.manual_text || {},
             remarks: cert.remarks || '',
             gr_class_logo: grClassLogo,
             authority_logo: authorityLogo,
-            flag_logo: flagLogo
+            flag_logo: flagLogo,
+            // Merge manual_text if any
+            ...(cert.manual_text || {})
         };
 
         let qrDataUrl = null;
@@ -807,16 +815,51 @@ export const issueCertificate = async (id, user) => {
             });
         } catch (e) { logger.warn('QR generation failed', { err: e.message }); }
 
-        const fullHtml = buildFallbackCertificateHtml({
-            variables, 
-            issuingAuthority: variables.issuing_authority,
-            qrDataUrl
+        // Fetch Template
+        const template = await db.CertificateTemplate.findOne({
+            where: {
+                certificate_type_id: cert.certificate_type_id,
+                is_active: true,
+                ...(cert.certificate_term ? { certificate_term: cert.certificate_term } : {})
+            },
+            order: [['createdAt', 'DESC']],
+            transaction
+        }) || await db.CertificateTemplate.findOne({
+            where: { certificate_type_id: cert.certificate_type_id, is_active: true },
+            order: [['createdAt', 'DESC']],
+            transaction
         });
 
-        const pdfBuffer = await certificatePdfService.htmlToPdfBuffer(certificatePdfService.wrapHtmlForPdf(fullHtml));
-        const pdfKey = await s3Service.uploadFile(pdfBuffer, `${cert.certificate_number}.pdf`, 'application/pdf', 'certificates');
+        variables.qr_data_url = qrDataUrl;
 
-        await cert.update({ generated_pdf_url: pdfKey, pdf_file_url: pdfKey }, { transaction });
+        let filledDocxBuffer = null;
+
+        if (template?.template_file_url) {
+            // DOCX Template path
+            try {
+                const masterBuffer = await s3Service.getFileContent(template.template_file_url);
+                filledDocxBuffer = await fillDocxContentControls(masterBuffer, variables);
+            } catch (err) {
+                logger.error('DOCX template filling failed', { err: err.message });
+            }
+        }
+
+        if (!filledDocxBuffer) {
+            throw { statusCode: 500, message: 'No valid DOCX template found for this certificate.' };
+        }
+
+        try {
+            // For now, if it's a DOCX template, we store the filled DOCX.
+            const docxUrl = await s3Service.uploadFile(
+                filledDocxBuffer,
+                `${cert.certificate_number}.docx`,
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                s3Service.UPLOAD_FOLDERS.CERTIFICATES
+            );
+            await cert.update({ pdf_file_url: docxUrl, generated_pdf_url: docxUrl }, { transaction });
+        } catch (err) {
+            logger?.warn('Certificate file generation/upload failed', { certId: cert.id, err: err?.message });
+        }
 
         await db.CertificateHistory.create({
             certificate_id: cert.id,

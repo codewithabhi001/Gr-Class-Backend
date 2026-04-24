@@ -6,6 +6,7 @@ import * as checklistService from './src/modules/checklists/checklist.service.js
 import * as paymentService from './src/modules/payments/payment.service.js';
 import * as certificateService from './src/modules/certificates/certificate.service.js';
 import * as lifecycleService from './src/services/lifecycle.service.js';
+import * as s3Service from './src/services/s3.service.js';
 
 async function runTest() {
     console.log('--- Starting Full Flow Test ---');
@@ -63,7 +64,7 @@ async function runTest() {
             vessel_id: vessel.id,
             certificate_type_id: certType.id,
             target_port: 'Mumbai',
-            target_date: '2026-12-31',
+            target_date: '2026-12-01',
             reason: 'Annual Survey',
             uploaded_documents: [] // Mock: usually requires docs if certType says so
         };
@@ -128,18 +129,42 @@ async function runTest() {
 
         // 9. Upload Proof (Surveyor)
         console.log('\n[Step 8] Uploading Evidence Proof...');
-        await surveyService.uploadProof(job.id, null, { fileKey: 'proofs/test-evidence.jpg' }, surveyorUserId);
+        const proofKey = await s3Service.uploadFile(
+            Buffer.from('dummy-evidence-image-content'), 
+            'test-evidence.jpg', 
+            'image/jpeg', 
+            s3Service.UPLOAD_FOLDERS.SURVEYS_PROOF
+        );
+        await surveyService.uploadProof(job.id, null, { fileKey: proofKey }, surveyorUserId);
+        await survey.reload();
+        console.log(`Survey Status: ${survey.survey_status}`);
+
+        // 9.5 Upload Signed Checklist (Surveyor)
+        console.log('\n[Step 8.5] Uploading Signed Checklist Scan...');
+        const signedKey = await s3Service.uploadFile(
+            Buffer.from('%PDF-1.4 dummy-pdf-content'), 
+            'test-signed.pdf', 
+            'application/pdf', 
+            'surveys/signed-checklists'
+        );
+        await surveyService.updateSignedChecklist(job.id, [signedKey], surveyorUserId);
         await survey.reload();
         console.log(`Survey Status: ${survey.survey_status}`);
 
         // 10. Submit Survey Report (Surveyor Check-out)
         console.log('\n[Step 9] Submitting Final Survey Report...');
+        const attendancePhotoKey = await s3Service.uploadFile(
+            Buffer.from('dummy-attendance-photo-content'),
+            'attendance.jpg',
+            'image/jpeg',
+            s3Service.UPLOAD_FOLDERS.SURVEYS_PHOTO
+        );
         await surveyService.submitSurveyReport({
             job_id: job.id,
             submit_latitude: 18.92,
             submit_longitude: 72.83,
             survey_statement: 'Vessel is in good condition.',
-            photoKey: 'photos/attendance.jpg'
+            photoKey: attendancePhotoKey
         }, {}, surveyorUserId);
         await survey.reload();
         updatedJob = await db.JobRequest.findByPk(job.id);
@@ -153,9 +178,16 @@ async function runTest() {
 
         // 12. Issue Survey Statement (TM)
         console.log('\n[Step 11] Issuing Survey Statement PDF (TM)...');
-        await surveyService.issueSurveyStatement(job.id, null, { fileKey: 'statements/signed-report.pdf' }, tmUser);
+        // Do NOT provide fileKey; let the system generate the PDF from the template
+        await surveyService.issueSurveyStatement(job.id, null, {}, tmUser);
+        
+        // Wait a bit for background PDF generation if needed, though we'll reload anyway
+        await new Promise(resolve => setTimeout(resolve, 2000)); 
         await survey.reload();
         console.log(`Survey Statement Status: ${survey.survey_statement_status}`);
+        if (survey.survey_statement_pdf_url) {
+            console.log(`Survey Statement PDF: ${survey.survey_statement_pdf_url}`);
+        }
 
         // 13. Finalize Survey (TM)
         console.log('\n[Step 12] Finalizing Survey & Job (TM)...');
