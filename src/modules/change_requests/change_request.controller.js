@@ -81,7 +81,7 @@ export const getChangeRequestById = async (req, res, next) => {
 export const approveChangeRequest = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { remarks } = req.body;
+        const { remarks } = req.body || {};
 
         const changeRequest = await changeRequestService.approveChangeRequest(
             id,
@@ -105,7 +105,7 @@ export const approveChangeRequest = async (req, res, next) => {
 export const rejectChangeRequest = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { remarks } = req.body;
+        const { remarks } = req.body || {};
 
         const changeRequest = await changeRequestService.rejectChangeRequest(
             id,
