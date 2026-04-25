@@ -2,23 +2,24 @@
   post:
     tags: [Checklist Templates]
     summary: Create checklist template
+    description: |
+      Create a new checklist template (questions + optional attached
+      DOCX/PDF reference documents).
+
+      To attach reference documents, first call
+      `GET /api/v1/checklist-templates/get-upload-url` to obtain a pre-signed
+      S3 URL, upload the file directly to S3 with that URL, then send the
+      returned `fileKey` in the `template_files` array on this call.
     operationId: createChecklistTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            type: object
-            required: [name, code, sections]
-            properties:
-              name: { type: string }
-              code: { type: string }
-              description: { type: string }
-              certificate_type_id: { type: string, format: uuid }
-              sections: { type: array }
-              template_files: { type: array, items: { type: string } }
-              status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
+            $ref: '#/components/schemas/ChecklistTemplateCreateRequest'
           example:
             name: "Safety Equipment Inspection"
             code: "SAFETY_EQUIP_001"
@@ -33,45 +34,45 @@
                   - code: "LSE002"
                     text: "Number of life jackets"
                     type: "NUMBER"
-            status: "ACTIVE"
+            template_files:
+              - "checklist-templates/1714000000000_safety_master.docx"
+            status: "DRAFT"
+            metadata:
+              version: "1.0"
     responses:
-      "201": { description: Template created }
+      "201":
+        description: Template created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { $ref: '#/components/schemas/ChecklistTemplateResponse' }
+      "400": { description: Validation error }
       "403": { description: Forbidden }
 
   get:
     tags: [Checklist Templates]
-    summary: Get checklist templates
+    summary: List checklist templates
     operationId: getChecklistTemplates
     x-roles: [ADMIN, GM, TM, SURVEYOR]
+    security:
+      - bearerAuth: []
     parameters:
       - name: status
         in: query
-        schema: { type: string }
+        schema: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
       - name: certificate_type_id
         in: query
         schema: { type: string, format: uuid }
-    responses:
-      "200": { description: List of templates }
-      "403": { description: Forbidden }
-
-/api/v1/checklist-templates/get-upload-url:
-  get:
-    tags: [Checklist Templates]
-    summary: Get upload URL for checklist template
-    operationId: getChecklistTemplateUploadUrl
-    x-roles: [ADMIN]
-    parameters:
-      - name: fileName
+      - name: code
         in: query
-        required: true
-        schema: { type: string }
-      - name: contentType
-        in: query
-        required: true
         schema: { type: string }
     responses:
       "200":
-        description: Upload URL generated
+        description: List of templates
         content:
           application/json:
             schema:
@@ -79,34 +80,81 @@
               properties:
                 success: { type: boolean, example: true }
                 data:
-                  type: object
-                  properties:
-                    uploadUrl: { type: string }
-                    fileKey: { type: string }
+                  type: array
+                  items: { $ref: '#/components/schemas/ChecklistTemplateResponse' }
+      "403": { description: Forbidden }
+
+/api/v1/checklist-templates/get-upload-url:
+  get:
+    tags: [Checklist Templates]
+    summary: Get S3 upload URL for a template document (DOCX / PDF)
+    description: |
+      Generates a pre-signed S3 PUT URL. After uploading the file directly
+      to S3 with that URL, send the returned `fileKey` on the next
+      `POST /api/v1/checklist-templates` (in `template_files`) or
+      `PUT /api/v1/checklist-templates/{id}` (in `template_files`,
+      `add_template_files`, or `remove_template_files`).
+    operationId: getChecklistTemplateUploadUrl
+    x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string }
+        description: Filename with extension (e.g. iopp_master.docx)
+      - name: contentType
+        in: query
+        required: true
+        schema: { type: string }
+        description: MIME type (e.g. application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+    responses:
+      "200":
+        description: Upload URL generated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlResponse'
+      "400": { description: Missing fileName / contentType }
       "403": { description: Forbidden }
 
 /api/v1/checklist-templates/job/{jobId}:
   get:
     tags: [Checklist Templates]
-    summary: Get template for job
+    summary: Get template for a specific job
     operationId: getChecklistTemplateForJob
     x-roles: [SURVEYOR, ADMIN, GM, TM, TO]
+    security:
+      - bearerAuth: []
     parameters:
       - name: jobId
         in: path
         required: true
         schema: { type: string, format: uuid }
     responses:
-      "200": { description: Template for job }
+      "200":
+        description: Template for job
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { $ref: '#/components/schemas/ChecklistTemplateResponse' }
       "403": { description: Forbidden }
+      "404": { description: No active template for this certificate type }
 
 /api/v1/checklist-templates/job/{jobId}/download:
   get:
     tags: [Checklist Templates]
-    summary: Download auto-filled checklist DOCX for job
-    description: Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.
+    summary: Download auto-filled checklist DOCX for a job
+    description: Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns signed URLs.
     operationId: downloadChecklistTemplateForJob
     x-roles: [SURVEYOR, ADMIN, GM, TM, TO]
+    security:
+      - bearerAuth: []
     parameters:
       - name: jobId
         in: path
@@ -116,10 +164,10 @@
         in: query
         required: false
         schema: { type: boolean, default: false }
-        description: Regenerate even if cached document exists
+        description: Regenerate even if a cached document already exists
     responses:
       "200":
-        description: Signed URL for filled DOCX
+        description: Signed URL(s) for filled DOCX
         content:
           application/json:
             schema:
@@ -127,13 +175,17 @@
               properties:
                 success: { type: boolean, example: true }
                 data:
-                  type: object
-                  properties:
-                    fileName: { type: string }
-                    contentType: { type: string }
-                    expiresAt: { type: string, format: date-time, nullable: true }
-                    signedUrl: { type: string }
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      fileName: { type: string }
+                      contentType: { type: string }
+                      expiresAt: { type: string, format: date-time, nullable: true }
+                      signedUrl: { type: string, format: uri }
+      "400": { description: Template has no template_files configured }
       "403": { description: Forbidden }
+      "404": { description: Job or active template not found }
 
 /api/v1/checklist-templates/{id}:
   get:
@@ -141,20 +193,50 @@
     summary: Get template by ID
     operationId: getChecklistTemplateById
     x-roles: [ADMIN, GM, TM, SURVEYOR]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
         required: true
         schema: { type: string, format: uuid }
     responses:
-      "200": { description: Template details }
+      "200":
+        description: Template details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/ChecklistTemplateResponse' }
       "403": { description: Forbidden }
+      "404": { description: Template not found }
 
   put:
     tags: [Checklist Templates]
-    summary: Update template
+    summary: Update template (full replace OR add/remove file keys)
+    description: |
+      Update template fields. Three independent ways to manage attached
+      document keys are supported:
+
+      | Field | Effect |
+      |---|---|
+      | `template_files` | Full replace of the entire array |
+      | `add_template_files` | Append these keys (de-duplicated) |
+      | `remove_template_files` | Remove these specific keys |
+
+      `add_*` and `remove_*` can be combined in one call, but **cannot** be
+      combined with the full-replace `template_files`.
+
+      Structural edits (`name`, `code`, `sections`, `certificate_type_id`,
+      `metadata`) require the template to be in `DRAFT` status — clone the
+      template instead for finalized versions. File-key edits are allowed at
+      any status.
     operationId: updateChecklistTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
@@ -164,24 +246,55 @@
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              name: { type: string }
-              code: { type: string }
-              description: { type: string }
-              status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
-          example:
-            name: "Safety Equipment Inspection (Updated)"
-            status: "ACTIVE"
+            $ref: '#/components/schemas/ChecklistTemplateUpdateRequest'
+          examples:
+            renameOnly:
+              summary: Rename only (DRAFT status required)
+              value:
+                name: "Safety Equipment Inspection (v2)"
+            replaceFiles:
+              summary: Full replace of template_files (any status)
+              value:
+                template_files:
+                  - "checklist-templates/1714000010000_safety_master_v2.docx"
+            addFiles:
+              summary: Append a newly-uploaded reference doc (any status)
+              value:
+                add_template_files:
+                  - "checklist-templates/1714000020000_safety_supplement.pdf"
+            addAndRemove:
+              summary: Swap one file for another (any status)
+              value:
+                remove_template_files:
+                  - "checklist-templates/1714000000000_safety_master.docx"
+                add_template_files:
+                  - "checklist-templates/1714000020000_safety_master_v3.docx"
     responses:
-      "200": { description: Template updated }
+      "200":
+        description: Template updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { $ref: '#/components/schemas/ChecklistTemplateResponse' }
+      "400":
+        description: |
+          Either (a) you tried to mix full-replace `template_files` with
+          `add_*`/`remove_*`, or (b) you tried to make a structural edit on a
+          non-DRAFT template.
       "403": { description: Forbidden }
+      "404": { description: Template not found }
 
   delete:
     tags: [Checklist Templates]
-    summary: Delete template
+    summary: Delete template (soft delete → INACTIVE)
     operationId: deleteChecklistTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
@@ -190,13 +303,16 @@
     responses:
       "200": { description: Template deleted }
       "403": { description: Forbidden }
+      "404": { description: Template not found }
 
 /api/v1/checklist-templates/{id}/activate:
   put:
     tags: [Checklist Templates]
-    summary: Activate template
+    summary: Activate template (deactivates other actives for the same certificate type)
     operationId: activateChecklistTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
@@ -205,13 +321,16 @@
     responses:
       "200": { description: Template activated }
       "403": { description: Forbidden }
+      "404": { description: Template not found }
 
 /api/v1/checklist-templates/{id}/clone:
   post:
     tags: [Checklist Templates]
-    summary: Clone template
+    summary: Clone template (auto-bumps version, leaves clone in DRAFT)
     operationId: cloneChecklistTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
@@ -220,3 +339,4 @@
     responses:
       "201": { description: Template cloned }
       "403": { description: Forbidden }
+      "404": { description: Template not found }

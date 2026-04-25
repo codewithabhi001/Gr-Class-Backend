@@ -2,48 +2,52 @@
   post:
     tags: [Certificate Templates]
     summary: Create certificate template
+    description: |
+      Create a new DOCX template (referenced by an S3 key) used for
+      generating certificates.
+
+      To attach the DOCX file:
+        1. Call `GET /api/v1/certificate-templates/get-upload-url`.
+        2. PUT the file to the returned `uploadUrl`.
+        3. Send the returned `fileKey` as `template_file_url` here.
     operationId: createTemplate
-    description: Create a new DOCX template (via S3 key) for generating certificates
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            type: object
-            required: [template_name, certificate_type_id, template_file_url]
-            properties:
-              template_name: { type: string, description: "Name of the certificate template" }
-              certificate_type_id: { type: string, format: uuid, description: "ID of the associated certificate type" }
-              certificate_term:
-                type: string
-                enum: [FULL_TERM, SHORT_TERM]
-                nullable: true
-                description: "If set, this template is used only for that term"
-              template_file_url: { type: string, description: "S3 key for the .docx template file" }
-              variables: 
-                type: array
-                items:
-                  type: string
-                description: "Array of variable names expected to be filled during certificate generation"
-              is_active: { type: boolean, default: true, description: "Status of the template" }
+            $ref: '#/components/schemas/CertificateTemplateCreateRequest'
           example:
             template_name: "IOPP Certificate v1"
             certificate_type_id: "019ccdfb-e89b-12d3-a456-426614174000"
             certificate_term: "FULL_TERM"
-            template_file_url: "templates/certificates/iopp_v1.docx"
+            template_file_url: "certificate-templates/1714000000000_iopp_v1.docx"
             variables: ["vessel_name", "imo_number"]
             is_active: true
     responses:
-      "201": { description: Template created }
-      "400": { description: Bad request }
+      "201":
+        description: Template created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { $ref: '#/components/schemas/CertificateTemplateResponse' }
+      "400": { description: Validation error }
       "403": { description: Forbidden }
 
   get:
     tags: [Certificate Templates]
-    summary: Get certificate templates
+    summary: List certificate templates
     operationId: getTemplates
     x-roles: [ADMIN, GM, TM]
+    security:
+      - bearerAuth: []
     parameters:
       - name: is_active
         in: query
@@ -55,30 +59,94 @@
         in: query
         schema: { type: string, enum: [FULL_TERM, SHORT_TERM] }
     responses:
-      "200": { description: List of templates }
+      "200":
+        description: List of templates
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items: { $ref: '#/components/schemas/CertificateTemplateResponse' }
+      "403": { description: Forbidden }
+
+/api/v1/certificate-templates/get-upload-url:
+  get:
+    tags: [Certificate Templates]
+    summary: Get S3 upload URL for the certificate-template DOCX
+    description: |
+      Generates a pre-signed S3 PUT URL. Upload the DOCX directly to S3
+      using the returned `uploadUrl`, then send the returned `fileKey` as
+      `template_file_url` on:
+        - `POST /api/v1/certificate-templates`     (create)
+        - `PUT  /api/v1/certificate-templates/{id}` (update)
+    operationId: getCertificateTemplateUploadUrl
+    x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string }
+        description: Filename with extension (e.g. iopp_v1.docx)
+      - name: contentType
+        in: query
+        required: true
+        schema: { type: string }
+        description: |
+          MIME type. For DOCX use
+          `application/vnd.openxmlformats-officedocument.wordprocessingml.document`.
+    responses:
+      "200":
+        description: Upload URL generated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlResponse'
+      "400": { description: Missing fileName / contentType }
       "403": { description: Forbidden }
 
 /api/v1/certificate-templates/{id}:
   get:
     tags: [Certificate Templates]
-    summary: Get template by ID
+    summary: Get certificate template by ID
     operationId: getTemplateById
     x-roles: [ADMIN, GM, TM]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
         required: true
         schema: { type: string, format: uuid }
     responses:
-      "200": { description: Template details }
+      "200":
+        description: Template details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/CertificateTemplateResponse' }
       "403": { description: Forbidden }
       "404": { description: Template not found }
 
   put:
     tags: [Certificate Templates]
-    summary: Update template
+    summary: Update certificate template
+    description: |
+      Update any subset of fields. To swap the DOCX file, first call
+      `GET /api/v1/certificate-templates/get-upload-url`, upload the new
+      file to S3, then send the returned `fileKey` here as
+      `template_file_url`.
     operationId: updateTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path
@@ -88,28 +156,34 @@
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              template_name: { type: string }
-              certificate_type_id: { type: string, format: uuid }
-              certificate_term: { type: string, enum: [FULL_TERM, SHORT_TERM], nullable: true }
-              template_file_url: { type: string }
-              variables: 
-                type: array
-                items:
-                  type: string
-              is_active: { type: boolean }
+            $ref: '#/components/schemas/CertificateTemplateUpdateRequest'
+          example:
+            template_name: "IOPP Certificate v2"
+            template_file_url: "certificate-templates/1714000020000_iopp_v2.docx"
+            variables: ["vessel_name", "imo_number", "owner_name"]
+            is_active: true
     responses:
-      "200": { description: Template updated }
-      "400": { description: Bad request }
+      "200":
+        description: Template updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string }
+                data: { $ref: '#/components/schemas/CertificateTemplateResponse' }
+      "400": { description: Validation error }
       "403": { description: Forbidden }
       "404": { description: Template not found }
 
   delete:
     tags: [Certificate Templates]
-    summary: Delete template
+    summary: Delete certificate template
     operationId: deleteTemplate
     x-roles: [ADMIN]
+    security:
+      - bearerAuth: []
     parameters:
       - name: id
         in: path

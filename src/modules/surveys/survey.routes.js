@@ -42,21 +42,11 @@ router.post(
     surveyController.streamLocation
 );
 
-// Step 3c: Hybrid Flow - Get upload URL for signed checklist scan
-router.get(
-    '/jobs/:jobId/signed-checklist-upload-url',
-    authorizeRoles('SURVEYOR'),
-    surveyController.getSignedChecklistUploadUrl
-);
+// NOTE: Signed-checklist scan upload now lives in the checklists module:
+//   GET /api/v1/checklists/jobs/:jobId/signed-checklist-upload-url
+//   PUT /api/v1/checklists/jobs/:jobId         (body.signed_checklist_files)
 
-// Step 3d: Hybrid Flow - Save signed checklist keys
-router.put(
-    '/jobs/:jobId/signed-checklist',
-    authorizeRoles('SURVEYOR'),
-    surveyController.updateSignedChecklist
-);
-
-// Step 3e: Offline sync — replay batched checklist answers and GPS points
+// Step 3c: Offline sync — replay batched checklist answers and GPS points
 router.post(
     '/jobs/:jobId/sync',
     authorizeRoles('SURVEYOR'),

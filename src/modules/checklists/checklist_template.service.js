@@ -94,11 +94,9 @@ export const getChecklistTemplateById = async (id) => {
  * This is what surveyors will use to know what questions to answer
  */
 export const getChecklistTemplateForJob = async (jobId) => {
-    // Get job with certificate type
     const job = await JobRequest.findByPk(jobId, {
         include: ['CertificateType']
     });
-    console.log(job);
     if (!job) {
         throw { statusCode: 404, message: 'Job not found' };
     }
@@ -230,7 +228,22 @@ export const getUploadUrl = async (fileName, contentType, userId) => {
 };
 
 /**
- * Update a checklist template
+ * Update a checklist template.
+ *
+ * Accepts three independent ways to manage `template_files` (the array of
+ * S3 keys for attached PDFs/DOCXs):
+ *   1. `template_files`         — full replace
+ *   2. `add_template_files`     — append these keys to the existing list
+ *   3. `remove_template_files`  — drop these specific keys from the list
+ *
+ * `add_*` and `remove_*` may be combined in a single call, but cannot be
+ * combined with the full-replace `template_files`.
+ *
+ * Structural edits (name / code / sections / certificate_type_id / metadata)
+ * still require the template to be in DRAFT status — clone + version-bump
+ * is the right path for finalized templates.  File-list ops (attach / detach
+ * documents) are allowed at any status, since they only change which sample
+ * documents are attached, not the actual checklist questions.
  */
 export const updateChecklistTemplate = async (id, data, userId) => {
     const template = await ChecklistTemplate.findByPk(id);
@@ -239,14 +252,42 @@ export const updateChecklistTemplate = async (id, data, userId) => {
         throw { statusCode: 404, message: 'Checklist template not found' };
     }
 
-    if (template.status !== 'DRAFT') {
-        throw { statusCode: 400, message: 'Cannot modify a finalized Checklist Template. Please clone and version increment instead.' };
+    const fileOnlyKeys = new Set(['template_files', 'add_template_files', 'remove_template_files']);
+    const incomingKeys = Object.keys(data);
+    const hasStructuralEdit = incomingKeys.some(k => !fileOnlyKeys.has(k));
+
+    if (hasStructuralEdit && template.status !== 'DRAFT') {
+        throw {
+            statusCode: 400,
+            message: 'Cannot modify a finalized Checklist Template. Please clone and version-increment instead. (Tip: attach/detach document files via template_files / add_template_files / remove_template_files — that is allowed at any status.)'
+        };
     }
 
-    return await fileAccessService.resolveEntity(await template.update({
-        ...data,
-        updated_by: userId
-    }));
+    // ── Compute the next template_files array ──────────────────────────────
+    let nextTemplateFiles;
+    const current = Array.isArray(template.template_files) ? [...template.template_files] : [];
+
+    if (Array.isArray(data.template_files)) {
+        // Full replace
+        nextTemplateFiles = [...new Set(data.template_files)];
+    } else if (Array.isArray(data.add_template_files) || Array.isArray(data.remove_template_files)) {
+        const additions = Array.isArray(data.add_template_files) ? data.add_template_files : [];
+        const removals = new Set(Array.isArray(data.remove_template_files) ? data.remove_template_files : []);
+        // Keep order: existing keys that aren't being removed, then new keys.
+        const kept = current.filter(k => !removals.has(k));
+        const merged = [...kept];
+        for (const k of additions) {
+            if (!merged.includes(k)) merged.push(k);
+        }
+        nextTemplateFiles = merged;
+    }
+
+    // Strip the per-op virtual fields before sending to Sequelize.
+    const { template_files: _tf, add_template_files: _atf, remove_template_files: _rtf, ...rest } = data;
+    const updatePayload = { ...rest, updated_by: userId };
+    if (nextTemplateFiles !== undefined) updatePayload.template_files = nextTemplateFiles;
+
+    return await fileAccessService.resolveEntity(await template.update(updatePayload));
 };
 
 /**
@@ -266,7 +307,15 @@ export const deleteChecklistTemplate = async (id) => {
 };
 
 /**
- * Activate a checklist template
+ * Activate a checklist template.
+ *
+ * Guards: an activated template must be *usable* by surveyors, otherwise
+ * it would silently never match any job.  We therefore require:
+ *   • a `certificate_type_id`   (so jobs of that cert type can match it)
+ *   • at least one section with at least one item
+ *
+ * As a side effect, any other ACTIVE template for the same certificate type
+ * is moved to INACTIVE — at most one ACTIVE template per certificate type.
  */
 export const activateChecklistTemplate = async (id, userId) => {
     return await db.sequelize.transaction(async (t) => {
@@ -276,20 +325,37 @@ export const activateChecklistTemplate = async (id, userId) => {
             throw { statusCode: 404, message: 'Checklist template not found' };
         }
 
-        // Deactivate all other active templates for this certificate type
-        if (template.certificate_type_id) {
-            await ChecklistTemplate.update(
-                { status: 'INACTIVE', updated_by: userId },
-                {
-                    where: {
-                        certificate_type_id: template.certificate_type_id,
-                        status: 'ACTIVE',
-                        id: { [db.Sequelize.Op.ne]: id }
-                    },
-                    transaction: t
-                }
-            );
+        if (!template.certificate_type_id) {
+            throw {
+                statusCode: 400,
+                message: 'Cannot activate a template that is not linked to a certificate type — it would never match any job. Set `certificate_type_id` first.'
+            };
         }
+
+        const sections = Array.isArray(template.sections) ? template.sections : [];
+        const totalItems = sections.reduce(
+            (sum, s) => sum + (Array.isArray(s?.items) ? s.items.length : 0),
+            0
+        );
+        if (totalItems === 0) {
+            throw {
+                statusCode: 400,
+                message: 'Cannot activate a template with no checklist items. Add at least one section + item before activating.'
+            };
+        }
+
+        // Deactivate any other ACTIVE template for the same certificate type.
+        await ChecklistTemplate.update(
+            { status: 'INACTIVE', updated_by: userId },
+            {
+                where: {
+                    certificate_type_id: template.certificate_type_id,
+                    status: 'ACTIVE',
+                    id: { [db.Sequelize.Op.ne]: id }
+                },
+                transaction: t
+            }
+        );
 
         return await template.update({
             status: 'ACTIVE',
@@ -299,7 +365,16 @@ export const activateChecklistTemplate = async (id, userId) => {
 };
 
 /**
- * Clone a checklist template
+ * Clone a checklist template.
+ *
+ * The clone:
+ *   • keeps the same `name` (visually identifies it as the next version)
+ *   • bumps `metadata.version` and appends `_Vx_y` to `code` for uniqueness
+ *   • carries over `sections`, `certificate_type_id` and `template_files`
+ *     so the cloned template starts off with the same questions AND the
+ *     same attached reference DOCXs (admin can then swap docs / edit
+ *     questions while still in DRAFT)
+ *   • starts in DRAFT — admin must explicitly `PUT /:id/activate` it
  */
 export const cloneChecklistTemplate = async (id, userId) => {
     const originalTemplate = await ChecklistTemplate.findByPk(id);
@@ -315,10 +390,13 @@ export const cloneChecklistTemplate = async (id, userId) => {
     const newVersionSuffix = `_V${metadata.version.replace('.', '_')}`;
 
     const newTemplate = await ChecklistTemplate.create({
-        name: originalTemplate.name, // Keep the same name to align visually as subsequent version
+        name: originalTemplate.name,
         code: `${baseCode}${newVersionSuffix}`,
         description: originalTemplate.description,
         sections: originalTemplate.sections,
+        template_files: Array.isArray(originalTemplate.template_files)
+            ? [...originalTemplate.template_files]
+            : [],
         certificate_type_id: originalTemplate.certificate_type_id,
         status: 'DRAFT',
         metadata: metadata,

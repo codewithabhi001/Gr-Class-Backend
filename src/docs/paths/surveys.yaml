@@ -256,72 +256,9 @@
     responses:
       "201": { description: Proof uploaded }
 
-/api/v1/surveys/jobs/{jobId}/signed-checklist-upload-url:
-  get:
-    tags: [Surveys]
-    summary: Get upload URL for signed checklist scan
-    operationId: getSignedChecklistUploadUrl
-    x-roles: [SURVEYOR]
-    parameters:
-      - name: jobId
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-      - name: fileName
-        in: query
-        required: true
-        schema: { type: string }
-      - name: contentType
-        in: query
-        required: true
-        schema: { type: string }
-    responses:
-      "200":
-        description: Upload URL generated
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success: { type: boolean, example: true }
-                data:
-                  type: object
-                  properties:
-                    uploadUrl: { type: string }
-                    fileKey: { type: string }
-      "403": { description: Forbidden }
-
-/api/v1/surveys/jobs/{jobId}/signed-checklist:
-  put:
-    tags: [Surveys]
-    summary: Save signed checklist scan keys
-    operationId: updateSignedChecklist
-    x-roles: [SURVEYOR]
-    parameters:
-      - name: jobId
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required: [fileKeys]
-            properties:
-              fileKeys: { type: array, items: { type: string } }
-    responses:
-      "200":
-        description: Keys updated
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success: { type: boolean, example: true }
-                message: { type: string }
-      "403": { description: Forbidden }
+# NOTE: The signed-checklist scan endpoints have moved to the Checklists module:
+#   GET /api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url
+#   PUT /api/v1/checklists/jobs/{jobId}     (body.signed_checklist_files)
 
 /api/v1/surveys/jobs/{jobId}/timeline:
   get:

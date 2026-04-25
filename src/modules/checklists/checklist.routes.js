@@ -7,8 +7,33 @@ import { validate, schemas } from '../../middlewares/validate.middleware.js';
 const router = express.Router();
 
 router.use(authenticate);
-router.get('/jobs/:jobId', checklistController.getChecklist);
-router.put('/jobs/:jobId', authorizeRoles('SURVEYOR'), validate(schemas.submitChecklist), checklistController.submitChecklist);
-router.get('/jobs/:jobId/get-upload-url', authorizeRoles('SURVEYOR'), checklistController.getUploadUrl);
+
+// View checklist + signed-checklist scan URLs for a job
+router.get(
+    '/jobs/:jobId',
+    checklistController.getChecklist
+);
+
+// Submit checklist answers + (optionally) attach signed-checklist scan keys
+router.put(
+    '/jobs/:jobId',
+    authorizeRoles('SURVEYOR'),
+    validate(schemas.submitChecklist),
+    checklistController.submitChecklist
+);
+
+// Get pre-signed S3 URL to upload a single per-question evidence photo
+router.get(
+    '/jobs/:jobId/get-upload-url',
+    authorizeRoles('SURVEYOR'),
+    checklistController.getUploadUrl
+);
+
+// Get pre-signed S3 URL to upload the full signed-checklist document scan
+router.get(
+    '/jobs/:jobId/signed-checklist-upload-url',
+    authorizeRoles('SURVEYOR'),
+    checklistController.getSignedChecklistUploadUrl
+);
 
 export default router;

@@ -3,7 +3,14 @@
     tags:
       - Checklists
     summary: Get checklist for a job
-    description: Retrieve the checklist items for a specific job. Can be filtered by answer or question code.
+    description: |
+      Returns the checklist items for a job **plus** the resolved (signed)
+      HTTPS URLs of any full signed-checklist scan documents that were
+      attached to the underlying survey.
+
+      All `file_url` fields and `signed_checklist_files` entries are guaranteed
+      to be either fully-qualified HTTPS URLs or `null` — raw S3 keys are never
+      returned to the client.
     operationId: getChecklist
     security:
       - bearerAuth: []
@@ -39,12 +46,6 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ChecklistResponse'
-      '400':
-        description: Bad Request
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ErrorResponse'
       '401':
         description: Unauthorized
         content:
@@ -58,7 +59,7 @@
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '404':
-        description: Not Found
+        description: Job not found
         content:
           application/json:
             schema:
@@ -67,8 +68,17 @@
   put:
     tags:
       - Checklists
-    summary: Submit checklist for a job
-    description: Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (STARTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).
+    summary: Submit checklist (answers + optional signed-scan files)
+    description: |
+      Submit / replace the checklist answers for a job. In the **same call**
+      the surveyor can also attach the S3 keys of the full signed-checklist
+      scan document(s) — obtained earlier from
+      `GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.
+
+      Re-submission is allowed until the survey is finalized. Only the
+      assigned `SURVEYOR` can perform this action while the survey is in an
+      active state (`STARTED`, `CHECKLIST_SUBMITTED`, `PROOF_UPLOADED`,
+      or `REWORK_REQUIRED`).
     operationId: submitChecklist
     security:
       - bearerAuth: []
@@ -98,12 +108,14 @@
                 question_text: "Is the fire extinguisher charged?"
                 answer: "NO"
                 remarks: "Pressure low, needs replacement"
-                file_url: "https://example.com/evidence_fire_ext.jpg"
+                file_url: "surveys/checklist-evidence/<jobId>/1714000000000_fire_ext.jpg"
               - question_code: "LSE003"
                 question_text: "Is the fire alarm functional?"
                 answer: "NA"
                 remarks: "Not applicable for this vessel type"
                 file_url: ""
+            signed_checklist_files:
+              - "surveys/signed-checklists/<jobId>/1714000000000_signed.pdf"
     responses:
       '200':
         description: Checklist submitted successfully
@@ -112,7 +124,7 @@
             schema:
               $ref: '#/components/schemas/ChecklistResponse'
       '400':
-        description: Bad Request
+        description: Bad Request (invalid state, terminal job, etc.)
         content:
           application/json:
             schema:
@@ -124,13 +136,13 @@
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '403':
-        description: Forbidden
+        description: Forbidden — caller is not the assigned surveyor
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '404':
-        description: Not Found
+        description: Job not found
         content:
           application/json:
             schema:
@@ -140,8 +152,12 @@
   get:
     tags:
       - Checklists
-    summary: Get upload URL for checklist item evidence
-    description: Generates a pre-signed S3 URL so the surveyor can directly upload photo evidence for a specific checklist item (e.g. failing items). The returned fileKey is then passed as file_url in the checklist submission.
+    summary: Get upload URL for a single checklist-item evidence photo
+    description: |
+      Generates a pre-signed S3 URL so the surveyor can directly upload one
+      photo of evidence for a **single** checklist item (e.g. a failing item).
+      The returned `fileKey` is then passed back as `file_url` on that item
+      in the next `PUT /checklists/jobs/{jobId}` call.
     operationId: getChecklistItemUploadUrl
     security:
       - bearerAuth: []
@@ -172,14 +188,7 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success: { type: boolean, example: true }
-                data:
-                  type: object
-                  properties:
-                    uploadUrl: { type: string, format: uri }
-                    fileKey: { type: string }
+              $ref: '#/components/schemas/UploadUrlResponse'
       '400':
         description: Bad Request
         content:
@@ -187,13 +196,76 @@
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '403':
-        description: Forbidden
+        description: Forbidden — caller is not the assigned surveyor
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
       '404':
-        description: Job Not Found
+        description: Job not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url:
+  get:
+    tags:
+      - Checklists
+    summary: Get upload URL for the full signed-checklist scan
+    description: |
+      Generates a pre-signed S3 URL so the surveyor can upload the full
+      filled & signed checklist document (PDF / image) — one or more files
+      representing the actual signed sheet.
+
+      After uploading directly to S3 with the returned `uploadUrl`, send the
+      `fileKey` back inside the `signed_checklist_files` array on the next
+      `PUT /checklists/jobs/{jobId}` call.
+    operationId: getSignedChecklistUploadUrl
+    security:
+      - bearerAuth: []
+    x-roles: [SURVEYOR]
+    parameters:
+      - in: path
+        name: jobId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: Unique identifier of the job
+      - in: query
+        name: fileName
+        schema:
+          type: string
+        required: true
+        description: The filename with extension (e.g. signed_checklist.pdf)
+      - in: query
+        name: contentType
+        schema:
+          type: string
+        required: true
+        description: The MIME type of the file (e.g. application/pdf)
+    responses:
+      '200':
+        description: Upload URL generated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlResponse'
+      '400':
+        description: Bad Request (job not survey-eligible / terminal state)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: Forbidden — caller is not the assigned surveyor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Job not found
         content:
           application/json:
             schema:

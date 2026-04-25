@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import * as s3Service from '../../services/s3.service.js';
 
 const { CertificateTemplate } = db;
 
@@ -11,6 +12,19 @@ export const createTemplate = async (data) => {
         variables: data.variables || [],
         is_active: data.is_active !== false
     });
+};
+
+/**
+ * Generate a pre-signed S3 PUT URL so admin can upload a certificate
+ * template DOCX directly to S3. The returned `fileKey` should then be sent
+ * back as `template_file_url` on
+ *   POST /api/v1/certificate-templates  (create)
+ *   PUT  /api/v1/certificate-templates/:id  (update)
+ */
+export const getUploadUrl = async (fileName, contentType) => {
+    const key = `certificate-templates/${Date.now()}_${fileName}`;
+    const uploadUrl = await s3Service.getUploadSignedUrl(key, contentType);
+    return { uploadUrl, fileKey: key };
 };
 
 export const getTemplates = async (filters = {}) => {

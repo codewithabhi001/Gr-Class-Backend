@@ -51,16 +51,54 @@ ChecklistSubmission:
           question_text: { type: string }
           answer: { type: string, enum: [YES, NO, NA] }
           remarks: { type: string }
-          file_url: { type: string, format: uri }
+          file_url:
+            type: string
+            description: |
+              S3 key returned earlier from
+              `GET /checklists/jobs/{jobId}/get-upload-url`, OR a fully-qualified
+              HTTPS URL. Leave empty if no per-item evidence is attached.
+    signed_checklist_files:
+      type: array
+      description: |
+        Optional. S3 keys of the full signed-checklist scan documents,
+        each obtained from
+        `GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.
+      items: { type: string }
 
 ChecklistResponse:
   type: object
   properties:
     success: { type: boolean, example: true }
     data:
-      type: array
-      items:
-        $ref: '#/components/schemas/ChecklistItemResponse'
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChecklistItemResponse'
+        signed_checklist_files:
+          type: array
+          description: |
+            Resolved (signed) HTTPS URLs of the full signed-checklist scan
+            documents. Empty array when none are attached.
+          items:
+            type: string
+            format: uri
+
+UploadUrlResponse:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    data:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+          format: uri
+          description: Pre-signed S3 PUT URL. Upload the file directly with this URL.
+        fileKey:
+          type: string
+          description: S3 object key. Send this back to the API afterwards.
 
 ChecklistTemplateResponse:
   type: object
@@ -113,50 +151,117 @@ ChecklistTemplateResponse:
 ChecklistTemplateCreateRequest:
   type: object
   required: [name, code, sections]
+  description: |
+    Body for `POST /api/v1/checklist-templates`.
+    Required: `name`, `code`, `sections`.
+    Optional: `description`, `certificate_type_id`, `template_files`,
+    `status`, `metadata`.
   properties:
-    name: { type: string }
-    code: { type: string }
-    description: { type: string }
-    certificate_type_id: { $ref: '#/components/schemas/UUID', nullable: true }
+    name:
+      type: string
+      description: Human-readable template name.
+    code:
+      type: string
+      description: Stable template code (used as a stable reference).
+    description:
+      type: string
+      description: Short description of what the template covers.
+    certificate_type_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+      nullable: true
+      description: |
+        Certificate type this template applies to. When activated, the
+        active template for this certificate type drives surveyor checklists.
     sections:
       type: array
+      description: Ordered list of sections with their question items.
       items:
         type: object
+        required: [title, items]
         properties:
           title: { type: string }
           items:
             type: array
             items:
               type: object
+              required: [code, text]
               properties:
-                code: { type: string }
-                text: { type: string }
-                type: { type: string }
-    status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
-    template_files: { type: array, items: { type: string } }
-    metadata: { type: object }
+                code: { type: string, description: Stable per-question code (e.g. LSE001) }
+                text: { type: string, description: Question text shown to the surveyor }
+                type:
+                  type: string
+                  enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER]
+                  default: YES_NO_NA
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, DRAFT]
+      default: DRAFT
+    template_files:
+      type: array
+      description: |
+        S3 keys of attached reference DOCX/PDF files (each obtained from
+        `GET /api/v1/checklist-templates/get-upload-url`).
+      items: { type: string }
+    metadata:
+      type: object
+      description: Free-form JSON (e.g. `{ "version": "1.0" }`).
 
 ChecklistTemplateUpdateRequest:
   type: object
+  description: |
+    Body for `PUT /api/v1/checklist-templates/{id}`. All fields are optional —
+    send only what you want to change.
+
+    For attached document keys you have THREE choices (mutually exclusive
+    between `template_files` and the `add_*`/`remove_*` pair):
+      • `template_files`         — full replace of the entire array
+      • `add_template_files`     — append these keys
+      • `remove_template_files`  — drop these keys
+
+    Structural edits (`name`, `code`, `sections`, `certificate_type_id`,
+    `metadata`) require the template to be in `DRAFT`. File-key edits are
+    allowed at any status.
   properties:
     name: { type: string }
     code: { type: string }
     description: { type: string }
-    certificate_type_id: { $ref: '#/components/schemas/UUID', nullable: true }
+    certificate_type_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+      nullable: true
     sections:
       type: array
       items:
         type: object
+        required: [title, items]
         properties:
           title: { type: string }
           items:
             type: array
             items:
               type: object
+              required: [code, text]
               properties:
                 code: { type: string }
                 text: { type: string }
-                type: { type: string }
+                type:
+                  type: string
+                  enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER]
+                  default: YES_NO_NA
     status: { type: string, enum: [ACTIVE, INACTIVE, DRAFT] }
-    template_files: { type: array, items: { type: string } }
     metadata: { type: object }
+    template_files:
+      type: array
+      description: Full replace of the attached-document key list.
+      items: { type: string }
+    add_template_files:
+      type: array
+      description: |
+        S3 keys to append (de-duplicated). Use this to "add a new file on
+        top" without losing the existing ones.
+      items: { type: string }
+    remove_template_files:
+      type: array
+      description: S3 keys to drop from the existing list.
+      items: { type: string }

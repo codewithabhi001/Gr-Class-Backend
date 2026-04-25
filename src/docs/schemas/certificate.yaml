@@ -1,3 +1,90 @@
+CertificateTemplateResponse:
+  type: object
+  description: A DOCX template (referenced by S3 key) used to render certificates.
+  properties:
+    id: { $ref: '#/components/schemas/UUID' }
+    template_name: { type: string }
+    certificate_type_id: { $ref: '#/components/schemas/UUID' }
+    certificate_term:
+      type: string
+      enum: [FULL_TERM, SHORT_TERM]
+      nullable: true
+    template_file_url:
+      type: string
+      description: |
+        S3 key for the .docx template (e.g.
+        `certificate-templates/1714000000000_iopp_v1.docx`). This is what
+        `getUploadUrl` returned as `fileKey`.
+      nullable: true
+    variables:
+      type: array
+      description: Variable names this template expects to receive at render time.
+      items: { type: string }
+    is_active: { type: boolean }
+    created_at: { type: string, format: date-time }
+    updated_at: { type: string, format: date-time }
+    CertificateType:
+      type: object
+      nullable: true
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+
+CertificateTemplateCreateRequest:
+  type: object
+  required: [template_name, certificate_type_id, template_file_url]
+  description: |
+    Body for `POST /api/v1/certificate-templates`.
+    Required: `template_name`, `certificate_type_id`, `template_file_url`.
+    Optional: `certificate_term`, `variables`, `is_active`.
+  properties:
+    template_name:
+      type: string
+      description: Human-readable template name.
+    certificate_type_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+      description: ID of the associated certificate type.
+    certificate_term:
+      type: string
+      enum: [FULL_TERM, SHORT_TERM]
+      nullable: true
+      description: If set, this template is used only for that term.
+    template_file_url:
+      type: string
+      description: |
+        S3 key returned by
+        `GET /api/v1/certificate-templates/get-upload-url` (after the file
+        has been uploaded to that pre-signed URL).
+    variables:
+      type: array
+      description: Variable names this template expects at render time.
+      items: { type: string }
+    is_active:
+      type: boolean
+      default: true
+
+CertificateTemplateUpdateRequest:
+  type: object
+  description: |
+    Body for `PUT /api/v1/certificate-templates/{id}`. All fields optional —
+    send only what you want to change. To swap the DOCX, send the new S3
+    key as `template_file_url`.
+  properties:
+    template_name: { type: string }
+    certificate_type_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+    certificate_term:
+      type: string
+      enum: [FULL_TERM, SHORT_TERM]
+      nullable: true
+    template_file_url: { type: string }
+    variables:
+      type: array
+      items: { type: string }
+    is_active: { type: boolean }
+
 CertificateSummary:
   type: object
   properties:

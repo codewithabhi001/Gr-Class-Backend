@@ -7,11 +7,15 @@ import { validate, schemas } from '../../middlewares/validate.middleware.js';
 const router = express.Router();
 router.use(authenticate);
 
-// Create a new checklist template
+// Create a new certificate template
 router.post('/', authorizeRoles('ADMIN'), validate(schemas.createTemplate), templateController.createTemplate);
 
-// List templates
+// List certificate templates
 router.get('/', authorizeRoles('ADMIN', 'GM', 'TM'), templateController.getTemplates);
+
+// Pre-signed S3 PUT URL for the DOCX template file
+// (registered before /:id so the static path wins)
+router.get('/get-upload-url', authorizeRoles('ADMIN'), templateController.getUploadUrl);
 
 // Get a specific template
 router.get('/:id', authorizeRoles('ADMIN', 'GM', 'TM'), templateController.getTemplateById);

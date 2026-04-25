@@ -144,7 +144,10 @@ export const schemas = {
             answer: Joi.string().valid('YES', 'NO', 'NA').required(),
             remarks: Joi.string().allow('').optional(),
             file_url: Joi.string().allow('', null).optional()
-        })).required()
+        })).required(),
+        // Optional: S3 keys (returned earlier from /checklists/jobs/:jobId/signed-checklist-upload-url)
+        // for the full scanned + signed checklist document(s).
+        signed_checklist_files: Joi.array().items(Joi.string()).optional()
     }),
     createToca: Joi.object({
         vessel_id: Joi.string().guid().required(),
@@ -351,9 +354,12 @@ export const schemas = {
                 type: Joi.string().valid('YES_NO_NA', 'TEXT', 'NUMBER', 'PASS_FAIL', 'YES_NO', 'PASS_FAIL_NA').default('YES_NO_NA')
             })).required()
         })).required(),
+        // Optional. S3 keys obtained from
+        // GET /api/v1/checklist-templates/get-upload-url. Stored as JSON array.
+        template_files: Joi.array().items(Joi.string()).optional(),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'DRAFT').optional(),
         metadata: Joi.object().optional()
-    }).unknown(true),
+    }),
     updateChecklistTemplate: Joi.object({
         name: Joi.string().optional(),
         code: Joi.string().optional(),
@@ -368,8 +374,25 @@ export const schemas = {
             })).required()
         })).optional(),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'DRAFT').optional(),
-        metadata: Joi.object().optional()
-    }).unknown(true),
+        metadata: Joi.object().optional(),
+        // Three independent ways to manage attached template files:
+        //   - template_files          → full replace
+        //   - add_template_files      → append these keys to the existing list
+        //   - remove_template_files   → drop these specific keys from the list
+        // (You can use add_ + remove_ together. Don't combine either with the
+        // full-replace `template_files` field.)
+        template_files: Joi.array().items(Joi.string()).optional(),
+        add_template_files: Joi.array().items(Joi.string()).optional(),
+        remove_template_files: Joi.array().items(Joi.string()).optional()
+    }).custom((value, helpers) => {
+        const fullReplace = Object.prototype.hasOwnProperty.call(value, 'template_files');
+        const addOrRemove = Object.prototype.hasOwnProperty.call(value, 'add_template_files')
+            || Object.prototype.hasOwnProperty.call(value, 'remove_template_files');
+        if (fullReplace && addOrRemove) {
+            return helpers.message('Use either `template_files` (full replace) OR `add_template_files` / `remove_template_files`, not both.');
+        }
+        return value;
+    }, 'template-files-mutex'),
     createVessel: Joi.object({
         client_id: Joi.string().guid().required(),
         vessel_name: Joi.string().required(),
