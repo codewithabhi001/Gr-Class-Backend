@@ -84,6 +84,30 @@ ChecklistResponse:
           items:
             type: string
             format: uri
+        template_files:
+          type: array
+          description: |
+            Resolved (signed) HTTPS URLs of the reference/blank checklist
+            template documents (DOCX/PDF) attached to the active checklist
+            template for this job's certificate type.
+            Empty array when no active template exists or it has no attached files.
+          items:
+            type: string
+            format: uri
+        template:
+          type: object
+          nullable: true
+          description: |
+            Minimal metadata for the active checklist template used to provide
+            `template_files`. Null when no active template exists for the job's
+            certificate type.
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            name:
+              type: string
+            code:
+              type: string
 
 UploadUrlResponse:
   type: object

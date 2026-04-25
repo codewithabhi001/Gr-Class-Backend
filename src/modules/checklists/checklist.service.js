@@ -3,7 +3,7 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import * as s3Service from '../../services/s3.service.js';
 
-const { ActivityPlanning, JobRequest, Survey } = db;
+const { ActivityPlanning, ChecklistTemplate, JobRequest, Survey } = db;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET CHECKLIST
@@ -17,6 +17,8 @@ const { ActivityPlanning, JobRequest, Survey } = db;
  *   {
  *     items: [{ id, job_id, question_code, ..., file_url }],
  *     signed_checklist_files: [<full https url>, ...]   // resolved
+ *     template_files: [<full https url>, ...]           // resolved
+ *     template: { id, name, code }                     // minimal template metadata (or null)
  *   }
  *
  * All file_url / signed_checklist_files entries are guaranteed to be either
@@ -63,9 +65,31 @@ export const getChecklist = async (jobId, filters = {}, user = null) => {
     });
     const signedFiles = await resolveKeyArray(survey?.signed_checklist_files, user);
 
+    // Pull active checklist template reference docs (blank DOCX/PDF) for this job's
+    // certificate type. These are read-only and help the surveyor download/print.
+    let templateMeta = null;
+    let templateFiles = [];
+    try {
+        const template = await ChecklistTemplate.findOne({
+            where: { certificate_type_id: job.certificate_type_id, status: 'ACTIVE' },
+            attributes: ['id', 'name', 'code', 'template_files'],
+        });
+        if (template) {
+            templateMeta = { id: template.id, name: template.name, code: template.code };
+            const resolvedTemplate = await fileAccessService.resolveEntity(template, user);
+            templateFiles = Array.isArray(resolvedTemplate?.template_files) ? resolvedTemplate.template_files : [];
+        }
+    } catch {
+        // Non-blocking: checklist answers should still be viewable even if template lookup fails.
+        templateMeta = null;
+        templateFiles = [];
+    }
+
     return {
         items: resolvedItems,
-        signed_checklist_files: signedFiles
+        signed_checklist_files: signedFiles,
+        template_files: templateFiles,
+        template: templateMeta
     };
 };
 

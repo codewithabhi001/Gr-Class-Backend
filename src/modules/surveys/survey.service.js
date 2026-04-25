@@ -398,7 +398,7 @@ const generateSurveyReportPdf = async (survey, user) => {
     const surveyor = await User.findByPk(survey.surveyor_id, { attributes: ['name'] });
     const checklist = await ActivityPlanning.findAll({
         where: { job_id: survey.job_id },
-        attributes: ['question_text', 'answer', 'remarks']
+        attributes: ['question_text', 'answer', 'remarks', 'file_url']
     });
 
     // 2. Build HTML (QR removed as per user request for SOF)
@@ -406,6 +406,7 @@ const generateSurveyReportPdf = async (survey, user) => {
     
     // Resolve S3 keys into signed URLs for the PDF template
     const resolvedSurvey = await fileAccessService.resolveEntity(survey, user);
+    const resolvedChecklist = await fileAccessService.resolveEntity(checklist, user);
 
     const html = buildSurveyReportHtml({
         job,
@@ -415,7 +416,7 @@ const generateSurveyReportPdf = async (survey, user) => {
             ...resolvedSurvey, 
             is_draft: !isIssued 
         },
-        checklist,
+        checklist: resolvedChecklist,
         client: job.requester
     });
 

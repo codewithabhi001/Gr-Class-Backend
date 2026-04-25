@@ -26,7 +26,15 @@ export const buildSurveyReportHtml = ({ job, vessel, surveyor, survey, checklist
         <tr>
             <td style="padding: 10px; border-bottom: 1px solid #edf2f7; font-size: 13px;">${escapeHtml(item.question_text)}</td>
             <td style="padding: 10px; border-bottom: 1px solid #edf2f7; text-align: center; font-weight: bold; color: ${item.answer === 'YES' ? '#2f855a' : item.answer === 'NO' ? '#c53030' : '#4a5568'};">${escapeHtml(item.answer)}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #edf2f7; font-size: 12px; color: #718096;">${escapeHtml(item.remarks || '-')}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #edf2f7; font-size: 12px; color: #718096;">
+                <div>${escapeHtml(item.remarks || '-')}</div>
+                ${item.file_url ? `
+                    <div style="margin-top: 6px; font-size: 11px;">
+                        <strong style="color:#4a5568;">Checklist Evidence:</strong>
+                        <a href="${item.file_url}" style="color: #2c5282; text-decoration: none;">View File</a>
+                    </div>
+                ` : ''}
+            </td>
         </tr>
     `).join('');
 
