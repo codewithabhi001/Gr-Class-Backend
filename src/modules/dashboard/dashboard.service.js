@@ -298,19 +298,53 @@ export const getTODashboard = async (user) => {
 }
 
 export const getSurveyorDashboard = async (user) => {
-    const [assignedJobs, allJobsRaw, allSurveysRaw, openNCsCount, profile] = await Promise.all([
+    const jobIncludes = [
+        'Vessel',
+        'CertificateType',
+        { model: Survey, as: 'survey', attributes: ['survey_status'] }
+    ];
+
+    const surveyorFilter = { assigned_surveyor_id: user.id };
+
+    const [assignedJobs, authorizedJobs, inProgressJobs, reworkJobs, completedJobs, allJobsRaw, allSurveysRaw, openNCsCount, profile] = await Promise.all([
+        // Assigned — waiting for authorization, surveyor cannot start yet
         JobRequest.findAll({
-            where: { assigned_surveyor_id: user.id },
-            include: [
-                'Vessel',
-                'CertificateType',
-                { model: Survey, as: 'survey', attributes: ['survey_status'] }
-            ],
-            order: [['createdAt', 'DESC']],
+            where: { ...surveyorFilter, job_status: 'ASSIGNED' },
+            include: jobIncludes,
+            order: [['target_date', 'ASC']],
             limit: 10,
         }),
+        // Authorized — surveyor can start these
         JobRequest.findAll({
-            where: { assigned_surveyor_id: user.id },
+            where: { ...surveyorFilter, job_status: 'SURVEY_AUTHORIZED' },
+            include: jobIncludes,
+            order: [['target_date', 'ASC']],
+            limit: 10,
+        }),
+        // In Progress — actively being surveyed
+        JobRequest.findAll({
+            where: { ...surveyorFilter, job_status: 'IN_PROGRESS' },
+            include: jobIncludes,
+            order: [['target_date', 'ASC']],
+            limit: 10,
+        }),
+        // Action Required — rework requested, needs surveyor's attention
+        JobRequest.findAll({
+            where: { ...surveyorFilter, job_status: 'REWORK_REQUESTED' },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10,
+        }),
+        // Recently Completed — finished jobs
+        JobRequest.findAll({
+            where: { ...surveyorFilter, job_status: { [Op.in]: ['SURVEY_DONE', 'REVIEWED', 'FINALIZED', 'PAYMENT_DONE', 'CERTIFIED'] } },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10,
+        }),
+        // Summary counts (lightweight)
+        JobRequest.findAll({
+            where: surveyorFilter,
             attributes: ['job_status'],
             raw: true
         }),
@@ -322,7 +356,7 @@ export const getSurveyorDashboard = async (user) => {
         NonConformity.count({
             include: [{
                 model: JobRequest,
-                where: { assigned_surveyor_id: user.id },
+                where: surveyorFilter,
                 required: true
             }],
             where: { status: 'OPEN' }
@@ -342,6 +376,15 @@ export const getSurveyorDashboard = async (user) => {
         return acc;
     }, {});
 
+    const formatJob = (j) => ({
+        id: j.id,
+        job_status: j.job_status,
+        survey_status: j.survey?.survey_status || 'NOT_STARTED',
+        target_date: j.target_date,
+        vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
+        certificate_type: j.CertificateType?.name
+    });
+
     return {
         role: 'SURVEYOR',
         user: { id: user.id, name: user.name, email: user.email },
@@ -355,24 +398,13 @@ export const getSurveyorDashboard = async (user) => {
             rework_requested: jobsByStatus['REWORK_REQUESTED'] || 0,
             pending_proofs: surveysByStatus['CHECKLIST_SUBMITTED'] || 0
         },
-        recent_assigned_jobs: assignedJobs.map((j) => ({
-            id: j.id,
-            job_status: j.job_status,
-            survey_status: j.survey?.survey_status || 'NOT_STARTED',
-            target_date: j.target_date,
-            vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
-            certificate_type: j.CertificateType?.name
-        })),
-        upcoming_jobs: assignedJobs
-            .filter(j => j.job_status === 'SURVEYOR_ASSIGNED' || j.job_status === 'IN_PROGRESS')
-            .sort((a, b) => new Date(a.target_date) - new Date(b.target_date))
-            .slice(0, 5)
-            .map(j => ({
-                id: j.id,
-                vessel: j.Vessel?.vessel_name,
-                target_date: j.target_date,
-                status: j.job_status
-            }))
+        jobs: {
+            assigned: assignedJobs.map(formatJob),
+            authorized: authorizedJobs.map(formatJob),
+            in_progress: inProgressJobs.map(formatJob),
+            action_required: reworkJobs.map(formatJob),
+            recently_completed: completedJobs.map(formatJob)
+        }
     };
 }
 
