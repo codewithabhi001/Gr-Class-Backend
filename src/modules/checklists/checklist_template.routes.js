@@ -36,12 +36,12 @@ router.get(
 /**
  * @route   GET /api/v1/checklist-templates
  * @desc    Get all checklist templates (with optional filters)
- * @access  ADMIN, GM, TM, SURVEYOR
+ * @access  ADMIN, GM, TM
  * @query   ?status=ACTIVE&certificate_type_id=xxx
  */
 router.get(
     '/',
-    authorizeRoles('ADMIN', 'GM', 'TM', 'SURVEYOR'),
+    authorizeRoles('ADMIN', 'GM', 'TM'),
     checklistTemplateController.getChecklistTemplates
 );
 
@@ -71,11 +71,11 @@ router.get(
 /**
  * @route   GET /api/v1/checklist-templates/:id
  * @desc    Get a specific checklist template by ID
- * @access  ADMIN, GM, TM, SURVEYOR
+ * @access  ADMIN, GM, TM
  */
 router.get(
     '/:id',
-    authorizeRoles('ADMIN', 'GM', 'TM', 'SURVEYOR'),
+    authorizeRoles('ADMIN', 'GM', 'TM'),
     checklistTemplateController.getChecklistTemplateById
 );
 

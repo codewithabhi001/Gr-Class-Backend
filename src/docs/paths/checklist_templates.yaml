@@ -57,7 +57,7 @@
     tags: [Checklist Templates]
     summary: List checklist templates
     operationId: getChecklistTemplates
-    x-roles: [ADMIN, GM, TM, SURVEYOR]
+    x-roles: [ADMIN, GM, TM]
     security:
       - bearerAuth: []
     parameters:
@@ -192,7 +192,7 @@
     tags: [Checklist Templates]
     summary: Get template by ID
     operationId: getChecklistTemplateById
-    x-roles: [ADMIN, GM, TM, SURVEYOR]
+    x-roles: [ADMIN, GM, TM]
     security:
       - bearerAuth: []
     parameters:
