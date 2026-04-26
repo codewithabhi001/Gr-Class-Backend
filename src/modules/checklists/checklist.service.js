@@ -189,6 +189,53 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
     }
 };
 
+/**
+ * Update ONLY the signed checklist scan S3 keys on the survey.
+ *
+ * This supports a clean frontend flow:
+ *   1) Save checklist answers (PUT /checklists/jobs/:jobId)
+ *   2) Upload signed checklist scans on a dedicated screen (this endpoint)
+ *
+ * Returns:
+ *   { signed_checklist_files: [https, ...] }
+ */
+export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, user) => {
+    const userObj = (typeof user === 'object' && user !== null) ? user : (user ? { id: user } : null);
+    const userId = userObj?.id;
+
+    const job = await JobRequest.findByPk(jobId);
+    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
+
+    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
+        throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
+    }
+    if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
+        throw { statusCode: 400, message: `The checklist cannot be updated as the job has already moved to ${job.job_status} status.` };
+    }
+    if (job.assigned_surveyor_id !== userId) {
+        throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
+    }
+    if (job.is_survey_required === false) {
+        throw { statusCode: 400, message: "Survey not required for this job." };
+    }
+    if (!Array.isArray(signedChecklistFiles)) {
+        throw { statusCode: 400, message: 'signed_checklist_files must be an array of S3 keys.' };
+    }
+
+    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet. Please check-in first.' };
+
+    const activeStatuses = ['STARTED', 'CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];
+    if (!activeStatuses.includes(survey.survey_status)) {
+        throw { statusCode: 400, message: `The signed checklist files cannot be modified as the survey is in ${survey.survey_status} status.` };
+    }
+
+    await survey.update({ signed_checklist_files: signedChecklistFiles });
+
+    const signedFilesResolved = await resolveKeyArray(signedChecklistFiles, userObj);
+    return { signed_checklist_files: signedFilesResolved };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────

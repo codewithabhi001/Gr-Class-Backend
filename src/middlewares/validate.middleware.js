@@ -149,6 +149,9 @@ export const schemas = {
         // for the full scanned + signed checklist document(s).
         signed_checklist_files: Joi.array().items(Joi.string()).optional()
     }),
+    updateSignedChecklistFiles: Joi.object({
+        signed_checklist_files: Joi.array().items(Joi.string()).required()
+    }),
     createToca: Joi.object({
         vessel_id: Joi.string().guid().required(),
         losing_class_society: Joi.string().required(),

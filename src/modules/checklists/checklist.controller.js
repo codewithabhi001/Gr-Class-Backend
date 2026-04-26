@@ -19,6 +19,17 @@ export const submitChecklist = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const updateSignedChecklistFiles = async (req, res, next) => {
+    try {
+        const list = await checklistService.updateSignedChecklistFiles(
+            req.params.jobId,
+            req.body.signed_checklist_files,
+            req.user
+        );
+        res.json({ success: true, data: list });
+    } catch (error) { next(error); }
+};
+
 // GET /checklists/jobs/:jobId/get-upload-url
 // Per checklist-item evidence photo (one photo per question).
 export const getUploadUrl = async (req, res, next) => {

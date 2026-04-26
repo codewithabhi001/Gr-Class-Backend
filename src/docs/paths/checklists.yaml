@@ -270,3 +270,88 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+
+/api/v1/checklists/jobs/{jobId}/signed-checklist-files:
+  put:
+    tags:
+      - Checklists
+    summary: Update signed checklist scan files (keys only)
+    description: |
+      Updates **only** the `signed_checklist_files` array for the job's survey.
+
+      Use this when your UI flow is split into two screens:
+      1) Save checklist answers (PUT `/checklists/jobs/{jobId}`)
+      2) Upload signed checklist scan(s) and attach them here
+
+      The array is treated as a **full replace**:
+      - To replace files: send the new full array
+      - To remove all: send `[]`
+
+      Each entry must be an S3 key obtained from
+      `GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.
+    operationId: updateSignedChecklistFiles
+    security:
+      - bearerAuth: []
+    x-roles: [SURVEYOR]
+    parameters:
+      - in: path
+        name: jobId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: Unique identifier of the job
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [signed_checklist_files]
+            properties:
+              signed_checklist_files:
+                type: array
+                items: { type: string }
+          example:
+            signed_checklist_files:
+              - "surveys/signed-checklists/<jobId>/1714000000000_signed.pdf"
+    responses:
+      '200':
+        description: Updated signed checklist files
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    signed_checklist_files:
+                      type: array
+                      description: Resolved (signed) HTTPS URLs
+                      items: { type: string, format: uri }
+      '400':
+        description: Bad Request (invalid state, terminal job, etc.)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: Forbidden — caller is not the assigned surveyor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: Job not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

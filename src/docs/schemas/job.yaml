@@ -136,8 +136,16 @@ JobResponse:
         id: { type: string, format: uuid }
         survey_status: { type: string }
         survey_statement_status: { type: string }
+        survey_statement_pdf_url:
+          type: string
+          format: uri
+          nullable: true
         started_at: { type: string, format: date-time, nullable: true }
         submitted_at: { type: string, format: date-time, nullable: true }
+        signed_checklist_files:
+          type: array
+          description: Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.
+          items: { type: string, format: uri }
     Payments:
       type: array
       items:

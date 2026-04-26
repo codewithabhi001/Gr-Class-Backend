@@ -11,6 +11,7 @@ router.use(authenticate);
 // View checklist + signed-checklist scan URLs for a job
 router.get(
     '/jobs/:jobId',
+    authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'),
     checklistController.getChecklist
 );
 
@@ -20,6 +21,14 @@ router.put(
     authorizeRoles('SURVEYOR'),
     validate(schemas.submitChecklist),
     checklistController.submitChecklist
+);
+
+// Update ONLY signed-checklist scan keys (separate screen after answers)
+router.put(
+    '/jobs/:jobId/signed-checklist-files',
+    authorizeRoles('SURVEYOR'),
+    validate(schemas.updateSignedChecklistFiles),
+    checklistController.updateSignedChecklistFiles
 );
 
 // Get pre-signed S3 URL to upload a single per-question evidence photo
