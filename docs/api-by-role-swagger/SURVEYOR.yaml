@@ -20,6 +20,9 @@ tags:
     name: Auth
     description: 'Authentication and session management'
   -
+    name: Public
+    description: 'Public APIs (no auth)'
+  -
     name: Jobs
     description: 'Job lifecycle management'
   -
@@ -29,8 +32,14 @@ tags:
     name: Certificates
     description: 'Certificate management and verification'
   -
+    name: Payments
+    description: 'Payment and invoice management'
+  -
     name: Dashboard
     description: 'Role-based dashboard data'
+  -
+    name: Clients
+    description: 'Client management'
   -
     name: Health
     description: 'Health check'
@@ -53,6 +62,9 @@ tags:
     name: Search
     description: 'Global search'
   -
+    name: Compliance
+    description: 'Compliance and data export'
+  -
     name: Notifications
     description: 'User notifications'
   -
@@ -65,8 +77,44 @@ tags:
     name: System
     description: 'System administration'
   -
+    name: Reports
+    description: Reports
+  -
     name: Non-Conformities
     description: 'NC management'
+  -
+    name: TOCA
+    description: 'Transfer of Class'
+  -
+    name: Flags
+    description: 'Flag administration'
+  -
+    name: Approvals
+    description: 'Approval workflows'
+  -
+    name: 'Change Requests'
+    description: 'Change requests'
+  -
+    name: 'Certificate Templates'
+    description: 'Certificate template management'
+  -
+    name: Incidents
+    description: 'Incident reporting'
+  -
+    name: 'Activity Requests'
+    description: 'Activity planning requests'
+  -
+    name: Providers
+    description: 'Service provider management'
+  -
+    name: Feedback
+    description: 'Customer feedback'
+  -
+    name: Mobile
+    description: 'Mobile app sync'
+  -
+    name: Contact
+    description: 'Website contact / enquiry management'
 components:
   securitySchemes:
     bearerAuth:
@@ -75,6 +123,214 @@ components:
       bearerFormat: JWT
       description: 'JWT access token from login or refresh-token. Use in header: Authorization: Bearer &lt;accessToken&gt;'
   schemas:
+    ActivityRequestCreateRequest:
+      type: object
+      required:
+        - activity_type
+        - requested_service
+        - proposed_date
+        - location_port
+      properties:
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+          description: 'Mandatory for CLIENT requests'
+        activity_type:
+          type: string
+          enum:
+            - INSPECTION
+            - AUDIT
+            - TRAINING
+            - VISIT
+            - OTHER
+        requested_service:
+          type: string
+          example: 'Annual Survey'
+        priority:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - URGENT
+          default: MEDIUM
+        description:
+          type: string
+        location_port:
+          type: string
+          example: 'Port of Singapore'
+        proposed_date:
+          type: string
+          format: date
+          example: '2026-05-15'
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uri
+    ActivityRequestSummary:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        request_number:
+          type: string
+        activity_type:
+          type: string
+        requested_service:
+          type: string
+        proposed_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+            - CONVERTED_TO_JOB
+            - DRAFT
+        Vessel:
+          $ref: '#/components/schemas/VesselSummary'
+        created_at:
+          type: string
+          format: date-time
+    ActivityRequestDetailResponse:
+      allOf:
+        -
+          $ref: '#/components/schemas/ActivityRequestSummary'
+        -
+          type: object
+          properties:
+            requested_by:
+              $ref: '#/components/schemas/UUID'
+            vessel_id:
+              $ref: '#/components/schemas/UUID'
+            priority:
+              type: string
+            description:
+              type: string
+            location_port:
+              type: string
+            linked_job_id:
+              $ref: '#/components/schemas/UUID'
+              nullable: true
+            rejection_reason:
+              type: string
+              nullable: true
+            attachments:
+              type: array
+              items:
+                type: string
+                format: uri
+            updated_at:
+              type: string
+              format: date-time
+            LinkedJob:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                job_status:
+                  type: string
+                reason:
+                  type: string
+    ChangeRequestResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        entity_type:
+          type: string
+        entity_id:
+          $ref: '#/components/schemas/UUID'
+        requested_by:
+          $ref: '#/components/schemas/UUID'
+        approved_by:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        change_description:
+          type: string
+        old_value:
+          type: object
+        new_value:
+          type: object
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+        priority:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+        approval_remarks:
+          type: string
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    ApprovalResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        entity_type:
+          type: string
+        entity_id:
+          $ref: '#/components/schemas/UUID'
+        approved_by:
+          $ref: '#/components/schemas/UUID'
+        role:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+        remarks:
+          type: string
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+    TocaResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        losing_class_society:
+          type: string
+        gaining_class_society:
+          type: string
+        request_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - REJECTED
+        documents_url:
+          type: array
+          items:
+            type: string
+            format: uri
+        decision_date:
+          type: string
+          format: date
+          nullable: true
     LoginRequest:
       type: object
       required:
@@ -114,43 +370,6 @@ components:
           role: CLIENT
         accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-    ErrorResponse:
-      type: object
-      required:
-        - success
-        - message
-        - error_code
-        - trace_id
-      properties:
-        success:
-          type: boolean
-          example: false
-        error_code:
-          type: string
-          example: VALIDATION_ERROR
-        message:
-          type: string
-          example: 'Invalid request parameters'
-        errors:
-          type: object
-          description: 'Map of field-specific validation errors'
-          example:
-            email: 'Email is required'
-            password: 'Password is too short'
-        trace_id:
-          type: string
-          format: uuid
-          example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        stack:
-          type: string
-          description: 'Error stack trace (only in development)'
-      example:
-        success: false
-        error_code: VALIDATION_ERROR
-        message: 'Validation failed. Please correct the highlighted fields.'
-        errors:
-          vessel_id: 'vessel_id is required'
-        trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
     LogoutResponse:
       type: object
       properties:
@@ -165,27 +384,44 @@ components:
           type: string
           nullable: true
           description: 'Always null after logout'
-    RefreshTokenRequest:
-      type: object
-      description: 'Send refresh token in body (refreshToken or token). Cookie refreshToken is also accepted.'
-      properties:
-        refreshToken:
-          type: string
-          description: 'Refresh token from login/register or previous refresh'
-        token:
-          type: string
-          description: 'Alias for refreshToken (legacy)'
-    RefreshTokenResponse:
+    UserSummary:
       type: object
       properties:
-        user:
-          $ref: '#/components/schemas/UserSummary'
-        accessToken:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
           type: string
-          description: 'New short-lived access token for API calls'
-        refreshToken:
+        email:
           type: string
-          description: 'New long-lived refresh token; store and use for next refresh'
+          format: email
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        client_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        profile_pic_url:
+          type: string
+          format: uri
+          nullable: true
+        force_password_reset:
+          type: boolean
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
     ForgotPasswordRequest:
       type: object
       required:
@@ -210,6 +446,40 @@ components:
           minLength: 8
           pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
           example: SecurePass123
+    RegistrationRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - role
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        company_name:
+          type: string
+        client_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        phone:
+          type: string
     ChangePasswordRequest:
       type: object
       required:
@@ -223,15 +493,126 @@ components:
           format: password
           minLength: 8
           pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
-    StatusCount:
+    RefreshTokenRequest:
+      type: object
+      description: 'Send refresh token in body (refreshToken or token). Cookie refreshToken is also accepted.'
+      properties:
+        refreshToken:
+          type: string
+          description: 'Refresh token from login/register or previous refresh'
+        token:
+          type: string
+          description: 'Alias for refreshToken (legacy)'
+    RefreshTokenResponse:
       type: object
       properties:
-        status:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        accessToken:
           type: string
-          example: CREATED
-        count:
-          type: integer
-          example: 5
+          description: 'New short-lived access token for API calls'
+        refreshToken:
+          type: string
+          description: 'New long-lived refresh token; store and use for next refresh'
+    CertificateTemplateResponse:
+      type: object
+      description: 'A DOCX template (referenced by S3 key) used to render certificates.'
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        template_name:
+          type: string
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+        template_file_url:
+          type: string
+          description: "S3 key for the .docx template (e.g.\n`certificate-templates/1714000000000_iopp_v1.docx`). This is what\n`getUploadUrl` returned as `fileKey`.\n"
+          nullable: true
+        variables:
+          type: array
+          description: 'Variable names this template expects to receive at render time.'
+          items:
+            type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        CertificateType:
+          type: object
+          nullable: true
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            name:
+              type: string
+    CertificateTemplateCreateRequest:
+      type: object
+      required:
+        - template_name
+        - certificate_type_id
+        - template_file_url
+      description: "Body for `POST /api/v1/certificate-templates`.\nRequired: `template_name`, `certificate_type_id`, `template_file_url`.\nOptional: `certificate_term`, `variables`, `is_active`.\n"
+      properties:
+        template_name:
+          type: string
+          description: 'Human-readable template name.'
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          description: 'ID of the associated certificate type.'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+          description: 'If set, this template is used only for that term.'
+        template_file_url:
+          type: string
+          description: "S3 key returned by\n`GET /api/v1/certificate-templates/get-upload-url` (after the file\nhas been uploaded to that pre-signed URL).\n"
+        variables:
+          type: array
+          description: 'Variable names this template expects at render time.'
+          items:
+            type: string
+        is_active:
+          type: boolean
+          default: true
+    CertificateTemplateUpdateRequest:
+      type: object
+      description: "Body for `PUT /api/v1/certificate-templates/{id}`. All fields optional —\nsend only what you want to change. To swap the DOCX, send the new S3\nkey as `template_file_url`.\n"
+      properties:
+        template_name:
+          type: string
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+        template_file_url:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
     CertificateSummary:
       type: object
       properties:
@@ -277,36 +658,6 @@ components:
               $ref: '#/components/schemas/UUID'
             name:
               type: string
-    CertificateTypeDetailResponse:
-      type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        name:
-          type: string
-        short_code:
-          type: string
-        issuing_authority:
-          type: string
-          enum:
-            - CLASS
-            - FLAG
-        validity_years:
-          type: integer
-        status:
-          type: string
-          enum:
-            - ACTIVE
-            - INACTIVE
-        description:
-          type: string
-          nullable: true
-        requires_survey:
-          type: boolean
-        CertificateRequiredDocuments:
-          type: array
-          items:
-            $ref: '#/components/schemas/CertificateRequiredDocument'
     CertificateResponse:
       type: object
       properties:
@@ -394,6 +745,346 @@ components:
         remarks:
           type: string
           nullable: true
+    CertificateTypeResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        short_code:
+          type: string
+        issuing_authority:
+          type: string
+          enum:
+            - CLASS
+            - FLAG
+        validity_years:
+          type: integer
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        requires_survey:
+          type: boolean
+    CertificateTypeDetailResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        short_code:
+          type: string
+        issuing_authority:
+          type: string
+          enum:
+            - CLASS
+            - FLAG
+        validity_years:
+          type: integer
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        description:
+          type: string
+          nullable: true
+        requires_survey:
+          type: boolean
+        CertificateRequiredDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CertificateRequiredDocument'
+    CertificateTypeCreateRequest:
+      type: object
+      required:
+        - name
+        - issuing_authority
+        - validity_years
+      properties:
+        name:
+          type: string
+        issuing_authority:
+          type: string
+          enum:
+            - CLASS
+            - FLAG
+        validity_years:
+          type: integer
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        description:
+          type: string
+        requires_survey:
+          type: boolean
+          default: true
+        required_documents:
+          type: array
+          items:
+            type: object
+            properties:
+              document_name:
+                type: string
+              is_mandatory:
+                type: boolean
+      example:
+        name: 'Safety Construction'
+        issuing_authority: CLASS
+        validity_years: 5
+        status: ACTIVE
+        description: 'Main classification certificate for construction'
+        requires_survey: true
+        required_documents:
+          -
+            document_name: 'Bill of Sale'
+            is_mandatory: true
+          -
+            document_name: 'Builder Certificate'
+            is_mandatory: false
+    CertificateTypeUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        issuing_authority:
+          type: string
+          enum:
+            - CLASS
+            - FLAG
+        validity_years:
+          type: integer
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        description:
+          type: string
+        requires_survey:
+          type: boolean
+        required_documents:
+          type: array
+          items:
+            type: object
+            properties:
+              document_name:
+                type: string
+              is_mandatory:
+                type: boolean
+      example:
+        name: 'Safety Construction (Updated)'
+        issuing_authority: CLASS
+        validity_years: 5
+        status: ACTIVE
+        description: 'Updated classification certificate for construction'
+        requires_survey: true
+        required_documents:
+          -
+            document_name: 'Bill of Sale'
+            is_mandatory: true
+          -
+            document_name: 'Builder Certificate'
+            is_mandatory: false
+          -
+            document_name: 'Previous Registry Certificate'
+            is_mandatory: true
+    GenerateCertificateRequest:
+      type: object
+      required:
+        - job_id
+      properties:
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        validity_years:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 1
+        certificate_authority_id:
+          $ref: '#/components/schemas/UUID'
+        flag_administration_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+    CertActionRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+    RenewCertRequest:
+      type: object
+      required:
+        - validity_years
+        - reason
+      properties:
+        validity_years:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reason:
+          type: string
+    CertificateRequiredDocument:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+        document_name:
+          type: string
+        is_mandatory:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CertificateRequiredDocumentCreateRequest:
+      type: object
+      required:
+        - document_name
+      properties:
+        document_name:
+          type: string
+          example: 'Registry Certificate'
+        is_mandatory:
+          type: boolean
+          default: true
+      example:
+        document_name: 'Registry Certificate'
+        is_mandatory: true
+    CertificateRequiredDocumentUpdateRequest:
+      type: object
+      properties:
+        document_name:
+          type: string
+          example: 'Registry Certificate (Updated)'
+        is_mandatory:
+          type: boolean
+          example: false
+      example:
+        document_name: 'Registry Certificate (Updated)'
+        is_mandatory: false
+    CertificateAuthorityResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        code:
+          type: string
+        country:
+          type: string
+        logo_url:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+    CreateCertificateAuthorityRequest:
+      type: object
+      required:
+        - name
+        - code
+        - country
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        country:
+          type: string
+        logo_url:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+      example:
+        name: 'Liberian Registry'
+        code: LISCR
+        country: Liberia
+        logo_url: authorities/logos/liscr.png
+        status: ACTIVE
+    UpdateCertificateAuthorityRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        country:
+          type: string
+        logo_url:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+      example:
+        logo_url: authorities/logos/new-logo.png
+    UpdateCertificateDraftRequest:
+      type: object
+      properties:
+        flag_administration_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_authority_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+        manual_text:
+          type: object
+        remarks:
+          type: string
+        issue_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+    UploadExternalCertificateRequest:
+      type: object
+      required:
+        - certificate_type_id
+        - certificate_number
+        - issue_date
+        - expiry_date
+        - s3_key
+      properties:
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_authority_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_number:
+          type: string
+        issue_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+        s3_key:
+          type: string
     CertificateHistoryResponse:
       type: object
       properties:
@@ -408,16 +1099,46 @@ components:
         changed_at:
           type: string
           format: date-time
-    ChecklistResponse:
+    ChecklistItemResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChecklistItemResponse'
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        question_code:
+          type: string
+        question_text:
+          type: string
+        answer:
+          type: string
+          enum:
+            - YES
+            - NO
+            - NA
+        remarks:
+          type: string
+          nullable: true
+        file_url:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        id: 019c675a-eead-752b-b2ea-e8b5932b0cfc
+        job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec
+        question_code: LSE001
+        question_text: 'Are life jackets available?'
+        answer: YES
+        remarks: ""
+        file_url: null
+        createdAt: '2026-02-16T16:48:58.000Z'
+        updatedAt: '2026-02-16T16:48:58.000Z'
     ChecklistSubmission:
       type: object
       required:
@@ -446,7 +1167,471 @@ components:
                 type: string
               file_url:
                 type: string
+                description: "S3 key returned earlier from\n`GET /checklists/jobs/{jobId}/get-upload-url`, OR a fully-qualified\nHTTPS URL. Leave empty if no per-item evidence is attached.\n"
+        signed_checklist_files:
+          type: array
+          description: "Optional. S3 keys of the full signed-checklist scan documents,\neach obtained from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n"
+          items:
+            type: string
+    ChecklistResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChecklistItemResponse'
+            signed_checklist_files:
+              type: array
+              description: "Resolved (signed) HTTPS URLs of the full signed-checklist scan\ndocuments. Empty array when none are attached.\n"
+              items:
+                type: string
                 format: uri
+            template_files:
+              type: array
+              description: "Resolved (signed) HTTPS URLs of the reference/blank checklist\ntemplate documents (DOCX/PDF) attached to the active checklist\ntemplate for this job's certificate type.\nEmpty array when no active template exists or it has no attached files.\n"
+              items:
+                type: string
+                format: uri
+            template:
+              type: object
+              nullable: true
+              description: "Minimal metadata for the active checklist template used to provide\n`template_files`. Null when no active template exists for the job's\ncertificate type.\n"
+              properties:
+                id:
+                  $ref: '#/components/schemas/UUID'
+                name:
+                  type: string
+                code:
+                  type: string
+    UploadUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            uploadUrl:
+              type: string
+              format: uri
+              description: 'Pre-signed S3 PUT URL. Upload the file directly with this URL.'
+            fileKey:
+              type: string
+              description: 'S3 object key. Send this back to the API afterwards.'
+              example: jobs/01933c5e.../report.pdf
+    ChecklistTemplateResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+          nullable: true
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                    text:
+                      type: string
+                    type:
+                      type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - DRAFT
+        template_files:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+        created_by:
+          $ref: '#/components/schemas/UUID'
+        updated_by:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ChecklistTemplateCreateRequest:
+      type: object
+      required:
+        - name
+        - code
+        - sections
+      description: "Body for `POST /api/v1/checklist-templates`.\nRequired: `name`, `code`, `sections`.\nOptional: `description`, `certificate_type_id`, `template_files`,\n`status`, `metadata`.\n"
+      properties:
+        name:
+          type: string
+          description: 'Human-readable template name.'
+        code:
+          type: string
+          description: 'Stable template code (used as a stable reference).'
+        description:
+          type: string
+          description: 'Short description of what the template covers.'
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          nullable: true
+          description: "Certificate type this template applies to. When activated, the\nactive template for this certificate type drives surveyor checklists.\n"
+        sections:
+          type: array
+          description: 'Ordered list of sections with their question items.'
+          items:
+            type: object
+            required:
+              - title
+              - items
+            properties:
+              title:
+                type: string
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - code
+                    - text
+                  properties:
+                    code:
+                      type: string
+                      description: 'Stable per-question code (e.g. LSE001)'
+                    text:
+                      type: string
+                      description: 'Question text shown to the surveyor'
+                    type:
+                      type: string
+                      enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER]
+                      default: YES_NO_NA
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - DRAFT
+          default: DRAFT
+        template_files:
+          type: array
+          description: "S3 keys of attached reference DOCX/PDF files (each obtained from\n`GET /api/v1/checklist-templates/get-upload-url`).\n"
+          items:
+            type: string
+        metadata:
+          type: object
+          description: 'Free-form JSON (e.g. `{ "version": "1.0" }`).'
+    ChecklistTemplateUpdateRequest:
+      type: object
+      description: "Body for `PUT /api/v1/checklist-templates/{id}`. All fields are optional —\nsend only what you want to change.\n\nFor attached document keys you have THREE choices (mutually exclusive\nbetween `template_files` and the `add_*`/`remove_*` pair):\n  • `template_files`         — full replace of the entire array\n  • `add_template_files`     — append these keys\n  • `remove_template_files`  — drop these keys\n\nStructural edits (`name`, `code`, `sections`, `certificate_type_id`,\n`metadata`) require the template to be in `DRAFT`. File-key edits are\nallowed at any status.\n"
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          nullable: true
+        sections:
+          type: array
+          items:
+            type: object
+            required:
+              - title
+              - items
+            properties:
+              title:
+                type: string
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - code
+                    - text
+                  properties:
+                    code:
+                      type: string
+                    text:
+                      type: string
+                    type:
+                      type: string
+                      enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER]
+                      default: YES_NO_NA
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - DRAFT
+        metadata:
+          type: object
+        template_files:
+          type: array
+          description: 'Full replace of the attached-document key list.'
+          items:
+            type: string
+        add_template_files:
+          type: array
+          description: "S3 keys to append (de-duplicated). Use this to \"add a new file on\ntop\" without losing the existing ones.\n"
+          items:
+            type: string
+        remove_template_files:
+          type: array
+          description: 'S3 keys to drop from the existing list.'
+          items:
+            type: string
+    ClientCreateRequest:
+      type: object
+      required:
+        - company_name
+        - company_code
+        - email
+      properties:
+        company_name:
+          type: string
+          example: 'Marine Shipping Co'
+        company_code:
+          type: string
+          example: MSC001
+        email:
+          type: string
+          format: email
+          example: contact@marineshipping.com
+        address:
+          type: string
+        country:
+          type: string
+        phone:
+          type: string
+        contact_person_name:
+          type: string
+        contact_person_email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        user:
+          type: object
+          required:
+            - name
+            - email
+            - password
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            password:
+              type: string
+              format: password
+              minLength: 8
+              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
+              example: SecurePass123
+            role:
+              type: string
+              enum:
+                - CLIENT
+                - ADMIN
+                - GM
+                - TM
+                - TO
+                - SURVEYOR
+              default: CLIENT
+            phone:
+              type: string
+      example:
+        company_name: 'Marine Shipping Co'
+        company_code: MSC001
+        email: contact@marineshipping.com
+    ClientResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        company_name:
+          type: string
+        company_code:
+          type: string
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        country:
+          type: string
+        phone:
+          type: string
+        contact_person_name:
+          type: string
+        contact_person_email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        has_user:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    ClientListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        company_name:
+          type: string
+        company_code:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+        has_user:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+        - error_code
+        - trace_id
+      properties:
+        success:
+          type: boolean
+          example: false
+        error_code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: 'Invalid request parameters'
+        errors:
+          type: object
+          description: 'Map of field-specific validation errors'
+          example:
+            email: 'Email is required'
+            password: 'Password is too short'
+        trace_id:
+          type: string
+          format: uuid
+          example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        stack:
+          type: string
+          description: 'Error stack trace (only in development)'
+      example:
+        success: false
+        error_code: VALIDATION_ERROR
+        message: 'Validation failed. Please correct the highlighted fields.'
+        errors:
+          vessel_id: 'vessel_id is required'
+        trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    SuccessWrapper:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: 'Response payload'
+        message:
+          type: string
+          description: 'Optional success message'
+    PaginatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items: {}
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+    PaginatedMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        totalPages:
+          type: integer
+          example: 5
+    UUID:
+      type: string
+      format: uuid
+      example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    StatusCount:
+      type: object
+      properties:
+        status:
+          type: string
+          example: CREATED
+        count:
+          type: integer
+          example: 5
     DashboardResponse:
       type: object
       description: 'Role-specific dashboard data. Structure varies by role (ADMIN, GM, TM, TO, SURVEYOR, CLIENT)'
@@ -472,8 +1657,10 @@ components:
               items:
                 type: object
                 properties:
-                  type: {type: string}
-                  message: {type: string}
+                  type:
+                    type: string
+                  message:
+                    type: string
       example:
         success: true
         data:
@@ -482,6 +1669,156 @@ components:
             totalCertificates: 120
           recentJobs: []
           expiringCertificates: []
+    Document:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        entity_type:
+          type: string
+          example: JOB
+        entity_id:
+          $ref: '#/components/schemas/UUID'
+        file_url:
+          type: string
+          format: uri
+        file_type:
+          type: string
+          example: application/pdf
+        document_type:
+          type: string
+          example: EVIDENCE
+        description:
+          type: string
+          nullable: true
+        uploaded_by:
+          $ref: '#/components/schemas/UUID'
+        uploaded_at:
+          type: string
+          format: date-time
+    DocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Document'
+    DocumentListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+    CustomerFeedback:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        timeliness:
+          type: integer
+          minimum: 1
+          maximum: 5
+        professionalism:
+          type: integer
+          minimum: 1
+          maximum: 5
+        documentation:
+          type: integer
+          minimum: 1
+          maximum: 5
+        remarks:
+          type: string
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    CustomerFeedbackListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        rating:
+          type: integer
+        submitted_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        Client:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+    CustomerFeedbackListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerFeedbackListItem'
+    CustomerFeedbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CustomerFeedback'
+    CustomerFeedbackCreateRequest:
+      type: object
+      required:
+        - job_id
+        - rating
+        - timeliness
+        - professionalism
+        - documentation
+      properties:
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        timeliness:
+          type: integer
+          minimum: 1
+          maximum: 5
+        professionalism:
+          type: integer
+          minimum: 1
+          maximum: 5
+        documentation:
+          type: integer
+          minimum: 1
+          maximum: 5
+        remarks:
+          type: string
     JobSummary:
       type: object
       properties:
@@ -528,6 +1865,43 @@ components:
               type: string
         payment_status:
           type: string
+    JobCreateRequest:
+      type: object
+      required:
+        - vessel_id
+        - certificate_type_id
+        - reason
+        - target_port
+        - target_date
+      properties:
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+        reason:
+          type: string
+          example: 'Annual survey due'
+        target_port:
+          type: string
+          example: Singapore
+        target_date:
+          type: string
+          format: date
+          example: '2026-03-15'
+        remarks:
+          type: string
+        uploaded_documents:
+          type: array
+          items:
+            type: object
+            required:
+              - required_document_id
+              - file_url
+            properties:
+              required_document_id:
+                $ref: '#/components/schemas/UUID'
+              file_url:
+                type: string
     JobResponse:
       type: object
       properties:
@@ -708,6 +2082,192 @@ components:
           name: 'General Manager'
           role: GM
         payment_status: N/A
+    JobStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - CREATED
+            - APPROVED
+            - ASSIGNED
+            - SURVEY_AUTHORIZED
+            - IN_PROGRESS
+            - SURVEY_DONE
+            - REVIEWED
+            - FINALIZED
+            - REWORK_REQUESTED
+            - PAYMENT_DONE
+            - CERTIFIED
+            - REJECTED
+        remarks:
+          type: string
+    AssignSurveyorRequest:
+      type: object
+      properties:
+        surveyorId:
+          $ref: '#/components/schemas/UUID'
+        surveyor_id:
+          $ref: '#/components/schemas/UUID'
+        remarks:
+          type: string
+    ReassignJobRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        surveyorId:
+          $ref: '#/components/schemas/UUID'
+        surveyor_id:
+          $ref: '#/components/schemas/UUID'
+        reason:
+          type: string
+    RescheduleJobRequest:
+      type: object
+      required:
+        - new_target_date
+        - new_target_port
+        - reason
+      properties:
+        new_target_date:
+          type: string
+          format: date
+        new_target_port:
+          type: string
+        reason:
+          type: string
+    JobCancelRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+    JobRejectRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+    JobEvidenceUploadRequest:
+      type: object
+      required:
+        - job_id
+        - context
+      properties:
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        context:
+          type: string
+          example: SURVEY_PHOTOS
+        description:
+          type: string
+    AddNoteRequest:
+      type: object
+      required:
+        - note_text
+      properties:
+        note_text:
+          type: string
+        is_internal:
+          type: boolean
+          default: true
+    MessageCreateRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+    JobHistoryItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        previous_status:
+          type: string
+          nullable: true
+        new_status:
+          type: string
+        changed_by:
+          $ref: '#/components/schemas/UUID'
+        reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        User:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+    SurveyHistoryItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        survey_id:
+          $ref: '#/components/schemas/UUID'
+        previous_status:
+          type: string
+          nullable: true
+        new_status:
+          type: string
+        changed_by:
+          $ref: '#/components/schemas/UUID'
+        reason:
+          type: string
+          nullable: true
+        submission_iteration:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        User:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+    JobHistoryResponse:
+      type: object
+      properties:
+        job_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobHistoryItem'
+        survey_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyHistoryItem'
+    JobNoteResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        note_text:
+          type: string
+        is_internal:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
     JobMessageResponse:
       type: object
       properties:
@@ -735,6 +2295,28 @@ components:
               type: string
             role:
               type: string
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum:
+            - INFO
+            - WARNING
+            - CRITICAL
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
     NonConformityResponse:
       type: object
       properties:
@@ -789,63 +2371,53 @@ components:
         created_at:
           type: string
           format: date-time
-    VesselSummary:
+    IncidentResponse:
       type: object
       properties:
         id:
           $ref: '#/components/schemas/UUID'
-        vessel_name:
-          type: string
-          example: 'Ocean Pioneer'
-        imo_number:
-          type: string
-          example: '9123456'
-        flag_administration_id:
+        vessel_id:
           $ref: '#/components/schemas/UUID'
-        ship_type:
-          type: string
-          example: Cargo
-        class_status:
-          type: string
-          enum:
-            - ACTIVE
-            - SUSPENDED
-            - WITHDRAWN
-      example:
-        id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        vessel_name: 'Ocean Pioneer'
-        imo_number: '9123456'
-        flag_administration_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        ship_type: Cargo
-        class_status: ACTIVE
-    SupportTicketListItem:
-      type: object
-      properties:
-        id:
+        reported_by:
           $ref: '#/components/schemas/UUID'
-        ticket_number:
+        title:
           type: string
-        subject:
+        description:
           type: string
-        priority:
-          type: string
-          enum:
-            - LOW
-            - MEDIUM
-            - HIGH
-            - URGENT
         status:
           type: string
           enum:
             - OPEN
-            - IN_PROGRESS
+            - INVESTIGATING
             - RESOLVED
             - CLOSED
-        category:
+        remarks:
           type: string
           nullable: true
-        user_id:
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    IncidentListItem:
+      type: object
+      properties:
+        id:
           $ref: '#/components/schemas/UUID'
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        reported_by:
+          $ref: '#/components/schemas/UUID'
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - INVESTIGATING
+            - RESOLVED
+            - CLOSED
         created_at:
           type: string
           format: date-time
@@ -890,23 +2462,455 @@ components:
         updated_at:
           type: string
           format: date-time
-    SurveyorAvailabilityRequest:
+    SupportTicketListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        ticket_number:
+          type: string
+        subject:
+          type: string
+        priority:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - URGENT
+        status:
+          type: string
+          enum:
+            - OPEN
+            - IN_PROGRESS
+            - RESOLVED
+            - CLOSED
+        category:
+          type: string
+          nullable: true
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          type: string
+          format: date-time
+    FlagAdministrationResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        flag_state_name:
+          type: string
+        country:
+          type: string
+        authority_name:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        authorization_scope:
+          type: string
+        logo_url:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    FlagAdministrationListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        flag_state_name:
+          type: string
+        country:
+          type: string
+        authority_name:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        logo_url:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        invoice_number:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        payment_status:
+          type: string
+          enum:
+            - UNPAID
+            - PARTIALLY_PAID
+            - PAID
+            - ON_HOLD
+        payment_date:
+          type: string
+          format: date-time
+          nullable: true
+        receipt_url:
+          type: string
+          format: uri
+          nullable: true
+        verified_by_user_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        amount_collected:
+          type: string
+          description: 'Total collected via advance + partial payments'
+        refunded_amount:
+          type: string
+        amount_paid:
+          type: string
+        net_amount:
+          type: string
+        remaining:
+          type: string
+          description: 'Remaining amount to be collected'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        JobRequest:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            job_status:
+              type: string
+            Vessel:
+              type: object
+              properties:
+                vessel_name:
+                  type: string
+    PaymentListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentResponse'
+    CreateInvoiceRequest:
       type: object
       required:
-        - is_available
+        - job_id
+        - amount
       properties:
-        is_available:
+        job_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+        currency:
+          type: string
+          default: USD
+      example:
+        job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        amount: 1500
+        currency: USD
+    PartialPaymentRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+        type:
+          type: string
+          enum:
+            - ADVANCE
+            - PARTIAL_PAYMENT
+          default: PARTIAL_PAYMENT
+          description: 'Use ADVANCE for upfront payments before work begins, PARTIAL_PAYMENT for installments during/after work'
+        remarks:
+          type: string
+    FinancialSummaryResponse:
+      type: object
+      properties:
+        total_outstanding:
+          type: number
+        total_paid:
+          type: number
+        total_invoiced:
+          type: number
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentResponse'
+    PortfolioFeedback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        client_id:
+          type: string
+          format: uuid
+        comment:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        designation:
+          type: string
+        company:
+          type: string
+        is_visible:
           type: boolean
-    SurveyorLocationRequest:
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        Client:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+            profile_pic_url:
+              type: string
+    PortfolioFeedbackPublic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        client_id:
+          type: string
+          format: uuid
+        comment:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        designation:
+          type: string
+        company:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        Client:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+            profile_pic_url:
+              type: string
+    PortfolioFeedbackInput:
       type: object
       required:
-        - latitude
-        - longitude
+        - comment
       properties:
-        latitude:
-          type: number
-        longitude:
-          type: number
+        comment:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        designation:
+          type: string
+        company:
+          type: string
+    PortfolioFeedbackVisibilityInput:
+      type: object
+      required:
+        - is_visible
+      properties:
+        is_visible:
+          type: boolean
+    SiteStaticContent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
+        slug:
+          type: string
+          example: new-vessel-launch-2026
+        title:
+          type: string
+          example: 'GR-Class Class Launches Next-Gen Survey Platform'
+        content_type:
+          type: string
+          enum:
+            - PAGE
+            - FAQ
+            - NEWS
+          example: NEWS
+        body_html:
+          type: string
+          nullable: true
+          example: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+          example: 'https://grclass.com/assets/news-thumb-001.jpg'
+        faq_items:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              answer:
+                type: string
+              sort_order:
+                type: integer
+        is_published:
+          type: boolean
+          example: true
+        published_at:
+          type: string
+          format: date-time
+          example: '2026-04-03T12:00:00Z'
+        updated_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    SiteStaticContentInput:
+      type: object
+      required:
+        - slug
+        - title
+        - content_type
+      oneOf:
+        -
+          title: 'PAGE Content'
+          required:
+            - body_html
+          properties:
+            slug:
+              type: string
+              example: about-us
+            title:
+              type: string
+              example: 'About Us'
+            content_type:
+              type: string
+              enum:
+                - PAGE
+              example: PAGE
+            body_html:
+              type: string
+              example: '<p>About content...</p>'
+            is_published:
+              type: boolean
+              example: true
+        -
+          title: 'NEWS Content'
+          required:
+            - body_html
+          properties:
+            slug:
+              type: string
+              example: news-1
+            title:
+              type: string
+              example: 'Recent Industry Update'
+            content_type:
+              type: string
+              enum:
+                - NEWS
+              example: NEWS
+            body_html:
+              type: string
+              example: '<p>News article...</p>'
+            thumbnail_url:
+              type: string
+              example: 'https://example.com/thumb.jpg'
+            published_at:
+              type: string
+              format: date-time
+              example: '2026-04-03T10:00:00Z'
+            is_published:
+              type: boolean
+              example: true
+        -
+          title: 'FAQ Content'
+          required:
+            - faq_items
+          properties:
+            slug:
+              type: string
+              example: faq-vessel
+            title:
+              type: string
+              example: 'Vessel FAQ'
+            content_type:
+              type: string
+              enum:
+                - FAQ
+              example: FAQ
+            faq_items:
+              type: array
+              items:
+                type: object
+                required:
+                  - question
+                  - answer
+                properties:
+                  question:
+                    type: string
+                    example: 'Q?'
+                  answer:
+                    type: string
+                    example: A.
+                  sort_order:
+                    type: integer
+                    example: 0
+            is_published:
+              type: boolean
+              example: true
     SurveyReportResponse:
       type: object
       properties:
@@ -989,6 +2993,571 @@ components:
         declaration_hash: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
         started_at: '2026-02-25T10:00:00Z'
         submitted_at: '2026-02-25T12:00:00Z'
+    SurveyTimelineResponse:
+      type: object
+      properties:
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        gps_trace:
+          type: array
+          items:
+            type: object
+            properties:
+              latitude:
+                type: number
+              longitude:
+                type: number
+              timestamp:
+                type: string
+                format: date-time
+        survey_details:
+          $ref: '#/components/schemas/SurveyReportResponse'
+    SurveyListResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        surveyor_id:
+          $ref: '#/components/schemas/UUID'
+        survey_status:
+          type: string
+          enum:
+            - NOT_STARTED
+            - STARTED
+            - CHECKLIST_SUBMITTED
+            - PROOF_UPLOADED
+            - SUBMITTED
+            - REWORK_REQUIRED
+            - FINALIZED
+        submission_count:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        submitted_at:
+          type: string
+          format: date-time
+        finalized_at:
+          type: string
+          format: date-time
+        survey_statement_status:
+          type: string
+          enum:
+            - NOT_PREPARED
+            - DRAFTED
+            - ISSUED
+        survey_statement_pdf_url:
+          type: string
+          format: uri
+        signed_checklist_files:
+          type: array
+          items:
+            type: string
+        JobRequest:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            job_status:
+              type: string
+            Vessel:
+              type: object
+              properties:
+                vessel_name:
+                  type: string
+                imo_number:
+                  type: string
+        User:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+    SurveyorApplyRequest:
+      type: object
+      required:
+        - full_name
+        - email
+        - phone
+        - nationality
+        - qualification
+        - years_of_experience
+      properties:
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        nationality:
+          type: string
+        qualification:
+          type: string
+        years_of_experience:
+          type: integer
+        cvKey:
+          type: string
+          description: 'S3 key for CV document'
+        idProofKey:
+          type: string
+          description: 'S3 key for ID proof'
+        certificateKeys:
+          type: array
+          items:
+            type: string
+          description: 'S3 keys for other certificates'
+    SurveyorProfileUpdateRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        nationality:
+          type: string
+        qualification:
+          type: string
+        years_of_experience:
+          type: integer
+        license_number:
+          type: string
+        authorized_ship_types:
+          type: array
+          items:
+            type: string
+        authorized_certificates:
+          type: array
+          items:
+            type: string
+        valid_to:
+          type: string
+          format: date
+        cv_url:
+          type: string
+          format: uri
+        license_copy_url:
+          type: string
+          format: uri
+        is_available:
+          type: boolean
+    SurveyorProfileResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        surveyor_application_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        license_number:
+          type: string
+        authorized_ship_types:
+          type: array
+          items:
+            type: string
+        authorized_certificates:
+          type: array
+          items:
+            type: string
+        valid_from:
+          type: string
+          format: date
+        valid_to:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        is_available:
+          type: boolean
+        nationality:
+          type: string
+        qualification:
+          type: string
+        years_of_experience:
+          type: integer
+        cv_url:
+          type: string
+          format: uri
+        id_proof_url:
+          type: string
+          format: uri
+        license_copy_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        User:
+          $ref: '#/components/schemas/UserSummary'
+    SurveyorApplicationResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        nationality:
+          type: string
+        qualification:
+          type: string
+        years_of_experience:
+          type: integer
+        cv_file_url:
+          type: string
+          format: uri
+        certificate_files_url:
+          type: array
+          items:
+            type: string
+            format: uri
+        id_proof_url:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum:
+            - PENDING
+            - DOCUMENTS_REQUIRED
+            - APPROVED
+            - REJECTED
+        reviewer_remarks:
+          type: string
+          nullable: true
+        approved_user_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SurveyorApplicationListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        nationality:
+          type: string
+        qualification:
+          type: string
+        years_of_experience:
+          type: integer
+        status:
+          type: string
+          enum:
+            - PENDING
+            - DOCUMENTS_REQUIRED
+            - APPROVED
+            - REJECTED
+        created_at:
+          type: string
+          format: date-time
+    SurveyorApplicationListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyorApplicationListItem'
+    SurveyorReviewRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - APPROVED
+            - REJECTED
+            - DOCUMENTS_REQUIRED
+        remarks:
+          type: string
+    SurveyorAvailabilityRequest:
+      type: object
+      required:
+        - is_available
+      properties:
+        is_available:
+          type: boolean
+    SurveyorLocationRequest:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+    AuditLogResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        user_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        action:
+          type: string
+        entity_name:
+          type: string
+        entity_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        old_values:
+          type: object
+          nullable: true
+        new_values:
+          type: object
+          nullable: true
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    FinancialLedgerResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        invoice_id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        transaction_type:
+          type: string
+          enum:
+            - CHARGE
+            - PAYMENT
+            - REFUND
+            - ADJUSTMENT
+            - WRITEOFF
+        amount:
+          type: number
+        currency:
+          type: string
+        reference_id:
+          type: string
+        performed_by:
+          $ref: '#/components/schemas/UUID'
+        remarks:
+          type: string
+        balance_after:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+    GpsTrackingResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        surveyor_id:
+          $ref: '#/components/schemas/UUID'
+        vessel_id:
+          $ref: '#/components/schemas/UUID'
+        job_id:
+          $ref: '#/components/schemas/UUID'
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+    UserResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        phone:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        client_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        force_password_reset:
+          type: boolean
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        fcm_token:
+          type: string
+          nullable: true
+        profile_pic_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UserListItem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        created_at:
+          type: string
+          format: date-time
+    UserCreateRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - role
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        phone:
+          type: string
+        client_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        license_number:
+          type: string
+        authorized_ship_types:
+          type: array
+          items:
+            type: string
+        authorized_certificates:
+          type: array
+          items:
+            type: string
+        valid_from:
+          type: string
+          format: date
+    UserUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - GM
+            - TM
+            - TO
+            - SURVEYOR
+            - CLIENT
+        phone:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+        client_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+    UserStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - INACTIVE
     UpdateFcmTokenRequest:
       type: object
       required:
@@ -998,6 +3567,179 @@ components:
           type: string
           description: 'The unique device token generated by the Firebase SDK.'
           example: fXz1A2B3C4D5E6F7G8H9I0J...
+    VesselSummary:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        vessel_name:
+          type: string
+          example: 'Ocean Pioneer'
+        imo_number:
+          type: string
+          example: '9123456'
+        flag_administration_id:
+          $ref: '#/components/schemas/UUID'
+        ship_type:
+          type: string
+          example: Cargo
+        class_status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - WITHDRAWN
+      example:
+        id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        vessel_name: 'Ocean Pioneer'
+        imo_number: '9123456'
+        flag_administration_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        ship_type: Cargo
+        class_status: ACTIVE
+    VesselCreateRequest:
+      type: object
+      required:
+        - client_id
+        - vessel_name
+        - imo_number
+        - flag_administration_id
+        - ship_type
+      properties:
+        client_id:
+          type: string
+          format: uuid
+          example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        vessel_name:
+          type: string
+          example: 'Ocean Pioneer'
+        imo_number:
+          type: string
+          pattern: '^[0-9]{7}$'
+          example: '9123456'
+        call_sign:
+          type: string
+          example: 9VSP
+        mmsi_number:
+          type: string
+          example: '563123456'
+        flag_administration_id:
+          type: string
+          format: uuid
+          example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        port_of_registry:
+          type: string
+          example: Singapore
+        year_built:
+          type: integer
+          example: 2015
+        ship_type:
+          type: string
+          example: Cargo
+        gross_tonnage:
+          type: number
+          format: float
+        net_tonnage:
+          type: number
+          format: float
+        deadweight:
+          type: number
+          format: float
+        class_status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - WITHDRAWN
+        current_class_society:
+          type: string
+        engine_type:
+          type: string
+        builder_name:
+          type: string
+        uploaded_documents:
+          type: array
+          items:
+            type: object
+            properties:
+              file_url:
+                type: string
+                format: uri
+              document_type:
+                type: string
+              description:
+                type: string
+          example:
+            -
+              file_url: 'https://bucket.s3.amazonaws.com/cert.pdf'
+              document_type: REGISTRY_CERTIFICATE
+              description: 'Ship Registry Certificate'
+      example:
+        client_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        vessel_name: 'Ocean Pioneer'
+        imo_number: '9123456'
+        call_sign: 9VSP
+        mmsi_number: '563123456'
+        flag_administration_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        port_of_registry: Singapore
+        year_built: 2015
+        ship_type: Cargo
+        gross_tonnage: 30000
+        net_tonnage: 15000
+        deadweight: 45000
+        class_status: ACTIVE
+        current_class_society: DNV
+        engine_type: Diesel
+        builder_name: 'Hyundai Heavy Industries'
+        uploaded_documents:
+          -
+            file_url: 'https://example-bucket.s3.amazonaws.com/cert.pdf'
+            document_type: REGISTRY_CERTIFICATE
+            description: 'Ship Registry Certificate'
+    VesselUpdateRequest:
+      type: object
+      properties:
+        client_id:
+          type: string
+          format: uuid
+        vessel_name:
+          type: string
+        imo_number:
+          type: string
+        call_sign:
+          type: string
+        mmsi_number:
+          type: string
+        flag_administration_id:
+          type: string
+          format: uuid
+        port_of_registry:
+          type: string
+        year_built:
+          type: integer
+        ship_type:
+          type: string
+        gross_tonnage:
+          type: number
+        net_tonnage:
+          type: number
+        deadweight:
+          type: number
+        class_status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - WITHDRAWN
+        current_class_society:
+          type: string
+        engine_type:
+          type: string
+        builder_name:
+          type: string
+      example:
+        vessel_name: 'Ocean Pioneer II'
+        class_status: SUSPENDED
+        deadweight: 50000.5
     VesselResponse:
       allOf:
         -
@@ -1092,193 +3834,299 @@ components:
           status: INACTIVE
         FlagAdministration:
           flag_state_name: 'Marshall Islands Maritime Administrator'
-    UUID:
-      type: string
-      format: uuid
-      example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-    PaymentResponse:
+    WebsiteVideo:
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/UUID'
-        job_id:
-          $ref: '#/components/schemas/UUID'
-        invoice_number:
           type: string
-        amount:
-          type: number
-        currency:
+          format: uuid
+          example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        section:
           type: string
-        payment_status:
+          example: HOME
+          description: 'Section of the website where the video belongs (e.g., HOME, PORTFOLIO)'
+        title:
           type: string
-          enum:
-            - UNPAID
-            - PARTIALLY_PAID
-            - PAID
-            - ON_HOLD
-        payment_date:
+          example: 'Introduction Video'
+        description:
           type: string
-          format: date-time
-          nullable: true
-        receipt_url:
+          example: 'A brief introduction to our services.'
+        video_url:
           type: string
           format: uri
           nullable: true
-        verified_by_user_id:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
-        amount_collected:
+          example: 'https://bucket.s3.region.amazonaws.com/website/videos/video.mp4'
+        thumbnail_url:
           type: string
-          description: 'Total collected via advance + partial payments'
-        refunded_amount:
+          format: uri
+          example: 'https://bucket.s3.region.amazonaws.com/website/videos/thumb.jpg'
+        uploaded_by:
           type: string
-        amount_paid:
-          type: string
-        net_amount:
-          type: string
-        remaining:
-          type: string
-          description: 'Remaining amount to be collected'
+          format: uuid
+          example: 01933c5e-user-id
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
-        JobRequest:
+    WebsiteVideoListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        section:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        video_url:
+          type: string
+          format: uri
+          nullable: true
+        thumbnail_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+    WebsiteVideoInput:
+      type: object
+      required:
+        - section
+      properties:
+        section:
+          type: string
+          example: HOME
+        title:
+          type: string
+          example: 'New Video Title'
+        description:
+          type: string
+          example: 'Description of the video'
+        thumbnail_url:
+          type: string
+          example: 'https://example.com/thumb.jpg'
+    WebsiteContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        full_name:
+          type: string
+          example: 'John Maritime'
+        company:
+          type: string
+          example: 'Pacific Shipping Co. Ltd'
+        corporate_email:
+          type: string
+          format: email
+          example: john@pacificshipping.com
+        message:
+          type: string
+          example: 'We are interested in classification services for our fleet.'
+        phone:
+          type: string
+          example: '+91 98765 43210'
+        subject:
+          type: string
+          example: 'Fleet Classification Inquiry'
+        status:
+          type: string
+          enum:
+            - NEW
+            - READ
+            - REPLIED
+            - ARCHIVED
+          example: NEW
+        internal_note:
+          type: string
+          nullable: true
+          example: 'Responded via email on 20 Feb 2026.'
+        replied_by:
+          type: string
+          format: uuid
+          nullable: true
+        replied_at:
+          type: string
+          format: date-time
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
+          example: 192.168.1.1
+        source_page:
+          type: string
+          example: CONTACT
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        Responder:
           type: object
+          nullable: true
           properties:
             id:
               type: string
               format: uuid
-            job_status:
+            name:
               type: string
-            Vessel:
-              type: object
-              properties:
-                vessel_name:
-                  type: string
-    ChecklistItemResponse:
+              example: 'Admin User'
+            email:
+              type: string
+              example: admin@grclass.com
+    WebsiteContactListItem:
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/UUID'
-        job_id:
-          $ref: '#/components/schemas/UUID'
-        question_code:
           type: string
-        question_text:
+          format: uuid
+        full_name:
           type: string
-        answer:
+        company:
+          type: string
+          nullable: true
+        corporate_email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        subject:
+          type: string
+          nullable: true
+        source_page:
+          type: string
+        status:
           type: string
           enum:
-            - YES
-            - NO
-            - NA
-        remarks:
+            - NEW
+            - READ
+            - REPLIED
+            - ARCHIVED
+        internal_note:
           type: string
           nullable: true
-        file_url:
+        replied_by:
           type: string
-          format: uri
+          format: uuid
           nullable: true
-        createdAt:
+        replied_at:
           type: string
           format: date-time
-        updatedAt:
+          nullable: true
+        created_at:
           type: string
           format: date-time
-      example:
-        id: 019c675a-eead-752b-b2ea-e8b5932b0cfc
-        job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec
-        question_code: LSE001
-        question_text: 'Are life jackets available?'
-        answer: YES
-        remarks: ""
-        file_url: null
-        createdAt: '2026-02-16T16:48:58.000Z'
-        updatedAt: '2026-02-16T16:48:58.000Z'
-    CertificateAuthorityResponse:
+        Responder:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+    WebsiteContactResponse:
       type: object
       properties:
         id:
           $ref: '#/components/schemas/UUID'
-        name:
+        full_name:
           type: string
-        code:
+        company:
           type: string
-        country:
+          nullable: true
+        corporate_email:
           type: string
-        logo_url:
+          format: email
+        message:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        subject:
           type: string
           nullable: true
         status:
           type: string
           enum:
-            - ACTIVE
-            - INACTIVE
-    CertificateRequiredDocument:
-      type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
-        document_name:
+            - NEW
+            - READ
+            - REPLIED
+            - ARCHIVED
+        internal_note:
           type: string
-        is_mandatory:
-          type: boolean
+          nullable: true
+        replied_by:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
+        replied_at:
+          type: string
+          format: date-time
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
+        source_page:
+          type: string
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
-    UserSummary:
+    WebsiteContactInput:
       type: object
+      required:
+        - full_name
+        - corporate_email
+        - message
       properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        name:
+        full_name:
           type: string
-        email:
+        company:
+          type: string
+        corporate_email:
           type: string
           format: email
-        role:
+        message:
           type: string
-          enum:
-            - ADMIN
-            - GM
-            - TM
-            - TO
-            - SURVEYOR
-            - CLIENT
+        phone:
+          type: string
+        subject:
+          type: string
+        source_page:
+          type: string
+    WebsiteContactStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
         status:
           type: string
           enum:
-            - ACTIVE
-            - INACTIVE
-            - SUSPENDED
-        client_id:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
-        profile_pic_url:
+            - NEW
+            - READ
+            - REPLIED
+            - ARCHIVED
+        internal_note:
           type: string
-          format: uri
-          nullable: true
-        force_password_reset:
-          type: boolean
-        last_login_at:
-          type: string
-          format: date-time
-          nullable: true
 paths:
   /api/v1/auth/login:
     post:
       tags:
         - Auth
       summary: Login
-      description: "Authenticate with email and password. Returns user, **accessToken** (short-lived, for API calls), and **refreshToken** (long-lived, for getting new access tokens).\nUse **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Store tokens securely.\n\n\n**Note:** Default credentials for **SURVEYOR** have been pre-filled for testing."
+      description: "Authenticate with email and password. Returns user, **accessToken** (short-lived, for API calls), and **refreshToken** (long-lived, for getting new access tokens).\nUse **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Store tokens securely.\n"
       security: []
       operationId: login
       x-roles:
@@ -1290,7 +4138,7 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
             example:
-              email: surveyor@grclass.com
+              email: admin@grclass.com
               password: Password@123
       responses:
         '200':
@@ -1438,7 +4286,9 @@ paths:
               schema:
                 type: object
                 properties:
-                  message: {type: string, example: 'Password reset email sent'}
+                  message:
+                    type: string
+                    example: 'Password reset email sent'
               example:
                 message: 'Password reset email sent'
         '400':
@@ -1481,7 +4331,9 @@ paths:
               schema:
                 type: object
                 properties:
-                  message: {type: string, example: 'Password reset successfully'}
+                  message:
+                    type: string
+                    example: 'Password reset successfully'
               example:
                 message: 'Password reset successfully'
         '400':
@@ -1528,8 +4380,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -1559,589 +4415,41 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  /api/v1/certificates:
-    get:
-      tags:
-        - Certificates
-      summary: 'List certificates'
-      description: "List certificates with strict RBAC and ownership filtering.\n**Access:**\n- **ADMIN / GM / TM / TO:** All certificates.\n- **SURVEYOR:** Only certificates for vessels in jobs assigned to them.\n- **CLIENT:** Only certificates for their own company vessels.\n"
-      security:
-        -
-          bearerAuth: []
-      operationId: getCertificates
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        -
-          name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: 'List of certificates'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {total: {type: integer, example: 100}, page: {type: integer, example: 1}, limit: {type: integer, example: 20}, totalPages: {type: integer, example: 5}, status_counts: {type: array, items: {$ref: '#/components/schemas/StatusCount'}}, rows: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}}}
-              example:
-                success: true
-                data:
-                  total: 100
-                  page: 1
-                  limit: 20
-                  totalPages: 5
-                  status_counts: [{status: CREATED, count: 5}]
-                  rows: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, vessel_id: string, certificate_type_id: string, certificate_number: string, issue_date: '2026-03-15', expiry_date: '2026-03-15', status: DRAFT, created_at: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}}]
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  /api/v1/certificates/types:
-    get:
-      tags:
-        - Certificates
-      summary: 'List certificate types (minimal)'
-      description: "Returns a lightweight list of all active certificate types.\n**Does NOT include `required_documents`** — use `GET /types/:id` to fetch\nthe full detail with required documents for a specific type.\n\nPass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n"
-      security:
-        -
-          bearerAuth: []
-      operationId: getCertificateTypes
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: include_inactive
-          in: query
-          description: 'Include INACTIVE types (ADMIN / GM only)'
-          schema:
-            type: boolean
-            default: false
-      responses:
-        '200':
-          description: 'Minimal list of certificate types'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {type: object, properties: {id: {type: string, format: uuid}, name: {type: string, example: 'Class Certificate'}, issuing_authority: {type: string, enum: [CLASS, FLAG]}, validity_years: {type: integer, example: 5}, status: {type: string, enum: [ACTIVE, INACTIVE]}, requires_survey: {type: boolean, example: true}}}}
-              example:
-                success: true
-                data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, name: 'Class Certificate', issuing_authority: CLASS, validity_years: 5, status: ACTIVE, requires_survey: true}
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/certificates/types/{id}':
-    get:
-      tags:
-        - Certificates
-      summary: 'Get certificate type detail (with required documents)'
-      description: "Returns the **full detail** of a single certificate type, including:\n- All metadata fields (`description`, `requires_survey`, etc.)\n- The complete list of `required_documents` with their `is_mandatory` flag\n\nThis is the endpoint to call **before creating a job** to know which\ndocuments must be uploaded.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n"
-      security:
-        -
-          bearerAuth: []
-      operationId: getCertificateTypeById
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          description: 'Certificate type UUID'
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Certificate type detail with required documents'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/CertificateTypeDetailResponse'}
-              example:
-                success: true
-                data:
-                  id: 019c79a4-55ba-773c-9454-f6bee169ab03
-                  name: 'Class Certificate'
-                  issuing_authority: CLASS
-                  validity_years: 5
-                  status: ACTIVE
-                  description: 'Annual classification survey certificate'
-                  requires_survey: true
-                  CertificateRequiredDocuments: [{id: 019c79a4-0001-0000-0000-000000000001, document_name: 'Registry Certificate', is_mandatory: true}, {id: 019c79a4-0001-0000-0000-000000000002, document_name: 'Previous Survey Report', is_mandatory: false}]
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        '404':
-          description: 'Certificate type not found'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/certificates/job/{jobId}':
-    get:
-      tags:
-        - Certificates
-      summary: 'Get certificate by job ID'
-      description: "Get the certificate associated with a specific job ID.\n**Access:** Limited by job ownership/assignment.\n"
-      security:
-        -
-          bearerAuth: []
-      operationId: getCertificateByJobId
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: jobId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Certificate details'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Certificate for job fetched successfully'}
-                  data: {$ref: '#/components/schemas/CertificateResponse'}
-              example:
-                success: true
-                message: 'Certificate for job fetched successfully'
-                data:
-                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-                  vessel_id: string
-                  certificate_type_id: string
-                  certificate_number: string
-                  issue_date: '2026-03-15'
-                  expiry_date: '2026-03-15'
-                  status: DRAFT
-                  qr_code_url: 'https://example.com/resource'
-                  pdf_file_url: 'https://example.com/resource'
-                  uploaded_file_url: string
-                  generated_pdf_url: string
-                  issued_at: '2026-03-15T10:00:00.000Z'
-                  issued_by_user_id: string
-                  created_at: '2026-03-15T10:00:00.000Z'
-                  updated_at: '2026-03-15T10:00:00.000Z'
-                  CertificateType: {name: string}
-                  Vessel: {vessel_name: string, imo_number: string}
-                  FlagState: {flag_state_name: string}
-                  Authority: {id: string, name: string, code: string, country: string, logo_url: string, status: ACTIVE}
-                  source_type: INTERNAL
-                  version: 1
-                  certificate_term: FULL_TERM
-                  manual_text: {}
-                  remarks: string
-        '404':
-          description: 'Job not found or certificate not yet generated'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/certificates/vessel/{vesselId}':
-    get:
-      tags:
-        - Certificates
-      summary: 'Get certificates by vessel'
-      description: 'Get all certificates for a specific vessel. Scope restricted (SURVEYOR only assigned, CLIENT only owned).'
-      operationId: getCertificatesByVessel
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: vesselId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Vessel certificates'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}
-              example:
-                success: true
-                data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, vessel_id: string, certificate_type_id: string, certificate_number: string, issue_date: '2026-03-15', expiry_date: '2026-03-15', status: DRAFT, created_at: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}}
-  '/api/v1/certificates/{id}':
-    get:
-      tags:
-        - Certificates
-      summary: 'Get certificate by ID'
-      description: "Get certificate details by ID. Same RBAC as list: ADMIN/GM/TM/TO see all; SURVEYOR only assigned jobs' vessels; CLIENT only own company. Returns 403 if certificate exists but user has no access.\n"
-      security:
-        -
-          bearerAuth: []
-      operationId: getCertificateById
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Certificate details'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/CertificateResponse'}
-              example:
-                success: true
-                data:
-                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-                  vessel_id: string
-                  certificate_type_id: string
-                  certificate_number: string
-                  issue_date: '2026-03-15'
-                  expiry_date: '2026-03-15'
-                  status: DRAFT
-                  qr_code_url: 'https://example.com/resource'
-                  pdf_file_url: 'https://example.com/resource'
-                  uploaded_file_url: string
-                  generated_pdf_url: string
-                  issued_at: '2026-03-15T10:00:00.000Z'
-                  issued_by_user_id: string
-                  created_at: '2026-03-15T10:00:00.000Z'
-                  updated_at: '2026-03-15T10:00:00.000Z'
-                  CertificateType: {name: string}
-                  Vessel: {vessel_name: string, imo_number: string}
-                  FlagState: {flag_state_name: string}
-                  Authority: {id: string, name: string, code: string, country: string, logo_url: string, status: ACTIVE}
-                  source_type: INTERNAL
-                  version: 1
-                  certificate_term: FULL_TERM
-                  manual_text: {}
-                  remarks: string
-        '403':
-          description: 'Forbidden - certificate exists but user has no access'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        '404':
-          description: 'Certificate not found'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/certificates/{id}/download':
-    get:
-      tags:
-        - Certificates
-      summary: 'Download certificate PDF'
-      description: "Redirects to the certificate PDF URL for download. If the certificate has a stored PDF (pdf_file_url), returns 302 redirect to that URL so the browser can open or download the file.\nCLIENT can only download certificates for their vessels.\n"
-      operationId: downloadCertificate
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: 'Certificate ID'
-      responses:
-        '200':
-          description: 'Successful download (in case of direct file stream rather than redirect)'
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-              example: file.bin
-        '302':
-          description: 'Redirect to certificate PDF URL'
-          headers:
-            Location:
-              description: 'URL of the certificate PDF'
-              schema:
-                type: string
-                example: 'https://storage.example.com/certificates/abc-123.pdf'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
-              example:
-                success: true
-                message: 'Request successful'
-        '404':
-          description: 'Certificate not found or PDF not available'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: false}
-                  message: {type: string, example: 'Certificate PDF is not available for download yet.'}
-              example:
-                success: false
-                message: 'Certificate PDF is not available for download yet.'
-  '/api/v1/certificates/{id}/preview':
-    get:
-      tags:
-        - Certificates
-      summary: 'Preview certificate'
-      description: 'Get certificate preview/PDF. ADMIN, GM, TM, TO, SURVEYOR, CLIENT.'
-      operationId: previewCertificate
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Certificate preview'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object}
-              example:
-                success: true
-                data: {}
-  '/api/v1/certificates/{id}/history':
-    get:
-      tags:
-        - Certificates
-      summary: 'Get certificate history'
-      description: 'Get certificate change history.'
-      operationId: getCertificateHistory
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-        - SURVEYOR
-      parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: 'Certificate history'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/CertificateHistoryResponse'}}
-              example:
-                success: true
-                data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, status: string, changed_by_user_id: string, change_reason: string, changed_at: '2026-03-15T10:00:00.000Z'}
   /api/v1/checklist-templates:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Get checklist templates'
+      summary: 'List checklist templates'
       operationId: getChecklistTemplates
       x-roles:
         - ADMIN
         - GM
         - TM
         - SURVEYOR
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: status
           in: query
           schema:
             type: string
+            enum:
+              - ACTIVE
+              - INACTIVE
+              - DRAFT
         -
           name: certificate_type_id
           in: query
           schema:
             type: string
             format: uuid
+        -
+          name: code
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           description: 'List of templates'
@@ -2150,11 +4458,32 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChecklistTemplateResponse'
               example:
                 success: true
-                message: 'Request successful'
+                data:
+                  -
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    name: string
+                    code: string
+                    description: string
+                    certificate_type_id: string
+                    sections:
+                      - {title: string, items: [{code: string, text: string, type: string}]}
+                    status: ACTIVE
+                    template_files:
+                      - string
+                    metadata: {}
+                    created_by: string
+                    updated_by: string
+                    created_at: '2026-03-15T10:00:00.000Z'
+                    updated_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
           content:
@@ -2172,7 +4501,7 @@ paths:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Get template for job'
+      summary: 'Get template for a specific job'
       operationId: getChecklistTemplateForJob
       x-roles:
         - SURVEYOR
@@ -2180,6 +4509,9 @@ paths:
         - GM
         - TM
         - TO
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: jobId
@@ -2196,13 +4528,49 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ChecklistTemplateResponse'
               example:
                 success: true
-                message: 'Request successful'
+                message: string
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  name: string
+                  code: string
+                  description: string
+                  certificate_type_id: string
+                  sections:
+                    -
+                      title: string
+                      items: [{code: string, text: string, type: string}]
+                  status: ACTIVE
+                  template_files:
+                    - string
+                  metadata: {}
+                  created_by: string
+                  updated_by: string
+                  created_at: '2026-03-15T10:00:00.000Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'No active template for this certificate type'
           content:
             application/json:
               schema:
@@ -2218,8 +4586,8 @@ paths:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Download auto-filled checklist DOCX for job'
-      description: 'Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.'
+      summary: 'Download auto-filled checklist DOCX for a job'
+      description: 'Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns signed URLs.'
       operationId: downloadChecklistTemplateForJob
       x-roles:
         - SURVEYOR
@@ -2227,6 +4595,9 @@ paths:
         - GM
         - TM
         - TO
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: jobId
@@ -2242,26 +4613,59 @@ paths:
           schema:
             type: boolean
             default: false
-          description: 'Regenerate even if cached document exists'
+          description: 'Regenerate even if a cached document already exists'
       responses:
         '200':
-          description: 'Signed URL for filled DOCX'
+          description: 'Signed URL(s) for filled DOCX'
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {fileName: {type: string}, contentType: {type: string}, expiresAt: {type: string, format: date-time, nullable: true}, signedUrl: {type: string}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: {fileName: {type: string}, contentType: {type: string}, expiresAt: {type: string, format: date-time, nullable: true}, signedUrl: {type: string, format: uri}}
               example:
                 success: true
                 data:
-                  fileName: string
-                  contentType: string
-                  expiresAt: '2026-03-15T10:00:00.000Z'
-                  signedUrl: string
+                  -
+                    fileName: string
+                    contentType: string
+                    expiresAt: '2026-03-15T10:00:00.000Z'
+                    signedUrl: 'https://example.com/resource'
+        '400':
+          description: 'Template has no template_files configured'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Job or active template not found'
           content:
             application/json:
               schema:
@@ -2284,6 +4688,9 @@ paths:
         - GM
         - TM
         - SURVEYOR
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -2300,13 +4707,46 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ChecklistTemplateResponse'
               example:
                 success: true
-                message: 'Request successful'
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  name: string
+                  code: string
+                  description: string
+                  certificate_type_id: string
+                  sections:
+                    -
+                      title: string
+                      items: [{code: string, text: string, type: string}]
+                  status: ACTIVE
+                  template_files:
+                    - string
+                  metadata: {}
+                  created_by: string
+                  updated_by: string
+                  created_at: '2026-03-15T10:00:00.000Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Template not found'
           content:
             application/json:
               schema:
@@ -2323,7 +4763,7 @@ paths:
       tags:
         - Checklists
       summary: 'Get checklist for a job'
-      description: 'Retrieve the checklist items for a specific job. Can be filtered by answer or question code.'
+      description: "Returns the checklist items for a job **plus** the resolved (signed)\nHTTPS URLs of any full signed-checklist scan documents that were\nattached to the underlying survey.\n\nAll `file_url` fields and `signed_checklist_files` entries are guaranteed\nto be either fully-qualified HTTPS URLs or `null` — raw S3 keys are never\nreturned to the client.\n"
       operationId: getChecklist
       security:
         -
@@ -2375,20 +4815,25 @@ paths:
               example:
                 success: true
                 data:
-                  - {id: 019c675a-eead-752b-b2ea-e8b5932b0cfc, job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec, question_code: LSE001, question_text: 'Are life jackets available?', answer: YES, remarks: "", file_url: null, createdAt: '2026-02-16T16:48:58.000Z', updatedAt: '2026-02-16T16:48:58.000Z'}
-        '400':
-          description: 'Bad Request'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  items:
+                    -
+                      id: 019c675a-eead-752b-b2ea-e8b5932b0cfc
+                      job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec
+                      question_code: LSE001
+                      question_text: 'Are life jackets available?'
+                      answer: YES
+                      remarks: ""
+                      file_url: null
+                      createdAt: '2026-02-16T16:48:58.000Z'
+                      updatedAt: '2026-02-16T16:48:58.000Z'
+                  signed_checklist_files:
+                    - 'https://example.com/resource'
+                  template_files:
+                    - 'https://example.com/resource'
+                  template:
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    name: string
+                    code: string
         '401':
           description: Unauthorized
           content:
@@ -2416,7 +4861,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Not Found'
+          description: 'Job not found'
           content:
             application/json:
               schema:
@@ -2431,8 +4876,8 @@ paths:
     put:
       tags:
         - Checklists
-      summary: 'Submit checklist for a job'
-      description: 'Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (STARTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).'
+      summary: 'Submit checklist (answers + optional signed-scan files)'
+      description: "Submit / replace the checklist answers for a job. In the **same call**\nthe surveyor can also attach the S3 keys of the full signed-checklist\nscan document(s) — obtained earlier from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n\nRe-submission is allowed until the survey is finalized. Only the\nassigned `SURVEYOR` can perform this action while the survey is in an\nactive state (`STARTED`, `CHECKLIST_SUBMITTED`, `PROOF_UPLOADED`,\nor `REWORK_REQUIRED`).\n"
       operationId: submitChecklist
       security:
         -
@@ -2467,13 +4912,15 @@ paths:
                   question_text: 'Is the fire extinguisher charged?'
                   answer: NO
                   remarks: 'Pressure low, needs replacement'
-                  file_url: 'https://example.com/evidence_fire_ext.jpg'
+                  file_url: surveys/checklist-evidence/<jobId>/1714000000000_fire_ext.jpg
                 -
                   question_code: LSE003
                   question_text: 'Is the fire alarm functional?'
                   answer: NA
                   remarks: 'Not applicable for this vessel type'
                   file_url: ""
+              signed_checklist_files:
+                - surveys/signed-checklists/<jobId>/1714000000000_signed.pdf
       responses:
         '200':
           description: 'Checklist submitted successfully'
@@ -2484,9 +4931,27 @@ paths:
               example:
                 success: true
                 data:
-                  - {id: 019c675a-eead-752b-b2ea-e8b5932b0cfc, job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec, question_code: LSE001, question_text: 'Are life jackets available?', answer: YES, remarks: "", file_url: null, createdAt: '2026-02-16T16:48:58.000Z', updatedAt: '2026-02-16T16:48:58.000Z'}
+                  items:
+                    -
+                      id: 019c675a-eead-752b-b2ea-e8b5932b0cfc
+                      job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec
+                      question_code: LSE001
+                      question_text: 'Are life jackets available?'
+                      answer: YES
+                      remarks: ""
+                      file_url: null
+                      createdAt: '2026-02-16T16:48:58.000Z'
+                      updatedAt: '2026-02-16T16:48:58.000Z'
+                  signed_checklist_files:
+                    - 'https://example.com/resource'
+                  template_files:
+                    - 'https://example.com/resource'
+                  template:
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    name: string
+                    code: string
         '400':
-          description: 'Bad Request'
+          description: 'Bad Request (invalid state, terminal job, etc.)'
           content:
             application/json:
               schema:
@@ -2512,7 +4977,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: Forbidden
+          description: 'Forbidden — caller is not the assigned surveyor'
           content:
             application/json:
               schema:
@@ -2525,7 +4990,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Not Found'
+          description: 'Job not found'
           content:
             application/json:
               schema:
@@ -2541,8 +5006,8 @@ paths:
     get:
       tags:
         - Checklists
-      summary: 'Get upload URL for checklist item evidence'
-      description: 'Generates a pre-signed S3 URL so the surveyor can directly upload photo evidence for a specific checklist item (e.g. failing items). The returned fileKey is then passed as file_url in the checklist submission.'
+      summary: 'Get upload URL for a single checklist-item evidence photo'
+      description: "Generates a pre-signed S3 URL so the surveyor can directly upload one\nphoto of evidence for a **single** checklist item (e.g. a failing item).\nThe returned `fileKey` is then passed back as `file_url` on that item\nin the next `PUT /checklists/jobs/{jobId}` call.\n"
       operationId: getChecklistItemUploadUrl
       security:
         -
@@ -2578,15 +5043,12 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {uploadUrl: {type: string, format: uri}, fileKey: {type: string}}}
+                $ref: '#/components/schemas/UploadUrlResponse'
               example:
                 success: true
                 data:
                   uploadUrl: 'https://example.com/resource'
-                  fileKey: string
+                  fileKey: jobs/01933c5e.../report.pdf
         '400':
           description: 'Bad Request'
           content:
@@ -2601,7 +5063,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: Forbidden
+          description: 'Forbidden — caller is not the assigned surveyor'
           content:
             application/json:
               schema:
@@ -2614,7 +5076,93 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Job Not Found'
+          description: 'Job not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+  '/api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url':
+    get:
+      tags:
+        - Checklists
+      summary: 'Get upload URL for the full signed-checklist scan'
+      description: "Generates a pre-signed S3 URL so the surveyor can upload the full\nfilled & signed checklist document (PDF / image) — one or more files\nrepresenting the actual signed sheet.\n\nAfter uploading directly to S3 with the returned `uploadUrl`, send the\n`fileKey` back inside the `signed_checklist_files` array on the next\n`PUT /checklists/jobs/{jobId}` call.\n"
+      operationId: getSignedChecklistUploadUrl
+      security:
+        -
+          bearerAuth: []
+      x-roles:
+        - SURVEYOR
+      parameters:
+        -
+          in: path
+          name: jobId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: 'Unique identifier of the job'
+        -
+          in: query
+          name: fileName
+          schema:
+            type: string
+          required: true
+          description: 'The filename with extension (e.g. signed_checklist.pdf)'
+        -
+          in: query
+          name: contentType
+          schema:
+            type: string
+          required: true
+          description: 'The MIME type of the file (e.g. application/pdf)'
+      responses:
+        '200':
+          description: 'Upload URL generated successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+              example:
+                success: true
+                data:
+                  uploadUrl: 'https://example.com/resource'
+                  fileKey: jobs/01933c5e.../report.pdf
+        '400':
+          description: 'Bad Request (job not survey-eligible / terminal state)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: 'Forbidden — caller is not the assigned surveyor'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Job not found'
           content:
             application/json:
               schema:
@@ -2650,7 +5198,9 @@ paths:
               example:
                 success: true
                 data:
-                  stats: {pendingJobs: 5, totalCertificates: 120}
+                  stats:
+                    pendingJobs: 5
+                    totalCertificates: 120
                   recentJobs: []
                   expiringCertificates: []
         '401':
@@ -2710,8 +5260,14 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {uploadUrl: {type: string}, fileKey: {type: string}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      uploadUrl: {type: string}
+                      fileKey: {type: string}
               example:
                 success: true
                 data:
@@ -2755,8 +5311,13 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {file_url: {type: string, example: 'https://bucket.s3.amazonaws.com/temp/my-file.pdf'}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      file_url: {type: string, example: 'https://bucket.s3.amazonaws.com/temp/my-file.pdf'}
               example:
                 success: true
                 data:
@@ -2829,8 +5390,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -2886,8 +5451,14 @@ paths:
               properties:
                 fileData:
                   type: object
-                  required: [url, type]
-                  properties: {url: {type: string}, type: {type: string}}
+                  required:
+                    - url
+                    - type
+                  properties:
+                    url:
+                      type: string
+                    type:
+                      type: string
                 document_type:
                   type: string
                 description:
@@ -2904,8 +5475,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -2960,12 +5535,23 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {type: object, properties: {id: {type: string, format: uuid}, entity_type: {type: string}, entity_id: {type: string, format: uuid}, file_url: {type: string}, uploaded_at: {type: string, format: date-time}}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: {id: {type: string, format: uuid}, entity_type: {type: string}, entity_id: {type: string, format: uuid}, file_url: {type: string}, uploaded_at: {type: string, format: date-time}}
               example:
                 success: true
                 data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, entity_type: string, entity_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, file_url: string, uploaded_at: '2026-03-15T10:00:00.000Z'}
+                  -
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    entity_type: string
+                    entity_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    file_url: string
+                    uploaded_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
           content:
@@ -3018,7 +5604,9 @@ paths:
               properties:
                 files:
                   type: array
-                  items: {type: string, format: binary}
+                  items:
+                    type: string
+                    format: binary
                 document_type:
                   type: string
                   description: 'Type of document (e.g., EVIDENCE, REPORT)'
@@ -3036,8 +5624,16 @@ paths:
               properties:
                 fileData:
                   type: object
-                  required: [url, type]
-                  properties: {url: {type: string, description: 'The fileKey returned from get-upload-url'}, type: {type: string, description: 'MIME type'}}
+                  required:
+                    - url
+                    - type
+                  properties:
+                    url:
+                      type: string
+                      description: 'The fileKey returned from get-upload-url'
+                    type:
+                      type: string
+                      description: 'MIME type'
                 document_type:
                   type: string
                 description:
@@ -3054,14 +5650,26 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  count: {type: integer, example: 2}
-                  data: {type: array, items: {type: object, properties: {id: {type: string, format: uuid}, file_url: {type: string}, document_type: {type: string}, description: {type: string}}}}
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 2
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: {id: {type: string, format: uuid}, file_url: {type: string}, document_type: {type: string}, description: {type: string}}
               example:
                 success: true
                 count: 2
                 data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, file_url: string, document_type: string, description: string}
+                  -
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    file_url: string
+                    document_type: string
+                    description: string
         '403':
           description: Forbidden
           content:
@@ -3104,8 +5712,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {id: {type: string, format: uuid}, entity_type: {type: string}, entity_id: {type: string, format: uuid}, file_url: {type: string}, uploaded_at: {type: string, format: date-time}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id: {type: string, format: uuid}
+                      entity_type: {type: string}
+                      entity_id: {type: string, format: uuid}
+                      file_url: {type: string}
+                      uploaded_at: {type: string, format: date-time}
               example:
                 success: true
                 data:
@@ -3163,8 +5780,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  status: {type: string, example: UP}
-                  timestamp: {type: string, format: date-time}
+                  status:
+                    type: string
+                    example: UP
+                  timestamp:
+                    type: string
+                    format: date-time
               example:
                 status: UP
                 timestamp: '2026-02-13T10:00:00.000Z'
@@ -3257,8 +5878,18 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {total: {type: integer, example: 48}, page: {type: integer, example: 1}, limit: {type: integer, example: 10}, totalPages: {type: integer, example: 5}, status_counts: {type: array, items: {$ref: '#/components/schemas/StatusCount'}}, jobs: {type: array, items: {$ref: '#/components/schemas/JobSummary'}}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      total: {type: integer, example: 48}
+                      page: {type: integer, example: 1}
+                      limit: {type: integer, example: 10}
+                      totalPages: {type: integer, example: 5}
+                      status_counts: {type: array, items: {$ref: '#/components/schemas/StatusCount'}}
+                      jobs: {type: array, items: {$ref: '#/components/schemas/JobSummary'}}
               example:
                 success: true
                 data:
@@ -3266,7 +5897,20 @@ paths:
                   page: 1
                   limit: 10
                   totalPages: 5
-                  jobs: [{id: 019d3ac5-3464-74f9-891e-f6eda7ee366c, job_status: ASSIGNED, vessel_id: 019cbf1d-d9c1-732d-8d10-f866bb6e9dec, certificate_type_id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede, target_port: Mumbai, target_date: '2026-12-31', priority: NORMAL, createdAt: '2026-03-29T18:04:55.000Z', Vessel: {id: 019cbf1d-d9c1-732d-8d10-f866bb6e9dec, vessel_name: 'MV Pacific Guardian', imo_number: '9876501'}, CertificateType: {id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede, name: 'Safety Equipment Certificate'}, survey: {id: 019d7c59-7f7e-768d-a9a5-00cb91079432, survey_status: NOT_STARTED}, payment_status: N/A}]
+                  jobs:
+                    -
+                      id: 019d3ac5-3464-74f9-891e-f6eda7ee366c
+                      job_status: ASSIGNED
+                      vessel_id: 019cbf1d-d9c1-732d-8d10-f866bb6e9dec
+                      certificate_type_id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede
+                      target_port: Mumbai
+                      target_date: '2026-12-31'
+                      priority: NORMAL
+                      createdAt: '2026-03-29T18:04:55.000Z'
+                      Vessel: {id: 019cbf1d-d9c1-732d-8d10-f866bb6e9dec, vessel_name: 'MV Pacific Guardian', imo_number: '9876501'}
+                      CertificateType: {id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede, name: 'Safety Equipment Certificate'}
+                      survey: {id: 019d7c59-7f7e-768d-a9a5-00cb91079432, survey_status: NOT_STARTED}
+                      payment_status: N/A
         '401':
           description: 'Unauthorized – missing or invalid token'
           content:
@@ -3324,8 +5968,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/JobResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/JobResponse'
               example:
                 success: true
                 data:
@@ -3342,12 +5989,32 @@ paths:
                   updatedAt: '2026-04-11T11:42:13.000Z'
                   is_survey_required: true
                   reschedule_count: 0
-                  Vessel: {id: 019cbf1d-d9c1-732d-8d10-f866bb6e9dec, vessel_name: 'MV Pacific Guardian', imo_number: '9876501', client_id: 019c79a4-3ab9-7055-a1a7-9d7332fb025e}
-                  CertificateType: {id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede, name: 'Safety Equipment Certificate', issuing_authority: CLASS}
-                  survey: {id: 019d7c59-7f7e-768d-a9a5-00cb91079432, survey_status: NOT_STARTED, survey_statement_status: NOT_PREPARED}
-                  requester: {id: 019c79a4-3eee-731a-9eff-b0eed303e215, name: 'System Admin', email: admin@grclass.com, role: ADMIN}
-                  surveyor: {id: 019c79a4-4930-71fd-aa73-887301791935, name: 'Abhishek Singh', email: abhisheksingh@gmail.com}
-                  approver: {id: 019c79a4-42ee-772c-be48-490a7c1f4444, name: 'General Manager', role: GM}
+                  Vessel:
+                    id: 019cbf1d-d9c1-732d-8d10-f866bb6e9dec
+                    vessel_name: 'MV Pacific Guardian'
+                    imo_number: '9876501'
+                    client_id: 019c79a4-3ab9-7055-a1a7-9d7332fb025e
+                  CertificateType:
+                    id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede
+                    name: 'Safety Equipment Certificate'
+                    issuing_authority: CLASS
+                  survey:
+                    id: 019d7c59-7f7e-768d-a9a5-00cb91079432
+                    survey_status: NOT_STARTED
+                    survey_statement_status: NOT_PREPARED
+                  requester:
+                    id: 019c79a4-3eee-731a-9eff-b0eed303e215
+                    name: 'System Admin'
+                    email: admin@grclass.com
+                    role: ADMIN
+                  surveyor:
+                    id: 019c79a4-4930-71fd-aa73-887301791935
+                    name: 'Abhishek Singh'
+                    email: abhisheksingh@gmail.com
+                  approver:
+                    id: 019c79a4-42ee-772c-be48-490a7c1f4444
+                    name: 'General Manager'
+                    role: GM
                   payment_status: N/A
         '401':
           description: Unauthorized
@@ -3418,12 +6085,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/JobMessageResponse'}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobMessageResponse'
               example:
                 success: true
                 data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, job_id: string, sender_id: string, message_text: string, is_internal: true, attachment_url: 'https://example.com/resource', created_at: '2026-03-15T10:00:00.000Z', Sender: {name: string, role: string}}
+                  -
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    job_id: string
+                    sender_id: string
+                    message_text: string
+                    is_internal: true
+                    attachment_url: 'https://example.com/resource'
+                    created_at: '2026-03-15T10:00:00.000Z'
+                    Sender:
+                      name: string
+                      role: string
         '401':
           description: Unauthorized
           content:
@@ -3512,8 +6194,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/JobMessageResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/JobMessageResponse'
               example:
                 success: true
                 data:
@@ -3524,7 +6209,9 @@ paths:
                   is_internal: true
                   attachment_url: 'https://example.com/resource'
                   created_at: '2026-03-15T10:00:00.000Z'
-                  Sender: {name: string, role: string}
+                  Sender:
+                    name: string
+                    role: string
         '401':
           description: Unauthorized
           content:
@@ -3591,7 +6278,10 @@ paths:
                   type: string
                 severity:
                   type: string
-                  enum: [MINOR, MAJOR, CRITICAL]
+                  enum:
+                    - MINOR
+                    - MAJOR
+                    - CRITICAL
             example:
               job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
               description: 'Life jacket expiry date exceeded. Replacement required.'
@@ -3604,8 +6294,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -3650,8 +6344,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/NonConformityResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/NonConformityResponse'
               example:
                 success: true
                 data:
@@ -3705,12 +6402,22 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/NonConformityListItem'}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NonConformityListItem'
               example:
                 success: true
                 data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, job_id: string, severity: MINOR, status: OPEN, created_at: '2026-03-15T10:00:00.000Z'}
+                  -
+                    id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                    job_id: string
+                    severity: MINOR
+                    status: OPEN
+                    created_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
           content:
@@ -3746,7 +6453,25 @@ paths:
                 type: array
                 items:
                   type: object
-                  properties: {id: {type: string, format: uuid}, title: {type: string, example: 'Job Assigned'}, message: {type: string, example: 'You have been assigned to survey Sea Star.'}, type: {type: string, example: JOB_ASSIGNED}, is_read: {type: boolean, example: false}, created_at: {type: string, format: date-time}}
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    title:
+                      type: string
+                      example: 'Job Assigned'
+                    message:
+                      type: string
+                      example: 'You have been assigned to survey Sea Star.'
+                    type:
+                      type: string
+                      example: JOB_ASSIGNED
+                    is_read:
+                      type: boolean
+                      example: false
+                    created_at:
+                      type: string
+                      format: date-time
               example:
                 -
                   id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
@@ -3784,8 +6509,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -3810,8 +6539,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -3857,14 +6590,52 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {vessels: {type: array, items: {$ref: '#/components/schemas/VesselSummary'}}, jobs: {type: array, items: {$ref: '#/components/schemas/JobSummary'}}, certificates: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      vessels: {type: array, items: {$ref: '#/components/schemas/VesselSummary'}}
+                      jobs: {type: array, items: {$ref: '#/components/schemas/JobSummary'}}
+                      certificates: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}
               example:
                 success: true
                 data:
-                  vessels: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, vessel_name: 'Ocean Pioneer', imo_number: '9123456', flag_administration_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, ship_type: Cargo, class_status: ACTIVE}]
-                  jobs: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, job_status: string, vessel_id: string, certificate_type_id: string, target_port: string, target_date: '2026-03-15', priority: string, createdAt: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}, survey: {id: string, survey_status: string}, payment_status: string}]
-                  certificates: [{id: string, vessel_id: string, certificate_type_id: string, certificate_number: string, issue_date: '2026-03-15', expiry_date: '2026-03-15', status: DRAFT, created_at: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}}]
+                  vessels:
+                    -
+                      id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                      vessel_name: 'Ocean Pioneer'
+                      imo_number: '9123456'
+                      flag_administration_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                      ship_type: Cargo
+                      class_status: ACTIVE
+                  jobs:
+                    -
+                      id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                      job_status: string
+                      vessel_id: string
+                      certificate_type_id: string
+                      target_port: string
+                      target_date: '2026-03-15'
+                      priority: string
+                      createdAt: '2026-03-15T10:00:00.000Z'
+                      Vessel: {id: string, vessel_name: string, imo_number: string}
+                      CertificateType: {id: string, name: string}
+                      survey: {id: string, survey_status: string}
+                      payment_status: string
+                  certificates:
+                    -
+                      id: string
+                      vessel_id: string
+                      certificate_type_id: string
+                      certificate_number: string
+                      issue_date: '2026-03-15'
+                      expiry_date: '2026-03-15'
+                      status: DRAFT
+                      created_at: '2026-03-15T10:00:00.000Z'
+                      Vessel: {id: string, vessel_name: string, imo_number: string}
+                      CertificateType: {id: string, name: string}
   /api/v1/support:
     post:
       tags:
@@ -3894,7 +6665,11 @@ paths:
                   type: string
                 priority:
                   type: string
-                  enum: [LOW, MEDIUM, HIGH, URGENT]
+                  enum:
+                    - LOW
+                    - MEDIUM
+                    - HIGH
+                    - URGENT
             example:
               subject: 'Unable to submit survey'
               description: 'Getting 500 error when submitting survey for job XYZ'
@@ -3907,8 +6682,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -3955,13 +6734,28 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {count: {type: integer}, rows: {type: array, items: {$ref: '#/components/schemas/SupportTicketListItem'}}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      count: {type: integer}
+                      rows: {type: array, items: {$ref: '#/components/schemas/SupportTicketListItem'}}
               example:
                 success: true
                 data:
                   count: 1
-                  rows: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, ticket_number: string, subject: string, priority: LOW, status: OPEN, category: string, user_id: string, created_at: '2026-03-15T10:00:00.000Z'}]
+                  rows:
+                    -
+                      id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                      ticket_number: string
+                      subject: string
+                      priority: LOW
+                      status: OPEN
+                      category: string
+                      user_id: string
+                      created_at: '2026-03-15T10:00:00.000Z'
   '/api/v1/support/{id}':
     get:
       tags:
@@ -3991,8 +6785,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/SupportTicketResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SupportTicketResponse'
               example:
                 success: true
                 data:
@@ -4048,8 +6845,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4089,8 +6890,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4131,8 +6936,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4190,9 +6999,18 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Survey Started'}
-                  data: {type: object, properties: {message: {type: string}, job_id: {type: string, format: uuid}, started_at: {type: string, format: date-time}}}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Survey Started'
+                  data:
+                    type: object
+                    properties:
+                      message: {type: string}
+                      job_id: {type: string, format: uuid}
+                      started_at: {type: string, format: date-time}
               example:
                 success: true
                 message: 'Survey Started'
@@ -4304,8 +7122,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/SurveyReportResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SurveyReportResponse'
               example:
                 success: true
                 data:
@@ -4363,8 +7184,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/SurveyReportResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SurveyReportResponse'
               example:
                 success: true
                 data:
@@ -4434,8 +7258,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4484,124 +7312,15 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
-  '/api/v1/surveys/jobs/{jobId}/signed-checklist-upload-url':
-    get:
-      tags:
-        - Surveys
-      summary: 'Get upload URL for signed checklist scan'
-      operationId: getSignedChecklistUploadUrl
-      x-roles:
-        - SURVEYOR
-      parameters:
-        -
-          name: jobId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        -
-          name: fileName
-          in: query
-          required: true
-          schema:
-            type: string
-        -
-          name: contentType
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'Upload URL generated'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {uploadUrl: {type: string}, fileKey: {type: string}}}
-              example:
-                success: true
-                data:
-                  uploadUrl: string
-                  fileKey: string
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/surveys/jobs/{jobId}/signed-checklist':
-    put:
-      tags:
-        - Surveys
-      summary: 'Save signed checklist scan keys'
-      operationId: updateSignedChecklist
-      x-roles:
-        - SURVEYOR
-      parameters:
-        -
-          name: jobId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - fileKeys
-              properties:
-                fileKeys:
-                  type: array
-                  items: {type: string}
-            example:
-              fileKeys:
-                - string
-      responses:
-        '200':
-          description: 'Keys updated'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string}
-              example:
-                success: true
-                message: string
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
   '/api/v1/surveys/jobs/{jobId}/statement/draft':
     post:
       tags:
@@ -4641,8 +7360,15 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {message: {type: string}, status: {type: string, example: DRAFTED}, pdf_url: {type: string, format: uri, description: 'Only returned for TM/ADMIN'}}}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      message: {type: string}
+                      status: {type: string, example: DRAFTED}
+                      pdf_url: {type: string, format: uri, description: 'Only returned for TM/ADMIN'}
               example:
                 success: true
                 data:
@@ -4670,8 +7396,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4696,8 +7426,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4722,8 +7456,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4748,8 +7486,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Request successful'
               example:
                 success: true
                 message: 'Request successful'
@@ -4823,9 +7565,13 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string}
-                  data: {type: object}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  data:
+                    type: object
               example:
                 success: true
                 message: string
@@ -4873,8 +7619,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string, example: 'FCM token updated successfully'}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'FCM token updated successfully'
               example:
                 success: true
                 message: 'FCM token updated successfully'
@@ -4946,9 +7696,13 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  message: {type: string}
-                  data: {type: object}
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  data:
+                    type: object
               example:
                 success: true
                 message: string
@@ -4996,8 +7750,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: {type: boolean, example: true}
-                  data: {$ref: '#/components/schemas/VesselResponse'}
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/VesselResponse'
               example:
                 success: true
                 data:
@@ -5020,8 +7777,14 @@ paths:
                   builder_name: 'Hyundai Samho Heavy Industries'
                   createdAt: '2026-03-05T17:48:51.000Z'
                   updatedAt: '2026-03-05T17:48:51.000Z'
-                  Client: {id: 019c79a4-3ab9-7055-a1a7-9d7332fb025e, company_name: 'Pacific Maritime Corp', company_code: PMC001, email: ops@pacificmaritime.com, status: INACTIVE}
-                  FlagAdministration: {flag_state_name: 'Marshall Islands Maritime Administrator'}
+                  Client:
+                    id: 019c79a4-3ab9-7055-a1a7-9d7332fb025e
+                    company_name: 'Pacific Maritime Corp'
+                    company_code: PMC001
+                    email: ops@pacificmaritime.com
+                    status: INACTIVE
+                  FlagAdministration:
+                    flag_state_name: 'Marshall Islands Maritime Administrator'
         '404':
           description: 'Vessel not found'
           content:

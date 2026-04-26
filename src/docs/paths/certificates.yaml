@@ -40,11 +40,10 @@
       List certificates with strict RBAC and ownership filtering.
       **Access:**
       - **ADMIN / GM / TM / TO:** All certificates.
-      - **SURVEYOR:** Only certificates for vessels in jobs assigned to them.
       - **CLIENT:** Only certificates for their own company vessels.
     security: [{ bearerAuth: [] }]
     operationId: getCertificates
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: page
         in: query
@@ -213,10 +212,10 @@
 
       Pass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.
 
-      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+      **Roles:** CLIENT, ADMIN, GM, TM, TO
     security: [{ bearerAuth: [] }]
     operationId: getCertificateTypes
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: include_inactive
         in: query
@@ -320,10 +319,10 @@
       This is the endpoint to call **before creating a job** to know which
       documents must be uploaded.
 
-      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+      **Roles:** CLIENT, ADMIN, GM, TM, TO
     security: [{ bearerAuth: [] }]
     operationId: getCertificateTypeById
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -763,7 +762,7 @@
       **Access:** Limited by job ownership/assignment.
     security: [{ bearerAuth: [] }]
     operationId: getCertificateByJobId
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: jobId
         in: path
@@ -798,9 +797,9 @@
   get:
     tags: [Certificates]
     summary: Get certificates by vessel
-    description: Get all certificates for a specific vessel. Scope restricted (SURVEYOR only assigned, CLIENT only owned).
+    description: Get all certificates for a specific vessel. Scope restricted (CLIENT only owned).
     operationId: getCertificatesByVessel
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: vesselId
         in: path
@@ -825,10 +824,10 @@
     tags: [Certificates]
     summary: Get certificate by ID
     description: |
-      Get certificate details by ID. Same RBAC as list: ADMIN/GM/TM/TO see all; SURVEYOR only assigned jobs' vessels; CLIENT only own company. Returns 403 if certificate exists but user has no access.
+      Get certificate details by ID. Same RBAC as list: ADMIN/GM/TM/TO see all; CLIENT only own company. Returns 403 if certificate exists but user has no access.
     security: [{ bearerAuth: [] }]
     operationId: getCertificateById
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -870,7 +869,7 @@
       Redirects to the certificate PDF URL for download. If the certificate has a stored PDF (pdf_file_url), returns 302 redirect to that URL so the browser can open or download the file.
       CLIENT can only download certificates for their vessels.
     operationId: downloadCertificate
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -1182,9 +1181,9 @@
   get:
     tags: [Certificates]
     summary: Preview certificate
-    description: Get certificate preview/PDF. ADMIN, GM, TM, TO, SURVEYOR, CLIENT.
+    description: Get certificate preview/PDF. ADMIN, GM, TM, TO, CLIENT.
     operationId: previewCertificate
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -1213,7 +1212,7 @@
     summary: Get certificate history
     description: Get certificate change history.
     operationId: getCertificateHistory
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path

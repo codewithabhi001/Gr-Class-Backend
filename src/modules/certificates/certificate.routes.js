@@ -16,9 +16,9 @@ router.get('/verify/:number', certController.verifyCertificate);
 router.use(authenticate);
 
 // Metadata – certificate types
-router.get('/types', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateTypes);
+router.get('/types', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateTypes);
 router.post('/types', authorizeRoles('ADMIN'), validate(schemas.createCertificateType), certController.createCertificateType);
-router.get('/types/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateTypeById);
+router.get('/types/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateTypeById);
 router.put('/types/:id', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateCertificateType), certController.updateCertificateType);
 
 // Required documents per certificate type (ADMIN/TM)
@@ -28,7 +28,7 @@ router.put('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'TM')
 router.delete('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'TM'), certController.deleteCertificateTypeRequiredDocument);
 
 // List all certificates
-router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificates);
+router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificates);
 // Get certificates expiring within a range
 router.get('/expiring', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getExpiringCertificates);
 
@@ -39,10 +39,10 @@ router.get('/upload-url', authorizeRoles('ADMIN', 'GM', 'TM'), certController.ge
 router.post('/vessel/:vesselId/external', authorizeRoles('ADMIN', 'GM', 'TM'), validate(schemas.uploadExternalCertificate), certController.uploadExternalCertificate);
 
 // Get certificates for a specific vessel
-router.get('/vessel/:vesselId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificatesByVessel);
+router.get('/vessel/:vesselId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificatesByVessel);
 
 // Get certificate for a specific job
-router.get('/job/:jobId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateByJobId);
+router.get('/job/:jobId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateByJobId);
 
 // Generate a new certificate (Draft)
 router.post('/', authorizeRoles('TM', 'GM'), certController.generateCertificate);
@@ -54,10 +54,10 @@ router.put('/:id', authorizeRoles('TM', 'GM'), validate(schemas.updateCertificat
 router.post('/:id/issue', authorizeRoles('GM'), validate(schemas.updateCertificateDraft), certController.issueCertificate);
 
 // Get specific certificate details
-router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateById);
+router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateById);
 
 // Download certificate PDF
-router.get('/:id/download', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.downloadCertificate);
+router.get('/:id/download', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.downloadCertificate);
 
 // Suspend/Revoke/Restore
 router.put('/:id/suspend', authorizeRoles('TM'), validate(schemas.certAction), certController.suspendCertificate);
@@ -72,10 +72,10 @@ router.post('/bulk-renew', authorizeRoles('TM'), certController.bulkRenew);
 router.post('/:id/reissue', authorizeRoles('TM'), certController.reissueCertificate);
 
 // Preview
-router.get('/:id/preview', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.previewCertificate);
+router.get('/:id/preview', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.previewCertificate);
 
 // History
-router.get('/:id/history', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getHistory);
+router.get('/:id/history', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getHistory);
 
 // Advanced Management
 router.post('/:id/transfer', authorizeRoles('GM'), validate(schemas.certAction), certController.transferCertificate);
