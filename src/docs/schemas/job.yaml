@@ -146,6 +146,11 @@ JobResponse:
           type: array
           description: Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.
           items: { type: string, format: uri }
+    ActivityPlannings:
+      type: array
+      description: List of checklist items and surveyor findings for this job.
+      items:
+        $ref: '#/components/schemas/ChecklistItemResponse'
     Payments:
       type: array
       items:

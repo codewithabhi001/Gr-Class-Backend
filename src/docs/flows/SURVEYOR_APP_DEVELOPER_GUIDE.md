@@ -105,6 +105,9 @@ Error responses commonly return:
 
 **Why:** Job detail screen (vessel, certificate type, job status, documents, etc.).
 
+**Updated Info:** This detail response now also includes **`ActivityPlannings`** (the digital checklist answers) and **`survey`** details in one call.
+
+
 ---
 ---
 
@@ -473,7 +476,8 @@ Fields:
 
 ### 16.1 `GET /api/v1/surveys/jobs/{jobId}`
 
-**Why:** Survey detail screen (status, proof, statement URLs, etc.).
+**Why:** Survey detail screen (status, proof, statement URLs, etc.). Now includes the nested `JobRequest` with its **`ActivityPlannings`** (checklist findings).
+
 
 ### 16.2 `GET /api/v1/surveys/jobs/{jobId}/timeline`
 

@@ -56,6 +56,14 @@ SurveyReportResponse:
     finalized_at:
       type: string
       format: date-time
+    JobRequest:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        job_status: { type: string }
+        ActivityPlannings:
+          type: array
+          items: { $ref: '#/components/schemas/ChecklistItemResponse' }
   example:
     id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
     job_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"

@@ -536,6 +536,7 @@ When the FE renders the *Survey* drawer / page, these are the fields you'll need
 | `attendance_photo_url` | resolved signed URL | "Surveyor on-site" photo |
 | `signature_url` | resolved signed URL | sign-off image |
 | `signed_checklist_files` | array of resolved signed URLs | "View signed checklist" link(s) |
+| `ActivityPlannings` | nested under `JobRequest` | Digital checklist answers + per-question photos (`file_url`) |
 | `survey_statement` / `survey_statement_status` / `survey_statement_pdf_url` | resolved signed URL | DRAFTED / ISSUED stamp + download |
 | `declaration_hash` | direct | SHA-256, surfaceable as a tooltip on the "submitted" pill — immutable proof |
 | `SurveyStatusHistories` | included via timeline endpoint | for the round-by-round table |

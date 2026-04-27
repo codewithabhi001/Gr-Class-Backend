@@ -589,7 +589,11 @@ export const getSurveyDetails = async (jobId, user) => {
     let survey = await Survey.findOne({
         where: { job_id: jobId },
         include: [
-            { model: JobRequest, attributes: ['id', 'job_status'] },
+            { 
+                model: JobRequest, 
+                attributes: ['id', 'job_status'],
+                include: ['ActivityPlannings']
+            },
             { model: db.User, attributes: ['name', 'email'] },
             { model: db.User, as: 'Declarer', attributes: ['name', 'email'] },
             { model: db.SurveyStatusHistory, attributes: ['previous_status', 'new_status', 'reason', 'createdAt'] }

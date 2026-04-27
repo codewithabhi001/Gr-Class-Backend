@@ -312,7 +312,7 @@ export const getJobById = async (id, scopeFilters = {}) => {
                 as: 'JobStatusHistories',
                 include: [{ model: db.User, attributes: ['id', 'name', 'email', 'role'] }]
             },
-            'JobDocuments', 'JobReschedules',
+            'JobDocuments', 'JobReschedules', 'ActivityPlannings',
             {
                 model: Survey,
                 as: 'survey',
