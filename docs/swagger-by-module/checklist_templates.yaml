@@ -418,6 +418,105 @@ components:
         refreshToken:
           type: string
           description: 'New long-lived refresh token; store and use for next refresh'
+    CertificateTemplateResponse:
+      type: object
+      description: 'A DOCX template (referenced by S3 key) used to render certificates.'
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        template_name:
+          type: string
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+        template_file_url:
+          type: string
+          description: "S3 key for the .docx template (e.g.\n`certificate-templates/1714000000000_iopp_v1.docx`). This is what\n`getUploadUrl` returned as `fileKey`.\n"
+          nullable: true
+        variables:
+          type: array
+          description: 'Variable names this template expects to receive at render time.'
+          items:
+            type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        CertificateType:
+          type: object
+          nullable: true
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            name:
+              type: string
+    CertificateTemplateCreateRequest:
+      type: object
+      required:
+        - template_name
+        - certificate_type_id
+        - template_file_url
+      description: "Body for `POST /api/v1/certificate-templates`.\nRequired: `template_name`, `certificate_type_id`, `template_file_url`.\nOptional: `certificate_term`, `variables`, `is_active`.\n"
+      properties:
+        template_name:
+          type: string
+          description: 'Human-readable template name.'
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          description: 'ID of the associated certificate type.'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+          description: 'If set, this template is used only for that term.'
+        template_file_url:
+          type: string
+          description: "S3 key returned by\n`GET /api/v1/certificate-templates/get-upload-url` (after the file\nhas been uploaded to that pre-signed URL).\n"
+        variables:
+          type: array
+          description: 'Variable names this template expects at render time.'
+          items:
+            type: string
+        is_active:
+          type: boolean
+          default: true
+    CertificateTemplateUpdateRequest:
+      type: object
+      description: "Body for `PUT /api/v1/certificate-templates/{id}`. All fields optional —\nsend only what you want to change. To swap the DOCX, send the new S3\nkey as `template_file_url`.\n"
+      properties:
+        template_name:
+          type: string
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+        template_file_url:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
     CertificateSummary:
       type: object
       properties:
@@ -972,7 +1071,12 @@ components:
                 type: string
               file_url:
                 type: string
-                format: uri
+                description: "S3 key returned earlier from\n`GET /checklists/jobs/{jobId}/get-upload-url`, OR a fully-qualified\nHTTPS URL. Leave empty if no per-item evidence is attached.\n"
+        signed_checklist_files:
+          type: array
+          description: "Optional. S3 keys of the full signed-checklist scan documents,\neach obtained from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n"
+          items:
+            type: string
     ChecklistResponse:
       type: object
       properties:
@@ -980,9 +1084,52 @@ components:
           type: boolean
           example: true
         data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChecklistItemResponse'
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChecklistItemResponse'
+            signed_checklist_files:
+              type: array
+              description: "Resolved (signed) HTTPS URLs of the full signed-checklist scan\ndocuments. Empty array when none are attached.\n"
+              items:
+                type: string
+                format: uri
+            template_files:
+              type: array
+              description: "Resolved (signed) HTTPS URLs of the reference/blank checklist\ntemplate documents (DOCX/PDF) attached to the active checklist\ntemplate for this job's certificate type.\nEmpty array when no active template exists or it has no attached files.\n"
+              items:
+                type: string
+                format: uri
+            template:
+              type: object
+              nullable: true
+              description: "Minimal metadata for the active checklist template used to provide\n`template_files`. Null when no active template exists for the job's\ncertificate type.\n"
+              properties:
+                id:
+                  $ref: '#/components/schemas/UUID'
+                name:
+                  type: string
+                code:
+                  type: string
+    UploadUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            uploadUrl:
+              type: string
+              format: uri
+              description: 'Pre-signed S3 PUT URL. Upload the file directly with this URL.'
+            fileKey:
+              type: string
+              description: 'S3 object key. Send this back to the API afterwards.'
+              example: jobs/01933c5e.../report.pdf
     ChecklistTemplateResponse:
       type: object
       properties:
@@ -1038,20 +1185,31 @@ components:
         - name
         - code
         - sections
+      description: "Body for `POST /api/v1/checklist-templates`.\nRequired: `name`, `code`, `sections`.\nOptional: `description`, `certificate_type_id`, `template_files`,\n`status`, `metadata`.\n"
       properties:
         name:
           type: string
+          description: 'Human-readable template name.'
         code:
           type: string
+          description: 'Stable template code (used as a stable reference).'
         description:
           type: string
+          description: 'Short description of what the template covers.'
         certificate_type_id:
-          $ref: '#/components/schemas/UUID'
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
           nullable: true
+          description: "Certificate type this template applies to. When activated, the\nactive template for this certificate type drives surveyor checklists.\n"
         sections:
           type: array
+          description: 'Ordered list of sections with their question items.'
           items:
             type: object
+            required:
+              - title
+              - items
             properties:
               title:
                 type: string
@@ -1059,21 +1217,26 @@ components:
                 type: array
                 items:
                   type: object
-                  properties: {code: {type: string}, text: {type: string}, type: {type: string}}
+                  required: [code, text]
+                  properties: {code: {type: string, description: 'Stable per-question code (e.g. LSE001)'}, text: {type: string, description: 'Question text shown to the surveyor'}, type: {type: string, enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER], default: YES_NO_NA}}
         status:
           type: string
           enum:
             - ACTIVE
             - INACTIVE
             - DRAFT
+          default: DRAFT
         template_files:
           type: array
+          description: "S3 keys of attached reference DOCX/PDF files (each obtained from\n`GET /api/v1/checklist-templates/get-upload-url`).\n"
           items:
             type: string
         metadata:
           type: object
+          description: 'Free-form JSON (e.g. `{ "version": "1.0" }`).'
     ChecklistTemplateUpdateRequest:
       type: object
+      description: "Body for `PUT /api/v1/checklist-templates/{id}`. All fields are optional —\nsend only what you want to change.\n\nFor attached document keys you have THREE choices (mutually exclusive\nbetween `template_files` and the `add_*`/`remove_*` pair):\n  • `template_files`         — full replace of the entire array\n  • `add_template_files`     — append these keys\n  • `remove_template_files`  — drop these keys\n\nStructural edits (`name`, `code`, `sections`, `certificate_type_id`,\n`metadata`) require the template to be in `DRAFT`. File-key edits are\nallowed at any status.\n"
       properties:
         name:
           type: string
@@ -1082,12 +1245,17 @@ components:
         description:
           type: string
         certificate_type_id:
-          $ref: '#/components/schemas/UUID'
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
           nullable: true
         sections:
           type: array
           items:
             type: object
+            required:
+              - title
+              - items
             properties:
               title:
                 type: string
@@ -1095,19 +1263,31 @@ components:
                 type: array
                 items:
                   type: object
-                  properties: {code: {type: string}, text: {type: string}, type: {type: string}}
+                  required: [code, text]
+                  properties: {code: {type: string}, text: {type: string}, type: {type: string, enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER], default: YES_NO_NA}}
         status:
           type: string
           enum:
             - ACTIVE
             - INACTIVE
             - DRAFT
-        template_files:
-          type: array
-          items:
-            type: string
         metadata:
           type: object
+        template_files:
+          type: array
+          description: 'Full replace of the attached-document key list.'
+          items:
+            type: string
+        add_template_files:
+          type: array
+          description: "S3 keys to append (de-duplicated). Use this to \"add a new file on\ntop\" without losing the existing ones.\n"
+          items:
+            type: string
+        remove_template_files:
+          type: array
+          description: 'S3 keys to drop from the existing list.'
+          items:
+            type: string
     ClientCreateRequest:
       type: object
       required:
@@ -1408,21 +1588,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Document'
-    UploadUrlResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            uploadUrl:
-              type: string
-              format: uri
-            fileKey:
-              type: string
-              example: jobs/01933c5e.../report.pdf
     CustomerFeedback:
       type: object
       properties:
@@ -1709,6 +1874,10 @@ components:
               type: string
             survey_statement_status:
               type: string
+            survey_statement_pdf_url:
+              type: string
+              format: uri
+              nullable: true
             started_at:
               type: string
               format: date-time
@@ -1717,6 +1886,17 @@ components:
               type: string
               format: date-time
               nullable: true
+            signed_checklist_files:
+              type: array
+              description: 'Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.'
+              items:
+                type: string
+                format: uri
+        ActivityPlannings:
+          type: array
+          description: 'List of checklist items and surveyor findings for this job.'
+          items:
+            $ref: '#/components/schemas/ChecklistItemResponse'
         Payments:
           type: array
           items:
@@ -2683,6 +2863,17 @@ components:
         finalized_at:
           type: string
           format: date-time
+        JobRequest:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            job_status:
+              type: string
+            ActivityPlannings:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChecklistItemResponse'
       example:
         id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
@@ -3829,37 +4020,19 @@ paths:
       tags:
         - 'Checklist Templates'
       summary: 'Create checklist template'
+      description: "Create a new checklist template (questions + optional attached\nDOCX/PDF reference documents).\n\nTo attach reference documents, first call\n`GET /api/v1/checklist-templates/get-upload-url` to obtain a pre-signed\nS3 URL, upload the file directly to S3 with that URL, then send the\nreturned `fileKey` in the `template_files` array on this call.\n"
       operationId: createChecklistTemplate
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - name
-                - code
-                - sections
-              properties:
-                name:
-                  type: string
-                code:
-                  type: string
-                description:
-                  type: string
-                certificate_type_id:
-                  type: string
-                  format: uuid
-                sections:
-                  type: array
-                template_files:
-                  type: array
-                  items: {type: string}
-                status:
-                  type: string
-                  enum: [ACTIVE, INACTIVE, DRAFT]
+              $ref: '#/components/schemas/ChecklistTemplateCreateRequest'
             example:
               name: 'Safety Equipment Inspection'
               code: SAFETY_EQUIP_001
@@ -3869,7 +4042,11 @@ paths:
                 -
                   title: 'Life-Saving Equipment'
                   items: [{code: LSE001, text: 'Are life jackets available?', type: YES_NO_NA}, {code: LSE002, text: 'Number of life jackets', type: NUMBER}]
-              status: ACTIVE
+              template_files:
+                - checklist-templates/1714000000000_safety_master.docx
+              status: DRAFT
+              metadata:
+                version: '1.0'
       responses:
         '201':
           description: 'Template created'
@@ -3879,10 +4056,38 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  message: {type: string}
+                  data: {$ref: '#/components/schemas/ChecklistTemplateResponse'}
               example:
                 success: true
-                message: 'Request successful'
+                message: string
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  name: string
+                  code: string
+                  description: string
+                  certificate_type_id: string
+                  sections: [{title: string, items: [{code: string, text: string, type: string}]}]
+                  status: ACTIVE
+                  template_files: [string]
+                  metadata: {}
+                  created_by: string
+                  updated_by: string
+                  created_at: '2026-03-15T10:00:00.000Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
           description: Forbidden
           content:
@@ -3899,25 +4104,36 @@ paths:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Get checklist templates'
+      summary: 'List checklist templates'
       operationId: getChecklistTemplates
       x-roles:
         - ADMIN
         - GM
         - TM
-        - SURVEYOR
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: status
           in: query
           schema:
             type: string
+            enum:
+              - ACTIVE
+              - INACTIVE
+              - DRAFT
         -
           name: certificate_type_id
           in: query
           schema:
             type: string
             format: uuid
+        -
+          name: code
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           description: 'List of templates'
@@ -3927,10 +4143,11 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  data: {type: array, items: {$ref: '#/components/schemas/ChecklistTemplateResponse'}}
               example:
                 success: true
-                message: 'Request successful'
+                data:
+                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, name: string, code: string, description: string, certificate_type_id: string, sections: [{title: string, items: [{code: string, text: string, type: string}]}], status: ACTIVE, template_files: [string], metadata: {}, created_by: string, updated_by: string, created_at: '2026-03-15T10:00:00.000Z', updated_at: '2026-03-15T10:00:00.000Z'}
         '403':
           description: Forbidden
           content:
@@ -3948,10 +4165,14 @@ paths:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Get upload URL for checklist template'
+      summary: 'Get S3 upload URL for a template document (DOCX / PDF)'
+      description: "Generates a pre-signed S3 PUT URL. After uploading the file directly\nto S3 with that URL, send the returned `fileKey` on the next\n`POST /api/v1/checklist-templates` (in `template_files`) or\n`PUT /api/v1/checklist-templates/{id}` (in `template_files`,\n`add_template_files`, or `remove_template_files`).\n"
       operationId: getChecklistTemplateUploadUrl
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: fileName
@@ -3959,27 +4180,39 @@ paths:
           required: true
           schema:
             type: string
+          description: 'Filename with extension (e.g. iopp_master.docx)'
         -
           name: contentType
           in: query
           required: true
           schema:
             type: string
+          description: 'MIME type (e.g. application/vnd.openxmlformats-officedocument.wordprocessingml.document)'
       responses:
         '200':
           description: 'Upload URL generated'
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {uploadUrl: {type: string}, fileKey: {type: string}}}
+                $ref: '#/components/schemas/UploadUrlResponse'
               example:
                 success: true
                 data:
-                  uploadUrl: string
-                  fileKey: string
+                  uploadUrl: 'https://example.com/resource'
+                  fileKey: jobs/01933c5e.../report.pdf
+        '400':
+          description: 'Missing fileName / contentType'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
           description: Forbidden
           content:
@@ -3997,7 +4230,7 @@ paths:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Get template for job'
+      summary: 'Get template for a specific job'
       operationId: getChecklistTemplateForJob
       x-roles:
         - SURVEYOR
@@ -4005,6 +4238,9 @@ paths:
         - GM
         - TM
         - TO
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: jobId
@@ -4022,12 +4258,40 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  message: {type: string}
+                  data: {$ref: '#/components/schemas/ChecklistTemplateResponse'}
               example:
                 success: true
-                message: 'Request successful'
+                message: string
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  name: string
+                  code: string
+                  description: string
+                  certificate_type_id: string
+                  sections: [{title: string, items: [{code: string, text: string, type: string}]}]
+                  status: ACTIVE
+                  template_files: [string]
+                  metadata: {}
+                  created_by: string
+                  updated_by: string
+                  created_at: '2026-03-15T10:00:00.000Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'No active template for this certificate type'
           content:
             application/json:
               schema:
@@ -4043,8 +4307,8 @@ paths:
     get:
       tags:
         - 'Checklist Templates'
-      summary: 'Download auto-filled checklist DOCX for job'
-      description: 'Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.'
+      summary: 'Download auto-filled checklist DOCX for a job'
+      description: 'Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns signed URLs.'
       operationId: downloadChecklistTemplateForJob
       x-roles:
         - SURVEYOR
@@ -4052,6 +4316,9 @@ paths:
         - GM
         - TM
         - TO
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: jobId
@@ -4067,26 +4334,49 @@ paths:
           schema:
             type: boolean
             default: false
-          description: 'Regenerate even if cached document exists'
+          description: 'Regenerate even if a cached document already exists'
       responses:
         '200':
-          description: 'Signed URL for filled DOCX'
+          description: 'Signed URL(s) for filled DOCX'
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  data: {type: object, properties: {fileName: {type: string}, contentType: {type: string}, expiresAt: {type: string, format: date-time, nullable: true}, signedUrl: {type: string}}}
+                  data: {type: array, items: {type: object, properties: {fileName: {type: string}, contentType: {type: string}, expiresAt: {type: string, format: date-time, nullable: true}, signedUrl: {type: string, format: uri}}}}
               example:
                 success: true
                 data:
-                  fileName: string
-                  contentType: string
-                  expiresAt: '2026-03-15T10:00:00.000Z'
-                  signedUrl: string
+                  - {fileName: string, contentType: string, expiresAt: '2026-03-15T10:00:00.000Z', signedUrl: 'https://example.com/resource'}
+        '400':
+          description: 'Template has no template_files configured'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Job or active template not found'
           content:
             application/json:
               schema:
@@ -4108,7 +4398,9 @@ paths:
         - ADMIN
         - GM
         - TM
-        - SURVEYOR
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -4126,12 +4418,38 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  data: {$ref: '#/components/schemas/ChecklistTemplateResponse'}
               example:
                 success: true
-                message: 'Request successful'
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  name: string
+                  code: string
+                  description: string
+                  certificate_type_id: string
+                  sections: [{title: string, items: [{code: string, text: string, type: string}]}]
+                  status: ACTIVE
+                  template_files: [string]
+                  metadata: {}
+                  created_by: string
+                  updated_by: string
+                  created_at: '2026-03-15T10:00:00.000Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Template not found'
           content:
             application/json:
               schema:
@@ -4146,10 +4464,14 @@ paths:
     put:
       tags:
         - 'Checklist Templates'
-      summary: 'Update template'
+      summary: 'Update template (full replace OR add/remove file keys)'
+      description: "Update template fields. Three independent ways to manage attached\ndocument keys are supported:\n\n| Field | Effect |\n|---|---|\n| `template_files` | Full replace of the entire array |\n| `add_template_files` | Append these keys (de-duplicated) |\n| `remove_template_files` | Remove these specific keys |\n\n`add_*` and `remove_*` can be combined in one call, but **cannot** be\ncombined with the full-replace `template_files`.\n\nStructural edits (`name`, `code`, `sections`, `certificate_type_id`,\n`metadata`) require the template to be in `DRAFT` status — clone the\ntemplate instead for finalized versions. File-key edits are allowed at\nany status.\n"
       operationId: updateChecklistTemplate
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -4162,20 +4484,25 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                code:
-                  type: string
-                description:
-                  type: string
-                status:
-                  type: string
-                  enum: [ACTIVE, INACTIVE, DRAFT]
-            example:
-              name: 'Safety Equipment Inspection (Updated)'
-              status: ACTIVE
+              $ref: '#/components/schemas/ChecklistTemplateUpdateRequest'
+            examples:
+              renameOnly:
+                summary: 'Rename only (DRAFT status required)'
+                value:
+                  name: 'Safety Equipment Inspection (v2)'
+              replaceFiles:
+                summary: 'Full replace of template_files (any status)'
+                value:
+                  template_files: [checklist-templates/1714000010000_safety_master_v2.docx]
+              addFiles:
+                summary: 'Append a newly-uploaded reference doc (any status)'
+                value:
+                  add_template_files: [checklist-templates/1714000020000_safety_supplement.pdf]
+              addAndRemove:
+                summary: 'Swap one file for another (any status)'
+                value:
+                  remove_template_files: [checklist-templates/1714000000000_safety_master.docx]
+                  add_template_files: [checklist-templates/1714000020000_safety_master_v3.docx]
       responses:
         '200':
           description: 'Template updated'
@@ -4185,12 +4512,53 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Request successful'}
+                  message: {type: string}
+                  data: {$ref: '#/components/schemas/ChecklistTemplateResponse'}
               example:
                 success: true
-                message: 'Request successful'
+                message: string
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  name: string
+                  code: string
+                  description: string
+                  certificate_type_id: string
+                  sections: [{title: string, items: [{code: string, text: string, type: string}]}]
+                  status: ACTIVE
+                  template_files: [string]
+                  metadata: {}
+                  created_by: string
+                  updated_by: string
+                  created_at: '2026-03-15T10:00:00.000Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
+        '400':
+          description: "Either (a) you tried to mix full-replace `template_files` with\n`add_*`/`remove_*`, or (b) you tried to make a structural edit on a\nnon-DRAFT template.\n"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Template not found'
           content:
             application/json:
               schema:
@@ -4205,10 +4573,13 @@ paths:
     delete:
       tags:
         - 'Checklist Templates'
-      summary: 'Delete template'
+      summary: 'Delete template (soft delete → INACTIVE)'
       operationId: deleteChecklistTemplate
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -4243,14 +4614,30 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Template not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
   '/api/v1/checklist-templates/{id}/activate':
     put:
       tags:
         - 'Checklist Templates'
-      summary: 'Activate template'
+      summary: 'Activate template (deactivates other actives for the same certificate type)'
       operationId: activateChecklistTemplate
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -4285,14 +4672,30 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Template not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
   '/api/v1/checklist-templates/{id}/clone':
     post:
       tags:
         - 'Checklist Templates'
-      summary: 'Clone template'
+      summary: 'Clone template (auto-bumps version, leaves clone in DRAFT)'
       operationId: cloneChecklistTemplate
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -4316,6 +4719,19 @@ paths:
                 message: 'Request successful'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Template not found'
           content:
             application/json:
               schema:

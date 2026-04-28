@@ -418,6 +418,105 @@ components:
         refreshToken:
           type: string
           description: 'New long-lived refresh token; store and use for next refresh'
+    CertificateTemplateResponse:
+      type: object
+      description: 'A DOCX template (referenced by S3 key) used to render certificates.'
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        template_name:
+          type: string
+        certificate_type_id:
+          $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+        template_file_url:
+          type: string
+          description: "S3 key for the .docx template (e.g.\n`certificate-templates/1714000000000_iopp_v1.docx`). This is what\n`getUploadUrl` returned as `fileKey`.\n"
+          nullable: true
+        variables:
+          type: array
+          description: 'Variable names this template expects to receive at render time.'
+          items:
+            type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        CertificateType:
+          type: object
+          nullable: true
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            name:
+              type: string
+    CertificateTemplateCreateRequest:
+      type: object
+      required:
+        - template_name
+        - certificate_type_id
+        - template_file_url
+      description: "Body for `POST /api/v1/certificate-templates`.\nRequired: `template_name`, `certificate_type_id`, `template_file_url`.\nOptional: `certificate_term`, `variables`, `is_active`.\n"
+      properties:
+        template_name:
+          type: string
+          description: 'Human-readable template name.'
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          description: 'ID of the associated certificate type.'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+          description: 'If set, this template is used only for that term.'
+        template_file_url:
+          type: string
+          description: "S3 key returned by\n`GET /api/v1/certificate-templates/get-upload-url` (after the file\nhas been uploaded to that pre-signed URL).\n"
+        variables:
+          type: array
+          description: 'Variable names this template expects at render time.'
+          items:
+            type: string
+        is_active:
+          type: boolean
+          default: true
+    CertificateTemplateUpdateRequest:
+      type: object
+      description: "Body for `PUT /api/v1/certificate-templates/{id}`. All fields optional —\nsend only what you want to change. To swap the DOCX, send the new S3\nkey as `template_file_url`.\n"
+      properties:
+        template_name:
+          type: string
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+        certificate_term:
+          type: string
+          enum:
+            - FULL_TERM
+            - SHORT_TERM
+          nullable: true
+        template_file_url:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
     CertificateSummary:
       type: object
       properties:
@@ -972,7 +1071,12 @@ components:
                 type: string
               file_url:
                 type: string
-                format: uri
+                description: "S3 key returned earlier from\n`GET /checklists/jobs/{jobId}/get-upload-url`, OR a fully-qualified\nHTTPS URL. Leave empty if no per-item evidence is attached.\n"
+        signed_checklist_files:
+          type: array
+          description: "Optional. S3 keys of the full signed-checklist scan documents,\neach obtained from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n"
+          items:
+            type: string
     ChecklistResponse:
       type: object
       properties:
@@ -980,9 +1084,52 @@ components:
           type: boolean
           example: true
         data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChecklistItemResponse'
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChecklistItemResponse'
+            signed_checklist_files:
+              type: array
+              description: "Resolved (signed) HTTPS URLs of the full signed-checklist scan\ndocuments. Empty array when none are attached.\n"
+              items:
+                type: string
+                format: uri
+            template_files:
+              type: array
+              description: "Resolved (signed) HTTPS URLs of the reference/blank checklist\ntemplate documents (DOCX/PDF) attached to the active checklist\ntemplate for this job's certificate type.\nEmpty array when no active template exists or it has no attached files.\n"
+              items:
+                type: string
+                format: uri
+            template:
+              type: object
+              nullable: true
+              description: "Minimal metadata for the active checklist template used to provide\n`template_files`. Null when no active template exists for the job's\ncertificate type.\n"
+              properties:
+                id:
+                  $ref: '#/components/schemas/UUID'
+                name:
+                  type: string
+                code:
+                  type: string
+    UploadUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            uploadUrl:
+              type: string
+              format: uri
+              description: 'Pre-signed S3 PUT URL. Upload the file directly with this URL.'
+            fileKey:
+              type: string
+              description: 'S3 object key. Send this back to the API afterwards.'
+              example: jobs/01933c5e.../report.pdf
     ChecklistTemplateResponse:
       type: object
       properties:
@@ -1038,20 +1185,31 @@ components:
         - name
         - code
         - sections
+      description: "Body for `POST /api/v1/checklist-templates`.\nRequired: `name`, `code`, `sections`.\nOptional: `description`, `certificate_type_id`, `template_files`,\n`status`, `metadata`.\n"
       properties:
         name:
           type: string
+          description: 'Human-readable template name.'
         code:
           type: string
+          description: 'Stable template code (used as a stable reference).'
         description:
           type: string
+          description: 'Short description of what the template covers.'
         certificate_type_id:
-          $ref: '#/components/schemas/UUID'
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
           nullable: true
+          description: "Certificate type this template applies to. When activated, the\nactive template for this certificate type drives surveyor checklists.\n"
         sections:
           type: array
+          description: 'Ordered list of sections with their question items.'
           items:
             type: object
+            required:
+              - title
+              - items
             properties:
               title:
                 type: string
@@ -1059,21 +1217,26 @@ components:
                 type: array
                 items:
                   type: object
-                  properties: {code: {type: string}, text: {type: string}, type: {type: string}}
+                  required: [code, text]
+                  properties: {code: {type: string, description: 'Stable per-question code (e.g. LSE001)'}, text: {type: string, description: 'Question text shown to the surveyor'}, type: {type: string, enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER], default: YES_NO_NA}}
         status:
           type: string
           enum:
             - ACTIVE
             - INACTIVE
             - DRAFT
+          default: DRAFT
         template_files:
           type: array
+          description: "S3 keys of attached reference DOCX/PDF files (each obtained from\n`GET /api/v1/checklist-templates/get-upload-url`).\n"
           items:
             type: string
         metadata:
           type: object
+          description: 'Free-form JSON (e.g. `{ "version": "1.0" }`).'
     ChecklistTemplateUpdateRequest:
       type: object
+      description: "Body for `PUT /api/v1/checklist-templates/{id}`. All fields are optional —\nsend only what you want to change.\n\nFor attached document keys you have THREE choices (mutually exclusive\nbetween `template_files` and the `add_*`/`remove_*` pair):\n  • `template_files`         — full replace of the entire array\n  • `add_template_files`     — append these keys\n  • `remove_template_files`  — drop these keys\n\nStructural edits (`name`, `code`, `sections`, `certificate_type_id`,\n`metadata`) require the template to be in `DRAFT`. File-key edits are\nallowed at any status.\n"
       properties:
         name:
           type: string
@@ -1082,12 +1245,17 @@ components:
         description:
           type: string
         certificate_type_id:
-          $ref: '#/components/schemas/UUID'
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
           nullable: true
         sections:
           type: array
           items:
             type: object
+            required:
+              - title
+              - items
             properties:
               title:
                 type: string
@@ -1095,19 +1263,31 @@ components:
                 type: array
                 items:
                   type: object
-                  properties: {code: {type: string}, text: {type: string}, type: {type: string}}
+                  required: [code, text]
+                  properties: {code: {type: string}, text: {type: string}, type: {type: string, enum: [YES_NO_NA, YES_NO, PASS_FAIL, PASS_FAIL_NA, TEXT, NUMBER], default: YES_NO_NA}}
         status:
           type: string
           enum:
             - ACTIVE
             - INACTIVE
             - DRAFT
-        template_files:
-          type: array
-          items:
-            type: string
         metadata:
           type: object
+        template_files:
+          type: array
+          description: 'Full replace of the attached-document key list.'
+          items:
+            type: string
+        add_template_files:
+          type: array
+          description: "S3 keys to append (de-duplicated). Use this to \"add a new file on\ntop\" without losing the existing ones.\n"
+          items:
+            type: string
+        remove_template_files:
+          type: array
+          description: 'S3 keys to drop from the existing list.'
+          items:
+            type: string
     ClientCreateRequest:
       type: object
       required:
@@ -1408,21 +1588,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Document'
-    UploadUrlResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            uploadUrl:
-              type: string
-              format: uri
-            fileKey:
-              type: string
-              example: jobs/01933c5e.../report.pdf
     CustomerFeedback:
       type: object
       properties:
@@ -1709,6 +1874,10 @@ components:
               type: string
             survey_statement_status:
               type: string
+            survey_statement_pdf_url:
+              type: string
+              format: uri
+              nullable: true
             started_at:
               type: string
               format: date-time
@@ -1717,6 +1886,17 @@ components:
               type: string
               format: date-time
               nullable: true
+            signed_checklist_files:
+              type: array
+              description: 'Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.'
+              items:
+                type: string
+                format: uri
+        ActivityPlannings:
+          type: array
+          description: 'List of checklist items and surveyor findings for this job.'
+          items:
+            $ref: '#/components/schemas/ChecklistItemResponse'
         Payments:
           type: array
           items:
@@ -2683,6 +2863,17 @@ components:
         finalized_at:
           type: string
           format: date-time
+        JobRequest:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            job_status:
+              type: string
+            ActivityPlannings:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChecklistItemResponse'
       example:
         id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
@@ -3829,7 +4020,7 @@ paths:
       tags:
         - Checklists
       summary: 'Get checklist for a job'
-      description: 'Retrieve the checklist items for a specific job. Can be filtered by answer or question code.'
+      description: "Returns the checklist items for a job **plus** the resolved (signed)\nHTTPS URLs of any full signed-checklist scan documents that were\nattached to the underlying survey.\n\nAll `file_url` fields and `signed_checklist_files` entries are guaranteed\nto be either fully-qualified HTTPS URLs or `null` — raw S3 keys are never\nreturned to the client.\n"
       operationId: getChecklist
       security:
         -
@@ -3881,20 +4072,10 @@ paths:
               example:
                 success: true
                 data:
-                  - {id: 019c675a-eead-752b-b2ea-e8b5932b0cfc, job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec, question_code: LSE001, question_text: 'Are life jackets available?', answer: YES, remarks: "", file_url: null, createdAt: '2026-02-16T16:48:58.000Z', updatedAt: '2026-02-16T16:48:58.000Z'}
-        '400':
-          description: 'Bad Request'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  items: [{id: 019c675a-eead-752b-b2ea-e8b5932b0cfc, job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec, question_code: LSE001, question_text: 'Are life jackets available?', answer: YES, remarks: "", file_url: null, createdAt: '2026-02-16T16:48:58.000Z', updatedAt: '2026-02-16T16:48:58.000Z'}]
+                  signed_checklist_files: ['https://example.com/resource']
+                  template_files: ['https://example.com/resource']
+                  template: {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, name: string, code: string}
         '401':
           description: Unauthorized
           content:
@@ -3922,7 +4103,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Not Found'
+          description: 'Job not found'
           content:
             application/json:
               schema:
@@ -3937,8 +4118,8 @@ paths:
     put:
       tags:
         - Checklists
-      summary: 'Submit checklist for a job'
-      description: 'Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (STARTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).'
+      summary: 'Submit checklist (answers + optional signed-scan files)'
+      description: "Submit / replace the checklist answers for a job. In the **same call**\nthe surveyor can also attach the S3 keys of the full signed-checklist\nscan document(s) — obtained earlier from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n\nRe-submission is allowed until the survey is finalized. Only the\nassigned `SURVEYOR` can perform this action while the survey is in an\nactive state (`STARTED`, `CHECKLIST_SUBMITTED`, `PROOF_UPLOADED`,\nor `REWORK_REQUIRED`).\n"
       operationId: submitChecklist
       security:
         -
@@ -3973,13 +4154,15 @@ paths:
                   question_text: 'Is the fire extinguisher charged?'
                   answer: NO
                   remarks: 'Pressure low, needs replacement'
-                  file_url: 'https://example.com/evidence_fire_ext.jpg'
+                  file_url: surveys/checklist-evidence/<jobId>/1714000000000_fire_ext.jpg
                 -
                   question_code: LSE003
                   question_text: 'Is the fire alarm functional?'
                   answer: NA
                   remarks: 'Not applicable for this vessel type'
                   file_url: ""
+              signed_checklist_files:
+                - surveys/signed-checklists/<jobId>/1714000000000_signed.pdf
       responses:
         '200':
           description: 'Checklist submitted successfully'
@@ -3990,9 +4173,12 @@ paths:
               example:
                 success: true
                 data:
-                  - {id: 019c675a-eead-752b-b2ea-e8b5932b0cfc, job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec, question_code: LSE001, question_text: 'Are life jackets available?', answer: YES, remarks: "", file_url: null, createdAt: '2026-02-16T16:48:58.000Z', updatedAt: '2026-02-16T16:48:58.000Z'}
+                  items: [{id: 019c675a-eead-752b-b2ea-e8b5932b0cfc, job_id: 019c6152-5b55-736c-a0d3-0dc3f6f1c4ec, question_code: LSE001, question_text: 'Are life jackets available?', answer: YES, remarks: "", file_url: null, createdAt: '2026-02-16T16:48:58.000Z', updatedAt: '2026-02-16T16:48:58.000Z'}]
+                  signed_checklist_files: ['https://example.com/resource']
+                  template_files: ['https://example.com/resource']
+                  template: {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, name: string, code: string}
         '400':
-          description: 'Bad Request'
+          description: 'Bad Request (invalid state, terminal job, etc.)'
           content:
             application/json:
               schema:
@@ -4018,7 +4204,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: Forbidden
+          description: 'Forbidden — caller is not the assigned surveyor'
           content:
             application/json:
               schema:
@@ -4031,7 +4217,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Not Found'
+          description: 'Job not found'
           content:
             application/json:
               schema:
@@ -4047,8 +4233,8 @@ paths:
     get:
       tags:
         - Checklists
-      summary: 'Get upload URL for checklist item evidence'
-      description: 'Generates a pre-signed S3 URL so the surveyor can directly upload photo evidence for a specific checklist item (e.g. failing items). The returned fileKey is then passed as file_url in the checklist submission.'
+      summary: 'Get upload URL for a single checklist-item evidence photo'
+      description: "Generates a pre-signed S3 URL so the surveyor can directly upload one\nphoto of evidence for a **single** checklist item (e.g. a failing item).\nThe returned `fileKey` is then passed back as `file_url` on that item\nin the next `PUT /checklists/jobs/{jobId}` call.\n"
       operationId: getChecklistItemUploadUrl
       security:
         -
@@ -4084,15 +4270,12 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: object, properties: {uploadUrl: {type: string, format: uri}, fileKey: {type: string}}}
+                $ref: '#/components/schemas/UploadUrlResponse'
               example:
                 success: true
                 data:
                   uploadUrl: 'https://example.com/resource'
-                  fileKey: string
+                  fileKey: jobs/01933c5e.../report.pdf
         '400':
           description: 'Bad Request'
           content:
@@ -4107,7 +4290,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: Forbidden
+          description: 'Forbidden — caller is not the assigned surveyor'
           content:
             application/json:
               schema:
@@ -4120,7 +4303,195 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Job Not Found'
+          description: 'Job not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+  '/api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url':
+    get:
+      tags:
+        - Checklists
+      summary: 'Get upload URL for the full signed-checklist scan'
+      description: "Generates a pre-signed S3 URL so the surveyor can upload the full\nfilled & signed checklist document (PDF / image) — one or more files\nrepresenting the actual signed sheet.\n\nAfter uploading directly to S3 with the returned `uploadUrl`, send the\n`fileKey` back inside the `signed_checklist_files` array on the next\n`PUT /checklists/jobs/{jobId}` call.\n"
+      operationId: getSignedChecklistUploadUrl
+      security:
+        -
+          bearerAuth: []
+      x-roles:
+        - SURVEYOR
+      parameters:
+        -
+          in: path
+          name: jobId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: 'Unique identifier of the job'
+        -
+          in: query
+          name: fileName
+          schema:
+            type: string
+          required: true
+          description: 'The filename with extension (e.g. signed_checklist.pdf)'
+        -
+          in: query
+          name: contentType
+          schema:
+            type: string
+          required: true
+          description: 'The MIME type of the file (e.g. application/pdf)'
+      responses:
+        '200':
+          description: 'Upload URL generated successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+              example:
+                success: true
+                data:
+                  uploadUrl: 'https://example.com/resource'
+                  fileKey: jobs/01933c5e.../report.pdf
+        '400':
+          description: 'Bad Request (job not survey-eligible / terminal state)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: 'Forbidden — caller is not the assigned surveyor'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Job not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+  '/api/v1/checklists/jobs/{jobId}/signed-checklist-files':
+    put:
+      tags:
+        - Checklists
+      summary: 'Update signed checklist scan files (keys only)'
+      description: "Updates **only** the `signed_checklist_files` array for the job's survey.\n\nUse this when your UI flow is split into two screens:\n1) Save checklist answers (PUT `/checklists/jobs/{jobId}`)\n2) Upload signed checklist scan(s) and attach them here\n\nThe array is treated as a **full replace**:\n- To replace files: send the new full array\n- To remove all: send `[]`\n\nEach entry must be an S3 key obtained from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n"
+      operationId: updateSignedChecklistFiles
+      security:
+        -
+          bearerAuth: []
+      x-roles:
+        - SURVEYOR
+      parameters:
+        -
+          in: path
+          name: jobId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: 'Unique identifier of the job'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - signed_checklist_files
+              properties:
+                signed_checklist_files:
+                  type: array
+                  items: {type: string}
+            example:
+              signed_checklist_files:
+                - surveys/signed-checklists/<jobId>/1714000000000_signed.pdf
+      responses:
+        '200':
+          description: 'Updated signed checklist files'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {type: object, properties: {signed_checklist_files: {type: array, description: 'Resolved (signed) HTTPS URLs', items: {type: string, format: uri}}}}
+              example:
+                success: true
+                data:
+                  signed_checklist_files: ['https://example.com/resource']
+        '400':
+          description: 'Bad Request (invalid state, terminal job, etc.)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: 'Forbidden — caller is not the assigned surveyor'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Job not found'
           content:
             application/json:
               schema:

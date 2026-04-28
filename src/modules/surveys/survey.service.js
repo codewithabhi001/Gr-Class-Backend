@@ -328,7 +328,7 @@ export const finalizeSurvey = async (jobId, user) => {
     }
 
     // lifecycle service handles TM role check, NC check, and job sync
-    await lifecycleService.updateSurveyStatus(survey.id, 'FINALIZED', userId, 'Final approval granted by TM');
+    await lifecycleService.updateSurveyStatus(survey.id, 'FINALIZED', userId, `Final approval granted by ${user.role}`);
 
     const job = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
     if (job?.assigned_surveyor_id) {

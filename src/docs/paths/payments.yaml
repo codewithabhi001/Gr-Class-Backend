@@ -4,7 +4,7 @@
     summary: List payments
     description: List payments. CLIENT sees only their payments.
     operationId: getPayments
-    x-roles: [CLIENT, ADMIN, GM, TM]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: page
         in: query
@@ -73,9 +73,9 @@
     description: |
       Create a new invoice for a job at any active stage (CREATED through FINALIZED).
       Only blocked for terminal states (CERTIFIED, REJECTED). One invoice per job.
-      **ADMIN, GM, TM only.**
+      **ADMIN, GM, TM, TO only.**
     operationId: createInvoice
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [ADMIN, GM, TM, TO]
     requestBody:
       required: true
       content:
@@ -112,7 +112,7 @@
     summary: Get payment by ID
     description: Get payment details by ID.
     operationId: getPaymentById
-    x-roles: [CLIENT, ADMIN, GM, TM]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -147,9 +147,9 @@
     description: |
       Mark an invoice as fully paid (admin override). Works at any active job stage.
       If partial/advance payments were already collected, only the remaining balance
-      is logged as a settlement entry. **ADMIN, GM, TM only.**
+      is logged as a settlement entry. **ADMIN, GM, TM, TO only.**
     operationId: markPaymentPaid
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -234,9 +234,9 @@
       Record an advance or partial payment against an invoice. Each payment
       becomes a ledger entry. Pass `type: ADVANCE` for upfront collections or
       `type: PARTIAL_PAYMENT` (default) for installments. Auto-marks invoice
-      as PAID when total collected >= invoice amount. **ADMIN, GM, TM only.**
+      as PAID when total collected >= invoice amount. **ADMIN, GM, TM, TO only.**
     operationId: recordPartialPayment
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path

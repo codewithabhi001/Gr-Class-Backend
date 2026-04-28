@@ -118,7 +118,7 @@ export const retryJob = async (id, userId) => {
 
     await job.update({
         job_status: 'CREATED',
-        remarks: job.remarks ? `${job.remarks}\n---\nRetry triggered by admin on ${new Date().toISOString()}` : 'Admin retry trigger'
+        remarks: job.remarks ? `${job.remarks}\n---\nRetry triggered by system on ${new Date().toISOString()}` : 'System retry trigger'
     });
 
     // Create history record

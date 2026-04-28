@@ -580,6 +580,147 @@
           }
         }
       },
+      "CertificateTemplateResponse": {
+        "type": "object",
+        "description": "A DOCX template (referenced by S3 key) used to render certificates.",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "template_name": {
+            "type": "string"
+          },
+          "certificate_type_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "certificate_term": {
+            "type": "string",
+            "enum": [
+              "FULL_TERM",
+              "SHORT_TERM"
+            ],
+            "nullable": true
+          },
+          "template_file_url": {
+            "type": "string",
+            "description": "S3 key for the .docx template (e.g.\n`certificate-templates/1714000000000_iopp_v1.docx`). This is what\n`getUploadUrl` returned as `fileKey`.\n",
+            "nullable": true
+          },
+          "variables": {
+            "type": "array",
+            "description": "Variable names this template expects to receive at render time.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "CertificateType": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/UUID"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CertificateTemplateCreateRequest": {
+        "type": "object",
+        "required": [
+          "template_name",
+          "certificate_type_id",
+          "template_file_url"
+        ],
+        "description": "Body for `POST /api/v1/certificate-templates`.\nRequired: `template_name`, `certificate_type_id`, `template_file_url`.\nOptional: `certificate_term`, `variables`, `is_active`.\n",
+        "properties": {
+          "template_name": {
+            "type": "string",
+            "description": "Human-readable template name."
+          },
+          "certificate_type_id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UUID"
+              }
+            ],
+            "description": "ID of the associated certificate type."
+          },
+          "certificate_term": {
+            "type": "string",
+            "enum": [
+              "FULL_TERM",
+              "SHORT_TERM"
+            ],
+            "nullable": true,
+            "description": "If set, this template is used only for that term."
+          },
+          "template_file_url": {
+            "type": "string",
+            "description": "S3 key returned by\n`GET /api/v1/certificate-templates/get-upload-url` (after the file\nhas been uploaded to that pre-signed URL).\n"
+          },
+          "variables": {
+            "type": "array",
+            "description": "Variable names this template expects at render time.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "CertificateTemplateUpdateRequest": {
+        "type": "object",
+        "description": "Body for `PUT /api/v1/certificate-templates/{id}`. All fields optional —\nsend only what you want to change. To swap the DOCX, send the new S3\nkey as `template_file_url`.\n",
+        "properties": {
+          "template_name": {
+            "type": "string"
+          },
+          "certificate_type_id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UUID"
+              }
+            ]
+          },
+          "certificate_term": {
+            "type": "string",
+            "enum": [
+              "FULL_TERM",
+              "SHORT_TERM"
+            ],
+            "nullable": true
+          },
+          "template_file_url": {
+            "type": "string"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
       "CertificateSummary": {
         "type": "object",
         "properties": {
@@ -1366,9 +1507,16 @@
                 },
                 "file_url": {
                   "type": "string",
-                  "format": "uri"
+                  "description": "S3 key returned earlier from\n`GET /checklists/jobs/{jobId}/get-upload-url`, OR a fully-qualified\nHTTPS URL. Leave empty if no per-item evidence is attached.\n"
                 }
               }
+            }
+          },
+          "signed_checklist_files": {
+            "type": "array",
+            "description": "Optional. S3 keys of the full signed-checklist scan documents,\neach obtained from\n`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.\n",
+            "items": {
+              "type": "string"
             }
           }
         }
@@ -1381,9 +1529,70 @@
             "example": true
           },
           "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ChecklistItemResponse"
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChecklistItemResponse"
+                }
+              },
+              "signed_checklist_files": {
+                "type": "array",
+                "description": "Resolved (signed) HTTPS URLs of the full signed-checklist scan\ndocuments. Empty array when none are attached.\n",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "template_files": {
+                "type": "array",
+                "description": "Resolved (signed) HTTPS URLs of the reference/blank checklist\ntemplate documents (DOCX/PDF) attached to the active checklist\ntemplate for this job's certificate type.\nEmpty array when no active template exists or it has no attached files.\n",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "template": {
+                "type": "object",
+                "nullable": true,
+                "description": "Minimal metadata for the active checklist template used to provide\n`template_files`. Null when no active template exists for the job's\ncertificate type.\n",
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/UUID"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "UploadUrlResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "uploadUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "Pre-signed S3 PUT URL. Upload the file directly with this URL."
+              },
+              "fileKey": {
+                "type": "string",
+                "description": "S3 object key. Send this back to the API afterwards.",
+                "example": "jobs/01933c5e.../report.pdf"
+              }
             }
           }
         }
@@ -1476,24 +1685,38 @@
           "code",
           "sections"
         ],
+        "description": "Body for `POST /api/v1/checklist-templates`.\nRequired: `name`, `code`, `sections`.\nOptional: `description`, `certificate_type_id`, `template_files`,\n`status`, `metadata`.\n",
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable template name."
           },
           "code": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable template code (used as a stable reference)."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Short description of what the template covers."
           },
           "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID",
-            "nullable": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UUID"
+              }
+            ],
+            "nullable": true,
+            "description": "Certificate type this template applies to. When activated, the\nactive template for this certificate type drives surveyor checklists.\n"
           },
           "sections": {
             "type": "array",
+            "description": "Ordered list of sections with their question items.",
             "items": {
               "type": "object",
+              "required": [
+                "title",
+                "items"
+              ],
               "properties": {
                 "title": {
                   "type": "string"
@@ -1502,15 +1725,30 @@
                   "type": "array",
                   "items": {
                     "type": "object",
+                    "required": [
+                      "code",
+                      "text"
+                    ],
                     "properties": {
                       "code": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Stable per-question code (e.g. LSE001)"
                       },
                       "text": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Question text shown to the surveyor"
                       },
                       "type": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "YES_NO_NA",
+                          "YES_NO",
+                          "PASS_FAIL",
+                          "PASS_FAIL_NA",
+                          "TEXT",
+                          "NUMBER"
+                        ],
+                        "default": "YES_NO_NA"
                       }
                     }
                   }
@@ -1524,21 +1762,25 @@
               "ACTIVE",
               "INACTIVE",
               "DRAFT"
-            ]
+            ],
+            "default": "DRAFT"
           },
           "template_files": {
             "type": "array",
+            "description": "S3 keys of attached reference DOCX/PDF files (each obtained from\n`GET /api/v1/checklist-templates/get-upload-url`).\n",
             "items": {
               "type": "string"
             }
           },
           "metadata": {
-            "type": "object"
+            "type": "object",
+            "description": "Free-form JSON (e.g. `{ \"version\": \"1.0\" }`)."
           }
         }
       },
       "ChecklistTemplateUpdateRequest": {
         "type": "object",
+        "description": "Body for `PUT /api/v1/checklist-templates/{id}`. All fields are optional —\nsend only what you want to change.\n\nFor attached document keys you have THREE choices (mutually exclusive\nbetween `template_files` and the `add_*`/`remove_*` pair):\n  • `template_files`         — full replace of the entire array\n  • `add_template_files`     — append these keys\n  • `remove_template_files`  — drop these keys\n\nStructural edits (`name`, `code`, `sections`, `certificate_type_id`,\n`metadata`) require the template to be in `DRAFT`. File-key edits are\nallowed at any status.\n",
         "properties": {
           "name": {
             "type": "string"
@@ -1550,13 +1792,21 @@
             "type": "string"
           },
           "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UUID"
+              }
+            ],
             "nullable": true
           },
           "sections": {
             "type": "array",
             "items": {
               "type": "object",
+              "required": [
+                "title",
+                "items"
+              ],
               "properties": {
                 "title": {
                   "type": "string"
@@ -1565,6 +1815,10 @@
                   "type": "array",
                   "items": {
                     "type": "object",
+                    "required": [
+                      "code",
+                      "text"
+                    ],
                     "properties": {
                       "code": {
                         "type": "string"
@@ -1573,7 +1827,16 @@
                         "type": "string"
                       },
                       "type": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "YES_NO_NA",
+                          "YES_NO",
+                          "PASS_FAIL",
+                          "PASS_FAIL_NA",
+                          "TEXT",
+                          "NUMBER"
+                        ],
+                        "default": "YES_NO_NA"
                       }
                     }
                   }
@@ -1589,14 +1852,29 @@
               "DRAFT"
             ]
           },
+          "metadata": {
+            "type": "object"
+          },
           "template_files": {
             "type": "array",
+            "description": "Full replace of the attached-document key list.",
             "items": {
               "type": "string"
             }
           },
-          "metadata": {
-            "type": "object"
+          "add_template_files": {
+            "type": "array",
+            "description": "S3 keys to append (de-duplicated). Use this to \"add a new file on\ntop\" without losing the existing ones.\n",
+            "items": {
+              "type": "string"
+            }
+          },
+          "remove_template_files": {
+            "type": "array",
+            "description": "S3 keys to drop from the existing list.",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2022,28 +2300,6 @@
           }
         }
       },
-      "UploadUrlResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "uploadUrl": {
-                "type": "string",
-                "format": "uri"
-              },
-              "fileKey": {
-                "type": "string",
-                "example": "jobs/01933c5e.../report.pdf"
-              }
-            }
-          }
-        }
-      },
       "CustomerFeedback": {
         "type": "object",
         "properties": {
@@ -2443,6 +2699,11 @@
               "survey_statement_status": {
                 "type": "string"
               },
+              "survey_statement_pdf_url": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
               "started_at": {
                 "type": "string",
                 "format": "date-time",
@@ -2452,7 +2713,22 @@
                 "type": "string",
                 "format": "date-time",
                 "nullable": true
+              },
+              "signed_checklist_files": {
+                "type": "array",
+                "description": "Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
               }
+            }
+          },
+          "ActivityPlannings": {
+            "type": "array",
+            "description": "List of checklist items and surveyor findings for this job.",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItemResponse"
             }
           },
           "Payments": {
@@ -3836,6 +4112,23 @@
           "finalized_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "JobRequest": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/UUID"
+              },
+              "job_status": {
+                "type": "string"
+              },
+              "ActivityPlannings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChecklistItemResponse"
+                }
+              }
+            }
           }
         },
         "example": {
@@ -5427,67 +5720,31 @@
           "Certificate Templates"
         ],
         "summary": "Create certificate template",
+        "description": "Create a new DOCX template (referenced by an S3 key) used for\ngenerating certificates.\n\nTo attach the DOCX file:\n  1. Call `GET /api/v1/certificate-templates/get-upload-url`.\n  2. PUT the file to the returned `uploadUrl`.\n  3. Send the returned `fileKey` as `template_file_url` here.\n",
         "operationId": "createTemplate",
-        "description": "Create a new HTML/text template for generating certificates",
         "x-roles": [
           "ADMIN"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "template_name",
-                  "certificate_type_id",
-                  "template_content"
-                ],
-                "properties": {
-                  "template_name": {
-                    "type": "string",
-                    "description": "Name of the certificate template"
-                  },
-                  "certificate_type_id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "ID of the associated certificate type"
-                  },
-                  "certificate_term": {
-                    "type": "string",
-                    "enum": [
-                      "FULL_TERM",
-                      "SHORT_TERM"
-                    ],
-                    "nullable": true,
-                    "description": "If set, this template is used only for that term"
-                  },
-                  "template_content": {
-                    "type": "string",
-                    "description": "HTML or string layout containing placeholders"
-                  },
-                  "variables": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Array of variable names expected to be filled during certificate generation"
-                  },
-                  "is_active": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Status of the template"
-                  }
-                }
+                "$ref": "#/components/schemas/CertificateTemplateCreateRequest"
               },
               "example": {
                 "template_name": "IOPP Certificate v1",
                 "certificate_type_id": "019ccdfb-e89b-12d3-a456-426614174000",
                 "certificate_term": "FULL_TERM",
-                "template_content": "<html><body><h1>IOPP CERTIFICATE</h1><p>Vessel: {{vesselName}}</p><p>Issued by: {{authority}}</p></body></html>",
+                "template_file_url": "certificate-templates/1714000000000_iopp_v1.docx",
                 "variables": [
-                  "vesselName",
-                  "authority"
+                  "vessel_name",
+                  "imo_number"
                 ],
                 "is_active": true
               }
@@ -5507,20 +5764,39 @@
                       "example": true
                     },
                     "message": {
-                      "type": "string",
-                      "example": "Request successful"
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CertificateTemplateResponse"
                     }
                   }
                 },
                 "example": {
                   "success": true,
-                  "message": "Request successful"
+                  "message": "string",
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "template_name": "string",
+                    "certificate_type_id": "string",
+                    "certificate_term": "FULL_TERM",
+                    "template_file_url": "string",
+                    "variables": [
+                      "string"
+                    ],
+                    "is_active": true,
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "updated_at": "2026-03-15T10:00:00.000Z",
+                    "CertificateType": {
+                      "id": "string",
+                      "name": "string"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
@@ -5563,12 +5839,17 @@
         "tags": [
           "Certificate Templates"
         ],
-        "summary": "Get certificate templates",
+        "summary": "List certificate templates",
         "operationId": "getTemplates",
         "x-roles": [
           "ADMIN",
           "GM",
           "TM"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -5610,15 +5891,130 @@
                       "type": "boolean",
                       "example": true
                     },
-                    "message": {
-                      "type": "string",
-                      "example": "Request successful"
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CertificateTemplateResponse"
+                      }
                     }
                   }
                 },
                 "example": {
                   "success": true,
-                  "message": "Request successful"
+                  "data": [
+                    {
+                      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                      "template_name": "string",
+                      "certificate_type_id": "string",
+                      "certificate_term": "FULL_TERM",
+                      "template_file_url": "string",
+                      "variables": [
+                        "string"
+                      ],
+                      "is_active": true,
+                      "created_at": "2026-03-15T10:00:00.000Z",
+                      "updated_at": "2026-03-15T10:00:00.000Z",
+                      "CertificateType": {
+                        "id": "string",
+                        "name": "string"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/certificate-templates/get-upload-url": {
+      "get": {
+        "tags": [
+          "Certificate Templates"
+        ],
+        "summary": "Get S3 upload URL for the certificate-template DOCX",
+        "description": "Generates a pre-signed S3 PUT URL. Upload the DOCX directly to S3\nusing the returned `uploadUrl`, then send the returned `fileKey` as\n`template_file_url` on:\n  - `POST /api/v1/certificate-templates`     (create)\n  - `PUT  /api/v1/certificate-templates/{id}` (update)\n",
+        "operationId": "getCertificateTemplateUploadUrl",
+        "x-roles": [
+          "ADMIN"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fileName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filename with extension (e.g. iopp_v1.docx)"
+          },
+          {
+            "name": "contentType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "MIME type. For DOCX use\n`application/vnd.openxmlformats-officedocument.wordprocessingml.document`.\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload URL generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadUrlResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "uploadUrl": "https://example.com/resource",
+                    "fileKey": "jobs/01933c5e.../report.pdf"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fileName / contentType",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
                 }
               }
             }
@@ -5650,12 +6046,17 @@
         "tags": [
           "Certificate Templates"
         ],
-        "summary": "Get template by ID",
+        "summary": "Get certificate template by ID",
         "operationId": "getTemplateById",
         "x-roles": [
           "ADMIN",
           "GM",
           "TM"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -5680,15 +6081,30 @@
                       "type": "boolean",
                       "example": true
                     },
-                    "message": {
-                      "type": "string",
-                      "example": "Request successful"
+                    "data": {
+                      "$ref": "#/components/schemas/CertificateTemplateResponse"
                     }
                   }
                 },
                 "example": {
                   "success": true,
-                  "message": "Request successful"
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "template_name": "string",
+                    "certificate_type_id": "string",
+                    "certificate_term": "FULL_TERM",
+                    "template_file_url": "string",
+                    "variables": [
+                      "string"
+                    ],
+                    "is_active": true,
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "updated_at": "2026-03-15T10:00:00.000Z",
+                    "CertificateType": {
+                      "id": "string",
+                      "name": "string"
+                    }
+                  }
                 }
               }
             }
@@ -5737,10 +6153,16 @@
         "tags": [
           "Certificate Templates"
         ],
-        "summary": "Update template",
+        "summary": "Update certificate template",
+        "description": "Update any subset of fields. To swap the DOCX file, first call\n`GET /api/v1/certificate-templates/get-upload-url`, upload the new\nfile to S3, then send the returned `fileKey` here as\n`template_file_url`.\n",
         "operationId": "updateTemplate",
         "x-roles": [
           "ADMIN"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -5757,44 +6179,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "template_name": {
-                    "type": "string"
-                  },
-                  "certificate_type_id": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "certificate_term": {
-                    "type": "string",
-                    "enum": [
-                      "FULL_TERM",
-                      "SHORT_TERM"
-                    ],
-                    "nullable": true
-                  },
-                  "template_content": {
-                    "type": "string"
-                  },
-                  "variables": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  }
-                }
+                "$ref": "#/components/schemas/CertificateTemplateUpdateRequest"
               },
               "example": {
-                "template_name": "string",
-                "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-                "certificate_term": "FULL_TERM",
-                "template_content": "string",
+                "template_name": "IOPP Certificate v2",
+                "template_file_url": "certificate-templates/1714000020000_iopp_v2.docx",
                 "variables": [
-                  "string"
+                  "vessel_name",
+                  "imo_number",
+                  "owner_name"
                 ],
                 "is_active": true
               }
@@ -5814,20 +6207,39 @@
                       "example": true
                     },
                     "message": {
-                      "type": "string",
-                      "example": "Request successful"
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CertificateTemplateResponse"
                     }
                   }
                 },
                 "example": {
                   "success": true,
-                  "message": "Request successful"
+                  "message": "string",
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "template_name": "string",
+                    "certificate_type_id": "string",
+                    "certificate_term": "FULL_TERM",
+                    "template_file_url": "string",
+                    "variables": [
+                      "string"
+                    ],
+                    "is_active": true,
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "updated_at": "2026-03-15T10:00:00.000Z",
+                    "CertificateType": {
+                      "id": "string",
+                      "name": "string"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
@@ -5889,10 +6301,15 @@
         "tags": [
           "Certificate Templates"
         ],
-        "summary": "Delete template",
+        "summary": "Delete certificate template",
         "operationId": "deleteTemplate",
         "x-roles": [
           "ADMIN"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {

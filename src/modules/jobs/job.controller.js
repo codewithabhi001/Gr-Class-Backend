@@ -62,7 +62,7 @@ export const getEligibleSurveyors = async (req, res, next) => {
 export const verifyJobDocuments = async (req, res, next) => {
     try {
         const job = await jobService.verifyJobDocuments(req.params.id, req.user);
-        res.json({ success: true, message: 'Documents verified by TO.', data: job });
+        res.json({ success: true, message: 'Documents verified.', data: job });
     } catch (error) { next(error); }
 };
 

@@ -10,25 +10,25 @@ const upload = docUpload;
 router.use(authenticate);
 
 // List payments
-router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), paymentController.getPayments);
+router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getPayments);
 
 // Financial Summary
 router.get('/summary', authorizeRoles('CLIENT', 'ADMIN', 'GM'), paymentController.getFinancialSummary);
 
 // Get specific payment details
-router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), paymentController.getPaymentById);
+router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getPaymentById);
 
 // Create a new invoice
-router.post('/invoice', authorizeRoles('ADMIN', 'GM', 'TM'), paymentController.createInvoice);
+router.post('/invoice', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), paymentController.createInvoice);
 
 // Mark an invoice as paid
-router.put('/:id/pay', authorizeRoles('ADMIN', 'GM', 'TM'), upload.single('receipt'), paymentController.markPaid);
+router.put('/:id/pay', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), upload.single('receipt'), paymentController.markPaid);
 
 // Process Refund
 router.post('/:id/refund', authorizeRoles('ADMIN', 'GM'), paymentController.refund);
 
 // Record Partial Payment
-router.post('/:id/partial', authorizeRoles('ADMIN', 'GM', 'TM'), paymentController.recordPartial);
+router.post('/:id/partial', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), paymentController.recordPartial);
 
 // Financial Compliance / Ledger
 router.get('/:id/ledger', authorizeRoles('ADMIN', 'GM'), paymentController.getLedger);

@@ -35,7 +35,7 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT'),
             defaultValue: 'NORMAL',
             allowNull: false,
-            comment: 'Job priority set via PUT /:id/priority by ADMIN/GM/TM'
+            comment: 'Job priority set via PUT /:id/priority by ADMIN/GM/TM/TO'
         }
     }, {
         tableName: 'job_requests',
