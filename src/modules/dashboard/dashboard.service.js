@@ -279,19 +279,19 @@ export const getTMDashboard = async (user) => {
             where: { job_status: 'DOCUMENT_VERIFIED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         JobRequest.findAll({
             where: { job_status: 'ASSIGNED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         JobRequest.findAll({
             where: { job_status: { [Op.in]: ['REVIEWED', 'PAYMENT_DONE'] } },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         JobRequest.findAll({
             attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
@@ -350,25 +350,25 @@ export const getTODashboard = async (user) => {
             where: { job_status: 'CREATED' },
             include: jobIncludes,
             order: [['createdAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         JobRequest.findAll({
             where: { job_status: 'SURVEY_DONE' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         JobRequest.findAll({
             where: { job_status: 'REWORK_REQUESTED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         NonConformity.findAll({
             where: { status: 'OPEN' },
             include: [{ model: JobRequest, attributes: ['id', 'job_status'], include: [{ model: Vessel, attributes: ['vessel_name'] }] }],
             order: [['createdAt', 'DESC']],
-            limit: 10
+            limit: 5
         }),
         JobRequest.findAll({
             attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
@@ -434,35 +434,35 @@ export const getSurveyorDashboard = async (user) => {
             where: { ...surveyorFilter, job_status: 'ASSIGNED' },
             include: jobIncludes,
             order: [['target_date', 'ASC']],
-            limit: 10,
+            limit: 5,
         }),
         // Authorized — surveyor can start these
         JobRequest.findAll({
             where: { ...surveyorFilter, job_status: 'SURVEY_AUTHORIZED' },
             include: jobIncludes,
             order: [['target_date', 'ASC']],
-            limit: 10,
+            limit: 5,
         }),
         // In Progress — actively being surveyed
         JobRequest.findAll({
             where: { ...surveyorFilter, job_status: 'IN_PROGRESS' },
             include: jobIncludes,
             order: [['target_date', 'ASC']],
-            limit: 10,
+            limit: 5,
         }),
         // Action Required — rework requested, needs surveyor's attention
         JobRequest.findAll({
             where: { ...surveyorFilter, job_status: 'REWORK_REQUESTED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10,
+            limit: 5,
         }),
         // Recently Completed — finished jobs
         JobRequest.findAll({
             where: { ...surveyorFilter, job_status: { [Op.in]: ['SURVEY_DONE', 'REVIEWED', 'FINALIZED', 'PAYMENT_DONE', 'CERTIFIED'] } },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 10,
+            limit: 5,
         }),
         // Summary counts (lightweight)
         JobRequest.findAll({
