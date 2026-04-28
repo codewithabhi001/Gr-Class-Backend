@@ -25,7 +25,7 @@
 
 ### Job Statuses (in order)
 ```
-CREATED → APPROVED → ASSIGNED → SURVEY_AUTHORIZED → IN_PROGRESS → SURVEY_DONE
+CREATED → DOCUMENT_VERIFIED → APPROVED → ASSIGNED → SURVEY_AUTHORIZED → IN_PROGRESS → SURVEY_DONE
        → REVIEWED → FINALIZED → PAYMENT_DONE → CERTIFIED
                               ↕ REWORK_REQUESTED
                      REJECTED (terminal, reachable from any non-terminal state)
@@ -52,7 +52,8 @@ NOT_SRTED → SRTED → CHECKLIST_SUBMITTED → PROOF_UPLOADED → SUBMITTED →
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  PHASE 1: JOB INITIATION                                                    │
 │  POST /jobs                           [CLIENT / ADMIN / GM]                 │
-│  PUT  /jobs/:id/approve-request       [ADMIN / GM]          CREATED→APPROVED│
+│  PUT  /jobs/:id/verify-documents      [TO]                 CREATED→DOC_VERIF│
+│  PUT  /jobs/:id/approve-request       [GM]          DOC_VERIF→APPROVED      │
 └──────────────────────────────────────────┬──────────────────────────────────┘
                                            │
 ┌──────────────────────────────────────────▼──────────────────────────────────┐

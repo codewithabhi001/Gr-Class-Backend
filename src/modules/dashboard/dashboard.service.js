@@ -262,37 +262,159 @@ export const getGMDashboard = async () => {
     };
 }
 
-export const getTMDashboard = async () => {
-    const stats = await getOperationalStats();
+export const getTMDashboard = async (user) => {
+    const jobIncludes = [
+        { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
+        { model: CertificateType, attributes: ['name'] },
+        { model: User, as: 'requester', attributes: ['name', 'email'] }
+    ];
+
+    const [
+        pendingAssignmentJobs,
+        pendingAuthorizationJobs,
+        pendingFinalizationJobs,
+        allJobsRaw
+    ] = await Promise.all([
+        JobRequest.findAll({
+            where: { job_status: 'DOCUMENT_VERIFIED' },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10
+        }),
+        JobRequest.findAll({
+            where: { job_status: 'ASSIGNED' },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10
+        }),
+        JobRequest.findAll({
+            where: { job_status: { [Op.in]: ['REVIEWED', 'PAYMENT_DONE'] } },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10
+        }),
+        JobRequest.findAll({
+            attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
+            where: { job_status: ['DOCUMENT_VERIFIED', 'ASSIGNED', 'REVIEWED', 'PAYMENT_DONE'] },
+            group: ['job_status'],
+            raw: true
+        })
+    ]);
+
+    const jobsByStatus = allJobsRaw.reduce((acc, j) => {
+        acc[j.job_status] = parseInt(j.count, 10);
+        return acc;
+    }, {});
+
+    const formatJob = (j) => ({
+        id: j.id,
+        job_status: j.job_status,
+        vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
+        certificate_type: j.CertificateType?.name,
+        created_at: j.createdAt,
+        updated_at: j.updatedAt,
+        requester: j.requester?.name
+    });
+
     return {
         role: 'TM',
-        summary: stats.summary,
-        client_with_vessels: stats.client_with_vessels,
-        recent_activities: stats.recent_activities
+        summary: {
+            assignment_needed: jobsByStatus['DOCUMENT_VERIFIED'] || 0,
+            authorization_needed: jobsByStatus['ASSIGNED'] || 0,
+            finalization_needed: (jobsByStatus['REVIEWED'] || 0) + (jobsByStatus['PAYMENT_DONE'] || 0)
+        },
+        actionable_items: {
+            pending_assignments: pendingAssignmentJobs.map(formatJob),
+            pending_authorizations: pendingAuthorizationJobs.map(formatJob),
+            pending_finalizations: pendingFinalizationJobs.map(formatJob)
+        }
     };
 }
 
 export const getTODashboard = async (user) => {
-    const stats = await getOperationalStats();
-    
-    // For TO, we might want to highlight jobs waiting for their action
-    const pendingVerification = stats.summary.jobs.by_status['CREATED'] || 0;
-    const pendingTechnicalReview = stats.summary.jobs.by_status['SURVEY_DONE'] || 0;
+    const jobIncludes = [
+        { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
+        { model: CertificateType, attributes: ['name'] },
+        { model: User, as: 'requester', attributes: ['name', 'email'] }
+    ];
+
+    const [
+        pendingVerificationJobs,
+        pendingReviewJobs,
+        reworkJobs,
+        openNCs,
+        allJobsRaw,
+        ncCountsRaw
+    ] = await Promise.all([
+        JobRequest.findAll({
+            where: { job_status: 'CREATED' },
+            include: jobIncludes,
+            order: [['createdAt', 'DESC']],
+            limit: 10
+        }),
+        JobRequest.findAll({
+            where: { job_status: 'SURVEY_DONE' },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10
+        }),
+        JobRequest.findAll({
+            where: { job_status: 'REWORK_REQUESTED' },
+            include: jobIncludes,
+            order: [['updatedAt', 'DESC']],
+            limit: 10
+        }),
+        NonConformity.findAll({
+            where: { status: 'OPEN' },
+            include: [{ model: JobRequest, attributes: ['id', 'job_status'], include: [{ model: Vessel, attributes: ['vessel_name'] }] }],
+            order: [['createdAt', 'DESC']],
+            limit: 10
+        }),
+        JobRequest.findAll({
+            attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
+            where: { job_status: ['CREATED', 'SURVEY_DONE', 'REWORK_REQUESTED'] },
+            group: ['job_status'],
+            raw: true
+        }),
+        NonConformity.count({
+            where: { status: 'OPEN' }
+        })
+    ]);
+
+    const jobsByStatus = allJobsRaw.reduce((acc, j) => {
+        acc[j.job_status] = parseInt(j.count, 10);
+        return acc;
+    }, {});
+
+    const formatJob = (j) => ({
+        id: j.id,
+        job_status: j.job_status,
+        vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
+        certificate_type: j.CertificateType?.name,
+        created_at: j.createdAt,
+        updated_at: j.updatedAt,
+        requester: j.requester?.name
+    });
 
     return {
         role: 'TO',
         summary: {
-            ...stats.summary,
-            to_action: {
-                verification_needed: pendingVerification,
-                review_needed: pendingTechnicalReview
-            }
+            verification_needed: jobsByStatus['CREATED'] || 0,
+            review_needed: jobsByStatus['SURVEY_DONE'] || 0,
+            rework_requested: jobsByStatus['REWORK_REQUESTED'] || 0,
+            open_non_conformities: ncCountsRaw
         },
-        client_with_vessels: stats.client_with_vessels,
-        recent_activities: {
-            jobs: stats.recent_activities.jobs,
-            certificates: stats.recent_activities.certificates,
-            surveys: stats.recent_activities.surveys
+        actionable_items: {
+            pending_verifications: pendingVerificationJobs.map(formatJob),
+            pending_reviews: pendingReviewJobs.map(formatJob),
+            rework_items: reworkJobs.map(formatJob),
+            open_non_conformities: openNCs.map(n => ({
+                id: n.id,
+                vessel: n.JobRequest?.Vessel?.vessel_name,
+                description: n.description,
+                severity: n.severity,
+                created_at: n.createdAt
+            }))
         }
     };
 }
