@@ -63,6 +63,16 @@ router.put('/:id/cancel', authorizeRoles('CLIENT', 'GM', 'TM', 'ADMIN'), jobCont
 // ─── Priority ────────────────────────────────────────────
 router.put('/:id/priority', authorizeRoles('GM', 'TM'), jobController.updatePriority);
 
+// ─── Job Documents ───────────────────────────────────────
+// List documents for a job (with verification status)
+router.get('/:id/documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), jobController.getJobDocuments);
+
+// Upload additional documents (Client can add more docs while job is CREATED)
+router.post('/:id/documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), jobController.uploadJobDocuments);
+
+// Re-upload a specific rejected document (Client replaces the rejected doc)
+router.put('/:id/documents/:documentId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), jobController.reuploadJobDocument);
+
 // ─── History & Notes ─────────────────────────────────────
 router.get('/:id/history', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), jobController.getHistory);
 router.post('/:id/notes', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), jobController.addInternalNote);

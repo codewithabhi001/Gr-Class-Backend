@@ -158,9 +158,11 @@ export const createJob = async (data, userId) => {
         if (uploaded_documents && uploaded_documents.length > 0) {
             const docsToCreate = uploaded_documents.map(doc => ({
                 job_id: job.id,
-                required_document_id: doc.required_document_id,
+                required_document_id: doc.required_document_id || null,
+                custom_document_name: doc.custom_document_name || null,
                 file_url: doc.file_url,
-                uploaded_by: userId
+                uploaded_by: userId,
+                verification_status: 'PENDING'
             }));
             await JobDocument.bulkCreate(docsToCreate, { transaction: txn });
         }
@@ -463,7 +465,7 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
  * CREATED → DOCUMENT_VERIFIED
  * Roles: TO
  */
-export const verifyJobDocuments = async (id, user) => {
+export const verifyJobDocuments = async (id, body, user) => {
     if (!['TO', 'GM', 'ADMIN'].includes(user.role)) {
         throw { statusCode: 403, message: 'Only Technical Officers (TO), General Managers (GM) or Admins have permission to verify documents.' };
     }
@@ -494,6 +496,81 @@ export const verifyJobDocuments = async (id, user) => {
         }
     }
 
+    // ── Document Rejection Flow ──────────────────────────────
+    // body.approved = false  → TO found invalid/fake documents
+    // body.rejected_documents = [{ document_id, reason }]
+    const approved = body?.approved !== false; // default true for backward compatibility
+
+    if (!approved) {
+        const rejectedDocs = body.rejected_documents;
+        if (!rejectedDocs || !Array.isArray(rejectedDocs) || rejectedDocs.length === 0) {
+            throw { statusCode: 400, message: 'Please specify which documents are invalid (rejected_documents array required).' };
+        }
+
+        // Mark each rejected document
+        for (const rd of rejectedDocs) {
+            if (!rd.document_id) continue;
+            await JobDocument.update(
+                {
+                    verification_status: 'REJECTED',
+                    rejection_reason: rd.reason || 'Document is invalid or not acceptable.',
+                    verified_by: userId
+                },
+                { where: { id: rd.document_id, job_id: id } }
+            );
+        }
+
+        // Mark remaining (non-rejected) docs as APPROVED
+        const rejectedIds = rejectedDocs.map(rd => rd.document_id).filter(Boolean);
+        await JobDocument.update(
+            { verification_status: 'APPROVED', verified_by: userId },
+            { where: { job_id: id, id: { [Op.notIn]: rejectedIds }, verification_status: 'PENDING' } }
+        );
+
+        // Audit trail — log the rejection without changing job status
+        await JobStatusHistory.create({
+            job_id: id,
+            previous_status: 'CREATED',
+            new_status: 'CREATED',
+            changed_by: userId,
+            reason: `Documents rejected by ${user.role}: ${rejectedDocs.map(rd => rd.reason || 'Invalid document').join('; ')}`
+        });
+
+        // Notify client to re-upload
+        const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' } });
+        if (clientUser) {
+            notificationService.sendNotification(clientUser.id, 'JOB_DOCUMENTS_REJECTED', {
+                jobId: id,
+                vesselName: job.Vessel.vessel_name,
+                rejectedCount: rejectedDocs.length,
+                reasons: rejectedDocs.map(rd => rd.reason).filter(Boolean)
+            }).catch(() => { });
+        }
+
+        // Fetch updated docs to return
+        const updatedDocs = await JobDocument.findAll({
+            where: { job_id: id },
+            include: [{ model: CertificateRequiredDocument }]
+        });
+
+        return {
+            message: `${rejectedDocs.length} document(s) rejected. Client has been notified to re-upload.`,
+            data: {
+                job_id: id,
+                job_status: 'CREATED',
+                rejected_documents: updatedDocs.filter(d => d.verification_status === 'REJECTED'),
+                approved_documents: updatedDocs.filter(d => d.verification_status === 'APPROVED')
+            }
+        };
+    }
+
+    // ── Document Approval Flow (all docs valid) ──────────────
+    // Mark all documents as APPROVED
+    await JobDocument.update(
+        { verification_status: 'APPROVED', verified_by: userId },
+        { where: { job_id: id } }
+    );
+
     const updated = await lifecycleService.updateJobStatus(id, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified documents');
 
     // Notify ADMIN/GM/TM (vessel already loaded)
@@ -501,7 +578,7 @@ export const verifyJobDocuments = async (id, user) => {
         jobId: id, vesselName: job.Vessel.vessel_name
     }).catch(() => { });
 
-    return updated;
+    return { message: 'All documents verified successfully.', data: updated };
 };
 
 /**
@@ -829,6 +906,182 @@ export const cancelJobForClient = async (id, reason, clientId, userId) => {
         };
     }
     return await lifecycleService.updateJobStatus(id, 'REJECTED', userId, reason || 'Cancelled by client');
+};
+
+// ─────────────────────────────────────────────
+// JOB DOCUMENTS
+// ─────────────────────────────────────────────
+
+/**
+ * List all documents for a job with their verification status.
+ */
+export const getJobDocuments = async (jobId, user) => {
+    const job = await requireJob(jobId, { includeVessel: true });
+
+    // Client can only see their own jobs' docs
+    if (user.role === 'CLIENT') {
+        const vessel = await Vessel.findByPk(job.vessel_id);
+        if (!vessel || vessel.client_id !== user.client_id) {
+            throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
+        }
+    }
+
+    const docs = await JobDocument.findAll({
+        where: { job_id: jobId },
+        include: [{
+            model: CertificateRequiredDocument,
+            attributes: ['id', 'document_name', 'is_mandatory']
+        }],
+        order: [['createdAt', 'ASC']]
+    });
+
+    const resolvedDocs = await fileAccessService.resolveEntity(docs, user);
+
+    // Also get required docs to show what's still needed
+    const requiredDocs = job.certificate_type_id
+        ? await CertificateRequiredDocument.findAll({
+            where: { certificate_type_id: job.certificate_type_id }
+        })
+        : [];
+
+    const uploadedDocIds = docs.map(d => d.required_document_id);
+    const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
+
+    return {
+        documents: resolvedDocs,
+        required_documents: requiredDocs,
+        missing_documents: missingDocs,
+        summary: {
+            total_uploaded: docs.length,
+            approved: docs.filter(d => d.verification_status === 'APPROVED').length,
+            rejected: docs.filter(d => d.verification_status === 'REJECTED').length,
+            pending: docs.filter(d => d.verification_status === 'PENDING').length,
+            missing: missingDocs.length
+        }
+    };
+};
+
+/**
+ * Upload additional documents for a job (Client adds new/missing docs).
+ * Only allowed while job is in CREATED status.
+ * documents: [{ required_document_id, file_url }]
+ */
+export const uploadJobDocuments = async (jobId, documents, user) => {
+    if (!documents || !Array.isArray(documents) || documents.length === 0) {
+        throw { statusCode: 400, message: 'Please provide at least one document to upload.' };
+    }
+
+    const job = await requireJob(jobId, { includeVessel: true });
+
+    if (job.job_status !== 'CREATED') {
+        throw { statusCode: 400, message: 'Documents can only be uploaded while the job is in CREATED status.' };
+    }
+
+    // Client ownership check
+    if (user.role === 'CLIENT') {
+        const vessel = await Vessel.findByPk(job.vessel_id);
+        if (!vessel || vessel.client_id !== user.client_id) {
+            throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
+        }
+    }
+
+    const created = [];
+    for (const doc of documents) {
+        if (!doc.file_url) {
+            throw { statusCode: 400, message: 'Each document must have a file_url.' };
+        }
+        if (!doc.required_document_id && !doc.custom_document_name) {
+            throw { statusCode: 400, message: 'Each document must have either required_document_id or custom_document_name.' };
+        }
+
+        // Check if this required doc already exists (and is not rejected)
+        if (doc.required_document_id) {
+            const existing = await JobDocument.findOne({
+                where: {
+                    job_id: jobId,
+                    required_document_id: doc.required_document_id,
+                    verification_status: { [Op.ne]: 'REJECTED' }
+                }
+            });
+            if (existing) {
+                throw {
+                    statusCode: 400,
+                    message: `Document for requirement ${doc.required_document_id} is already uploaded. Use the re-upload endpoint if it was rejected.`
+                };
+            }
+        }
+
+        const newDoc = await JobDocument.create({
+            job_id: jobId,
+            required_document_id: doc.required_document_id || null,
+            custom_document_name: doc.custom_document_name || null,
+            file_url: doc.file_url,
+            uploaded_by: user.id,
+            verification_status: 'PENDING'
+        });
+        created.push(newDoc);
+    }
+
+    // Notify TO that new documents were uploaded
+    notificationService.notifyRoles(['TO'], 'JOB_DOCUMENTS_UPLOADED', {
+        jobId,
+        vesselName: job.Vessel.vessel_name,
+        count: created.length
+    }).catch(() => { });
+
+    return created;
+};
+
+/**
+ * Re-upload a rejected document (Client fixes the doc TO flagged as invalid).
+ * Replaces the old file_url and resets status to PENDING.
+ */
+export const reuploadJobDocument = async (jobId, documentId, body, user) => {
+    if (!body.file_url) {
+        throw { statusCode: 400, message: 'Please provide the new file_url for the document.' };
+    }
+
+    const job = await requireJob(jobId, { includeVessel: true });
+
+    if (job.job_status !== 'CREATED') {
+        throw { statusCode: 400, message: 'Documents can only be re-uploaded while the job is in CREATED status.' };
+    }
+
+    // Client ownership check
+    if (user.role === 'CLIENT') {
+        const vessel = await Vessel.findByPk(job.vessel_id);
+        if (!vessel || vessel.client_id !== user.client_id) {
+            throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
+        }
+    }
+
+    const doc = await JobDocument.findOne({
+        where: { id: documentId, job_id: jobId }
+    });
+    if (!doc) {
+        throw { statusCode: 404, message: 'Document not found for this job.' };
+    }
+
+    if (doc.verification_status !== 'REJECTED') {
+        throw { statusCode: 400, message: `Only rejected documents can be re-uploaded. This document is currently: ${doc.verification_status}.` };
+    }
+
+    await doc.update({
+        file_url: body.file_url,
+        verification_status: 'PENDING',
+        rejection_reason: null,
+        verified_by: null,
+        uploaded_by: user.id
+    });
+
+    // Notify TO that a rejected document was re-uploaded
+    notificationService.notifyRoles(['TO'], 'JOB_DOCUMENT_REUPLOADED', {
+        jobId,
+        vesselName: job.Vessel.vessel_name,
+        documentId
+    }).catch(() => { });
+
+    return doc;
 };
 
 // ─────────────────────────────────────────────

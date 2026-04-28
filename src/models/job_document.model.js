@@ -7,7 +7,12 @@ export default (sequelize, DataTypes) => {
         },
         required_document_id: {
             type: DataTypes.UUID,
-            allowNull: false
+            allowNull: true
+        },
+        custom_document_name: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Name for additional documents that are not part of required_documents'
         },
         file_url: {
             type: DataTypes.STRING,
@@ -16,6 +21,21 @@ export default (sequelize, DataTypes) => {
         uploaded_by: {
             type: DataTypes.UUID,
             allowNull: false
+        },
+        verification_status: {
+            type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED'),
+            defaultValue: 'PENDING',
+            comment: 'TO sets this during document verification'
+        },
+        rejection_reason: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Reason why TO rejected this document'
+        },
+        verified_by: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            comment: 'User ID of the TO who verified/rejected this document'
         }
     }, {
         tableName: 'job_documents',

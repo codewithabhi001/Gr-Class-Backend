@@ -61,8 +61,8 @@ export const getEligibleSurveyors = async (req, res, next) => {
 /** CREATED → DOCUMENT_VERIFIED  (TO) */
 export const verifyJobDocuments = async (req, res, next) => {
     try {
-        const job = await jobService.verifyJobDocuments(req.params.id, req.user);
-        res.json({ success: true, message: 'Documents verified.', data: job });
+        const result = await jobService.verifyJobDocuments(req.params.id, req.body, req.user);
+        res.json({ success: true, message: result.message, data: result.data });
     } catch (error) { next(error); }
 };
 
@@ -167,6 +167,30 @@ export const getHistory = async (req, res, next) => {
     try {
         const history = await jobService.getJobHistory(req.params.id);
         res.json({ success: true, data: history });
+    } catch (error) { next(error); }
+};
+
+// ─────────────────────────────────────────────
+// Job Documents
+// ─────────────────────────────────────────────
+export const getJobDocuments = async (req, res, next) => {
+    try {
+        const docs = await jobService.getJobDocuments(req.params.id, req.user);
+        res.json({ success: true, data: docs });
+    } catch (error) { next(error); }
+};
+
+export const uploadJobDocuments = async (req, res, next) => {
+    try {
+        const docs = await jobService.uploadJobDocuments(req.params.id, req.body.documents, req.user);
+        res.status(201).json({ success: true, message: 'Documents uploaded successfully.', data: docs });
+    } catch (error) { next(error); }
+};
+
+export const reuploadJobDocument = async (req, res, next) => {
+    try {
+        const doc = await jobService.reuploadJobDocument(req.params.id, req.params.documentId, req.body, req.user);
+        res.json({ success: true, message: 'Document re-uploaded successfully.', data: doc });
     } catch (error) { next(error); }
 };
 
