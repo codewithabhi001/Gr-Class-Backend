@@ -110,7 +110,6 @@ export const getClientDocuments = async (clientId, user) => {
                 'id',
                 'vessel_id',
                 'file_url',
-                'file_type',
                 'document_type',
                 'description',
                 'uploaded_by',
@@ -121,6 +120,7 @@ export const getClientDocuments = async (clientId, user) => {
         });
         allDocs = allDocs.concat(vesselDocs.map(d => ({
             ...d.toJSON(),
+            file_type: null,
             entity_type: 'VESSEL',
             entity_id: d.vessel_id
         })));
@@ -132,10 +132,8 @@ export const getClientDocuments = async (clientId, user) => {
             attributes: [
                 'id',
                 'job_id',
+                'required_document_id',
                 'file_url',
-                'file_type',
-                'document_type',
-                'description',
                 'uploaded_by',
                 'created_at',
                 'updated_at'
@@ -144,6 +142,9 @@ export const getClientDocuments = async (clientId, user) => {
         });
         allDocs = allDocs.concat(jobDocs.map(d => ({
             ...d.toJSON(),
+            file_type: null,
+            document_type: null,
+            description: null,
             entity_type: 'JOB',
             entity_id: d.job_id
         })));

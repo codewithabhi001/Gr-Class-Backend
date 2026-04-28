@@ -60,10 +60,50 @@ Error responses commonly return:
 
 **Request**
 
+Required fields:
+
+- `email` (string, email) **required**
+- `password` (string) **required**
+
 ```json
 {
   "email": "surveyor@example.com",
   "password": "your-password"
+}
+```
+
+**Response**
+
+Fields:
+
+- `user` (object) **present**
+  - `id` (uuid)
+  - `name` (string)
+  - `email` (string)
+  - `role` (string: `ADMIN|GM|TM|TO|SURVEYOR|CLIENT`)
+  - `status` (string: `ACTIVE|INACTIVE|SUSPENDED`)
+  - `client_id` (uuid|null) optional
+  - `profile_pic_url` (url|null) optional
+  - `force_password_reset` (boolean)
+  - `last_login_at` (date-time|null) optional
+- `accessToken` (string) **present**
+- `refreshToken` (string) **present**
+
+```json
+{
+  "user": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "name": "John Doe",
+    "email": "surveyor@example.com",
+    "role": "SURVEYOR",
+    "status": "ACTIVE",
+    "client_id": null,
+    "profile_pic_url": null,
+    "force_password_reset": false,
+    "last_login_at": "2026-04-28T10:00:00.000Z"
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -77,6 +117,36 @@ Error responses commonly return:
 
 **Why:** Get a new access token when it expires.
 
+**Request**
+
+At least one of the following is required:
+
+- `refreshToken` (string) optional
+- `token` (string) optional (legacy alias for `refreshToken`)
+
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response**
+
+Same shape as login:
+
+```json
+{
+  "user": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "name": "John Doe",
+    "email": "surveyor@example.com",
+    "role": "SURVEYOR"
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
 ---
 
 ## 2) Home screen / dashboard
@@ -84,6 +154,35 @@ Error responses commonly return:
 ### `GET /api/v1/dashboard`
 
 **Why:** Quick counts and “what needs attention” cards for the surveyor.
+
+**Request**
+
+- No body
+
+**Response**
+
+This endpoint is **role-specific**. The surveyor app should treat these as “cards” that may evolve. Typical fields:
+
+- `success` (boolean) **present**
+- `data` (object) **present**
+  - `stats` (object) **present** (dynamic keys, backend may add/remove)
+  - `recentJobs` (array) optional
+  - `expiringCertificates` (array) optional
+  - `alerts` (array) optional
+
+```json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "pendingJobs": 5
+    },
+    "recentJobs": [],
+    "expiringCertificates": [],
+    "alerts": []
+  }
+}
+```
 
 ---
 
@@ -97,6 +196,62 @@ Error responses commonly return:
 
 - `?status=ASSIGNED,SURVEY_AUTHORIZED,IN_PROGRESS,REWORK_REQUESTED`
 
+**Request**
+
+Query params (all optional unless marked):
+
+- `page` (number, default `1`) optional
+- `limit` (number, default `10`) optional
+- `status` (string) optional (single status or comma-separated list)
+- `vessel_id` (uuid) optional
+- `certificate_type_id` (uuid) optional
+- `assigned_surveyor_id` (uuid) optional (backend will still enforce “me” for SURVEYOR)
+- `target_port` (string) optional
+- `created_from` (date `YYYY-MM-DD`) optional
+- `created_to` (date `YYYY-MM-DD`) optional
+- `recent_days` (number) optional
+
+**Response**
+
+- `success` (boolean)
+- `data` (object)
+  - `total` (number)
+  - `page` (number)
+  - `limit` (number)
+  - `totalPages` (number)
+  - `status_counts` (array) optional
+    - items: `{ status: string, count: number }`
+  - `jobs` (array)
+
+```json
+{
+  "success": true,
+  "data": {
+    "total": 48,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5,
+    "status_counts": [{ "status": "ASSIGNED", "count": 10 }],
+    "jobs": [
+      {
+        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+        "job_status": "ASSIGNED",
+        "vessel_id": "019cbf1d-d9c1-732d-8d10-f866bb6e9dec",
+        "certificate_type_id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+        "target_port": "Mumbai",
+        "target_date": "2026-12-31",
+        "priority": "NORMAL",
+        "createdAt": "2026-03-29T18:04:55.000Z",
+        "Vessel": { "id": "019cbf1d-d9c1-732d-8d10-f866bb6e9dec", "vessel_name": "MV Pacific Guardian", "imo_number": "9876501" },
+        "CertificateType": { "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede", "name": "Safety Equipment Certificate" },
+        "survey": { "id": "019d7c59-7f7e-768d-a9a5-00cb91079432", "survey_status": "NOT_STARTED" },
+        "payment_status": "N/A"
+      }
+    ]
+  }
+}
+```
+
 **Important behavior**
 
 - Backend filters the list for SURVEYOR to **only assigned jobs**.
@@ -106,6 +261,71 @@ Error responses commonly return:
 **Why:** Job detail screen (vessel, certificate type, job status, documents, etc.).
 
 **Updated Info:** This detail response now also includes **`ActivityPlannings`** (the digital checklist answers) and **`survey`** details in one call.
+
+**Request**
+
+Path params:
+
+- `jobId` (uuid) **required**
+
+**Response**
+
+- `success` (boolean)
+- `data` (object) a `JobResponse` with (all fields may appear; some are nullable):
+  - `id` (uuid)
+  - `vessel_id` (uuid)
+  - `requested_by_user_id` (uuid)
+  - `certificate_type_id` (uuid)
+  - `reason` (string)
+  - `target_port` (string)
+  - `target_date` (date)
+  - `job_status` (string)
+  - `priority` (string)
+  - `assigned_surveyor_id` (uuid|null)
+  - `assigned_by_user_id` (uuid|null)
+  - `approved_by_user_id` (uuid|null)
+  - `generated_certificate_id` (uuid|null)
+  - `remarks` (string|null)
+  - `is_survey_required` (boolean)
+  - `reschedule_count` (number)
+  - `payment_status` (string)
+  - `certificate_url` (url|null)
+  - `certificate_number` (string|null)
+  - `created_at` (date-time)
+  - `updated_at` (date-time)
+  - `Vessel` (object)
+  - `CertificateType` (object)
+  - `survey` (object)
+  - `Payments` (array) optional
+  - `requester` (object) optional
+  - `surveyor` (object|null) optional
+  - `approver` (object|null) optional
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+    "job_status": "ASSIGNED",
+    "vessel_id": "019cbf1d-d9c1-732d-8d10-f866bb6e9dec",
+    "certificate_type_id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+    "requested_by_user_id": "019c79a4-3eee-731a-9eff-b0eed303e215",
+    "assigned_surveyor_id": "019c79a4-4930-71fd-aa73-887301791935",
+    "target_port": "Mumbai",
+    "target_date": "2026-12-31",
+    "priority": "NORMAL",
+    "remarks": null,
+    "is_survey_required": true,
+    "reschedule_count": 0,
+    "payment_status": "N/A",
+    "certificate_url": null,
+    "certificate_number": null,
+    "Vessel": { "id": "019cbf1d-d9c1-732d-8d10-f866bb6e9dec", "vessel_name": "MV Pacific Guardian", "imo_number": "9876501" },
+    "CertificateType": { "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede", "name": "Safety Equipment Certificate", "issuing_authority": "CLASS" },
+    "survey": { "id": "019d7c59-7f7e-768d-a9a5-00cb91079432", "survey_status": "NOT_STARTED", "survey_statement_status": "NOT_PREPARED" }
+  }
+}
+```
 
 
 ---
@@ -133,11 +353,38 @@ Rework can happen after submission; surveyor repeats checklist/proof/submit.
 
 **Request**
 
+Required fields:
+
+- `job_id` (uuid) **required**
+- `latitude` (number) **required**
+- `longitude` (number) **required**
+
 ```json
 {
   "job_id": "job-uuid",
   "latitude": 1.3521,
   "longitude": 103.8198
+}
+```
+
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object)
+  - `message` (string)
+  - `job_id` (uuid)
+  - `started_at` (date-time)
+
+```json
+{
+  "success": true,
+  "message": "Survey started successfully.",
+  "data": {
+    "message": "Survey started.",
+    "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "started_at": "2026-03-15T10:00:00.000Z"
+  }
 }
 ```
 
@@ -190,6 +437,39 @@ Rework can happen after submission; surveyor repeats checklist/proof/submit.
 }
 ```
 
+**Request**
+
+Path params:
+
+- `jobId` (uuid) **required**
+
+Optional query params:
+
+- `answer` (string: `YES|NO|NA`) optional
+- `question_code` (string) optional
+- `search` (string) optional
+
+**Response fields**
+
+- `success` (boolean)
+- `data` (object)
+  - `items` (array of checklist item objects)
+    - `id` (uuid)
+    - `job_id` (uuid)
+    - `question_code` (string)
+    - `question_text` (string)
+    - `answer` (string: `YES|NO|NA`)
+    - `remarks` (string|null)
+    - `file_url` (url|null) (**resolved HTTPS URL**, never raw S3 key)
+    - `createdAt` (date-time)
+    - `updatedAt` (date-time)
+  - `signed_checklist_files` (array of url) (**resolved HTTPS URLs**)
+  - `template_files` (array of url) (**resolved HTTPS URLs**)
+  - `template` (object|null)
+    - `id` (uuid)
+    - `name` (string)
+    - `code` (string)
+
 **Important behavior**
 
 - This endpoint returns **URLs** (not raw S3 keys). Keep those URLs for preview/download only.
@@ -207,8 +487,8 @@ Checklist evidence is uploaded **directly to S3** via a pre-signed URL, then the
 
 **Query**
 
-- `fileName`: e.g. `engine_room.jpg`
-- `contentType`: e.g. `image/jpeg`
+- `fileName` (string) **required**: e.g. `engine_room.jpg`
+- `contentType` (string) **required**: e.g. `image/jpeg`
 
 **Response (example)**
 
@@ -252,8 +532,8 @@ This is the scanned / signed checklist PDF/JPG that must be attached before fina
 
 **Query**
 
-- `fileName`: e.g. `signed_checklist.pdf`
-- `contentType`: e.g. `application/pdf`
+- `fileName` (string) **required**: e.g. `signed_checklist.pdf`
+- `contentType` (string) **required**: e.g. `application/pdf`
 
 **Response**
 
@@ -290,24 +570,28 @@ Same as evidence upload.
 - `signed_checklist_files` must contain the **S3 keys returned by** `signed-checklist-upload-url` (after uploading scan/PDF to S3).
   The UI should show the *resolved URLs* from `GET /checklists/jobs/:jobId`, but should *store/send keys* on this PUT.
 
-**Recommended UX (your preferred flow)**
-
-- Screen 1 (Checklist answers): call this endpoint with only `items` (skip `signed_checklist_files`)
-- Screen 2 (Signed checklist documents): use the dedicated endpoint below to attach scans
-
-### `PUT /api/v1/checklists/jobs/{jobId}/signed-checklist-files` (keys-only)
-
-**Why:** Attach/replace/remove signed checklist scan keys **without** re-sending checklist items.
-
-```json
-{
-  "signed_checklist_files": [
-    "surveys/signed-checklists/<jobId>/1714000000000_signed_checklist.pdf"
-  ]
-}
-```
-
 **Request**
+
+Required fields:
+
+- `items` (array) **required**
+
+Each item:
+
+- `question_code` (string) **required**
+- `question_text` (string) **required**
+- `answer` (string: `YES|NO|NA`) **required**
+- `remarks` (string) optional (can be empty)
+- `file_url` (string|null) optional
+  - Send the **S3 key** returned by `GET /api/v1/checklists/jobs/{jobId}/get-upload-url` (after uploading to S3).
+  - Empty string is allowed when you have no evidence.
+
+Optional fields:
+
+- `signed_checklist_files` (array of string) optional
+  - Send the **S3 keys** returned by `GET /api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url` (after uploading to S3).
+
+Example:
 
 ```json
 {
@@ -316,7 +600,7 @@ Same as evidence upload.
       "question_code": "LSE001",
       "question_text": "Are life jackets available?",
       "answer": "YES",
-      "remarks": "Verified count matches record",
+      "remarks": "Verified",
       "file_url": ""
     },
     {
@@ -333,9 +617,34 @@ Same as evidence upload.
 }
 ```
 
-**What to do after success**
+**Response**
 
-- Re-fetch `GET /checklists/jobs/:jobId` to display resolved URLs again.
+Same as `GET /api/v1/checklists/jobs/{jobId}`: `ChecklistResponse`.
+
+**Recommended UX (your preferred flow)**
+
+- Screen 1 (Checklist answers): call this endpoint with only `items` (skip `signed_checklist_files`)
+- Screen 2 (Signed checklist documents): use the dedicated endpoint below to attach scans
+
+### `PUT /api/v1/checklists/jobs/{jobId}/signed-checklist-files` (keys-only)
+
+**Why:** Attach/replace/remove signed checklist scan keys **without** re-sending checklist items.
+
+Required fields:
+
+- `signed_checklist_files` (array of string) **required** (full replace)
+
+```json
+{
+  "signed_checklist_files": [
+    "surveys/signed-checklists/<jobId>/1714000000000_signed_checklist.pdf"
+  ]
+}
+```
+
+**Response**
+
+Same as `GET /api/v1/checklists/jobs/{jobId}`: `ChecklistResponse`.
 
 ---
 
@@ -346,6 +655,16 @@ This is optional (UX feature): backend generates a filled DOCX using job/vessel 
 ### `GET /api/v1/checklist-templates/job/{jobId}/download?force=false`
 
 **Why:** Provide a “Download filled checklist” button.
+
+**Request**
+
+Path params:
+
+- `jobId` (uuid) **required**
+
+Query params:
+
+- `force` (boolean, default `false`) optional
 
 **Response**
 
@@ -381,6 +700,21 @@ This is optional (UX feature): backend generates a filled DOCX using job/vessel 
 { "fileKey": "surveys/proofs/<jobId>/1714000000000_proof.jpg" }
 ```
 
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object)
+  - `url` (string)
+
+```json
+{
+  "success": true,
+  "message": "Proof uploaded successfully.",
+  "data": { "url": "surveys/proofs/<jobId>/1714000000000_proof.jpg" }
+}
+```
+
 **Notes**
 
 - Multiple proof uploads are allowed before final submission.
@@ -400,6 +734,18 @@ This is optional (UX feature): backend generates a filled DOCX using job/vessel 
 }
 ```
 
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object)
+  - `id` (uuid)
+  - `job_id` (uuid)
+  - `surveyor_id` (uuid)
+  - `latitude` (number)
+  - `longitude` (number)
+  - `timestamp` (date-time)
+
 ---
 
 ## 13) Offline sync (optional)
@@ -408,7 +754,48 @@ This is optional (UX feature): backend generates a filled DOCX using job/vessel 
 
 **Why:** If mobile app collects checklist answers / GPS points offline, replay them in one call when network returns.
 
-Implementation depends on payload expected by backend. Use this endpoint only if the app has offline batching enabled.
+**Request**
+
+All fields are optional (send what you have). Payload:
+
+- `checklist` (array) optional
+  - each item:
+    - `question_code` (string) **required per item**
+    - `question_text` (string) **required per item**
+    - `answer` (string) **required per item** (same values as checklist: `YES|NO|NA`)
+    - `remarks` (string|null) optional
+- `gps_points` (array) optional
+  - each point:
+    - `latitude` (number) **required per point**
+    - `longitude` (number) **required per point**
+    - `captured_at` (date-time string) optional
+
+```json
+{
+  "checklist": [
+    { "question_code": "LSE001", "question_text": "Are life jackets available?", "answer": "YES", "remarks": "ok" }
+  ],
+  "gps_points": [
+    { "latitude": 1.3521, "longitude": 103.8198, "captured_at": "2026-04-28T10:00:00.000Z" }
+  ]
+}
+```
+
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `synced` (object)
+  - `checklist_items` (number)
+  - `gps_points` (number)
+
+```json
+{
+  "success": true,
+  "message": "Offline data synced successfully.",
+  "synced": { "checklist_items": 1, "gps_points": 1 }
+}
+```
 
 ---
 
@@ -417,6 +804,41 @@ Implementation depends on payload expected by backend. Use this endpoint only if
 ### `POST /api/v1/surveys/jobs/{jobId}/statement/draft`
 
 **Why:** Generate a draft PDF the surveyor (and TM) can preview before final submission.
+
+**Request**
+
+Path params:
+
+- `jobId` (uuid) **required**
+
+Body (optional for TM/ADMIN, required in practice for SURVEYOR):
+
+- `survey_statement` (string) optional
+
+```json
+{
+  "survey_statement": "Inspection completed. No major findings."
+}
+```
+
+**Response**
+
+- `success` (boolean)
+- `data` (object)
+  - `message` (string)
+  - `status` (string, example: `DRAFTED`)
+  - `pdf_url` (url) optional (**only returned for TM/ADMIN**)
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Drafted successfully",
+    "status": "DRAFTED",
+    "pdf_url": "https://signed-url"
+  }
+}
+```
 
 **Important behavior**
 
@@ -470,6 +892,34 @@ Fields:
 }
 ```
 
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object) `SurveyReportResponse`:
+  - `id` (uuid)
+  - `job_id` (uuid)
+  - `surveyor_id` (uuid)
+  - `survey_status` (`NOT_STARTED|STARTED|CHECKLIST_SUBMITTED|PROOF_UPLOADED|SUBMITTED|REWORK_REQUIRED|FINALIZED`)
+  - `submission_count` (number)
+  - `declared_by` (uuid)
+  - `declared_at` (date-time)
+  - `start_latitude` (number)
+  - `start_longitude` (number)
+  - `submit_latitude` (number)
+  - `submit_longitude` (number)
+  - `attendance_photo_url` (url)
+  - `evidence_proof_url` (url)
+  - `signature_url` (url)
+  - `declaration_hash` (string)
+  - `survey_statement` (string)
+  - `survey_statement_status` (`NOT_PREPARED|DRAFTED|ISSUED`)
+  - `survey_statement_pdf_url` (url)
+  - `signed_checklist_files` (array of string)
+  - `started_at` (date-time)
+  - `submitted_at` (date-time)
+  - `finalized_at` (date-time)
+
 ---
 
 ## 16) Read survey data + timeline
@@ -478,10 +928,55 @@ Fields:
 
 **Why:** Survey detail screen (status, proof, statement URLs, etc.). Now includes the nested `JobRequest` with its **`ActivityPlannings`** (checklist findings).
 
+**Request**
+
+Path params:
+
+- `jobId` (uuid) **required**
+
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object) `SurveyReportResponse` (fields may be present depending on status):
+  - `id` (uuid)
+  - `job_id` (uuid)
+  - `surveyor_id` (uuid)
+  - `survey_status` (`NOT_STARTED|STARTED|CHECKLIST_SUBMITTED|PROOF_UPLOADED|SUBMITTED|REWORK_REQUIRED|FINALIZED`)
+  - `submission_count` (number)
+  - `declared_by` (uuid)
+  - `declared_at` (date-time)
+  - `start_latitude` (number)
+  - `start_longitude` (number)
+  - `submit_latitude` (number)
+  - `submit_longitude` (number)
+  - `attendance_photo_url` (url)
+  - `evidence_proof_url` (url)
+  - `signature_url` (url)
+  - `declaration_hash` (string)
+  - `survey_statement` (string)
+  - `survey_statement_status` (`NOT_PREPARED|DRAFTED|ISSUED`)
+  - `survey_statement_pdf_url` (url)
+  - `signed_checklist_files` (array of string)
+  - `started_at` (date-time)
+  - `submitted_at` (date-time)
+  - `finalized_at` (date-time)
+  - `JobRequest` (object) optional (includes `ActivityPlannings`)
+
 
 ### 16.2 `GET /api/v1/surveys/jobs/{jobId}/timeline`
 
 **Why:** Show “when each step happened” (start, checklist, proof, submit, rework).
+
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object)
+  - `job_id` (uuid)
+  - `gps_trace` (array)
+    - each: `id`, `job_id`, `surveyor_id`, `vessel_id` (nullable), `latitude`, `longitude`, `timestamp`
+  - `survey_details` (object) same as `GET /api/v1/surveys/jobs/{jobId}` (resolved URLs)
 
 ---
 
@@ -503,9 +998,33 @@ The backend treats checklist updates and signed-scan replacement as idempotent f
 
 **Why:** Show rework requests, assignments, status changes.
 
+**Response**
+
+This endpoint returns an **array** (not wrapped in `{ success, data }`):
+
+- each item:
+  - `id` (uuid)
+  - `title` (string)
+  - `message` (string)
+  - `type` (string)
+  - `is_read` (boolean)
+  - `created_at` (date-time)
+
 ### 18.2 `PUT /api/v1/notifications/{id}/read`
 
+**Response**
+
+```json
+{ "success": true, "message": "Request successful" }
+```
+
 ### 18.3 `PUT /api/v1/notifications/read-all`
+
+**Response**
+
+```json
+{ "success": true, "message": "Request successful" }
+```
 
 ---
 
@@ -519,6 +1038,55 @@ Preferred approach for big files is direct-to-S3:
 2) `PUT uploadUrl` with binary
 3) `POST /api/v1/documents/register` (or entity register) to store metadata if your UI needs it
 
+### 19.1 `GET /api/v1/documents/get-upload-url`
+
+**Query**
+
+- `fileName` (string) **required** (example: `report.pdf`)
+- `fileType` (string) **required** (MIME type; example: `application/pdf`)
+- `folder` (string) optional (example: `surveys`)
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "uploadUrl": "https://s3-presigned-put-url",
+    "fileKey": "surveys/1714000000000_report.pdf"
+  }
+}
+```
+
+### 19.2 `POST /api/v1/documents/register`
+
+**Request**
+
+Required fields:
+
+- `fileKey` (string) **required**
+
+Optional fields:
+
+- `fileType` (string) optional (MIME type)
+- `document_type` (string) optional
+- `description` (string) optional
+
+```json
+{
+  "fileKey": "surveys/1714000000000_report.pdf",
+  "fileType": "application/pdf",
+  "document_type": "EVIDENCE",
+  "description": "Survey attachment"
+}
+```
+
+**Response**
+
+```json
+{ "success": true, "message": "Request successful" }
+```
+
 ---
 
 ## 20) Surveyor self utilities (optional)
@@ -527,11 +1095,67 @@ Preferred approach for big files is direct-to-S3:
 
 **Why:** Mark surveyor availability (for assignment logic).
 
+**Request**
+
+- `is_available` (boolean) **required**
+
+```json
+{ "is_available": true }
+```
+
+**Response**
+
+- `success` (boolean)
+- `data` (object) updated surveyor profile (includes `is_available` etc.)
+
 ### 20.2 `POST /api/v1/surveyors/location`
 
 **Why:** Passive background location updates (separate from survey streaming).
+
+**Request**
+
+- `latitude` (number) **required**
+- `longitude` (number) **required**
+
+```json
+{ "latitude": 1.3521, "longitude": 103.8198 }
+```
+
+**Response**
+
+```json
+{ "success": true, "data": { "success": true } }
+```
 
 ### 20.3 `GET /api/v1/surveyors/{id}/profile`
 
 **Why:** Profile screen (authorized certificates, contact info, etc.).
 
+**Request**
+
+Path params:
+
+- `id` (uuid) **required** (user id OR surveyor profile id)
+
+**Response**
+
+- `success` (boolean)
+- `message` (string)
+- `data` (object) surveyor profile:
+  - `id` (uuid) (profile id)
+  - `user_id` (uuid)
+  - `license_number` (string)
+  - `authorized_ship_types` (array of string) optional
+  - `authorized_certificates` (array of string) optional
+  - `valid_from` (date-time)
+  - `valid_to` (date-time|null) optional
+  - `is_available` (boolean)
+  - `nationality` (string|null) optional
+  - `qualification` (string|null) optional
+  - `years_of_experience` (number|null) optional
+  - `cv_url` (url|null) optional
+  - `id_proof_url` (url|null) optional
+  - `license_copy_url` (url|null) optional
+  - `User` (object)
+    - `id`, `name`, `email`, `phone`, `role`, `status`
+  - `application` (object|null) optional
