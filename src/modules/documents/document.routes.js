@@ -9,6 +9,10 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/get-upload-url', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), documentController.getUploadUrl);
+
+// POST /get-presigned-url — generate a signed S3 GET URL for viewing any stored file (body: { fileKey })
+router.post('/get-presigned-url', authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT'), documentController.getPresignedReadUrl);
+
 router.post('/upload', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), upload.single('file'), documentController.uploadStandaloneFile);
 router.post('/register', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), documentController.registerStandaloneFile);
 

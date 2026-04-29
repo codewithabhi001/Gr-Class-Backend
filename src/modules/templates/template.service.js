@@ -35,7 +35,6 @@ export const getTemplates = async (filters = {}) => {
 
     return await CertificateTemplate.findAll({
         where,
-        attributes: { exclude: ['variables'] }, // Show less detail in list view
         include: ['CertificateType']
     });
 };

@@ -162,3 +162,23 @@ export const registerStandaloneFile = async (req, res, next) => {
         res.status(201).json({ success: true, data: result });
     } catch (e) { next(e); }
 };
+
+/**
+ * POST /api/v1/documents/get-presigned-url
+ * Generates a short-lived signed S3 GET URL for an existing file key.
+ * Body: { fileKey: string, expiresIn?: number (seconds, default 3600) }
+ */
+export const getPresignedReadUrl = async (req, res, next) => {
+    try {
+        const { fileKey, expiresIn = 3600 } = req.body;
+        if (!fileKey) {
+            throw { statusCode: 400, message: 'fileKey is required.' };
+        }
+
+        const s3Service = await import('../../services/s3.service.js');
+        const signedUrl = await s3Service.getSignedFileUrl(fileKey, parseInt(expiresIn, 10));
+
+        res.json({ success: true, data: { signedUrl, fileKey, expiresIn } });
+    } catch (e) { next(e); }
+};
+
