@@ -507,7 +507,7 @@ export const verifyJobDocuments = async (id, body, user) => {
             throw { statusCode: 400, message: 'Please specify which documents are invalid (rejected_documents array required).' };
         }
 
-        // Mark each rejected document
+        // Mark each rejected document (only if they are currently PENDING)
         for (const rd of rejectedDocs) {
             if (!rd.document_id) continue;
             await JobDocument.update(
@@ -516,7 +516,7 @@ export const verifyJobDocuments = async (id, body, user) => {
                     rejection_reason: rd.reason || 'Document is invalid or not acceptable.',
                     verified_by: userId
                 },
-                { where: { id: rd.document_id, job_id: id } }
+                { where: { id: rd.document_id, job_id: id, verification_status: 'PENDING' } }
             );
         }
 
