@@ -1054,6 +1054,21 @@
                         name: { type: string }
                         issuing_authority: { type: string }
                         requires_survey: { type: boolean }
+                    grouped_requirements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          requirement_id: { type: string, format: uuid }
+                          document_name: { type: string }
+                          is_mandatory: { type: boolean }
+                          status: { type: string }
+                          uploaded_versions:
+                            type: array
+                            items: { type: object }
+                    custom_documents:
+                      type: array
+                      items: { type: object }
                     documents:
                       type: array
                       items:

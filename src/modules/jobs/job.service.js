@@ -565,10 +565,17 @@ export const verifyJobDocuments = async (id, body, user) => {
     }
 
     // ── Document Approval Flow (all docs valid) ──────────────
-    // Mark all documents as APPROVED
+    const stillRejected = await JobDocument.count({
+        where: { job_id: id, verification_status: 'REJECTED' }
+    });
+    if (stillRejected > 0) {
+        throw { statusCode: 400, message: 'Cannot verify documents because there are still rejected documents. The client must re-upload them first.' };
+    }
+
+    // Mark all PENDING documents as APPROVED
     await JobDocument.update(
         { verification_status: 'APPROVED', verified_by: userId },
-        { where: { job_id: id } }
+        { where: { job_id: id, verification_status: 'PENDING' } }
     );
 
     const updated = await lifecycleService.updateJobStatus(id, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified documents');
@@ -953,8 +960,32 @@ export const getJobDocuments = async (jobId, user) => {
     const uploadedDocIds = docs.map(d => d.required_document_id);
     const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
 
+    // Grouping by requirement
+    const groupedRequirements = requiredDocs.map(rd => {
+        const docsForReq = resolvedDocs.filter(d => d.required_document_id === rd.id);
+        
+        let status = 'MISSING';
+        if (docsForReq.length > 0) {
+            // Sort by createdAt desc to get the latest version first
+            docsForReq.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            status = docsForReq[0].verification_status; // latest status: 'PENDING', 'APPROVED', or 'REJECTED'
+        }
+
+        return {
+            requirement_id: rd.id,
+            document_name: rd.document_name,
+            is_mandatory: rd.is_mandatory,
+            status: status,
+            uploaded_versions: docsForReq
+        };
+    });
+
+    const customDocuments = resolvedDocs.filter(d => !d.required_document_id);
+
     return {
         certificate_type: certificateType,
+        grouped_requirements: groupedRequirements,
+        custom_documents: customDocuments,
         documents: resolvedDocs,
         required_documents: requiredDocs,
         missing_documents: missingDocs,
