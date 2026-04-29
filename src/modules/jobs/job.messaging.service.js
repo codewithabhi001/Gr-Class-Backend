@@ -15,11 +15,8 @@ export const getJobMessages = async (jobId, isInternal = false) => {
     return await fileAccessService.resolveEntity(messages);
 };
 
-export const sendMessage = async (jobId, senderId, data, file) => {
-    let attachmentUrl = data.attachmentKey || null;
-    if (file) {
-        attachmentUrl = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, s3Service.UPLOAD_FOLDERS.JOBS_ATTACHMENTS);
-    }
+export const sendMessage = async (jobId, senderId, data) => {
+    let attachmentUrl = data.attachment_url || data.attachmentKey || null;
 
     const message = await Message.create({
         job_id: jobId,

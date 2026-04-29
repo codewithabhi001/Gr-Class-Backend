@@ -1449,25 +1449,18 @@
     requestBody:
       required: true
       content:
-        multipart/form-data:
-          schema:
-            type: object
-            properties:
-              content:
-                type: string
-                description: Message text
-                example: "Please review the updated checklist attached."
-              attachment:
-                type: string
-                format: binary
-                description: Optional file attachment
         application/json:
           schema:
             type: object
             required: [content]
             properties:
-              content: { type: string, example: "Vessel is ready for inspection." }
-              attachmentKey: { type: string, description: "S3 key for attachment" }
+              content:
+                type: string
+                description: Message text
+                example: "Vessel is ready for inspection."
+              attachment_url:
+                type: string
+                description: "Optional: S3/CDN URL of an attachment. (Upload via pre-signed URL first)"
     responses:
       "201":
         description: Message sent successfully.

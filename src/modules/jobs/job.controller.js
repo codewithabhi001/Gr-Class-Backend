@@ -208,8 +208,8 @@ export const getJobMessages = async (jobId, isInternal) => {
     return await jobMessagingService.getJobMessages(jobId, isInternal);
 };
 
-export const sendMessage = async (jobId, senderId, data, file) => {
-    return await jobMessagingService.sendMessage(jobId, senderId, data, file);
+export const sendMessage = async (jobId, senderId, data) => {
+    return await jobMessagingService.sendMessage(jobId, senderId, data);
 };
 
 export const listExternalJobMessages = async (req, res, next) => {
@@ -228,7 +228,7 @@ export const listInternalJobMessages = async (req, res, next) => {
 
 export const createJobMessage = async (req, res, next) => {
     try {
-        const message = await sendMessage(req.params.id, req.user.id, req.body, req.file);
+        const message = await sendMessage(req.params.id, req.user.id, req.body);
         res.status(201).json({ success: true, data: message, message: '' });
     } catch (e) { next(e); }
 };
