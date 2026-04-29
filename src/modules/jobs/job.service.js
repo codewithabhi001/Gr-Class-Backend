@@ -944,10 +944,17 @@ export const getJobDocuments = async (jobId, user) => {
         })
         : [];
 
+    const certificateType = job.certificate_type_id
+        ? await db.CertificateType.findByPk(job.certificate_type_id, {
+            attributes: ['id', 'name', 'issuing_authority', 'requires_survey']
+        })
+        : null;
+
     const uploadedDocIds = docs.map(d => d.required_document_id);
     const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
 
     return {
+        certificate_type: certificateType,
         documents: resolvedDocs,
         required_documents: requiredDocs,
         missing_documents: missingDocs,
