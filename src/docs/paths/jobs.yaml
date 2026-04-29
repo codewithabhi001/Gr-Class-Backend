@@ -295,6 +295,11 @@
                     reason:
                       type: string
                       description: "Why this document is invalid"
+            example:
+              approved: false
+              rejected_documents:
+                - document_id: "019d3ac5-0001-0001-0001-000000000001"
+                  reason: "Certificate expired, please upload a valid one."
           examples:
             approve_all:
               summary: Approve all documents
