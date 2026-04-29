@@ -1461,6 +1461,10 @@
               attachment_url:
                 type: string
                 description: "Optional: S3/CDN URL of an attachment. (Upload via pre-signed URL first)"
+                example: "https://s3.aws.com/girik/attachments/my-image.jpg"
+            example:
+              content: "Vessel is ready for inspection."
+              attachment_url: "https://s3.aws.com/girik/attachments/my-image.jpg"
     responses:
       "201":
         description: Message sent successfully.
