@@ -13,6 +13,45 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Collection ──────────────────────────────────────────────────────────────
+/api/v1/jobs/upload-url:
+  get:
+    tags: [Jobs]
+    summary: "Get presigned S3 upload URL for job documents"
+    description: |
+      Generates a signed URL for uploading files directly to S3. 
+      Returns the `uploadUrl` (where to PUT the file) and the `fileKey` 
+      (to be used as `file_url` in subsequent job registration calls).
+      
+      **Roles:** CLIENT, ADMIN, GM, TM, SURVEYOR
+    operationId: getJobUploadUrl
+    x-roles: [CLIENT, ADMIN, GM, TM, SURVEYOR]
+    parameters:
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string, example: certificate.pdf }
+      - name: fileType
+        in: query
+        required: true
+        schema: { type: string, example: application/pdf }
+      - name: folder
+        in: query
+        schema: { type: string, default: jobs }
+    responses:
+      "200":
+        description: Presigned URL generated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    uploadUrl: { type: string }
+                    fileKey: { type: string, example: "jobs/1714398721-cert.pdf" }
+
 /api/v1/jobs:
   get:
     tags: [Jobs]
@@ -1110,16 +1149,17 @@
 
   post:
     tags: [Jobs]
-    summary: "Upload additional documents for a job"
+    summary: "Upload or replace job documents"
     description: |
-      Client or staff uploads additional/missing documents for a job.
+      Client or staff uploads additional documents or replaces existing ones.
       Only allowed while job is in `CREATED` status.
 
-      If a document for the same `required_document_id` already exists and is not
-      REJECTED, the request will fail. Use the re-upload endpoint to replace
-      rejected documents.
+      This endpoint handles both initial uploads and replacement of rejected 
+      documents. If a `required_document_id` is provided for a document that
+      already exists, its `file_url` will be updated and its `verification_status`
+      will be reset to `PENDING`.
 
-      Notifies TO team that new documents are available for review.
+      Notifies TO team that new or updated documents are available for review.
 
       **Roles:** CLIENT, ADMIN, GM, TM
     operationId: uploadJobDocuments
@@ -1190,86 +1230,19 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
-/api/v1/jobs/{id}/documents/{documentId}:
-  put:
-    tags: [Jobs]
-    summary: "Re-upload a rejected document"
-    description: |
-      Client replaces a document that was rejected by the TO during verification.
-      Only documents with `verification_status = REJECTED` can be re-uploaded.
-      The document status resets to `PENDING` for the TO to re-verify.
-
-      Only allowed while job is in `CREATED` status.
-
-      Notifies TO team that a rejected document has been corrected.
-
-      **Roles:** CLIENT, ADMIN, GM, TM
-    operationId: reuploadJobDocument
-    x-roles: [CLIENT, ADMIN, GM, TM]
-    parameters:
-      - name: id
-        in: path
-        required: true
-        description: Job UUID
-        schema: { type: string, format: uuid }
-      - name: documentId
-        in: path
-        required: true
-        description: JobDocument UUID (the rejected document to replace)
-        schema: { type: string, format: uuid }
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required: [file_url]
-            properties:
-              file_url:
-                type: string
-                description: "New S3/CDN URL for the corrected document"
-          example:
-            file_url: "https://cdn.example.com/docs/vessel-registration-v2.pdf"
-    responses:
-      "200":
-        description: Document re-uploaded. Status reset to PENDING.
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success: { type: boolean, example: true }
-                message: { type: string, example: "Document re-uploaded successfully." }
-                data: { type: object }
-      "400":
-        description: |
-          Job not in CREATED state, or document is not in REJECTED status.
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
-      "403":
-        description: Forbidden – client can only re-upload for their own jobs
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
-      "404":
-        description: Job or document not found
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
 
 # ── History & Notes ──────────────────────────────────────────────────────────
 /api/v1/jobs/{id}/history:
   get:
     tags: [Jobs]
-    summary: "ADMIN/GM/TM/TO: Job status history & audit trail"
+    summary: "ADMIN/GM/TM/TO/CLIENT/SURVEYOR: Job status history & audit trail"
     description: |
       Returns a chronological list of all status transitions for the job,
       including who made each change and the reason.
 
-      **Roles:** ADMIN, GM, TM, TO
+      **Roles:** ADMIN, GM, TM, TO, CLIENT, SURVEYOR
     operationId: getJobHistory
-    x-roles: [ADMIN, GM, TM, TO]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
     parameters:
       - name: id
         in: path

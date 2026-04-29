@@ -310,19 +310,8 @@ export const getJobById = async (id, scopeFilters = {}) => {
         include: [
             'Vessel', 'CertificateType',
             {
-                model: db.JobStatusHistory,
-                as: 'JobStatusHistories',
-                include: [{ model: db.User, attributes: ['id', 'name', 'email', 'role'] }]
-            },
-            'JobDocuments', 'JobReschedules', 'ActivityPlannings',
-            {
                 model: Survey,
-                as: 'survey',
-                include: [{
-                    model: db.SurveyStatusHistory,
-                    as: 'SurveyStatusHistories',
-                    include: [{ model: db.User, as: 'User', attributes: ['id', 'name', 'email', 'role'] }]
-                }]
+                as: 'survey'
             },
             { model: Certificate, as: 'Certificate', attributes: ['id', 'certificate_number', 'pdf_file_url'] },
             { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
@@ -334,13 +323,6 @@ export const getJobById = async (id, scopeFilters = {}) => {
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
     const jobPlain = job.get({ plain: true });
-
-    // Expose survey history at top level for convenience
-    if (jobPlain.survey && jobPlain.survey.SurveyStatusHistories) {
-        jobPlain.survey_history = jobPlain.survey.SurveyStatusHistories;
-    } else {
-        jobPlain.survey_history = [];
-    }
 
     // Expose payment status at top level
     jobPlain.payment_status = jobPlain.Payments?.[0]?.payment_status || 'N/A';
@@ -565,22 +547,45 @@ export const verifyJobDocuments = async (id, body, user) => {
     }
 
     // ── Document Approval Flow (all docs valid) ──────────────
-    const stillRejected = await JobDocument.count({
-        where: { job_id: id, verification_status: 'REJECTED' }
+    // A requirement is considered "satisfied" if it has at least one PENDING or APPROVED version.
+    // We only block "Approve All" if there are mandatory requirements that have ONLY REJECTED versions (or no versions at all).
+    
+    // 1. Get all documents for this job
+    const allDocs = await JobDocument.findAll({
+        where: { job_id: id }
     });
-    if (stillRejected > 0) {
-        throw { statusCode: 400, message: 'Cannot verify documents because there are still rejected documents. The client must re-upload them first.' };
+
+    // 2. Check if every mandatory requirement has at least one version that is NOT rejected
+    if (requiredDocs.length > 0) {
+        const satisfiedReqIds = new Set(
+            allDocs
+                .filter(d => d.verification_status !== 'REJECTED')
+                .map(d => d.required_document_id)
+        );
+
+        const missingMandatory = requiredDocs.filter(rd => !satisfiedReqIds.has(rd.id));
+
+        if (missingMandatory.length > 0) {
+            throw {
+                statusCode: 400,
+                message: 'Cannot approve: One or more mandatory documents are missing or currently rejected.',
+                missing_documents: missingMandatory.map(md => ({ id: md.id, name: md.document_name }))
+            };
+        }
     }
 
-    // Mark all PENDING documents as APPROVED
-    await JobDocument.update(
-        { verification_status: 'APPROVED', verified_by: userId },
-        { where: { job_id: id, verification_status: 'PENDING' } }
-    );
+    // 3. Mark all PENDING documents as APPROVED
+    const pendingDocs = allDocs.filter(d => d.verification_status === 'PENDING');
+    if (pendingDocs.length > 0) {
+        await JobDocument.update(
+            { verification_status: 'APPROVED', verified_by: userId },
+            { where: { id: { [Op.in]: pendingDocs.map(d => d.id) } } }
+        );
+    }
 
-    const updated = await lifecycleService.updateJobStatus(id, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified documents');
+    const updated = await lifecycleService.updateJobStatus(id, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified all documents');
 
-    // Notify ADMIN/GM/TM (vessel already loaded)
+    // Notify ADMIN/GM/TM
     notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_DOCUMENT_VERIFIED', {
         jobId: id, vesselName: job.Vessel.vessel_name
     }).catch(() => { });
@@ -1032,23 +1037,8 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
             throw { statusCode: 400, message: 'Each document must have either required_document_id or custom_document_name.' };
         }
 
-        // Check if this required doc already exists (and is not rejected)
-        if (doc.required_document_id) {
-            const existing = await JobDocument.findOne({
-                where: {
-                    job_id: jobId,
-                    required_document_id: doc.required_document_id,
-                    verification_status: { [Op.ne]: 'REJECTED' }
-                }
-            });
-            if (existing) {
-                throw {
-                    statusCode: 400,
-                    message: `Document for requirement ${doc.required_document_id} is already uploaded. Use the re-upload endpoint if it was rejected.`
-                };
-            }
-        }
-
+        // Versioning Approach: Always create a new record for every upload attempt.
+        // This preserves the audit trail of previous versions (e.g. rejected ones).
         const newDoc = await JobDocument.create({
             job_id: jobId,
             required_document_id: doc.required_document_id || null,
@@ -1104,22 +1094,25 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
         throw { statusCode: 400, message: `Only rejected documents can be re-uploaded. This document is currently: ${doc.verification_status}.` };
     }
 
-    await doc.update({
+    // Versioning Approach: Create a NEW record instead of updating the rejected one.
+    // This maintains the audit trail of the rejected document.
+    const newDoc = await JobDocument.create({
+        job_id: jobId,
+        required_document_id: doc.required_document_id,
+        custom_document_name: doc.custom_document_name,
         file_url: body.file_url,
         verification_status: 'PENDING',
-        rejection_reason: null,
-        verified_by: null,
         uploaded_by: user.id
     });
 
-    // Notify TO that a rejected document was re-uploaded
+    // Notify TO that a rejected document was re-uploaded (New Version)
     notificationService.notifyRoles(['TO'], 'JOB_DOCUMENT_REUPLOADED', {
         jobId,
         vesselName: job.Vessel.vessel_name,
-        documentId
+        documentId: newDoc.id
     }).catch(() => { });
 
-    return doc;
+    return newDoc;
 };
 
 // ─────────────────────────────────────────────
@@ -1138,7 +1131,13 @@ export const updatePriority = async (jobId, priority, reason, userId) => {
     return job;
 };
 
-export const getJobHistory = async (id) => {
+export const getJobHistory = async (id, scopeFilters = {}) => {
+    // Check if job exists and is accessible by the user (scope filtering)
+    const job = await JobRequest.findOne({ where: { id, ...scopeFilters } });
+    if (!job) {
+        throw { statusCode: 404, message: 'The requested job could not be found or you do not have permission to view its history.' };
+    }
+
     const jobHistory = await JobStatusHistory.findAll({
         where: { job_id: id },
         order: [['created_at', 'ASC']],

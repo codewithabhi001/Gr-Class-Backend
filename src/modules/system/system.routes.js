@@ -5,12 +5,12 @@ import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 
 const router = express.Router();
 
-router.use(authenticate);
-
-// Publicly available (but authenticated) health checks
+// Publicly available (unauthenticated) health checks
 router.get('/health', systemController.getHealth);
 router.get('/readiness', systemController.getReadiness);
 router.get('/version', systemController.getVersion);
+
+router.use(authenticate);
 
 // Admin / Ops Only
 router.get('/metrics', authorizeRoles('ADMIN'), systemController.getMetrics);

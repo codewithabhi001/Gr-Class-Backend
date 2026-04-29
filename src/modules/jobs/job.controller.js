@@ -1,5 +1,6 @@
 import * as jobService from './job.service.js';
 import * as jobMessagingService from './job.messaging.service.js';
+import * as documentService from '../documents/document.service.js';
 import db from '../../models/index.js';
 
 // ─────────────────────────────────────────────
@@ -18,6 +19,21 @@ const getScopeFilters = async (user) => {
 
 // ─────────────────────────────────────────────
 // Read
+// ─────────────────────────────────────────────
+
+export const getUploadUrl = async (req, res, next) => {
+    try {
+        const { fileName, fileType } = req.query;
+        const folder = req.query.folder || 'jobs';
+
+        if (!fileName || !fileType) {
+            throw { statusCode: 400, message: 'fileName and fileType are required.' };
+        }
+
+        const data = await documentService.generatePresignedUrl(fileName, fileType, folder);
+        res.json({ success: true, data });
+    } catch (e) { next(e); }
+};
 // ─────────────────────────────────────────────
 export const createJob = async (req, res, next) => {
     try {
@@ -165,7 +181,8 @@ export const updatePriority = async (req, res, next) => {
 
 export const getHistory = async (req, res, next) => {
     try {
-        const history = await jobService.getJobHistory(req.params.id);
+        const scopeFilters = await getScopeFilters(req.user);
+        const history = await jobService.getJobHistory(req.params.id, scopeFilters);
         res.json({ success: true, data: history });
     } catch (error) { next(error); }
 };

@@ -10,6 +10,7 @@ const upload = docUpload;
 const router = express.Router();
 
 router.use(authenticate);
+router.get('/upload-url', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), jobController.getUploadUrl);
 
 // ─── List & Detail ───────────────────────────────────────
 router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobs);
@@ -74,7 +75,7 @@ router.post('/:id/documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), job
 router.put('/:id/documents/:documentId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), jobController.reuploadJobDocument);
 
 // ─── History & Notes ─────────────────────────────────────
-router.get('/:id/history', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), jobController.getHistory);
+router.get('/:id/history', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getHistory);
 router.post('/:id/notes', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), jobController.addInternalNote);
 
 // ─── Messaging ───────────────────────────────────────────
