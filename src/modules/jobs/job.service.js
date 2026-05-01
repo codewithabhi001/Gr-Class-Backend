@@ -257,8 +257,8 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     const isSurveyor = userRole === 'SURVEYOR';
 
     const jobAttributes = isSurveyor
-        ? ['id', 'reason', 'vessel_id', 'certificate_type_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt', 'is_survey_required', 'reschedule_count']
-        : ['id', 'reason', 'vessel_id', 'certificate_type_id', 'requested_by_user_id', 'assigned_surveyor_id',
+        ? ['id', 'job_request_number', 'reason', 'vessel_id', 'certificate_type_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt', 'is_survey_required', 'reschedule_count']
+        : ['id', 'job_request_number', 'reason', 'vessel_id', 'certificate_type_id', 'requested_by_user_id', 'assigned_surveyor_id',
             'assigned_by_user_id', 'approved_by_user_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt', 'is_survey_required', 'reschedule_count'];
 
     const include = [

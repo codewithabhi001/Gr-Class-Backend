@@ -1,6 +1,7 @@
 export default (sequelize, DataTypes) => {
     const JobRequest = sequelize.define('JobRequest', {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
+        job_request_number: { type: DataTypes.INTEGER, unique: true },
         vessel_id: DataTypes.UUID,
         requested_by_user_id: DataTypes.UUID,
         certificate_type_id: DataTypes.UUID,

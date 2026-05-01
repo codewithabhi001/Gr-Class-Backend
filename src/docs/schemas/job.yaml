@@ -2,6 +2,7 @@ JobSummary:
   type: object
   properties:
     id: { $ref: '#/components/schemas/UUID' }
+    job_request_number: { type: integer, example: 1001 }
     job_status: { type: string }
     vessel_id: { $ref: '#/components/schemas/UUID' }
     certificate_type_id: { $ref: '#/components/schemas/UUID' }
@@ -68,6 +69,9 @@ JobResponse:
   properties:
     id:
       $ref: '#/components/schemas/UUID'
+    job_request_number:
+      type: integer
+      example: 1001
     vessel_id:
       $ref: '#/components/schemas/UUID'
     requested_by_user_id:
