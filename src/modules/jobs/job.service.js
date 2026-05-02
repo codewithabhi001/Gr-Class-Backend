@@ -880,11 +880,19 @@ export const rejectJob = async (id, remarks, user) => {
     if (lifecycleService.JOB_TERMINAL_STATES.includes(current)) {
         throw { statusCode: 400, message: `This job is already closed (${current}) and cannot be rejected.` };
     }
-    if (role === 'GM' && current !== 'CREATED') {
-        throw { statusCode: 403, message: 'General Managers can only reject jobs that are in CREATED status.' };
-    }
-    if (role === 'TM' && !['ASSIGNED', 'SURVEY_DONE', 'REVIEWED'].includes(current)) {
-        throw { statusCode: 403, message: 'Technical Managers can only reject jobs that are in ASSIGNED, SURVEY_DONE, or REVIEWED status.' };
+
+    if (['ADMIN', 'GM'].includes(role)) {
+        // Can reject any status BEFORE Finalized or Certified
+        if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(current)) {
+            throw { statusCode: 400, message: `Jobs that are already ${current} cannot be rejected.` };
+        }
+    } else if (role === 'TM') {
+        // Technical Managers restricted to their specific oversight states
+        if (!['ASSIGNED', 'SURVEY_DONE', 'REVIEWED'].includes(current)) {
+            throw { statusCode: 403, message: 'Technical Managers can only reject jobs that are in ASSIGNED, SURVEY_DONE, or REVIEWED status.' };
+        }
+    } else {
+        throw { statusCode: 403, message: `Role ${role} does not have permission to reject jobs.` };
     }
 
     return await lifecycleService.updateJobStatus(id, 'REJECTED', user.id, remarks || `${role} rejected job`);
@@ -895,9 +903,17 @@ export const rejectJob = async (id, remarks, user) => {
  */
 export const cancelJob = async (id, reason, userId) => {
     const job = await requireJob(id);
-    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
-        throw { statusCode: 400, message: `This job is already closed (${job.job_status}) and cannot be cancelled.` };
+    const current = job.job_status;
+
+    if (lifecycleService.JOB_TERMINAL_STATES.includes(current)) {
+        throw { statusCode: 400, message: `This job is already closed (${current}) and cannot be cancelled.` };
     }
+
+    // Block cancellation of finalized/certified jobs
+    if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(current)) {
+        throw { statusCode: 400, message: `Jobs that are already ${current} cannot be cancelled.` };
+    }
+
     return await lifecycleService.updateJobStatus(id, 'REJECTED', userId, reason || 'Job cancelled');
 };
 
@@ -1037,17 +1053,35 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
             throw { statusCode: 400, message: 'Each document must have either required_document_id or custom_document_name.' };
         }
 
-        // Versioning Approach: Always create a new record for every upload attempt.
-        // This preserves the audit trail of previous versions (e.g. rejected ones).
-        const newDoc = await JobDocument.create({
-            job_id: jobId,
-            required_document_id: doc.required_document_id || null,
-            custom_document_name: doc.custom_document_name || null,
-            file_url: doc.file_url,
-            uploaded_by: user.id,
-            verification_status: 'PENDING'
+        // Check if a PENDING document already exists for this requirement/name
+        const existingPending = await JobDocument.findOne({
+            where: {
+                job_id: jobId,
+                verification_status: 'PENDING',
+                ...(doc.required_document_id ? { required_document_id: doc.required_document_id } : { custom_document_name: doc.custom_document_name })
+            }
         });
-        created.push(newDoc);
+
+        if (existingPending) {
+            // Overwrite existing pending document
+            await existingPending.update({
+                file_url: doc.file_url,
+                uploaded_by: user.id,
+                rejection_reason: null // Clear any old rejection reason if it was somehow reused
+            });
+            created.push(existingPending);
+        } else {
+            // Create a new record
+            const newDoc = await JobDocument.create({
+                job_id: jobId,
+                required_document_id: doc.required_document_id || null,
+                custom_document_name: doc.custom_document_name || null,
+                file_url: doc.file_url,
+                uploaded_by: user.id,
+                verification_status: 'PENDING'
+            });
+            created.push(newDoc);
+        }
     }
 
     // Notify TO that new documents were uploaded
@@ -1094,25 +1128,44 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
         throw { statusCode: 400, message: `Only rejected documents can be re-uploaded. This document is currently: ${doc.verification_status}.` };
     }
 
-    // Versioning Approach: Create a NEW record instead of updating the rejected one.
-    // This maintains the audit trail of the rejected document.
-    const newDoc = await JobDocument.create({
-        job_id: jobId,
-        required_document_id: doc.required_document_id,
-        custom_document_name: doc.custom_document_name,
-        file_url: body.file_url,
-        verification_status: 'PENDING',
-        uploaded_by: user.id
+    // Check if a PENDING version already exists for this requirement/name
+    const existingPending = await JobDocument.findOne({
+        where: {
+            job_id: jobId,
+            verification_status: 'PENDING',
+            ...(doc.required_document_id ? { required_document_id: doc.required_document_id } : { custom_document_name: doc.custom_document_name })
+        }
     });
 
-    // Notify TO that a rejected document was re-uploaded (New Version)
+    let resultDoc;
+    if (existingPending) {
+        // Overwrite existing pending document
+        await existingPending.update({
+            file_url: body.file_url,
+            uploaded_by: user.id,
+            rejection_reason: null
+        });
+        resultDoc = existingPending;
+    } else {
+        // Create a NEW record to maintain the audit trail of the rejected document
+        resultDoc = await JobDocument.create({
+            job_id: jobId,
+            required_document_id: doc.required_document_id,
+            custom_document_name: doc.custom_document_name,
+            file_url: body.file_url,
+            verification_status: 'PENDING',
+            uploaded_by: user.id
+        });
+    }
+
+    // Notify TO that a document was re-uploaded (or updated)
     notificationService.notifyRoles(['TO'], 'JOB_DOCUMENT_REUPLOADED', {
         jobId,
         vesselName: job.Vessel.vessel_name,
-        documentId: newDoc.id
+        documentId: resultDoc.id
     }).catch(() => { });
 
-    return newDoc;
+    return resultDoc;
 };
 
 // ─────────────────────────────────────────────

@@ -56,7 +56,7 @@ router.put('/:id/send-back', authorizeRoles('TM', 'TO'), jobController.sendBackJ
 
 // ─── Rejection (terminal → REJECTED) ─────────────────────
 // ADMIN: any non-terminal | GM: CREATED only | TM: ASSIGNED, SURVEY_DONE, REVIEWED
-router.put('/:id/reject', authorizeRoles('GM', 'TM'), jobController.rejectJob);
+router.put('/:id/reject', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.rejectJob);
 
 // ─── Cancellation ────────────────────────────────────────
 router.put('/:id/cancel', authorizeRoles('CLIENT', 'GM', 'TM', 'ADMIN'), jobController.cancelJob);
