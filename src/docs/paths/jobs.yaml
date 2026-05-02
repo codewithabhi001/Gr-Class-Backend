@@ -878,13 +878,12 @@
       **Terminal transition** – moves job to `REJECTED` permanently.
 
       Role-specific constraints:
-      - **ADMIN** – Any non-terminal job.
-      - **GM** – Only in `CREATED` state.
+      - **ADMIN / GM** – Any status before `FINALIZED` or `CERTIFIED`.
       - **TM** – Only in `ASSIGNED`, `SURVEY_DONE`, or `REVIEWED` states.
 
-      **Roles:** GM, TM
+      **Roles:** ADMIN, GM, TM
     operationId: rejectJob
-    x-roles: [GM, TM]
+    x-roles: [ADMIN, GM, TM]
     parameters:
       - name: id
         in: path
@@ -936,9 +935,9 @@
     description: |
       Cancels the job. Maps internally to the `REJECTED` terminal state.
 
-      - **CLIENT** – Must own the vessel; cannot cancel once `FINALIZED`,
-        `CERTIFIED`, or `REJECTED`.
-      - **GM / TM / ADMIN** – Any non-terminal job.
+      - **CLIENT** – Allowed only while job is in `CREATED` status.
+      - **ADMIN / GM** – Any status before `FINALIZED` or `CERTIFIED`.
+      - **TM** – Follows same status restrictions as rejection.
 
       **Roles:** CLIENT, GM, TM, ADMIN
     operationId: cancelJob
