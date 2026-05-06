@@ -1,4 +1,4 @@
-# Surveyor App Developer Guide (Login → Survey Done)
+Surveyor App Developer Guide (Login → Survey Done)
 
 **Audience:** Mobile / Web developers building the SURVEYOR app.
 
@@ -327,8 +327,8 @@ Path params:
 }
 ```
 
-
 ---
+
 ---
 
 ## 4) Survey workflow (the required order)
@@ -893,122 +893,193 @@ Fields:
 ```
 
 **Response**
+```json
+{
+  "success": true,
+  "message": "Survey report submitted successfully.",
+  "data": {
+    "id": "survey-uuid",
+    "job_id": "job-uuid",
+    "survey_status": "SUBMITTED",
+    "submission_count": 1,
+    "declared_at": "2026-05-06T12:00:00Z",
+    "attendance_photo_url": "https://...",
+    "signature_url": "https://...",
+    "survey_statement": "Inspection completed. No major findings.",
+    "survey_statement_status": "DRAFTED"
+  }
+}
+```
 
-- `success` (boolean)
-- `message` (string)
-- `data` (object) `SurveyReportResponse`:
-  - `id` (uuid)
-  - `job_id` (uuid)
-  - `surveyor_id` (uuid)
-  - `survey_status` (`NOT_STARTED|STARTED|CHECKLIST_SUBMITTED|PROOF_UPLOADED|SUBMITTED|REWORK_REQUIRED|FINALIZED`)
-  - `submission_count` (number)
-  - `declared_by` (uuid)
-  - `declared_at` (date-time)
-  - `start_latitude` (number)
-  - `start_longitude` (number)
-  - `submit_latitude` (number)
-  - `submit_longitude` (number)
-  - `attendance_photo_url` (url)
-  - `evidence_proof_url` (url)
-  - `signature_url` (url)
-  - `declaration_hash` (string)
-  - `survey_statement` (string)
-  - `survey_statement_status` (`NOT_PREPARED|DRAFTED|ISSUED`)
-  - `survey_statement_pdf_url` (url)
-  - `signed_checklist_files` (array of string)
-  - `started_at` (date-time)
-  - `submitted_at` (date-time)
-  - `finalized_at` (date-time)
+**Locking Behavior**
+
+- Once the survey is **`SUBMITTED`**, the checklist and proof become **read-only** in the app.
+- The surveyor can only edit them if the job moves back to **`REWORK_REQUESTED`** (see §18).
+- Once the TM **`FINALIZES`** the survey, it is locked forever (terminal state).
 
 ---
 
-## 16) Read survey data + timeline
+## 16) Reporting Non-Conformities (NCs)
 
-### 16.1 `GET /api/v1/surveys/jobs/{jobId}`
+### 16.1 `POST /api/v1/non-conformities`
 
-**Why:** Survey detail screen (status, proof, statement URLs, etc.). Now includes the nested `JobRequest` with its **`ActivityPlannings`** (checklist findings).
+**Why:** If the surveyor finds a major safety or technical violation during the survey, they should raise an NC. This alerts the Technical Manager (TM) immediately.
 
 **Request**
 
-Path params:
-
-- `jobId` (uuid) **required**
+```json
+{
+  "job_id": "job-uuid",
+  "vessel_id": "vessel-uuid",
+  "description": "Lifeboat engine failing to start after 3 attempts.",
+  "severity": "HIGH"
+}
+```
 
 **Response**
 
-- `success` (boolean)
-- `message` (string)
-- `data` (object) `SurveyReportResponse` (fields may be present depending on status):
-  - `id` (uuid)
-  - `job_id` (uuid)
-  - `surveyor_id` (uuid)
-  - `survey_status` (`NOT_STARTED|STARTED|CHECKLIST_SUBMITTED|PROOF_UPLOADED|SUBMITTED|REWORK_REQUIRED|FINALIZED`)
-  - `submission_count` (number)
-  - `declared_by` (uuid)
-  - `declared_at` (date-time)
-  - `start_latitude` (number)
-  - `start_longitude` (number)
-  - `submit_latitude` (number)
-  - `submit_longitude` (number)
-  - `attendance_photo_url` (url)
-  - `evidence_proof_url` (url)
-  - `signature_url` (url)
-  - `declaration_hash` (string)
-  - `survey_statement` (string)
-  - `survey_statement_status` (`NOT_PREPARED|DRAFTED|ISSUED`)
-  - `survey_statement_pdf_url` (url)
-  - `signed_checklist_files` (array of string)
-  - `started_at` (date-time)
-  - `submitted_at` (date-time)
-  - `finalized_at` (date-time)
-  - `JobRequest` (object) optional (includes `ActivityPlannings`)
+```json
+{
+  "success": true,
+  "data": {
+    "id": "nc-uuid",
+    "job_id": "job-uuid",
+    "vessel_id": "vessel-uuid",
+    "description": "Lifeboat engine failing to start after 3 attempts.",
+    "severity": "HIGH",
+    "status": "OPEN",
+    "createdAt": "2026-05-06T10:00:00Z"
+  }
+}
+```
 
+### 16.2 `GET /api/v1/non-conformities/job/{jobId}`
 
-### 16.2 `GET /api/v1/surveys/jobs/{jobId}/timeline`
+**Why:** See all NCs currently active for this specific job.
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "nc-uuid",
+      "severity": "HIGH",
+      "status": "OPEN",
+      "description": "...",
+      "createdAt": "2026-05-06T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## 17) Accessing Vessel History & Documents
+
+### 17.1 `GET /api/v1/documents/vessel/{vesselId}`
+**Why:** View all existing certificates or documents for the vessel to prepare for the survey.
+
+---
+
+## 18) Read survey data + timeline
+
+### 18.1 `GET /api/v1/surveys/jobs/{jobId}`
+
+**Why:** Survey detail screen (status, proof, statement URLs, etc.). Now includes the nested `JobRequest` with its **`ActivityPlannings`** (checklist findings).
+
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "survey-uuid",
+    "job_id": "job-uuid",
+    "survey_status": "SUBMITTED",
+    "submission_count": 1,
+    "declared_at": "2026-05-06T12:00:00Z",
+    "attendance_photo_url": "https://...",
+    "signature_url": "https://...",
+    "survey_statement": "Completed successfully.",
+    "survey_statement_status": "DRAFTED",
+    "survey_statement_pdf_url": "https://...",
+    "JobRequest": {
+      "id": "job-uuid",
+      "job_status": "SURVEY_DONE",
+      "ActivityPlannings": [
+        {
+          "question_code": "LSE001",
+          "answer": "YES",
+          "remarks": "Verified"
+        }
+      ]
+    }
+  }
+}
+```
+
+### 18.2 `GET /api/v1/surveys/jobs/{jobId}/timeline`
 
 **Why:** Show “when each step happened” (start, checklist, proof, submit, rework).
 
 **Response**
-
-- `success` (boolean)
-- `message` (string)
-- `data` (object)
-  - `job_id` (uuid)
-  - `gps_trace` (array)
-    - each: `id`, `job_id`, `surveyor_id`, `vessel_id` (nullable), `latitude`, `longitude`, `timestamp`
-  - `survey_details` (object) same as `GET /api/v1/surveys/jobs/{jobId}` (resolved URLs)
+```json
+{
+  "success": true,
+  "data": {
+    "job_id": "job-uuid",
+    "gps_trace": [
+      {
+        "latitude": 1.3521,
+        "longitude": 103.8198,
+        "timestamp": "2026-05-06T10:00:00Z"
+      }
+    ],
+    "survey_details": {
+       "started_at": "2026-05-06T10:00:00Z",
+       "submitted_at": "2026-05-06T12:00:00Z"
+    }
+  }
+}
+```
 
 ---
 
-## 17) Rework loop (when TM/GM requests corrections)
+## 19) Rework loop (when TM/GM requests corrections)
 
-When rework is requested, surveyor typically repeats:
+When a TM or GM reviews the submitted survey and finds issues (e.g., "Blurry photos", "Missing checklist items"), they move the job to **`REWORK_REQUESTED`**.
 
-- Fix checklist answers and/or replace `signed_checklist_files` via `PUT /checklists/jobs/:jobId`
-- Upload additional proof via `POST /surveys/jobs/:jobId/proof`
-- Re-submit via `POST /surveys`
+**How the app should handle this:**
 
-The backend treats checklist updates and signed-scan replacement as idempotent full replace operations.
+1. **Notification**: Surveyor receives a notification with a `reason` (e.g., "Re-upload lifeboat photos").
+2. **Unlock**: The app should detect `job_status === 'REWORK_REQUESTED'` and **re-enable** the edit/save buttons for the checklist and proof.
+3. **Iteration**: Surveyor repeats:
+   - Edit checklist / proof via `PUT /checklists/jobs/:jobId`
+   - Re-submit via `POST /surveys`
+4. **Submission Count**: The `submission_count` will increment automatically. The app can use this to show "Revision 2" to the user.
 
 ---
 
-## 18) Notifications
+## 20) Notifications
 
-### 18.1 `GET /api/v1/notifications`
+### 20.1 `GET /api/v1/notifications`
 
 **Why:** Show rework requests, assignments, status changes.
 
 **Response**
-
-This endpoint returns an **array** (not wrapped in `{ success, data }`):
-
-- each item:
-  - `id` (uuid)
-  - `title` (string)
-  - `message` (string)
-  - `type` (string)
-  - `is_read` (boolean)
-  - `created_at` (date-time)
+```json
+[
+  {
+    "id": "notif-uuid",
+    "title": "Rework Requested",
+    "message": "Please re-upload photos for Lifeboat #2. They are blurry.",
+    "type": "REWORK",
+    "is_read": false,
+    "created_at": "2026-05-06T13:00:00Z"
+  }
+]
+```
 
 ### 18.2 `PUT /api/v1/notifications/{id}/read`
 
@@ -1028,7 +1099,7 @@ This endpoint returns an **array** (not wrapped in `{ success, data }`):
 
 ---
 
-## 19) Documents module (optional utility)
+## 21) Documents module (optional utility)
 
 SURVEYOR can also use generic documents APIs for attaching files to entities (JOB, SURVEY, etc.).
 
@@ -1038,7 +1109,7 @@ Preferred approach for big files is direct-to-S3:
 2) `PUT uploadUrl` with binary
 3) `POST /api/v1/documents/register` (or entity register) to store metadata if your UI needs it
 
-### 19.1 `GET /api/v1/documents/get-upload-url`
+### 21.1 `GET /api/v1/documents/get-upload-url`
 
 **Query**
 
@@ -1089,14 +1160,13 @@ Optional fields:
 
 ---
 
-## 20) Surveyor self utilities (optional)
+## 22) Surveyor self utilities (optional)
 
-### 20.1 `POST /api/v1/surveyors/availability`
+### 22.1 `POST /api/v1/surveyors/availability`
 
 **Why:** Mark surveyor availability (for assignment logic).
 
 **Request**
-
 - `is_available` (boolean) **required**
 
 ```json
@@ -1104,16 +1174,14 @@ Optional fields:
 ```
 
 **Response**
-
 - `success` (boolean)
 - `data` (object) updated surveyor profile (includes `is_available` etc.)
 
-### 20.2 `POST /api/v1/surveyors/location`
+### 22.2 `POST /api/v1/surveyors/location`
 
 **Why:** Passive background location updates (separate from survey streaming).
 
 **Request**
-
 - `latitude` (number) **required**
 - `longitude` (number) **required**
 
@@ -1122,12 +1190,11 @@ Optional fields:
 ```
 
 **Response**
-
 ```json
 { "success": true, "data": { "success": true } }
 ```
 
-### 20.3 `GET /api/v1/surveyors/{id}/profile`
+### 22.3 `GET /api/v1/surveyors/{id}/profile`
 
 **Why:** Profile screen (authorized certificates, contact info, etc.).
 
