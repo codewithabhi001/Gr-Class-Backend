@@ -1,13 +1,11 @@
 import db from '../../models/index.js';
 import { v4 as uuidv4 } from 'uuid';
-import * as certificatePdfService from '../../services/certificate-pdf.service.js';
 import logger from '../../utils/logger.js';
 import { buildCertificateScopeWhere } from './certificate-scope.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import env from '../../config/env.js';
 import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
-import QRCode from 'qrcode';
 import * as emailService from '../../services/email.service.js';
 import * as s3Service from '../../services/s3.service.js';
 import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
@@ -21,25 +19,6 @@ const Vessel = db.Vessel;
 const JobStatusHistory = db.JobStatusHistory;
 const AuditLog = db.AuditLog;
 const { Op } = db.Sequelize;
-
-const buildCertificateQrTargetUrl = (certificateNumber) => {
-    const configuredBase = process.env.CERTIFICATE_VERIFY_PUBLIC_URL
-        || (env.frontendUrl ? `${env.frontendUrl.replace(/\/$/, '')}/certificate/verify` : null)
-        || (process.env.APP_BASE_URL ? `${process.env.APP_BASE_URL.replace(/\/$/, '')}/api/v1/certificates/verify` : null)
-        || 'https://api.grclass.com/api/v1/certificates/verify';
-    let baseUrl = configuredBase.startsWith('http') ? configuredBase : `https://${configuredBase}`;
-    baseUrl = baseUrl.replace(/\/$/, '');
-
-    if (baseUrl.includes('{number}')) {
-        return baseUrl.replace('{number}', encodeURIComponent(certificateNumber));
-    }
-
-    if (baseUrl.endsWith('/verify')) {
-        return `${baseUrl}/${encodeURIComponent(certificateNumber)}`;
-    }
-
-    return `${baseUrl}/${encodeURIComponent(certificateNumber)}`;
-};
 
 /** Reusable scope filter for certificate list/get by role. Used in getCertificates, getCertificateById, getExpiringCertificates, preview, getHistory, download. */
 export const getCertificateScopeFilter = async (user) => {
@@ -242,6 +221,93 @@ const generateUniqueCertificateNumber = async (typeCode = null) => {
     return certNumber;
 };
 
+const _generateCertificateFile = async (cert, user, transaction = null) => {
+    try {
+        const jobId = cert.job_id;
+        const certificateNumber = cert.certificate_number;
+        
+        // 1. Resolve logos and basic info
+        const grClassLogo = 'https://grclass.com/grclass-logo.webp';
+        let authorityLogo = null;
+        if (cert.certificate_authority_id || cert.Authority) {
+            const auth = cert.Authority || await db.CertificateAuthority.findByPk(cert.certificate_authority_id, { transaction });
+            if (auth?.logo_url) {
+                authorityLogo = await fileAccessService.resolveUrl(auth.logo_url, user, true);
+            }
+        }
+        let flagLogo = null;
+        if (cert.flag_administration_id || cert.FlagState) {
+            const flag = cert.FlagState || await db.FlagAdministration.findByPk(cert.flag_administration_id, { transaction });
+            if (flag?.logo_url) {
+                flagLogo = await fileAccessService.resolveUrl(flag.logo_url, user, true);
+            }
+        }
+        
+        const issuingAuthority = cert.Authority?.name || cert.CertificateType?.issuing_authority || 'GR CLASS';
+        
+        // 2. Build dynamic tags
+        const dynamicTags = jobId ? await buildTagValuesForJob(jobId) : {};
+        
+        const variables = {
+            ...dynamicTags,
+            vessel_name: cert.Vessel?.vessel_name || '',
+            imo_number: cert.Vessel?.imo_number || '',
+            certificate_number: certificateNumber,
+            certificate_type: cert.CertificateType?.name || '',
+            issue_date: cert.issue_date,
+            expiry_date: cert.expiry_date,
+            certificate_term: cert.certificate_term || '',
+            issuing_authority: issuingAuthority,
+            flag_state: cert.FlagState?.flag_state_name || '',
+            port: dynamicTags.place_of_survey || '',
+            place: dynamicTags.place_of_survey || '',
+            gr_class_logo: grClassLogo,
+            authority_logo: authorityLogo,
+            flag_logo: flagLogo,
+            ...(cert.manual_text || {})
+        };
+
+        // 3. (QR code skipped - already in template)
+
+        // 4. Fetch Template
+        const template = await db.CertificateTemplate.findOne({
+            where: {
+                certificate_type_id: cert.certificate_type_id,
+                is_active: true,
+                ...(cert.certificate_term ? { certificate_term: cert.certificate_term } : {})
+            },
+            order: [['createdAt', 'DESC']],
+            transaction
+        }) || await db.CertificateTemplate.findOne({
+            where: { certificate_type_id: cert.certificate_type_id, is_active: true },
+            order: [['createdAt', 'DESC']],
+            transaction
+        });
+
+        if (!template?.template_file_url) {
+            logger.warn('No valid template found for certificate', { certId: cert.id });
+            return null;
+        }
+
+        // 5. Fill DOCX and Upload
+        const masterBuffer = await s3Service.getFileContent(template.template_file_url);
+        const filledDocxBuffer = await fillDocxContentControls(masterBuffer, variables);
+        
+        const docxUrl = await s3Service.uploadFile(
+            filledDocxBuffer,
+            `${certificateNumber}.docx`,
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            s3Service.UPLOAD_FOLDERS.CERTIFICATES
+        );
+        
+        await cert.update({ pdf_file_url: docxUrl, generated_pdf_url: docxUrl }, { transaction });
+        return docxUrl;
+    } catch (err) {
+        logger.error('Error in _generateCertificateFile', { certId: cert.id, err: err.message });
+        return null;
+    }
+};
+
 export const generateCertificate = async (data, user) => {
     if (!isRoleAllowed(RBAC.GENERATE_CERTIFICATE, user.role)) {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
@@ -331,11 +397,12 @@ export const generateCertificate = async (data, user) => {
 
         const cert = await Certificate.create({
             vessel_id: job.vessel_id,
+            job_id: job.id,
             certificate_type_id: job.certificate_type_id,
             certificate_number: certificateNumber,
             issue_date: issueDate,
             expiry_date: expiryDate,
-            status: 'DRAFT', // Changed from VALID to DRAFT
+            status: 'DRAFT',
             source_type: 'INTERNAL',
             version: 1,
             issued_by_user_id: userId,
@@ -344,9 +411,15 @@ export const generateCertificate = async (data, user) => {
             certificate_term: certificate_term || null,
         }, { transaction });
 
-        // Update job to CERTIFIED via lifecycle (ensures history record + terminal guard)
-        await lifecycleService.updateJobStatus(job_id, 'CERTIFIED', userId,
-            `Certificate ${certificateNumber} generated`, { transaction });
+        // Add history for initial draft
+        await db.CertificateHistory.create({
+            certificate_id: cert.id,
+            status: 'DRAFT',
+            changed_by_user_id: userId,
+            change_reason: 'Draft certificate generated from job',
+            changed_at: new Date()
+        }, { transaction });
+
         await job.update({ generated_certificate_id: cert.id }, { transaction });
 
         await AuditLog.create({
@@ -360,110 +433,16 @@ export const generateCertificate = async (data, user) => {
 
         try {
             // Generate PDF outside transaction (non-critical, best-effort)
-            // Prefer a term-specific template; fallback to latest active template for the type.
-            const template = await CertificateTemplate.findOne({
-                where: {
-                    certificate_type_id: job.certificate_type_id,
-                    is_active: true,
-                    ...(certificate_term ? { certificate_term } : {})
-                },
-                order: [['createdAt', 'DESC']]
-            }) || await CertificateTemplate.findOne({
-                where: { certificate_type_id: job.certificate_type_id, is_active: true },
-                order: [['createdAt', 'DESC']]
+            const freshCert = await Certificate.findByPk(cert.id, {
+                include: [
+                    { model: db.Vessel },
+                    { model: db.CertificateType },
+                    { model: db.FlagAdministration, as: 'FlagState' },
+                    { model: db.CertificateAuthority, as: 'Authority' }
+                ]
             });
-            const vessel = job.Vessel;
-            let authority = null;
-            let flagState = null;
-            if (certificate_authority_id) {
-                authority = await db.CertificateAuthority.findByPk(certificate_authority_id);
-            }
-            if (flag_administration_id) {
-                flagState = await db.FlagAdministration.findByPk(flag_administration_id);
-            }
-            const grClassLogo = 'https://grclass.com/grclass-logo.webp';
-            let authorityLogo = null;
-            if (authority?.logo_url) {
-                authorityLogo = await fileAccessService.resolveUrl(authority.logo_url, user, true);
-            }
-            let flagLogo = null;
-            if (flagState?.logo_url) {
-                flagLogo = await fileAccessService.resolveUrl(flagState.logo_url, user, true);
-            }
-            const issuingAuthority = authority?.name || job.CertificateType?.issuing_authority || 'GR CLASS';
+            await _generateCertificateFile(freshCert, user);
             
-            // Build dynamic tags including checklist answers (developer tags)
-            const dynamicTags = await buildTagValuesForJob(job_id);
-            
-            const variables = {
-                ...dynamicTags, // Spread all developer tags from checklist/vessel/etc.
-                vessel_name: vessel?.vessel_name ?? '',
-                imo_number: vessel?.imo_number ?? '',
-                issue_date: issueDate,
-                expiry_date: expiryDate,
-                certificate_number: certificateNumber,
-                certificate_type: job.CertificateType?.name ?? '',
-                port: job.target_port ?? '',
-                place: job.target_port ?? '',
-                certificate_term: certificate_term || '',
-                issuing_authority: issuingAuthority,
-                flag_state: flagState?.flag_state_name || '',
-                gr_class_logo: grClassLogo,
-                authority_logo: authorityLogo,
-                flag_logo: flagLogo,
-                // Merge manual_text if any (e.g. from draft update)
-                ...(cert.manual_text || {})
-            };
-            let qrDataUrl = null;
-            try {
-                const qrTargetUrl = buildCertificateQrTargetUrl(certificateNumber);
-
-                qrDataUrl = await QRCode.toDataURL(qrTargetUrl, {
-                    margin: 1,
-                    width: 300,
-                    errorCorrectionLevel: 'H'
-                });
-            } catch (e) {
-                logger?.warn('QR generation failed', { err: e?.message });
-            }
-
-            variables.qr_data_url = qrDataUrl;
-
-            if (qrDataUrl) {
-                logger.info({ entity: 'CERTIFICATE', event: 'QR_GENERATED', jobId: job_id, qrLength: qrDataUrl.length });
-            } else {
-                logger.warn({ entity: 'CERTIFICATE', event: 'QR_FAILED', jobId: job_id });
-            }
-
-            let filledDocxBuffer = null;
-
-            if (template?.template_file_url) {
-                // DOCX Template path
-                try {
-                    const masterBuffer = await s3Service.getFileContent(template.template_file_url);
-                    filledDocxBuffer = await fillDocxContentControls(masterBuffer, variables);
-                } catch (err) {
-                    logger.error('DOCX template filling failed', { err: err.message });
-                }
-            }
-
-            if (!filledDocxBuffer) {
-                logger.warn('No valid DOCX template found for this certificate type, skipping file generation.', { jobId: job_id, certId: cert.id });
-            } else {
-                try {
-                    // For now, if it's a DOCX template, we store the filled DOCX.
-                    const docxUrl = await s3Service.uploadFile(
-                        filledDocxBuffer,
-                        `${certificateNumber}.docx`,
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        s3Service.UPLOAD_FOLDERS.CERTIFICATES
-                    );
-                    await cert.update({ pdf_file_url: docxUrl, generated_pdf_url: docxUrl });
-                } catch (err) {
-                    logger?.warn('Certificate file generation/upload failed', { certId: cert.id, err: err?.message });
-                }
-            }
-
             const finalCert = await Certificate.findByPk(cert.id, {
                 include: [
                     { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] },
@@ -771,95 +750,13 @@ export const issueCertificate = async (id, user) => {
             issued_by_user_id: user.id
         }, { transaction });
 
-        // Resolve Logos
-        const grClassLogo = 'https://grclass.com/grclass-logo.webp';
-        let authorityLogo = null;
-        if (cert.Authority?.logo_url) {
-            authorityLogo = await fileAccessService.resolveUrl(cert.Authority.logo_url, user, true);
-        }
-        let flagLogo = null;
-        if (cert.FlagState?.logo_url) {
-            flagLogo = await fileAccessService.resolveUrl(cert.FlagState.logo_url, user, true);
+        // Update Job Request status to CERTIFIED only now that cert is VALID
+        if (cert.job_id) {
+            await lifecycleService.updateJobStatus(cert.job_id, 'CERTIFIED', user.id,
+                `Certificate ${cert.certificate_number} officially issued.`, { transaction });
         }
 
-        const issuingAuthority = cert.Authority?.name || 'GR CLASS';
-        
-        // Build dynamic tags including checklist answers (developer tags)
-        const dynamicTags = await buildTagValuesForJob(cert.job_id);
-
-        // Generate PDF
-        const variables = {
-            ...dynamicTags, // Spread all developer tags
-            vessel_name: cert.Vessel?.vessel_name || '',
-            imo_number: cert.Vessel?.imo_number || '',
-            certificate_number: cert.certificate_number,
-            certificate_type: cert.CertificateType?.name || '',
-            issue_date: cert.issue_date,
-            expiry_date: cert.expiry_date,
-            certificate_term: cert.certificate_term,
-            flag_state: cert.FlagState?.flag_state_name || '',
-            issuing_authority: issuingAuthority,
-            manual_text: cert.manual_text || {},
-            remarks: cert.remarks || '',
-            gr_class_logo: grClassLogo,
-            authority_logo: authorityLogo,
-            flag_logo: flagLogo,
-            // Merge manual_text if any
-            ...(cert.manual_text || {})
-        };
-
-        let qrDataUrl = null;
-        try {
-            qrDataUrl = await QRCode.toDataURL(buildCertificateQrTargetUrl(cert.certificate_number), {
-                margin: 1, width: 300, errorCorrectionLevel: 'H'
-            });
-        } catch (e) { logger.warn('QR generation failed', { err: e.message }); }
-
-        // Fetch Template
-        const template = await db.CertificateTemplate.findOne({
-            where: {
-                certificate_type_id: cert.certificate_type_id,
-                is_active: true,
-                ...(cert.certificate_term ? { certificate_term: cert.certificate_term } : {})
-            },
-            order: [['createdAt', 'DESC']],
-            transaction
-        }) || await db.CertificateTemplate.findOne({
-            where: { certificate_type_id: cert.certificate_type_id, is_active: true },
-            order: [['createdAt', 'DESC']],
-            transaction
-        });
-
-        variables.qr_data_url = qrDataUrl;
-
-        let filledDocxBuffer = null;
-
-        if (template?.template_file_url) {
-            // DOCX Template path
-            try {
-                const masterBuffer = await s3Service.getFileContent(template.template_file_url);
-                filledDocxBuffer = await fillDocxContentControls(masterBuffer, variables);
-            } catch (err) {
-                logger.error('DOCX template filling failed', { err: err.message });
-            }
-        }
-
-        if (!filledDocxBuffer) {
-            throw { statusCode: 500, message: 'No valid DOCX template found for this certificate.' };
-        }
-
-        try {
-            // For now, if it's a DOCX template, we store the filled DOCX.
-            const docxUrl = await s3Service.uploadFile(
-                filledDocxBuffer,
-                `${cert.certificate_number}.docx`,
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                s3Service.UPLOAD_FOLDERS.CERTIFICATES
-            );
-            await cert.update({ pdf_file_url: docxUrl, generated_pdf_url: docxUrl }, { transaction });
-        } catch (err) {
-            logger?.warn('Certificate file generation/upload failed', { certId: cert.id, err: err?.message });
-        }
+        await _generateCertificateFile(cert, user, transaction);
 
         await db.CertificateHistory.create({
             certificate_id: cert.id,

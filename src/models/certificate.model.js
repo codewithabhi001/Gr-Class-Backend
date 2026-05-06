@@ -2,6 +2,7 @@ export default (sequelize, DataTypes) => {
     const Certificate = sequelize.define('Certificate', {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
         vessel_id: DataTypes.UUID,
+        job_id: DataTypes.UUID,
         certificate_type_id: DataTypes.UUID,
         certificate_number: { type: DataTypes.STRING, unique: true },
         source_type: {
@@ -37,7 +38,7 @@ export default (sequelize, DataTypes) => {
         issue_date: DataTypes.DATEONLY,
         expiry_date: DataTypes.DATEONLY,
         status: { 
-            type: DataTypes.ENUM('DRAFT', 'ISSUED', 'VALID', 'EXPIRED', 'SUSPENDED', 'REVOKED'), 
+            type: DataTypes.ENUM('DRAFT', 'ISSUED', 'VALID', 'EXPIRED', 'SUSPENDED', 'REVOKED', 'TRANSFERRED', 'DOWNGRADED'), 
             defaultValue: 'DRAFT' 
         },
         qr_code_url: DataTypes.STRING,
@@ -60,6 +61,7 @@ export default (sequelize, DataTypes) => {
 
     Certificate.associate = (models) => {
         Certificate.belongsTo(models.Vessel, { foreignKey: 'vessel_id' });
+        Certificate.belongsTo(models.JobRequest, { foreignKey: 'job_id' });
         Certificate.belongsTo(models.CertificateType, { foreignKey: 'certificate_type_id' });
         Certificate.belongsTo(models.FlagAdministration, { foreignKey: 'flag_administration_id', as: 'FlagState' });
         Certificate.belongsTo(models.CertificateAuthority, { foreignKey: 'certificate_authority_id', as: 'Authority' });
