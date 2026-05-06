@@ -1,7 +1,13 @@
+import { generateUniqueRandomId } from '../utils/idGenerator.util.js';
+
 export default (sequelize, DataTypes) => {
     const JobRequest = sequelize.define('JobRequest', {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
-        job_request_number: { type: DataTypes.INTEGER, unique: true },
+        job_request_number: { 
+            type: DataTypes.STRING, 
+            unique: true,
+            comment: 'Formatted random ID: GRJ-XXXXXXXX'
+        },
         vessel_id: DataTypes.UUID,
         requested_by_user_id: DataTypes.UUID,
         certificate_type_id: DataTypes.UUID,
@@ -43,7 +49,15 @@ export default (sequelize, DataTypes) => {
         underscored: true,
         timestamps: true,
         updatedAt: true,
+        hooks: {
+            beforeCreate: async (job) => {
+                if (!job.job_request_number) {
+                    job.job_request_number = await generateUniqueRandomId('GRJ', JobRequest, 'job_request_number');
+                }
+            }
+        }
     });
+
 
     JobRequest.associate = (models) => {
         JobRequest.belongsTo(models.Vessel, { foreignKey: 'vessel_id' });
