@@ -61,7 +61,8 @@ const getOperationalStats = async () => {
         recentSurveyApplications,
         recentSurveys,
         recentNCs,
-        recentEnquiries
+        recentEnquiries,
+        draftingNeededJobs
     ] = await Promise.all([
         Client.findAll({
             where: { status: 'ACTIVE' },
@@ -142,6 +143,18 @@ const getOperationalStats = async () => {
             limit: 5,
             attributes: ['id', 'full_name', 'company', 'corporate_email', 'status', 'created_at'],
             order: [['createdAt', 'DESC']]
+        }),
+        JobRequest.findAll({
+            where: {
+                job_status: 'FINALIZED',
+                generated_certificate_id: null
+            },
+            limit: 5,
+            order: [['updatedAt', 'DESC']],
+            include: [
+                { model: Vessel, attributes: ['vessel_name'] },
+                { model: CertificateType, attributes: ['name'] }
+            ]
         })
     ]);
 
@@ -204,6 +217,14 @@ const getOperationalStats = async () => {
         },
         surveyorCount: surveyorProfilesCount,
         client_with_vessels: sortedClients,
+        actionable_items: {
+            drafting_needed: draftingNeededJobs.map(j => ({
+                id: j.id,
+                vessel: j.Vessel?.vessel_name,
+                type: j.CertificateType?.name,
+                finalized_at: j.updatedAt
+            }))
+        },
         recent_activities: {
             jobs: recentJobs.map(j => ({
                 id: j.id,

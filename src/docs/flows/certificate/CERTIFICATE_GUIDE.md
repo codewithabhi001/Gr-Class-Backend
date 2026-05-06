@@ -106,7 +106,22 @@ This guide defines the end-to-end certification lifecycle, role-based permission
 
 ---
 
-## 🔄 4. Automated Background Logic
+## 🔄 4. Dashboard Actionable Items
+To ensure a smooth workflow, the following dashboards include specific actionable lists:
+
+### **TM / Admin Dashboard**
+*   **List**: `actionable_items.drafting_needed`
+*   **Criteria**: Jobs that are **`FINALIZED`** but have **no draft certificate** yet (`generated_certificate_id IS NULL`).
+*   **Purpose**: Alerts the TM/Admin that the survey is done and they need to generate the draft.
+
+### **General Manager (GM) Dashboard**
+*   **List**: `actionable_items.pending_issuance`
+*   **Criteria**: Jobs that are **`FINALIZED`** and **already have a draft certificate** ready for review (`generated_certificate_id IS NOT NULL`).
+*   **Purpose**: Alerts the GM that a draft is ready for official issuance/signing.
+
+---
+
+## 🔄 5. Automated Background Logic
 
 *   **Expiration Monitor**: A cron job runs every night to check `expiry_date`. If today > expiry, status moves from `VALID` → `EXPIRED`.
 *   **Tag Injection**: Templates automatically pull data using the following tags:
