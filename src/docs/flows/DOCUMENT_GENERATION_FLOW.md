@@ -48,15 +48,24 @@ When a Surveyor opens an assigned job, they need a pre-filled checklist to take 
 7. A record is created in the `documents` table with `document_type = 'CHECKLIST_PREFILLED'`.
 8. Surveyor receives a secure signed URL to download the pre-filled DOCX.
 
-### 3.2 Certificate Generation (For Clients)
-When a Technical Officer (TO) approves the final survey report and issues the certificate.
-1. Backend identifies the specific Certificate Template.
-2. Fetches the master `.docx`.
-3. Injects Vessel, Client, and Job findings into the document.
-4. **Conversion step**: The system converts the finalized DOCX into an immutable `.pdf`.
-5. The PDF is saved to S3.
-6. A `Certificate` DB record is created, storing the PDF S3 Key.
-7. Client receives a notification and can download the finalized Certificate via their dashboard.
+### 3.2 Certificate Generation & Issuance Flow
+The certificate lifecycle is separated into two distinct phases to ensure administrative oversight.
+
+**Phase A: Generating the Draft (Admin / Technical Manager)**
+1. Admin or Technical Manager (TM) initiates draft generation via `POST /api/v1/certificates`.
+2. Backend validates job status is `FINALIZED` and payment is `PAID`.
+3. Backend identifies the specific Certificate Template and fetches the master `.docx`.
+4. Injects Vessel, Client, and Job findings into the document.
+5. The system generates a `.docx` (and optional preview PDF) saved to S3.
+6. A `Certificate` DB record is created with **`status = 'DRAFT'`**.
+7. The Job remains in the **`FINALIZED`** state.
+
+**Phase B: Official Issuance (General Manager)**
+1. General Manager (GM) reviews the draft and initiates official issuance via `POST /api/v1/certificates/:id/issue`.
+2. Backend finalizes the document, potentially adding official signatures or digital stamps.
+3. The certificate record is updated to **`status = 'VALID'`**.
+4. The Job status is updated to **`CERTIFIED`** (Terminal state).
+5. Client receives a notification and can download the official finalized Certificate.
 
 ---
 

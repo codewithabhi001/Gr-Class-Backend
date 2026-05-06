@@ -365,7 +365,7 @@ export const generateCertificate = async (data, user) => {
 
         // ── Guard 3: No certificate already linked to this job ──
         if (job.generated_certificate_id) {
-            throw { statusCode: 409, message: 'Certificate already issued for this job.' };
+            throw { statusCode: 409, message: 'A draft or certificate already exists for this job.' };
         }
         const existingCert = await Certificate.findOne({ where: { vessel_id: job.vessel_id, certificate_type_id: job.certificate_type_id, status: 'VALID' }, transaction });
         if (existingCert) {

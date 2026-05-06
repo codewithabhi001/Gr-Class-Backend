@@ -254,9 +254,33 @@ const getOperationalStats = async () => {
 
 export const getGMDashboard = async () => {
     const stats = await getOperationalStats();
+    
+    // ACTIONABLE: Jobs that are FINALIZED and have a DRAFT certificate ready for GM issuance
+    const pendingIssuanceJobs = await JobRequest.findAll({
+        where: { 
+            job_status: 'FINALIZED',
+            generated_certificate_id: { [Op.ne]: null }
+        },
+        include: [
+            { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
+            { model: CertificateType, attributes: ['name'] }
+        ],
+        order: [['updatedAt', 'DESC']],
+        limit: 10
+    });
+
     return {
         role: 'GM',
         summary: stats.summary,
+        actionable_items: {
+            pending_issuance: pendingIssuanceJobs.map(j => ({
+                id: j.id,
+                certificate_id: j.generated_certificate_id,
+                vessel: j.Vessel?.vessel_name,
+                type: j.CertificateType?.name,
+                finalized_at: j.updatedAt
+            }))
+        },
         client_with_vessels: stats.client_with_vessels,
         recent_activities: stats.recent_activities
     };
