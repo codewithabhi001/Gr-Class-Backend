@@ -8,7 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
  * @param {number} length - Random part length (default 8)
  * @returns {Promise<string>}
  */
-export const generateUniqueRandomId = async (prefix, Model, fieldName, length = 8) => {
+export const generateUniqueRandomId = async (prefix, Model, fieldName, length = 6) => {
+
     if (!Model) throw new Error('Model is required for unique ID generation');
 
     let isUnique = false;
@@ -18,8 +19,8 @@ export const generateUniqueRandomId = async (prefix, Model, fieldName, length = 
         // Use part of UUID for randomness
         const randomStr = uuidv4().replace(/-/g, '').substring(0, length).toUpperCase();
         generatedId = prefix ? `${prefix}-${randomStr}` : randomStr;
-
         const existing = await Model.findOne({ where: { [fieldName]: generatedId } });
+
         if (!existing) {
             isUnique = true;
         }
