@@ -46,16 +46,16 @@ const TABLES_TO_TRUNCATE = [
   'notifications',
 ];
 
-const TABLES_TO_TRUNCATE_IMPORTS = [
-  // Imported checklist templates store S3 keys here
-  'checklist_templates',
-  // Imported CERTIFICATE_TYPE docs stored here
-  'documents',
-  // Required-doc catalog linked to certificate_types
-  'certificate_required_documents',
-  // Finally, the types themselves
-  'certificate_types',
-];
+// const TABLES_TO_TRUNCATE_IMPORTS = [
+//   // Imported checklist templates store S3 keys here
+//   'checklist_templates',
+//   // Imported CERTIFICATE_TYPE docs stored here
+//   'documents',
+//   // Required-doc catalog linked to certificate_types
+//   'certificate_required_documents',
+//   // Finally, the types themselves
+//   'certificate_types',
+// ];
 
 const truncateTable = async (table) => {
   // TRUNCATE is fastest; with FK checks disabled it will work.

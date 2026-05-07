@@ -69,10 +69,9 @@ JobResponse:
   properties:
     id:
       $ref: '#/components/schemas/UUID'
-    job_request_number: {
+    job_request_number:
       type: string
       example: "GRJ-B1C2D3E4"
-    }
     vessel_id:
       $ref: '#/components/schemas/UUID'
     requested_by_user_id:
