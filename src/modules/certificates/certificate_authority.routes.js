@@ -9,10 +9,10 @@ const router = express.Router();
 router.use(authenticate);
 
 // Admin Routes
-router.get('/', authorizeRoles('ADMIN', 'GM'), caController.getAuthorities);
+router.get('/', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), caController.getAuthorities);
 router.post('/', authorizeRoles('ADMIN'), validate(schemas.createCertificateAuthority), caController.createAuthority);
 router.get('/upload-logo', authorizeRoles('ADMIN'), caController.getLogoUploadUrl);
-router.get('/:id', authorizeRoles('ADMIN', 'GM'), caController.getAuthorityById);
+router.get('/:id', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), caController.getAuthorityById);
 router.put('/:id', authorizeRoles('ADMIN'), validate(schemas.updateCertificateAuthority), caController.updateAuthority);
 router.delete('/:id', authorizeRoles('ADMIN'), caController.deleteAuthority);
 

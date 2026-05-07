@@ -861,6 +861,45 @@
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+  put:
+    tags: [Certificates]
+    summary: Update certificate draft
+    description: Update details of a DRAFT certificate. TM, GM only.
+    security: [{ bearerAuth: [] }]
+    operationId: updateCertificateDraft
+    x-roles: [TM, GM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateCertificateDraftRequest'
+          example:
+            certificate_term: "SHORT_TERM"
+            remarks: "Updated term to short term"
+    responses:
+      "200":
+        description: Draft updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Draft updated successfully" }
+                data: { $ref: '#/components/schemas/CertificateResponse' }
+      "400":
+        description: Validation error
+      "403":
+        description: Forbidden
+      "404":
+        description: Certificate not found
+
 /api/v1/certificates/{id}/download:
   get:
     tags: [Certificates]
@@ -1274,10 +1313,10 @@
   get:
     tags: [Certificates]
     summary: List certificate authorities
-    description: Returns all active certificate authorities. ADMIN, GM only.
+    description: Returns all active certificate authorities. ADMIN, GM, TM, TO.
     security: [{ bearerAuth: [] }]
     operationId: getCertificateAuthorities
-    x-roles: [ADMIN, GM]
+    x-roles: [ADMIN, GM, TM, TO]
     responses:
       "200":
         description: List of authorities
@@ -1347,7 +1386,7 @@
     tags: [Certificates]
     summary: Get authority by ID
     operationId: getCertificateAuthorityById
-    x-roles: [ADMIN, GM]
+    x-roles: [ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
