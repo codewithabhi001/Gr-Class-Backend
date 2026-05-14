@@ -15,14 +15,14 @@ export const getJobMessages = async (jobId, isInternal = false) => {
     return await fileAccessService.resolveEntity(messages);
 };
 
-export const sendMessage = async (jobId, senderId, data) => {
-    let attachmentUrl = data.attachment_url || data.attachmentKey || null;
+export const sendMessage = async (jobId, senderId, data = {}) => {
+    let attachmentUrl = data?.attachment_url || data?.attachmentKey || null;
 
     const message = await Message.create({
         job_id: jobId,
         sender_id: senderId,
-        message_text: data.message_text,
-        is_internal: data.is_internal || false,
+        message_text: data?.message_text,
+        is_internal: data?.is_internal || false,
         attachment_url: attachmentUrl
     });
 

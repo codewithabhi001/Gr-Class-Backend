@@ -553,4 +553,10 @@ export const schemas = {
         expiry_date: Joi.date().iso().required(),
         s3_key: Joi.string().required(),
     }),
+    createJobMessage: Joi.object({
+        message_text: Joi.string().required(),
+        attachment_url: Joi.string().optional().allow('', null),
+        attachmentKey: Joi.string().optional().allow('', null),
+        is_internal: Joi.boolean().optional().default(false),
+    }),
 };

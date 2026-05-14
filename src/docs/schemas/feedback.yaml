@@ -32,6 +32,20 @@ CustomerFeedback:
     created_at:
       type: string
       format: date-time
+    JobRequest:
+      type: object
+      properties:
+        job_request_number: { type: string }
+    Client:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        Client:
+          type: object
+          properties:
+            company_name: { type: string }
 
 CustomerFeedbackListItem:
   type: object
@@ -50,11 +64,20 @@ CustomerFeedbackListItem:
     created_at:
       type: string
       format: date-time
+    JobRequest:
+      type: object
+      properties:
+        job_request_number: { type: string }
     Client:
       type: object
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+        email: { type: string }
+        Client:
+          type: object
+          properties:
+            company_name: { type: string }
 
 CustomerFeedbackListResponse:
   type: object
