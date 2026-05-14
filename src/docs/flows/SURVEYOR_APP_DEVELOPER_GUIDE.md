@@ -387,7 +387,6 @@ Required fields:
   }
 }
 ```
-
 **UI notes**
 
 - Only show this button when job status is `SURVEY_AUTHORIZED`.
@@ -395,16 +394,15 @@ Required fields:
 
 ---
 
-## 6) Checklist screen (single API to load everything)
+---
+
+## 6) Checklist screen (Single API to load everything)
 
 ### 6.1 `GET /api/v1/checklists/jobs/{jobId}`
 
-**Why:** Load the entire checklist screen in one call:
-
-- Digital checklist items (questions + current answers)
-- Per-item evidence URLs (`file_url`) as **full HTTPS URLs**
-- Signed checklist scan(s) (`signed_checklist_files`) as **full HTTPS URLs**
-- Reference/blank template documents (`template_files`) for download (from active checklist template)
+**Why:** Load the entire checklist screen in one call.
+- If it's the **first time** (no survey started), the `items` array will be empty. The `sections` array (the template structure) is provided so you can build the UI to collect answers for the first time.
+- If it's a **resume**, use the `items` array to populate previously saved answers.
 
 **Response (shape)**
 
@@ -421,6 +419,14 @@ Required fields:
         "remarks": "Verified",
         "file_url": "https://signed-url-to-evidence.jpg"
       }
+    ],
+    "sections": [
+       {
+         "title": "Life-Saving Equipment",
+         "items": [
+           { "code": "LSE001", "text": "Are life jackets available?", "type": "YES_NO_NA" }
+         ]
+       }
     ],
     "signed_checklist_files": [
       "https://signed-url-to-signed-checklist.pdf"
@@ -477,11 +483,22 @@ Optional query params:
 
 ---
 
-## 7) Upload checklist evidence (per question)
+## 7) Checklist Template (Fetch Questions Only)
+
+### 7.1 `GET /api/v1/checklist-templates/job/{jobId}`
+
+**Why:** Use this if you only need the **questions/sections** (the template) without current survey answers. This is what you call when you first need to know what questions to display to the surveyor.
+
+**Response**
+Returns the full `ChecklistTemplate` object with `sections` and `items`.
+
+---
+
+## 8) Upload checklist evidence (per question)
 
 Checklist evidence is uploaded **directly to S3** via a pre-signed URL, then the returned `fileKey` is saved against the checklist item.
 
-### 7.1 `GET /api/v1/checklists/jobs/{jobId}/get-upload-url`
+### 8.1 `GET /api/v1/checklists/jobs/{jobId}/get-upload-url`
 
 **Why:** Get a pre-signed S3 PUT URL for a single evidence file (photo).
 

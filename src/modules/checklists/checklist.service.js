@@ -69,27 +69,31 @@ export const getChecklist = async (jobId, filters = {}, user = null) => {
     // certificate type. These are read-only and help the surveyor download/print.
     let templateMeta = null;
     let templateFiles = [];
+    let templateSections = [];
     try {
         const template = await ChecklistTemplate.findOne({
             where: { certificate_type_id: job.certificate_type_id, status: 'ACTIVE' },
-            attributes: ['id', 'name', 'code', 'template_files'],
+            attributes: ['id', 'name', 'code', 'template_files', 'sections'],
         });
         if (template) {
             templateMeta = { id: template.id, name: template.name, code: template.code };
+            templateSections = template.sections || [];
             const resolvedTemplate = await fileAccessService.resolveEntity(template, user);
             templateFiles = Array.isArray(resolvedTemplate?.template_files) ? resolvedTemplate.template_files : [];
         }
-    } catch {
+    } catch (err) {
         // Non-blocking: checklist answers should still be viewable even if template lookup fails.
         templateMeta = null;
         templateFiles = [];
+        templateSections = [];
     }
 
     return {
         items: resolvedItems,
         signed_checklist_files: signedFiles,
         template_files: templateFiles,
-        template: templateMeta
+        template: templateMeta,
+        sections: templateSections // Added full sections for UI initialization
     };
 };
 
