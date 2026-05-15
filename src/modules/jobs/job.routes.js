@@ -32,9 +32,9 @@ router.put('/:id/approve-request', authorizeRoles('GM'), jobController.approveRe
 router.put('/:id/finalize', authorizeRoles('GM', 'TM'), jobController.finalizeJob);
 
 // APPROVED → ASSIGNED  (ADMIN / GM — requires surveyorId in body)
-router.put('/:id/assign', authorizeRoles('GM'), validate(schemas.assignJob), jobController.assignSurveyor);
-// Re-assign surveyor without status change (GM ONLY)
-router.put('/:id/reassign', authorizeRoles('GM'), validate(schemas.reassignJob), jobController.reassignSurveyor);
+router.put('/:id/assign', authorizeRoles(...RBAC.ASSIGN_JOB), validate(schemas.assignJob), jobController.assignSurveyor);
+// Re-assign surveyor without status change (GM / TM / ADMIN)
+router.put('/:id/reassign', authorizeRoles(...RBAC.REASSIGN_JOB), validate(schemas.reassignJob), jobController.reassignSurveyor);
 
 // Reschedule
 router.put('/:id/reschedule', authorizeRoles('GM'), validate(schemas.rescheduleJob), jobController.rescheduleJob);

@@ -643,7 +643,7 @@ export const finalizeJob = async (id, remarks, user) => {
  * Roles: ADMIN, GM
  */
 export const assignSurveyor = async (jobId, surveyorId, user) => {
-    if (!['GM', 'ADMIN'].includes(user.role)) {
+    if (!isRoleAllowed(RBAC.ASSIGN_JOB, user.role)) {
         throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to assign surveyors.' };
     }
     const userId = user.id;
@@ -675,8 +675,8 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
  * Roles: GM, TM
  */
 export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
-    if (!['GM', 'ADMIN'].includes(user.role)) {
-        throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to reassign surveyors.' };
+    if (!isRoleAllowed(RBAC.REASSIGN_JOB, user.role)) {
+        throw { statusCode: 403, message: 'You do not have permission to reassign surveyors.' };
     }
     const userId = user.id;
     const job = await requireJob(jobId, { includeVessel: true });

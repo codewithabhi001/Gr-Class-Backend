@@ -22,6 +22,12 @@ export const RBAC = {
     /** PUT /jobs/:id/send-back */
     SEND_BACK_JOB: ['ADMIN', 'TM', 'TO'],
 
+    /** PUT /jobs/:id/assign */
+    ASSIGN_JOB: ['ADMIN', 'GM'],
+
+    /** PUT /jobs/:id/reassign */
+    REASSIGN_JOB: ['ADMIN', 'GM', 'TM'],
+
     /** Certificate generation — `certificate.service.generateCertificate` */
     GENERATE_CERTIFICATE: ['ADMIN', 'GM', 'TM'],
 };
