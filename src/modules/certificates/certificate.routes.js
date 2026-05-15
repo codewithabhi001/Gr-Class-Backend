@@ -1,14 +1,12 @@
 import express from 'express';
 import * as certController from './certificate.controller.js';
-import caRoutes from './certificate_authority.routes.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
 
 const router = express.Router();
 
-// Mount Authority Management
-router.use('/authorities', caRoutes);
+// router.use('/authorities', caRoutes); // Removed per user request
 
 // Public Verification - No Auth
 router.get('/verify/:number', certController.verifyCertificate);

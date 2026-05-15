@@ -202,8 +202,9 @@ export const submitSurveyReport = async (data, files, userId) => {
     const survey = await requireSurvey(job_id);
     assertSurveyNotFinalized(survey);
 
-    // Guard: submission requires PROOF_UPLOADED or REWORK_REQUIRED
-    if (!['PROOF_UPLOADED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
+    // Guard: submission requires PROOF_UPLOADED, CHECKLIST_SUBMITTED or REWORK_REQUIRED
+    const allowedStatuses = ['PROOF_UPLOADED', 'CHECKLIST_SUBMITTED', 'REWORK_REQUIRED'];
+    if (!allowedStatuses.includes(survey.survey_status)) {
         throw { statusCode: 400, message: `Please upload all required evidence proofs before submitting the survey report.` };
     }
 
@@ -216,6 +217,18 @@ export const submitSurveyReport = async (data, files, userId) => {
     // Guard: signed checklist document upload required
     if (!survey.signed_checklist_files || !Array.isArray(survey.signed_checklist_files) || survey.signed_checklist_files.length === 0) {
         throw { statusCode: 400, message: 'Please upload the filled and signed checklist document before submitting the survey report.' };
+    }
+
+    // Guard: Ensure no items are in REJECTED state
+    const rejectedItems = await ActivityPlanning.count({ where: { job_id, status: 'REJECTED' } });
+    if (rejectedItems > 0) {
+        throw { statusCode: 400, message: `Cannot submit report: ${rejectedItems} checklist items are still marked as REJECTED. Please correct them first.` };
+    }
+
+    // Guard: Ensure no signed documents are in REJECTED state
+    const rejectedFiles = (survey.signed_checklist_files || []).filter(f => f.status === 'REJECTED');
+    if (rejectedFiles.length > 0) {
+        throw { statusCode: 400, message: `Cannot submit report: ${rejectedFiles.length} signed documents are still marked as REJECTED. Please re-upload them first.` };
     }
 
     // ── Compliance Enforcement: GPS & Photo ──
@@ -361,7 +374,16 @@ export const requestRework = async (jobId, reason, userId) => {
         throw { statusCode: 400, message: `Rework can only be requested for submitted survey reports.` };
     }
 
-    await lifecycleService.updateSurveyStatus(survey.id, 'REWORK_REQUIRED', userId, reason);
+    // Check if any granular rejections exist to provide a better reason
+    const rejectedItems = await ActivityPlanning.count({ where: { job_id: jobId, status: 'REJECTED' } });
+    const rejectedFiles = (survey.signed_checklist_files || []).filter(f => f.status === 'REJECTED').length;
+    
+    let finalReason = reason;
+    if (rejectedItems > 0 || rejectedFiles > 0) {
+        finalReason = `Granular Rejection: ${rejectedItems} items and ${rejectedFiles} documents rejected. ${reason || ''}`.trim();
+    }
+
+    await lifecycleService.updateSurveyStatus(survey.id, 'REWORK_REQUIRED', userId, finalReason);
 
     // Notify Surveyor
     const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });

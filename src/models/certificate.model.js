@@ -14,7 +14,6 @@ export default (sequelize, DataTypes) => {
             defaultValue: 'FULL_TERM'
         },
         flag_administration_id: DataTypes.UUID,
-        certificate_authority_id: DataTypes.UUID,
         version: {
             type: DataTypes.INTEGER,
             defaultValue: 1
@@ -64,7 +63,6 @@ export default (sequelize, DataTypes) => {
         Certificate.belongsTo(models.JobRequest, { foreignKey: 'job_id' });
         Certificate.belongsTo(models.CertificateType, { foreignKey: 'certificate_type_id' });
         Certificate.belongsTo(models.FlagAdministration, { foreignKey: 'flag_administration_id', as: 'FlagState' });
-        Certificate.belongsTo(models.CertificateAuthority, { foreignKey: 'certificate_authority_id', as: 'Authority' });
         Certificate.belongsTo(models.User, { foreignKey: 'issued_by_user_id', as: 'issuer' });
         Certificate.hasMany(models.CertificateHistory, { foreignKey: 'certificate_id' });
     };

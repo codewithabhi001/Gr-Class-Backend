@@ -53,7 +53,7 @@ The certificate lifecycle is separated into two distinct phases to ensure admini
 
 **Phase A: Generating the Draft (Admin / Technical Manager)**
 1. Admin or Technical Manager (TM) initiates draft generation via `POST /api/v1/certificates`.
-2. Backend validates job status is `FINALIZED` and payment is `PAID`.
+2. Backend validates job status is `FINALIZED` (Note: Payment is checked but not required for drafting/issuance).
 3. Backend identifies the specific Certificate Template and fetches the master `.docx`.
 4. Injects Vessel, Client, and Job findings into the document.
 5. The system generates a `.docx` (and optional preview PDF) saved to S3.

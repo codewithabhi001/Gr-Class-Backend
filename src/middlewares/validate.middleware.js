@@ -87,7 +87,6 @@ export const schemas = {
     generateCertificate: Joi.object({
         job_id: Joi.string().guid().required(),
          validity_years: Joi.number().integer().min(1).max(5).optional(),
-        certificate_authority_id: Joi.string().guid().optional().allow(null),
         flag_administration_id: Joi.string().guid().optional().allow(null),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
     }),
@@ -120,6 +119,14 @@ export const schemas = {
     reviewSurveyor: Joi.object({
         status: Joi.string().valid('APPROVED', 'REJECTED', 'DOCUMENTS_REQUIRED').required(),
         remarks: Joi.string().optional().allow(''),
+    }),
+    reviewItem: Joi.object({
+        status: Joi.string().valid('APPROVED', 'REJECTED').required(),
+        rejection_reason: Joi.string().when('status', {
+            is: 'REJECTED',
+            then: Joi.string().required(),
+            otherwise: Joi.string().allow('', null).optional()
+        })
     }),
     updateGps: Joi.object({
         latitude: Joi.number().required(),
@@ -522,23 +529,8 @@ export const schemas = {
         is_visible: Joi.boolean().required(),
     }),
     // ── Certificate Management ───────────────────────────────────────────
-    createCertificateAuthority: Joi.object({
-        name: Joi.string().required().trim(),
-        code: Joi.string().required().trim().uppercase(),
-        country: Joi.string().required().trim(),
-        logo_url: Joi.string().allow('', null).optional(),
-        status: Joi.string().valid('ACTIVE', 'INACTIVE').optional().default('ACTIVE')
-    }),
-    updateCertificateAuthority: Joi.object({
-        name: Joi.string().optional().trim(),
-        code: Joi.string().optional().trim().uppercase(),
-        country: Joi.string().optional().trim(),
-        logo_url: Joi.string().allow('', null).optional(),
-        status: Joi.string().valid('ACTIVE', 'INACTIVE').optional()
-    }),
     updateCertificateDraft: Joi.object({
         flag_administration_id: Joi.string().guid().optional(),
-        certificate_authority_id: Joi.string().guid().optional(),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
         manual_text: Joi.alternatives().try(Joi.object(), Joi.string()).optional(),
         remarks: Joi.string().allow('', null).optional(),
@@ -547,7 +539,6 @@ export const schemas = {
     }),
     uploadExternalCertificate: Joi.object({
         certificate_type_id: Joi.string().guid().required(),
-        certificate_authority_id: Joi.string().guid().optional().allow(null),
         certificate_number: Joi.string().required(),
         issue_date: Joi.date().iso().required(),
         expiry_date: Joi.date().iso().required(),

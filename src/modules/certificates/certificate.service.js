@@ -228,13 +228,6 @@ const _generateCertificateFile = async (cert, user, transaction = null) => {
         
         // 1. Resolve logos and basic info
         const grClassLogo = 'https://grclass.com/grclass-logo.webp';
-        let authorityLogo = null;
-        if (cert.certificate_authority_id || cert.Authority) {
-            const auth = cert.Authority || await db.CertificateAuthority.findByPk(cert.certificate_authority_id, { transaction });
-            if (auth?.logo_url) {
-                authorityLogo = await fileAccessService.resolveUrl(auth.logo_url, user, true);
-            }
-        }
         let flagLogo = null;
         if (cert.flag_administration_id || cert.FlagState) {
             const flag = cert.FlagState || await db.FlagAdministration.findByPk(cert.flag_administration_id, { transaction });
@@ -243,7 +236,7 @@ const _generateCertificateFile = async (cert, user, transaction = null) => {
             }
         }
         
-        const issuingAuthority = cert.Authority?.name || cert.CertificateType?.issuing_authority || 'GR CLASS';
+        const issuingAuthority = cert.CertificateType?.issuing_authority === 'FLAG' ? (cert.FlagState?.flag_state_name || 'Flag Administration') : 'GR CLASS';
         
         // 2. Build dynamic tags
         const dynamicTags = jobId ? await buildTagValuesForJob(jobId) : {};
@@ -262,7 +255,6 @@ const _generateCertificateFile = async (cert, user, transaction = null) => {
             port: dynamicTags.place_of_survey || '',
             place: dynamicTags.place_of_survey || '',
             gr_class_logo: grClassLogo,
-            authority_logo: authorityLogo,
             flag_logo: flagLogo,
             ...(cert.manual_text || {})
         };
@@ -328,18 +320,12 @@ export const generateCertificate = async (data, user) => {
         });
         if (!job) throw { statusCode: 404, message: 'Job not found' };
 
-        // ── Guard 1: Job status and Payment Compliance ──
+        // ── Guard 1: Job status ──
         if (job.job_status !== 'FINALIZED') {
             throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED. Current: ${job.job_status}` };
         }
 
-        const payment = await db.Payment.findOne({
-            where: { job_id: job.id, payment_status: 'PAID' },
-            transaction
-        });
-        if (!payment) {
-            throw { statusCode: 400, message: 'Compliance Violation: No verified PAID payment found for this job.' };
-        }
+        // Note: Payment check removed per user request (Certificates can be issued before payment)
 
         // ── Guard 2: Survey Compliance (if required) ──
         if (job.is_survey_required) {
@@ -406,7 +392,6 @@ export const generateCertificate = async (data, user) => {
             source_type: 'INTERNAL',
             version: 1,
             issued_by_user_id: userId,
-            certificate_authority_id: certificate_authority_id || null,
             flag_administration_id: flag_administration_id || null,
             certificate_term: certificate_term || null,
         }, { transaction });
@@ -437,8 +422,7 @@ export const generateCertificate = async (data, user) => {
                 include: [
                     { model: db.Vessel },
                     { model: db.CertificateType },
-                    { model: db.FlagAdministration, as: 'FlagState' },
-                    { model: db.CertificateAuthority, as: 'Authority' }
+                    { model: db.FlagAdministration, as: 'FlagState' }
                 ]
             });
             await _generateCertificateFile(freshCert, user);
@@ -683,7 +667,6 @@ export const renewCertificate = async (id, validityYears, reason, userId) => {
         manual_text: oldCert.manual_text,
         certificate_term: oldCert.certificate_term,
         flag_administration_id: oldCert.flag_administration_id,
-        certificate_authority_id: oldCert.certificate_authority_id,
         issued_by_user_id: userId
     });
 
@@ -703,11 +686,10 @@ export const updateDraft = async (id, data, user) => {
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
     if (cert.status !== 'DRAFT') throw { statusCode: 400, message: 'Only draft certificates can be updated' };
 
-    const { flag_administration_id, certificate_authority_id, certificate_term, manual_text, remarks, issue_date, expiry_date } = data;
+    const { flag_administration_id, certificate_term, manual_text, remarks, issue_date, expiry_date } = data;
     
     await cert.update({
         flag_administration_id,
-        certificate_authority_id,
         certificate_term,
         manual_text,
         remarks,
@@ -735,8 +717,7 @@ export const issueCertificate = async (id, user) => {
             include: [
                 { model: db.Vessel },
                 { model: db.CertificateType },
-                { model: db.FlagAdministration, as: 'FlagState' },
-                { model: db.CertificateAuthority, as: 'Authority' }
+                { model: db.FlagAdministration, as: 'FlagState' }
             ]
         });
 
@@ -822,12 +803,11 @@ export const getCertificateUploadUrl = async (fileName, contentType) => {
 };
 
 export const uploadExternalCertificate = async (vesselId, data, userId) => {
-    const { certificate_type_id, certificate_number, issue_date, expiry_date, s3_key, certificate_authority_id } = data;
+    const { certificate_type_id, certificate_number, issue_date, expiry_date, s3_key } = data;
 
     const cert = await Certificate.create({
         vessel_id: vesselId,
         certificate_type_id,
-        certificate_authority_id,
         certificate_number,
         issue_date,
         expiry_date,
@@ -978,7 +958,6 @@ export const verifyCertificate = async (certificateNumber) => {
         include: [
             { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }, 
             { model: db.CertificateType, attributes: ['name'] },
-            { model: db.CertificateAuthority, as: 'Authority', attributes: ['name', 'code'] },
             { model: db.FlagAdministration, as: 'FlagState', attributes: ['flag_state_name'] },
             { model: db.User, as: 'issuer', attributes: ['first_name', 'last_name'] }
         ]
@@ -1004,7 +983,6 @@ export const verifyCertificate = async (certificateNumber) => {
             vessel_name: cert.Vessel?.vessel_name,
             imo_number: cert.Vessel?.imo_number,
             certificate_type: cert.CertificateType?.name,
-            issuing_authority: cert.Authority?.name,
             flag_state: cert.FlagState?.flag_state_name,
             issued_by: cert.issuer ? `${cert.issuer.first_name} ${cert.issuer.last_name}` : 'GR CLASS'
         },

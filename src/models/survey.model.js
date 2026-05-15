@@ -100,7 +100,7 @@ export default (sequelize, DataTypes) => {
         signed_checklist_files: {
             type: DataTypes.JSON,
             allowNull: true,
-            comment: 'Array of S3 keys for the final signed scans uploaded by surveyor'
+            comment: 'Array of objects [{url: string, status: string, rejection_reason: string}] for the final signed scans'
         }
     }, {
         tableName: 'surveys',

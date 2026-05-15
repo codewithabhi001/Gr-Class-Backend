@@ -57,3 +57,21 @@ export const getSignedChecklistUploadUrl = async (req, res, next) => {
         res.json({ success: true, data: result });
     } catch (error) { next(error); }
 };
+
+export const reviewChecklistItem = async (req, res, next) => {
+    try {
+        const result = await checklistService.reviewChecklistItem(
+            req.params.jobId, req.params.itemId, req.body, req.user
+        );
+        res.json({ success: true, data: result });
+    } catch (error) { next(error); }
+};
+
+export const reviewSignedDocument = async (req, res, next) => {
+    try {
+        const result = await checklistService.reviewSignedDocument(
+            req.params.jobId, req.params.fileIndex, req.body, req.user
+        );
+        res.json({ success: true, data: result });
+    } catch (error) { next(error); }
+};

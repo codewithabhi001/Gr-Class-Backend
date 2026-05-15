@@ -168,8 +168,6 @@ CertificateResponse:
       type: object
       properties:
         flag_state_name: { type: string }
-    Authority:
-      $ref: '#/components/schemas/CertificateAuthorityResponse'
     source_type:
       type: string
       enum: [INTERNAL, EXTERNAL]
@@ -328,8 +326,6 @@ GenerateCertificateRequest:
       minimum: 1
       maximum: 5
       default: 1
-    certificate_authority_id:
-      $ref: '#/components/schemas/UUID'
     flag_administration_id:
       $ref: '#/components/schemas/UUID'
     certificate_term:
@@ -402,49 +398,10 @@ CertificateRequiredDocumentUpdateRequest:
     document_name: "Registry Certificate (Updated)"
     is_mandatory: false
 
-CertificateAuthorityResponse:
-  type: object
-  properties:
-    id:
-      $ref: '#/components/schemas/UUID'
-    name: { type: string }
-    code: { type: string }
-    country: { type: string }
-    logo_url: { type: string, nullable: true }
-    status: { type: string, enum: [ACTIVE, INACTIVE] }
-
-CreateCertificateAuthorityRequest:
-  type: object
-  required: [name, code, country]
-  properties:
-    name: { type: string }
-    code: { type: string }
-    country: { type: string }
-    logo_url: { type: string }
-    status: { type: string, enum: [ACTIVE, INACTIVE] }
-  example:
-    name: "Liberian Registry"
-    code: "LISCR"
-    country: "Liberia"
-    logo_url: "authorities/logos/liscr.png"
-    status: "ACTIVE"
-
-UpdateCertificateAuthorityRequest:
-  type: object
-  properties:
-    name: { type: string }
-    code: { type: string }
-    country: { type: string }
-    logo_url: { type: string }
-    status: { type: string, enum: [ACTIVE, INACTIVE] }
-  example:
-    logo_url: "authorities/logos/new-logo.png"
-
 UpdateCertificateDraftRequest:
   type: object
   properties:
     flag_administration_id: { $ref: '#/components/schemas/UUID' }
-    certificate_authority_id: { $ref: '#/components/schemas/UUID' }
     certificate_term: { type: string, enum: [FULL_TERM, SHORT_TERM] }
     manual_text: { type: object }
     remarks: { type: string }
@@ -456,7 +413,6 @@ UploadExternalCertificateRequest:
   required: [certificate_type_id, certificate_number, issue_date, expiry_date, s3_key]
   properties:
     certificate_type_id: { $ref: '#/components/schemas/UUID' }
-    certificate_authority_id: { $ref: '#/components/schemas/UUID' }
     certificate_number: { type: string }
     issue_date: { type: string, format: date }
     expiry_date: { type: string, format: date }

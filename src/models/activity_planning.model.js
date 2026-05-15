@@ -7,6 +7,14 @@ export default (sequelize, DataTypes) => {
         answer: DataTypes.ENUM('YES', 'NO', 'NA'),
         remarks: DataTypes.TEXT,
         file_url: DataTypes.STRING,
+        status: {
+            type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED'),
+            defaultValue: 'PENDING'
+        },
+        rejection_reason: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        }
     }, {
         tableName: 'activity_plannings',
         underscored: true,

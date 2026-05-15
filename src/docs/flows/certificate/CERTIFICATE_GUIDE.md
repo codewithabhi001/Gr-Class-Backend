@@ -13,7 +13,7 @@ This guide defines the end-to-end certification lifecycle, role-based permission
 
 ### **Phase 2: Certificate Drafting**
 *   **Trigger**: Admin/TM calls `POST /api/v1/certificates`.
-*   **Guards**: Checks Payment (`PAID`), Survey (`FINALIZED`), Attendance Photo, and zero open NCs.
+*   **Guards**: Checks Survey (`FINALIZED`), Attendance Photo, and zero open NCs. (Note: Payment is not a prerequisite for drafting).
 *   **State**: Certificate status = `DRAFT`. Job status remains `FINALIZED`.
 *   **Outcome**: A preview PDF is generated in S3.
 
@@ -50,7 +50,6 @@ This guide defines the end-to-end certification lifecycle, role-based permission
       "job_id": "uuid",
       "validity_years": 5,
       "certificate_term": "FULL_TERM",
-      "certificate_authority_id": "uuid",
       "flag_administration_id": "uuid"
     }
     ```
@@ -94,7 +93,7 @@ This guide defines the end-to-end certification lifecycle, role-based permission
 
 #### **Revoke / Suspend**
 `PUT /api/v1/certificates/:id/revoke` | `PUT /api/v1/certificates/:id/suspend`
-*   **Payload**: `{ "reason": "Non-payment or non-compliance" }`
+*   **Payload**: `{ "reason": "Non-compliance or vessel withdrawal" }`
 
 #### **Reissue (Correction)**
 `POST /api/v1/certificates/:id/reissue`

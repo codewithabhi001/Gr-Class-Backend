@@ -49,6 +49,8 @@ export const getChecklist = async (jobId, filters = {}, user = null) => {
             'answer',
             'remarks',
             'file_url',
+            'status',
+            'rejection_reason',
             'created_at',
             'updated_at'
         ]
@@ -155,22 +157,63 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
 
     const txn = await db.sequelize.transaction();
     try {
-        // Replace checklist (idempotent re-submission within same phase)
-        await ActivityPlanning.destroy({ where: { job_id: jobId }, transaction: txn });
+        // Targeted Update: We find existing items by (job_id, question_code) or create new ones.
+        // If an item is modified, we reset its status to 'PENDING'.
+        const results = [];
+        for (const item of items) {
+            let record = await ActivityPlanning.findOne({ 
+                where: { job_id: jobId, question_code: item.question_code },
+                transaction: txn 
+            });
 
-        const entries = items.map(item => ({ job_id: jobId, ...item }));
-        const results = await ActivityPlanning.bulkCreate(entries, { transaction: txn });
-
-        // Persist the signed-checklist scan keys on the same survey row, if provided.
-        if (Array.isArray(signedChecklistFiles)) {
-            await survey.update({ signed_checklist_files: signedChecklistFiles }, { transaction: txn });
+            if (record) {
+                await record.update({
+                    ...item,
+                    status: 'PENDING',
+                    rejection_reason: null
+                }, { transaction: txn });
+            } else {
+                record = await ActivityPlanning.create({
+                    job_id: jobId,
+                    ...item,
+                    status: 'PENDING',
+                    rejection_reason: null
+                }, { transaction: txn });
+            }
+            results.push(record);
         }
 
-        // Advance survey status ONLY if it's in a previous state (STARTED or REWORK_REQUIRED)
-        // If it's already CHECKLIST_SUBMITTED or PROOF_UPLOADED, we keep the current status.
-        if (['STARTED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
-            await lifecycleService.updateSurveyStatus(survey.id, 'CHECKLIST_SUBMITTED', userId,
-                'Checklist items submitted', { transaction: txn });
+        // Persist the signed-checklist scan objects on the same survey row, if provided.
+        if (Array.isArray(signedChecklistFiles)) {
+            // If the caller sends plain strings (legacy/simple upload), wrap them into objects
+            const normalizedFiles = signedChecklistFiles.map(file => {
+                if (typeof file === 'string') {
+                    return { url: file, status: 'PENDING', rejection_reason: null };
+                }
+                return { 
+                    ...file, 
+                    status: 'PENDING', 
+                    rejection_reason: null 
+                };
+            });
+            survey.set('signed_checklist_files', normalizedFiles);
+            survey.changed('signed_checklist_files', true);
+            await survey.save({ transaction: txn });
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 4. Update Survey Status
+        // If we were in STARTED or REWORK_REQUIRED, move forward.
+        // If proof already exists, we can jump straight to PROOF_UPLOADED.
+        // ─────────────────────────────────────────────────────────────
+        if (['STARTED', 'REWORK_REQUIRED', 'CHECKLIST_SUBMITTED'].includes(survey.survey_status)) {
+            const nextStatus = survey.evidence_proof_url ? 'PROOF_UPLOADED' : 'CHECKLIST_SUBMITTED';
+            
+            // Avoid redundant status updates (idempotency)
+            if (survey.survey_status !== nextStatus) {
+                await lifecycleService.updateSurveyStatus(survey.id, nextStatus, userId,
+                    'Checklist items submitted/corrected', { transaction: txn });
+            }
         }
 
         await txn.commit();
@@ -179,7 +222,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
         await ensureFullFileUrls(resolvedItems);
 
         const persistedFiles = Array.isArray(signedChecklistFiles)
-            ? signedChecklistFiles
+            ? (await Survey.findOne({ where: { job_id: jobId }, attributes: ['signed_checklist_files'] })).signed_checklist_files
             : (survey.signed_checklist_files || []);
         const signedFilesResolved = await resolveKeyArray(persistedFiles, userObj);
 
@@ -188,7 +231,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
             signed_checklist_files: signedFilesResolved
         };
     } catch (error) {
-        await txn.rollback();
+        if (!txn.finished) await txn.rollback();
         throw error;
     }
 };
@@ -234,9 +277,20 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
         throw { statusCode: 400, message: `The signed checklist files cannot be modified as the survey is in ${survey.survey_status} status.` };
     }
 
-    await survey.update({ signed_checklist_files: signedChecklistFiles });
+    // Normalized: Ensure they are objects with PENDING status if they are being updated/added
+    const normalizedFiles = signedChecklistFiles.map(file => {
+        if (typeof file === 'string') {
+            return { url: file, status: 'PENDING', rejection_reason: null };
+        }
+        // If it's already an object, reset its status to PENDING as it's a re-upload/edit
+        return { ...file, status: 'PENDING', rejection_reason: null };
+    });
 
-    const signedFilesResolved = await resolveKeyArray(signedChecklistFiles, userObj);
+    survey.set('signed_checklist_files', normalizedFiles);
+    survey.changed('signed_checklist_files', true);
+    await survey.save();
+
+    const signedFilesResolved = await resolveKeyArray(normalizedFiles, userObj);
     return { signed_checklist_files: signedFilesResolved };
 };
 
@@ -268,18 +322,32 @@ const ensureFullFileUrls = async (rows) => {
 };
 
 /**
- * Resolve an array of S3 keys (or already-full URLs) into full HTTPS URLs.
+ * Resolve an array of S3 keys (or objects containing keys) into full HTTPS URLs.
  * Returns [] for null/empty input.
  */
-const resolveKeyArray = async (keys, user = null) => {
-    if (!Array.isArray(keys) || keys.length === 0) return [];
+const resolveKeyArray = async (items, user = null) => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    
     return Promise.all(
-        keys
-            .filter(k => typeof k === 'string' && k.length > 0)
-            .map(k => k.startsWith('http')
-                ? Promise.resolve(k)
-                : fileAccessService.resolveUrl(k, user, true))
-    );
+        items.map(async (item) => {
+            if (!item) return null;
+            
+            // Handle both legacy string format and new object format
+            const isObject = typeof item === 'object' && item !== null;
+            const rawKey = isObject ? item.url : item;
+            
+            if (typeof rawKey !== 'string' || rawKey.length === 0) return null;
+            
+            const fullUrl = rawKey.startsWith('http')
+                ? rawKey
+                : await fileAccessService.resolveUrl(rawKey, user, true);
+                
+            if (isObject) {
+                return { ...item, url: fullUrl };
+            }
+            return fullUrl;
+        })
+    ).then(results => results.filter(r => r !== null));
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -340,5 +408,62 @@ export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, 
     return {
         uploadUrl: signedUrl,
         fileKey: key,
+    };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TM REVIEW ACTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * TM action to approve/reject a specific checklist item.
+ */
+export const reviewChecklistItem = async (jobId, itemId, { status, rejection_reason }, user) => {
+    if (!['TM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins can review checklist items.' };
+    }
+
+    const item = await ActivityPlanning.findOne({ where: { id: itemId, job_id: jobId } });
+    if (!item) throw { statusCode: 404, message: 'Checklist item not found.' };
+
+    await item.update({ 
+        status, 
+        rejection_reason: status === 'REJECTED' ? rejection_reason : null 
+    });
+
+    return item;
+};
+
+/**
+ * TM action to approve/reject a specific signed checklist document.
+ * Matches by index in the signed_checklist_files array.
+ */
+export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection_reason }, user) => {
+    if (!['TM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins can review documents.' };
+    }
+
+    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
+
+    const files = survey.signed_checklist_files || [];
+    if (!files[fileIndex]) throw { statusCode: 400, message: 'Document not found at specified index.' };
+
+    // Update the specific file object at the index
+    const updatedFiles = [...files];
+    updatedFiles[fileIndex] = {
+        ...(typeof updatedFiles[fileIndex] === 'string' ? { url: updatedFiles[fileIndex] } : updatedFiles[fileIndex]),
+        status,
+        rejection_reason: status === 'REJECTED' ? rejection_reason : null
+    };
+
+    // Use survey.changed to ensure Sequelize detects the internal JSON change
+    survey.set('signed_checklist_files', updatedFiles);
+    survey.changed('signed_checklist_files', true);
+    await survey.save();
+
+    return { 
+        index: fileIndex, 
+        file: await resolveKeyArray([updatedFiles[fileIndex]], user).then(res => res[0]) 
     };
 };

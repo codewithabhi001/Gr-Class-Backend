@@ -417,7 +417,9 @@ Required fields:
         "question_text": "Are life jackets available?",
         "answer": "YES",
         "remarks": "Verified",
-        "file_url": "https://signed-url-to-evidence.jpg"
+        "file_url": "https://signed-url-to-evidence.jpg",
+        "status": "REJECTED",
+        "rejection_reason": "Photo is blurry, please re-upload."
       }
     ],
     "sections": [
@@ -429,7 +431,11 @@ Required fields:
        }
     ],
     "signed_checklist_files": [
-      "https://signed-url-to-signed-checklist.pdf"
+      {
+        "url": "https://signed-url-to-signed-checklist.pdf",
+        "status": "REJECTED",
+        "rejection_reason": "Page 3 missing signature."
+      }
     ],
     "template_files": [
       "https://signed-url-to-blank-template.docx"
@@ -466,10 +472,15 @@ Optional query params:
     - `question_text` (string)
     - `answer` (string: `YES|NO|NA`)
     - `remarks` (string|null)
-    - `file_url` (url|null) (**resolved HTTPS URL**, never raw S3 key)
+    - `file_url` (url|null) (**resolved HTTPS URL**)
+    - `status` (string: `PENDING|APPROVED|REJECTED`)
+    - `rejection_reason` (string|null)
     - `createdAt` (date-time)
     - `updatedAt` (date-time)
-  - `signed_checklist_files` (array of url) (**resolved HTTPS URLs**)
+  - `signed_checklist_files` (array of objects)
+    - `url` (url)
+    - `status` (string: `PENDING|APPROVED|REJECTED`)
+    - `rejection_reason` (string|null)
   - `template_files` (array of url) (**resolved HTTPS URLs**)
   - `template` (object|null)
     - `id` (uuid)
@@ -583,8 +594,9 @@ Same as evidence upload.
 **Important**
 
 - `signed_checklist_files` is treated as a **full replace** array. To “remove”, send `[]`.
-- You can update checklist multiple times until final submission / finalization.
-- `signed_checklist_files` must contain the **S3 keys returned by** `signed-checklist-upload-url` (after uploading scan/PDF to S3).
+- You can update checklist multiple times.
+- **Granular Rejection Behavior**: If an item is `REJECTED`, re-sending it in the `items` array will reset its `status` to `PENDING` and clear the `rejection_reason`.
+- `signed_checklist_files` must contain the **S3 keys returned by** `signed-checklist-upload-url`.
   The UI should show the *resolved URLs* from `GET /checklists/jobs/:jobId`, but should *store/send keys* on this PUT.
 
 **Request**
@@ -878,9 +890,11 @@ Body (optional for TM/ADMIN, required in practice for SURVEYOR):
 
 **Pre-conditions (backend enforced)**
 
-- Checklist must be submitted
-- Proof should be uploaded (based on lifecycle rules)
-- Signed checklist scans should be attached (`signed_checklist_files.length > 0`) as a hard guard in the workflow
+- Checklist must be submitted.
+- Proof should be uploaded (moves survey to `PROOF_UPLOADED`).
+- Signed checklist scans should be attached.
+- **NO REJECTED ITEMS**: All checklist items must be `PENDING` or `APPROVED`.
+- **NO REJECTED DOCUMENTS**: All signed documents must be `PENDING` or `APPROVED`.
 
 **Option A — multipart/form-data**
 
@@ -925,6 +939,16 @@ Fields:
     "survey_statement": "Inspection completed. No major findings.",
     "survey_statement_status": "DRAFTED"
   }
+}
+```
+
+**Error Example (Granular Rejection Guard)**
+If any checklist items or files are still `REJECTED`:
+```json
+{
+  "success": false,
+  "message": "Cannot submit report: 1 checklist items are still marked as REJECTED. Please correct them first.",
+  "error_code": "REJECTION_OUTSTANDING"
 }
 ```
 
@@ -1063,18 +1087,23 @@ Fields:
 
 ---
 
-## 19) Rework loop (when TM/GM requests corrections)
+## 19) Rework loop (Granular Rejection System)
 
-When a TM or GM reviews the submitted survey and finds issues (e.g., "Blurry photos", "Missing checklist items"), they move the job to **`REWORK_REQUESTED`**.
+The system uses a **targeted rework flow**. Instead of rejecting the whole survey, the Technical Manager (TM) marks specific checklist items or files as `REJECTED`.
 
 **How the app should handle this:**
 
-1. **Notification**: Surveyor receives a notification with a `reason` (e.g., "Re-upload lifeboat photos").
-2. **Unlock**: The app should detect `job_status === 'REWORK_REQUESTED'` and **re-enable** the edit/save buttons for the checklist and proof.
-3. **Iteration**: Surveyor repeats:
-   - Edit checklist / proof via `PUT /checklists/jobs/:jobId`
-   - Re-submit via `POST /surveys`
-4. **Submission Count**: The `submission_count` will increment automatically. The app can use this to show "Revision 2" to the user.
+1. **Job Status**: The job moves to `REWORK_REQUESTED`.
+2. **Identification**: Call `GET /checklists/jobs/:jobId`.
+   - Items with `status: "REJECTED"` must be highlighted in red.
+   - Files in `signed_checklist_files` with `status: "REJECTED"` must be highlighted.
+3. **Fixing Items**:
+   - For a **rejected checklist item**: The surveyor modifies the answer, remarks, or re-uploads the photo, then calls `PUT /checklists/jobs/:jobId` sending that specific item. This resets the item status to `PENDING`.
+4. **Fixing Files**:
+   - For a **rejected signed file**: The surveyor re-uploads the corrected file and calls `PUT /checklists/jobs/:jobId/signed-checklist-files` with the new S3 key.
+5. **Re-submission**:
+   - Once all `REJECTED` markers are cleared (reset to `PENDING` via updates), the surveyor can call `POST /api/v1/surveys` again.
+   - **Guard**: If the surveyor tries to submit while any item is still `REJECTED`, the backend will return a `400` error specifying the count of rejected items/files.
 
 ---
 
