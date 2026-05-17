@@ -25,18 +25,11 @@ const docsRoot = path.resolve(__dirname, '..', 'docs');
 app.use(contextMiddleware);
 
 // Trust proxy for rate limiting behind Nginx/CloudFront
-app.set('trust proxy', 1); 
+app.set('trust proxy', 1);
 
 // CORS
 const allowedOrigins = [
-    'https://grclass.com',
-    'https://www.grclass.com',
-    'https://ops.grclass.com',
-    'https://www.ops.grclass.com',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:5173',
-    'http://localhost:5000',
+    '*'
 ];
 
 /** Webmail origins that POST for RFC 8058 List-Unsubscribe one-click (e.g. Gmail next to sender). */
@@ -52,7 +45,9 @@ app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+        // Allow any origin if wildcard '*' is configured
+        if (allowedOrigins.includes('*')) return callback(null, true);
+        if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
             return callback(null, true);
         }
         if (mailUnsubscribeOrigins.has(origin)) {
