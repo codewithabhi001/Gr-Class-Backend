@@ -123,6 +123,10 @@ export const sendTemplateEmail = async (to, templateName, data) => {
     let type = 'notification';
 
     switch (templateName) {
+        case 'SURVEYOR_APPLICATION_SUBMITTED':
+            fallbackSubject = `Application Received: Surveyor Registration — ${data.fullName}`;
+            fallbackBody = `Dear ${data.fullName},\n\nThank you for applying to join GR Class as an authorized surveyor. We have successfully received your application.\n\nOur team is currently reviewing your profile and credentials (including your uploaded CV, ID Proof, and Certificates). We will get back to you with an update or request for additional documents shortly.\n\nBest regards,\nGR Class Team`;
+            break;
         case 'SLA_BREACH':
             fallbackSubject = `URGENT: SLA breach — Job ${data.jobId}`;
             fallbackBody = `A service-level breach was detected for job ${data.jobId}. Rule: ${data.rule}. Time: ${data.time}`;

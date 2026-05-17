@@ -3,6 +3,7 @@ import * as s3Service from '../../services/s3.service.js';
 import * as notificationService from '../../services/notification.service.js';
 import * as authService from '../auth/auth.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
+import * as emailService from '../../services/email.service.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const SurveyorApplication = db.SurveyorApplication;
@@ -119,6 +120,12 @@ export const applySurveyor = async (data, files) => {
         certificate_files_url: certUrls,
         status: 'PENDING'
     });
+
+    // Send email acknowledgement to the surveyor applicant
+    emailService.sendTemplateEmail(app.email, 'SURVEYOR_APPLICATION_SUBMITTED', {
+        fullName: app.full_name,
+        email: app.email
+    }).catch(err => console.error('Failed to send surveyor application acknowledgement email:', err));
 
     return await fileAccessService.resolveEntity(app);
 };
