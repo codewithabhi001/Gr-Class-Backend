@@ -17,3 +17,15 @@ export const verifyVessel = async (req, res, next) => {
         next(error);
     }
 };
+
+export const getFlagsPublic = async (req, res, next) => {
+    try {
+        const result = await publicService.getFlagsPublic();
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -52,3 +52,16 @@ export const verifyVessel = async (imoNumber) => {
         classification_society: vessel.classification_society
     };
 };
+
+export const getFlagsPublic = async () => {
+    return await db.FlagAdministration.findAll({
+        where: { status: 'ACTIVE' },
+        attributes: [
+            'id',
+            'flag_state_name',
+            'country',
+            'authority_name',
+            'logo_url'
+        ]
+    });
+};

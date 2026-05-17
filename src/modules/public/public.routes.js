@@ -8,5 +8,6 @@ const router = express.Router();
 router.get('/certificate/verify/:number', publicController.verifyCertificate);
 router.get('/vessel/:imo', publicController.verifyVessel);
 router.get('/website/videos', websiteController.getVideos);
+router.get('/flags', publicController.getFlagsPublic);
 
 export default router;

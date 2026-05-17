@@ -21,8 +21,6 @@
     tags: [Public]
     summary: Verify vessel by IMO (public)
     description: Public vessel verification - no auth required
-    security: []
-    operationId: verifyVesselPublic
     x-roles: [PUBLIC]
     parameters:
       - name: imo
@@ -33,3 +31,13 @@
     responses:
       "200":
         description: Vessel verification result
+
+/api/v1/public/flags:
+  get:
+    tags: [Public]
+    summary: Get public flags list (public)
+    description: Retrieve active flag administrations with minimal details - no auth required.
+    x-roles: [PUBLIC]
+    responses:
+      "200":
+        description: List of active flags with minimal info
