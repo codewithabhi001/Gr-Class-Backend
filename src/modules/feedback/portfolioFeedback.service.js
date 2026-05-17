@@ -76,7 +76,7 @@ export const getPublicFeedback = async () => {
         include: [{
             model: User,
             as: 'Client',
-            attributes: ['name'],
+            attributes: ['name', 'profile_pic_url'],
             include: [{
                 model: db.Client,
                 attributes: ['company_name', 'country']
@@ -91,6 +91,7 @@ export const getPublicFeedback = async () => {
             company_name: plain.company || plain.Client?.Client?.company_name,
             username: plain.Client?.name,
             company_country: plain.Client?.Client?.country,
+            profile_pic_url: plain.Client?.profile_pic_url,
             comment: plain.comment,
             rating: plain.rating
         };
