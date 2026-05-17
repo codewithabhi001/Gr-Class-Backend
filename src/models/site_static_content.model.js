@@ -21,7 +21,7 @@ export default (sequelize, DataTypes) => {
         faq_items: {
             type: DataTypes.JSON,
             allowNull: true,
-            comment: 'Array of { question, answer, sort_order }',
+            comment: 'Array of { heading, questions: [{ question, answer }] }',
         },
         news_items: {
             type: DataTypes.JSON,

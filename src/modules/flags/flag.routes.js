@@ -12,4 +12,5 @@ router.get('/', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), flagController.getFla
 router.get('/:id', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), flagController.getFlag);
 router.put('/:id', authorizeRoles('ADMIN'), validate(schemas.updateFlag), flagController.updateFlag);
 
+
 export default router;
