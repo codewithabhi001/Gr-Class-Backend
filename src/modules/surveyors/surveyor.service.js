@@ -12,6 +12,32 @@ const SurveyorProfile = db.SurveyorProfile;
 export const UPLOAD_FOLDERS = s3Service.UPLOAD_FOLDERS;
 export const getUploadSignedUrl = s3Service.getUploadSignedUrl;
 
+/**
+ * Helper to upload base64 file string to S3
+ */
+const uploadBase64ToS3 = async (base64Str, defaultFilename, folder) => {
+    if (!base64Str || !base64Str.startsWith('data:')) {
+        return base64Str;
+    }
+    const matches = base64Str.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.*)$/);
+    if (!matches) {
+        return base64Str;
+    }
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Deduce file extension
+    let extension = 'bin';
+    if (mimeType.includes('pdf')) extension = 'pdf';
+    else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = 'jpg';
+    else if (mimeType.includes('png')) extension = 'png';
+    else if (mimeType.includes('word') || mimeType.includes('officedocument.wordprocessingml')) extension = 'docx';
+    
+    const fileName = `${defaultFilename}.${extension}`;
+    return await s3Service.uploadFile(buffer, fileName, mimeType, folder);
+};
+
 export const applySurveyor = async (data, files) => {
     const existingUser = await User.findOne({ where: { email: data.email } });
     if (existingUser) throw { statusCode: 400, message: 'A user with this email already exists.' };
@@ -27,27 +53,54 @@ export const applySurveyor = async (data, files) => {
     // Parallelize all uploads
     const uploadTasks = [];
     
-    let cvUrl = data.cvKey || null;
+    let cvUrl = null;
     if (files?.cv) {
         uploadTasks.push((async () => {
             cvUrl = await s3Service.uploadFile(files.cv[0].buffer, files.cv[0].originalname, files.cv[0].mimetype, `${folder}/cv`);
         })());
+    } else if (data.cvKey) {
+        if (data.cvKey.startsWith('data:')) {
+            uploadTasks.push((async () => {
+                cvUrl = await uploadBase64ToS3(data.cvKey, 'cv', `${folder}/cv`);
+            })());
+        } else {
+            cvUrl = data.cvKey;
+        }
     }
 
-    let idProofUrl = data.idProofKey || null;
+    let idProofUrl = null;
     if (files?.id_proof) {
         uploadTasks.push((async () => {
             idProofUrl = await s3Service.uploadFile(files.id_proof[0].buffer, files.id_proof[0].originalname, files.id_proof[0].mimetype, `${folder}/id-proof`);
         })());
+    } else if (data.idProofKey) {
+        if (data.idProofKey.startsWith('data:')) {
+            uploadTasks.push((async () => {
+                idProofUrl = await uploadBase64ToS3(data.idProofKey, 'id_proof', `${folder}/id-proof`);
+            })());
+        } else {
+            idProofUrl = data.idProofKey;
+        }
     }
 
-    let certUrls = data.certificateKeys || [];
+    let certUrls = [];
     if (files?.certificates) {
         files.certificates.forEach(file => {
             uploadTasks.push((async () => {
                 const url = await s3Service.uploadFile(file.buffer, file.originalname, file.mimetype, `${folder}/certificates`);
                 certUrls.push(url);
             })());
+        });
+    } else if (data.certificateKeys && Array.isArray(data.certificateKeys)) {
+        data.certificateKeys.forEach((key, index) => {
+            if (key && key.startsWith('data:')) {
+                uploadTasks.push((async () => {
+                    const url = await uploadBase64ToS3(key, `certificate_${index + 1}`, `${folder}/certificates`);
+                    certUrls.push(url);
+                })());
+            } else {
+                certUrls.push(key);
+            }
         });
     }
 
