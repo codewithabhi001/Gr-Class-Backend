@@ -1,12 +1,15 @@
 import db from '../../models/index.js';
+import { resolveEntity } from '../../services/fileAccess.service.js';
+
 const FlagAdministration = db.FlagAdministration;
 
 export const createFlag = async (data) => {
-    return await FlagAdministration.create(data);
+    const flag = await FlagAdministration.create(data);
+    return await resolveEntity(flag);
 };
 
 export const getFlags = async () => {
-    return await FlagAdministration.findAll({
+    const list = await FlagAdministration.findAll({
         attributes: [
             'id',
             'flag_state_name',
@@ -17,13 +20,18 @@ export const getFlags = async () => {
             'status'
         ]
     });
+    return await resolveEntity(list);
 };
+
 export const getFlag = async (id) => {
-    return await FlagAdministration.findByPk(id);
+    const flag = await FlagAdministration.findByPk(id);
+    return await resolveEntity(flag);
 };  
 
 export const updateFlag = async (id, data) => {
     const flag = await FlagAdministration.findByPk(id);
     if (!flag) throw { statusCode: 404, message: 'Flag not found' };
-    return await flag.update(data);
+    const updated = await flag.update(data);
+    return await resolveEntity(updated);
 };
+
