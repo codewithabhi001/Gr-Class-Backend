@@ -72,7 +72,7 @@
       content:
         multipart/form-data:
           schema:
-            $ref: '#/components/schemas/SurveyorApplyRequest'
+            $ref: '#/components/schemas/SurveyorApplyMultipartRequest'
         application/json:
           schema:
             $ref: '#/components/schemas/SurveyorApplyRequest'

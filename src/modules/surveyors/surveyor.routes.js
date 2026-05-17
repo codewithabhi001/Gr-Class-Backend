@@ -21,7 +21,11 @@ router.get('/get-upload-url', applyLimiter, surveyorController.getUploadUrls);
 
 router.post('/apply',
     applyLimiter,
-    // Removed multer: now using S3 presigned URLs from frontend
+    upload.fields([
+        { name: 'cv', maxCount: 1 },
+        { name: 'id_proof', maxCount: 1 },
+        { name: 'certificates', maxCount: 10 }
+    ]),
     validate(schemas.applySurveyor),
     surveyorController.applySurveyor
 );

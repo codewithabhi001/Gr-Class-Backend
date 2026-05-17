@@ -23,15 +23,53 @@ SurveyorApplyRequest:
       type: integer
     cvKey:
       type: string
-      description: "S3 key for CV document"
+      description: "S3 key or base64 data for CV document"
     idProofKey:
       type: string
-      description: "S3 key for ID proof"
+      description: "S3 key or base64 data for ID proof"
     certificateKeys:
       type: array
       items:
         type: string
-      description: "S3 keys for other certificates"
+      description: "S3 keys or base64 data for other certificates"
+
+SurveyorApplyMultipartRequest:
+  type: object
+  required:
+    - full_name
+    - email
+    - phone
+    - nationality
+    - qualification
+    - years_of_experience
+  properties:
+    full_name:
+      type: string
+    email:
+      type: string
+      format: email
+    phone:
+      type: string
+    nationality:
+      type: string
+    qualification:
+      type: string
+    years_of_experience:
+      type: integer
+    cv:
+      type: string
+      format: binary
+      description: "CV document file to upload (Max 2MB)"
+    id_proof:
+      type: string
+      format: binary
+      description: "ID proof document file to upload (Max 2MB)"
+    certificates:
+      type: array
+      items:
+        type: string
+        format: binary
+      description: "Other certificate documents to upload (Max 2MB each)"
 
 SurveyorProfileUpdateRequest:
   type: object

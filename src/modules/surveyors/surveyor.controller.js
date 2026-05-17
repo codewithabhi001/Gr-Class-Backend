@@ -3,6 +3,24 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 
 export const applySurveyor = async (req, res, next) => {
     try {
+        // Enforce 2MB size limit per document for multipart/form-data file uploads
+        if (req.files) {
+            const limit = 2 * 1024 * 1024; // 2MB
+            if (req.files.cv && req.files.cv[0] && req.files.cv[0].size > limit) {
+                throw { statusCode: 400, message: 'CV file size exceeds the limit of 2MB.' };
+            }
+            if (req.files.id_proof && req.files.id_proof[0] && req.files.id_proof[0].size > limit) {
+                throw { statusCode: 400, message: 'ID Proof file size exceeds the limit of 2MB.' };
+            }
+            if (req.files.certificates) {
+                const certFiles = Array.isArray(req.files.certificates) ? req.files.certificates : [req.files.certificates];
+                for (const file of certFiles) {
+                    if (file.size > limit) {
+                        throw { statusCode: 400, message: 'Certificate file size exceeds the limit of 2MB.' };
+                    }
+                }
+            }
+        }
         const application = await surveyorService.applySurveyor(req.body, req.files);
         res.status(201).json({
             success: true,
