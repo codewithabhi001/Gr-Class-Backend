@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
 
 // Helper to resolve model instance
 const getContentByKey = async (key) => {
@@ -10,7 +11,7 @@ export const getFaq = async (req, res, next) => {
     try {
         const record = await getContentByKey('faq');
         if (!record) return res.status(404).json({ success: false, message: 'FAQ content not found.' });
-        res.status(200).json({ success: true, data: record });
+        res.status(200).json({ success: true, data: await fileAccessService.resolveEntity(record) });
     } catch (error) {
         next(error);
     }
@@ -22,7 +23,7 @@ export const getNews = async (req, res, next) => {
         const record = await getContentByKey('news');
         if (!record) return res.status(404).json({ success: false, message: 'News content not found.' });
         // Return array directly to keep backwards compatibility with list payload
-        res.status(200).json({ success: true, data: record.news_items || [] });
+        res.status(200).json({ success: true, data: await fileAccessService.resolveEntity(record.news_items || []) });
     } catch (error) {
         next(error);
     }
@@ -33,7 +34,7 @@ export const getPrivacy = async (req, res, next) => {
     try {
         const record = await getContentByKey('privacy');
         if (!record) return res.status(404).json({ success: false, message: 'Privacy policy not found.' });
-        res.status(200).json({ success: true, data: record });
+        res.status(200).json({ success: true, data: await fileAccessService.resolveEntity(record) });
     } catch (error) {
         next(error);
     }
@@ -44,7 +45,7 @@ export const getTerms = async (req, res, next) => {
     try {
         const record = await getContentByKey('terms-compliance');
         if (!record) return res.status(404).json({ success: false, message: 'Terms and compliance content not found.' });
-        res.status(200).json({ success: true, data: record });
+        res.status(200).json({ success: true, data: await fileAccessService.resolveEntity(record) });
     } catch (error) {
         next(error);
     }
@@ -55,7 +56,7 @@ export const getAboutUs = async (req, res, next) => {
     try {
         const record = await getContentByKey('about-us');
         if (!record) return res.status(404).json({ success: false, message: 'About Us content not found.' });
-        res.status(200).json({ success: true, data: record });
+        res.status(200).json({ success: true, data: await fileAccessService.resolveEntity(record) });
     } catch (error) {
         next(error);
     }
@@ -79,11 +80,12 @@ export const updateContent = async (req, res, next) => {
 
         await record.save();
 
-        res.status(200).json({ success: true, message: 'Content updated successfully.', data: record });
+        res.status(200).json({ success: true, message: 'Content updated successfully.', data: await fileAccessService.resolveEntity(record) });
     } catch (error) {
         next(error);
     }
 };
+
 export const createContent = async (req, res, next) => {
     try {
         const { key, title, body_html, faq_items, news_items } = req.body;
@@ -98,7 +100,7 @@ export const createContent = async (req, res, next) => {
             faq_items,
             news_items
         });
-        res.status(201).json({ success: true, message: 'Content created successfully.', data: record });
+        res.status(201).json({ success: true, message: 'Content created successfully.', data: await fileAccessService.resolveEntity(record) });
     } catch (error) {
         next(error);
     }

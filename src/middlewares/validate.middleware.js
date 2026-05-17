@@ -559,4 +559,45 @@ export const schemas = {
         attachmentKey: Joi.string().optional().allow('', null),
         is_internal: Joi.boolean().optional().default(false),
     }),
+    createSiteStaticContent: Joi.object({
+        key: Joi.string().max(64).required(),
+        title: Joi.string().max(200).required(),
+        body_html: Joi.string().allow('', null).optional(),
+        faq_items: Joi.array().items(Joi.object({
+            heading: Joi.string().max(200).required(),
+            questions: Joi.array().items(Joi.object({
+                question: Joi.string().max(2000).required(),
+                answer: Joi.string().max(50000).required()
+            })).min(1).required()
+        })).optional(),
+        news_items: Joi.array().items(Joi.object({
+            id: Joi.string().optional(),
+            title: Joi.string().max(200).required(),
+            body_html: Joi.string().allow('', null).optional(),
+            thumbnail_url: Joi.string().allow('', null).optional(),
+            published_at: Joi.string().allow('', null).optional(),
+        })).optional(),
+        is_published: Joi.boolean().optional(),
+    }).unknown(true),
+    updateSiteStaticContent: Joi.object({
+        key: Joi.string().max(64).optional(),
+        title: Joi.string().max(200).optional(),
+        body_html: Joi.string().allow('', null).optional(),
+        faq_items: Joi.array().items(Joi.object({
+            heading: Joi.string().max(200).required(),
+            questions: Joi.array().items(Joi.object({
+                question: Joi.string().max(2000).required(),
+                answer: Joi.string().max(50000).required()
+            })).min(1).required()
+        })).optional(),
+        news_items: Joi.array().items(Joi.object({
+            id: Joi.string().optional(),
+            title: Joi.string().max(200).required(),
+            body_html: Joi.string().allow('', null).optional(),
+            thumbnail_url: Joi.string().allow('', null).optional(),
+            published_at: Joi.string().allow('', null).optional(),
+        })).optional(),
+        is_published: Joi.boolean().optional(),
+    }).unknown(true),
 };
+

@@ -136,13 +136,13 @@ export const resolveEntity = async (data, user = null) => {
             // If it's a Sequelize model instance, convert to plain object
             let plain = (typeof item.get === 'function') ? item.get({ plain: true }) : { ...item };
 
-            const urlKeys = ['url', 'file_url', 'logo_url', 'attachment_url', 'attendance_photo_url', 'signature_url', 'evidence_proof_url', 'survey_statement_pdf_url', 'pdf_file_url', 'qr_code_url', 'document_url', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'profile_pic_url', 'cv_url', 'license_copy_url', 'signed_checklist_files'];
+            const urlKeys = ['url', 'file_url', 'logo_url', 'attachment_url', 'attendance_photo_url', 'signature_url', 'evidence_proof_url', 'survey_statement_pdf_url', 'pdf_file_url', 'qr_code_url', 'document_url', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'profile_pic_url', 'cv_url', 'license_copy_url', 'signed_checklist_files', 'thumbnail_url'];
 
             const fieldPromises = Object.entries(plain).map(async ([key, value]) => {
                 if (urlKeys.includes(key)) {
                     if (typeof value === 'string' && value && !value.startsWith('http')) {
-                        // Force public CDN for profile_pic_url and logo_url if used in public context / public assets
-                        const forcePublic = key === 'profile_pic_url' || key === 'logo_url';
+                        // Force public CDN for profile_pic_url, logo_url, and thumbnail_url if used in public context / public assets
+                        const forcePublic = key === 'profile_pic_url' || key === 'logo_url' || key === 'thumbnail_url';
                         const resolved = await resolveUrl(value, user, true, forcePublic); // skip individual audit
                         plain[key] = resolved;
                         if (user && !value.startsWith('public/')) {

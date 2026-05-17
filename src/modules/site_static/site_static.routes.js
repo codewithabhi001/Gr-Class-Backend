@@ -2,6 +2,7 @@ import express from 'express';
 import * as siteStaticController from './site_static.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
+import { validate, schemas } from '../../middlewares/validate.middleware.js';
 
 const router = express.Router();
 
@@ -14,7 +15,8 @@ router.get('/terms-and-conditions', siteStaticController.getTerms); // Support a
 router.get('/about-us', siteStaticController.getAboutUs);
 
 // Admin Write Endpoints
-router.put('/admin/:key', authenticate, authorizeRoles('ADMIN'), siteStaticController.updateContent);
-router.post('/admin', authenticate, authorizeRoles('ADMIN'), siteStaticController.createContent);
+router.put('/admin/:key', authenticate, authorizeRoles('ADMIN'), validate(schemas.updateSiteStaticContent), siteStaticController.updateContent);
+router.post('/admin', authenticate, authorizeRoles('ADMIN'), validate(schemas.createSiteStaticContent), siteStaticController.createContent);
 
 export default router;
+
