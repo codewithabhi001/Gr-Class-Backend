@@ -20,6 +20,13 @@ export const errorMiddleware = (err, req, res, next) => {
         });
     }
 
+    // Specific handling for body-parser limit errors (Payload Too Large)
+    if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
+        statusCode = 413;
+        errorCode = 'PAYLOAD_TOO_LARGE';
+        message = 'Payload size exceeds the limit of 2MB.';
+    }
+
     // Friendly messages for common status codes if message is generic
     if (statusCode === 401 && message === 'Internal Server Error') message = 'Authentication required. Please login again.';
     if (statusCode === 403 && message === 'Internal Server Error') message = 'You do not have permission to perform this action.';
