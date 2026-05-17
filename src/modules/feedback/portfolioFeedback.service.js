@@ -66,24 +66,34 @@ export const getAllFeedbackAdmin = async () => {
  * Get visible feedback for public portfolio
  */
 export const getPublicFeedback = async () => {
-    return await PortfolioFeedback.findAll({
+    const feedbacks = await PortfolioFeedback.findAll({
         where: { is_visible: true },
         attributes: [
-            'id',
-            'client_id',
             'comment',
             'rating',
-            'designation',
-            'company',
-            'created_at',
-            'updated_at'
+            'company'
         ],
         include: [{
             model: User,
             as: 'Client',
-            attributes: ['id', 'name', 'email', 'profile_pic_url']
+            attributes: ['name'],
+            include: [{
+                model: db.Client,
+                attributes: ['company_name', 'country']
+            }]
         }],
         order: [['updated_at', 'DESC']]
+    });
+
+    return feedbacks.map(f => {
+        const plain = typeof f.toJSON === 'function' ? f.toJSON() : f;
+        return {
+            company_name: plain.company || plain.Client?.Client?.company_name,
+            username: plain.Client?.name,
+            company_country: plain.Client?.Client?.country,
+            comment: plain.comment,
+            rating: plain.rating
+        };
     });
 };
 
