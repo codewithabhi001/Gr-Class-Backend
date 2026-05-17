@@ -8,12 +8,12 @@ export default (sequelize, DataTypes) => {
             unique: true,
             comment: 'Formatted random ID: GRJ-XXXXXXXX'
         },
-        vessel_id: DataTypes.UUID,
-        requested_by_user_id: DataTypes.UUID,
-        certificate_type_id: DataTypes.UUID,
-        reason: DataTypes.TEXT,
-        target_port: DataTypes.STRING,
-        target_date: DataTypes.DATEONLY,
+        vessel_id: { type: DataTypes.UUID, allowNull: false },
+        requested_by_user_id: { type: DataTypes.UUID, allowNull: false },
+        certificate_type_id: { type: DataTypes.UUID, allowNull: false },
+        reason: { type: DataTypes.TEXT, allowNull: false },
+        target_port: { type: DataTypes.STRING, allowNull: false },
+        target_date: { type: DataTypes.DATEONLY, allowNull: false },
         job_status: {
             type: DataTypes.ENUM(
                 'CREATED', 'DOCUMENT_VERIFIED', 'APPROVED', 'ASSIGNED', 'SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE',

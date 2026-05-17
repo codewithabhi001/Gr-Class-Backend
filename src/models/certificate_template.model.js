@@ -1,15 +1,15 @@
 export default (sequelize, DataTypes) => {
     const CertificateTemplate = sequelize.define('CertificateTemplate', {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
-        certificate_type_id: DataTypes.UUID,
-        template_name: DataTypes.STRING,
+        certificate_type_id: { type: DataTypes.UUID, allowNull: false },
+        template_name: { type: DataTypes.STRING, allowNull: false },
         certificate_term: {
             type: DataTypes.ENUM('FULL_TERM', 'SHORT_TERM'),
             allowNull: true,
         },
         template_file_url: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: false,
             comment: 'S3 key for .docx template'
         },
         variables: { type: DataTypes.JSON, defaultValue: [] },

@@ -9,10 +9,11 @@ export default (sequelize, DataTypes) => {
                 notEmpty: true
             }
         },
-        country: DataTypes.STRING,
-        authority_name: DataTypes.STRING,
+        country: { type: DataTypes.STRING, allowNull: false },
+        authority_name: { type: DataTypes.STRING, allowNull: false },
         contact_email: {
             type: DataTypes.STRING,
+            allowNull: false,
             validate: {
                 isEmail: true
             }
