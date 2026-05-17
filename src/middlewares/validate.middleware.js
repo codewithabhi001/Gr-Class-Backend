@@ -97,9 +97,45 @@ export const schemas = {
         nationality: Joi.string().required(),
         qualification: Joi.string().required(),
         years_of_experience: Joi.number().integer().required(),
-        cvKey: Joi.string().optional(),
-        idProofKey: Joi.string().optional(),
-        certificateKeys: Joi.array().items(Joi.string()).optional(),
+        cvKey: Joi.string().custom((value, helpers) => {
+            if (value && value.startsWith('data:')) {
+                const base64Data = value.split(';base64,')[1];
+                if (base64Data) {
+                    const padding = base64Data.endsWith('==') ? 2 : (base64Data.endsWith('=') ? 1 : 0);
+                    const size = (base64Data.length * 3) / 4 - padding;
+                    if (size > 2 * 1024 * 1024) {
+                        return helpers.message('CV file size exceeds the limit of 2MB.');
+                    }
+                }
+            }
+            return value;
+        }).optional(),
+        idProofKey: Joi.string().custom((value, helpers) => {
+            if (value && value.startsWith('data:')) {
+                const base64Data = value.split(';base64,')[1];
+                if (base64Data) {
+                    const padding = base64Data.endsWith('==') ? 2 : (base64Data.endsWith('=') ? 1 : 0);
+                    const size = (base64Data.length * 3) / 4 - padding;
+                    if (size > 2 * 1024 * 1024) {
+                        return helpers.message('ID Proof file size exceeds the limit of 2MB.');
+                    }
+                }
+            }
+            return value;
+        }).optional(),
+        certificateKeys: Joi.array().items(Joi.string().custom((value, helpers) => {
+            if (value && value.startsWith('data:')) {
+                const base64Data = value.split(';base64,')[1];
+                if (base64Data) {
+                    const padding = base64Data.endsWith('==') ? 2 : (base64Data.endsWith('=') ? 1 : 0);
+                    const size = (base64Data.length * 3) / 4 - padding;
+                    if (size > 2 * 1024 * 1024) {
+                        return helpers.message('Certificate file size exceeds the limit of 2MB.');
+                    }
+                }
+            }
+            return value;
+        })).optional(),
     }),
     updateSurveyorProfile: Joi.object({
         full_name: Joi.string().optional(),

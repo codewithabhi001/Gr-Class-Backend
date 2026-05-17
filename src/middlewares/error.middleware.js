@@ -24,7 +24,7 @@ export const errorMiddleware = (err, req, res, next) => {
     if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
         statusCode = 413;
         errorCode = 'PAYLOAD_TOO_LARGE';
-        message = 'Payload size exceeds the limit of 2MB.';
+        message = 'Payload size exceeds the limit of 25MB.';
     }
 
     // Friendly messages for common status codes if message is generic
