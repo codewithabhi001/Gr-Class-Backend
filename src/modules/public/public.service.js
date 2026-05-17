@@ -54,7 +54,7 @@ export const verifyVessel = async (imoNumber) => {
 };
 
 export const getFlagsPublic = async () => {
-    return await db.FlagAdministration.findAll({
+    const list = await db.FlagAdministration.findAll({
         where: { status: 'ACTIVE' },
         attributes: [
             'id',
@@ -64,4 +64,5 @@ export const getFlagsPublic = async () => {
             'logo_url'
         ]
     });
+    return await fileAccessService.resolveEntity(list);
 };

@@ -141,8 +141,8 @@ export const resolveEntity = async (data, user = null) => {
             const fieldPromises = Object.entries(plain).map(async ([key, value]) => {
                 if (urlKeys.includes(key)) {
                     if (typeof value === 'string' && value && !value.startsWith('http')) {
-                        // Force public CDN for profile_pic_url if used in public context (like testimonials)
-                        const forcePublic = key === 'profile_pic_url';
+                        // Force public CDN for profile_pic_url and logo_url if used in public context / public assets
+                        const forcePublic = key === 'profile_pic_url' || key === 'logo_url';
                         const resolved = await resolveUrl(value, user, true, forcePublic); // skip individual audit
                         plain[key] = resolved;
                         if (user && !value.startsWith('public/')) {
@@ -156,7 +156,7 @@ export const resolveEntity = async (data, user = null) => {
                     } else if (Array.isArray(value)) {
                         plain[key] = await Promise.all(value.map(async v => {
                             if (typeof v === 'string' && v && !v.startsWith('http')) {
-                                const forcePublic = key === 'profile_pic_url';
+                                const forcePublic = key === 'profile_pic_url' || key === 'logo_url';
                                 const resolved = await resolveUrl(v, user, true, forcePublic);
                                 if (user && !v.startsWith('public/')) {
                                     auditEntries.push({
