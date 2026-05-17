@@ -36,7 +36,8 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import supportRoutes from './modules/support/support.routes.js';
 import searchRoutes from './modules/search/search.routes.js';
 import complianceRoutes from './modules/compliance/compliance.routes.js';
-import websiteRoutes from './modules/website/website.routes.js';
+import siteStaticRoutes from './modules/site_static/site_static.routes.js';
+import newsletterRoutes from './modules/website/newsletter.routes.js';
 import contactRoutes from './modules/contact/contact.routes.js';
 
 // Client Modules
@@ -86,7 +87,8 @@ router.use('/activity-requests', activityRequestRoutes);
 router.use('/customer-feedback', customerFeedbackRoutes);
 router.use('/portfolio-feedback', portfolioFeedbackRoutes);
 router.use('/dashboard', dashboardRoutes);
-router.use('/website', websiteRoutes);
+router.use('/website/static-content', siteStaticRoutes);
+router.use('/website/newsletter', newsletterRoutes);
 
 
 export default router;

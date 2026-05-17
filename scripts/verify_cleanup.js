@@ -13,9 +13,6 @@ async function verify() {
             console.log(`Admin role: ${admin.role}`);
         }
 
-        const staticContentCount = await db.SiteStaticContent.count();
-        console.log(`SiteStaticContent count: ${staticContentCount}`);
-
         const jobCount = await db.JobRequest.count();
         console.log(`Job count: ${jobCount}`);
 

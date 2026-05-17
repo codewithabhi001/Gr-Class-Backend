@@ -617,7 +617,6 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 **Description:** List certificates with strict RBAC and ownership filtering.
 **Access:**
 - **ADMIN / GM / TM / TO:** All certificates.
-- **SURVEYOR:** Only certificates for vessels in jobs assigned to them.
 - **CLIENT:** Only certificates for their own company vessels.
 
 
@@ -631,27 +630,39 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "string",
-      "issue_date": "string",
-      "expiry_date": "string",
-      "status": "string",
-      "created_at": "2026-03-07T12:00:00Z",
-      "Vessel": {
-        "id": "...",
-        "vessel_name": "string",
-        "imo_number": "string"
-      },
-      "CertificateType": {
-        "id": "...",
-        "name": "string"
+  "data": {
+    "total": 100,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 5,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
       }
-    }
-  ]
+    ],
+    "rows": [
+      {
+        "id": "...",
+        "vessel_id": "...",
+        "certificate_type_id": "...",
+        "certificate_number": "string",
+        "issue_date": "string",
+        "expiry_date": "string",
+        "status": "string",
+        "created_at": "2026-03-07T12:00:00Z",
+        "Vessel": {
+          "id": "...",
+          "vessel_name": "...",
+          "imo_number": "..."
+        },
+        "CertificateType": {
+          "id": "...",
+          "name": "..."
+        }
+      }
+    ]
+  }
 }
 ```
 
@@ -700,7 +711,6 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 {
   "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
   "validity_years": 0,
-  "certificate_authority_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
   "flag_administration_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
   "certificate_term": "string"
 }
@@ -739,14 +749,6 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -779,7 +781,7 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 **Summary:** Get presigned URL for certificate upload
 **Description:** Returns a presigned S3 URL for uploading external certificates. ADMIN, GM, TM only.
 
-**IMPORNT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
+**IMPORTANT:** When performing the `PUT` request to the returned `uploadUrl`, you **MUST NOT** include the `Authorization` (Bearer token) header. Presigned URLs already contain authentication in the query parameters. Including both will cause an `InvalidArgument` error from S3.
 
 
 #### Parameters
@@ -816,7 +818,6 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 ```json
 {
   "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "certificate_authority_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
   "certificate_number": "string",
   "issue_date": "string",
   "expiry_date": "string",
@@ -856,14 +857,6 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -885,7 +878,7 @@ the full detail with required documents for a specific type.
 
 Pass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.
 
-**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+**Roles:** CLIENT, ADMIN, GM, TM, TO
 
 
 #### Parameters
@@ -953,7 +946,7 @@ Pass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.
 This is the endpoint to call **before creating a job** to know which
 documents must be uploaded.
 
-**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+**Roles:** CLIENT, ADMIN, GM, TM, TO
 
 
 #### Parameters
@@ -1669,14 +1662,6 @@ If already used, returns **409**.
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -1707,7 +1692,7 @@ If already used, returns **409**.
 
 ### GET `/api/v1/certificates/vessel/{vesselId}`
 **Summary:** Get certificates by vessel
-**Description:** Get all certificates for a specific vessel. Scope restricted (SURVEYOR only assigned, CLIENT only owned).
+**Description:** Get all certificates for a specific vessel. Scope restricted (CLIENT only owned).
 
 #### Parameters
 - **vesselId** (`path` | `string` | *Required*): 
@@ -1748,7 +1733,7 @@ If already used, returns **409**.
 
 ### GET `/api/v1/certificates/{id}`
 **Summary:** Get certificate by ID
-**Description:** Get certificate details by ID. Same RBAC as list: ADMIN/GM/TM/TO see all; SURVEYOR only assigned jobs' vessels; CLIENT only own company. Returns 403 if certificate exists but user has no access.
+**Description:** Get certificate details by ID. Same RBAC as list: ADMIN/GM/TM/TO see all; CLIENT only own company. Returns 403 if certificate exists but user has no access.
 
 
 #### Parameters
@@ -1786,14 +1771,6 @@ If already used, returns **409**.
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -1806,6 +1783,118 @@ If already used, returns **409**.
 </details>
 
 <details><summary><strong>403</strong> - Forbidden - certificate exists but user has no access</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Certificate not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### PUT `/api/v1/certificates/{id}`
+**Summary:** Update certificate draft
+**Description:** Update details of a DRAFT certificate. TM, GM only.
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Request Body
+**Content-Type:** `application/json`
+
+```json
+{
+  "flag_administration_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "certificate_term": "string",
+  "manual_text": {},
+  "remarks": "string",
+  "issue_date": "string",
+  "expiry_date": "string"
+}
+```
+
+#### Responses
+<details><summary><strong>200</strong> - Draft updated</summary>
+
+```json
+{
+  "success": true,
+  "message": "Draft updated successfully",
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "certificate_number": "string",
+    "issue_date": "string",
+    "expiry_date": "string",
+    "status": "string",
+    "qr_code_url": "string",
+    "pdf_file_url": "string",
+    "uploaded_file_url": "string",
+    "generated_pdf_url": "string",
+    "issued_at": "2026-03-07T12:00:00Z",
+    "issued_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
+    "CertificateType": {
+      "name": "string"
+    },
+    "Vessel": {
+      "vessel_name": "string",
+      "imo_number": "string"
+    },
+    "FlagState": {
+      "flag_state_name": "string"
+    },
+    "source_type": "string",
+    "version": 0,
+    "certificate_term": "string",
+    "manual_text": {},
+    "remarks": "string"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Validation error</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden</summary>
 
 ```json
 {
@@ -1926,14 +2015,6 @@ CLIENT can only download certificates for their vessels.
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -2011,14 +2092,6 @@ CLIENT can only download certificates for their vessels.
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -2080,14 +2153,6 @@ CLIENT can only download certificates for their vessels.
     },
     "FlagState": {
       "flag_state_name": "string"
-    },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
     },
     "source_type": "string",
     "version": 0,
@@ -2152,14 +2217,6 @@ CLIENT can only download certificates for their vessels.
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -2222,14 +2279,6 @@ CLIENT can only download certificates for their vessels.
     "FlagState": {
       "flag_state_name": "string"
     },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
     "source_type": "string",
     "version": 0,
     "certificate_term": "string",
@@ -2245,7 +2294,7 @@ CLIENT can only download certificates for their vessels.
 
 ### GET `/api/v1/certificates/{id}/preview`
 **Summary:** Preview certificate
-**Description:** Get certificate preview/PDF. ADMIN, GM, TM, TO, SURVEYOR, CLIENT.
+**Description:** Get certificate preview/PDF. ADMIN, GM, TM, TO, CLIENT.
 
 #### Parameters
 - **id** (`path` | `string` | *Required*): 
@@ -2307,14 +2356,15 @@ CLIENT can only download certificates for their vessels.
 {
   "entity_type": "string",
   "entity_id": "123e4567-e89b-12d3-a456-426614174000",
-  "change_type": "string",
-  "description": "string",
-  "requested_changes": {}
+  "change_description": "string",
+  "old_value": {},
+  "new_value": {},
+  "priority": "string"
 }
 ```
 
 #### Responses
-<details><summary><strong>201</strong> - Change request created</summary>
+<details><summary><strong>201</strong> - Change request created successfully</summary>
 
 ```json
 {
@@ -2374,16 +2424,67 @@ CLIENT can only download certificates for their vessels.
 
 ---
 
+### GET `/api/v1/change-requests/{id}`
+**Summary:** Get change request by ID
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Responses
+<details><summary><strong>200</strong> - Change request details</summary>
+
+```json
+{
+  "success": true,
+  "message": "Request successful"
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Change request not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
 ## 🚀 Checklist Templates
 
 ---
 
 ### GET `/api/v1/checklist-templates`
-**Summary:** Get checklist templates
+**Summary:** List checklist templates
 
 #### Parameters
 - **status** (`query` | `string` | *Optional*): 
 - **certificate_type_id** (`query` | `string` | *Optional*): 
+- **code** (`query` | `string` | *Optional*): 
 
 #### Responses
 <details><summary><strong>200</strong> - List of templates</summary>
@@ -2391,7 +2492,30 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": [
+    {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "code": "string",
+      "description": "string",
+      "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "sections": [
+        {
+          "title": "...",
+          "items": "..."
+        }
+      ],
+      "status": "string",
+      "template_files": [
+        "string"
+      ],
+      "metadata": {},
+      "created_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "updated_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "created_at": "2026-03-07T12:00:00Z",
+      "updated_at": "2026-03-07T12:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -2415,7 +2539,7 @@ CLIENT can only download certificates for their vessels.
 ---
 
 ### GET `/api/v1/checklist-templates/job/{jobId}`
-**Summary:** Get template for job
+**Summary:** Get template for a specific job
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): 
@@ -2426,7 +2550,31 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "message": "string",
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "name": "string",
+    "code": "string",
+    "description": "string",
+    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "sections": [
+      {
+        "title": "string",
+        "items": [
+          "..."
+        ]
+      }
+    ],
+    "status": "string",
+    "template_files": [
+      "string"
+    ],
+    "metadata": {},
+    "created_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "updated_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
 }
 ```
 
@@ -2447,34 +2595,81 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
+<details><summary><strong>404</strong> - No active template for this certificate type</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
 ---
 
 ### GET `/api/v1/checklist-templates/job/{jobId}/download`
-**Summary:** Download auto-filled checklist DOCX for job
-**Description:** Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.
+**Summary:** Download auto-filled checklist DOCX for a job
+**Description:** Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns signed URLs.
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): 
-- **force** (`query` | `boolean` | *Optional*): Regenerate even if cached document exists
+- **force** (`query` | `boolean` | *Optional*): Regenerate even if a cached document already exists
 
 #### Responses
-<details><summary><strong>200</strong> - Signed URL for filled DOCX</summary>
+<details><summary><strong>200</strong> - Signed URL(s) for filled DOCX</summary>
 
 ```json
 {
   "success": true,
-  "data": {
-    "fileName": "string",
-    "contentType": "string",
-    "expiresAt": "2026-03-07T12:00:00Z",
-    "signedUrl": "string"
-  }
+  "data": [
+    {
+      "fileName": "string",
+      "contentType": "string",
+      "expiresAt": "2026-03-07T12:00:00Z",
+      "signedUrl": "string"
+    }
+  ]
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Template has no template_files configured</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
 </details>
 
 <details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Job or active template not found</summary>
 
 ```json
 {
@@ -2503,13 +2698,51 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "name": "string",
+    "code": "string",
+    "description": "string",
+    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "sections": [
+      {
+        "title": "string",
+        "items": [
+          "..."
+        ]
+      }
+    ],
+    "status": "string",
+    "template_files": [
+      "string"
+    ],
+    "metadata": {},
+    "created_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "updated_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
 }
 ```
 
 </details>
 
 <details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Template not found</summary>
 
 ```json
 {
@@ -2532,7 +2765,14 @@ CLIENT can only download certificates for their vessels.
 
 ### GET `/api/v1/checklists/jobs/{jobId}`
 **Summary:** Get checklist for a job
-**Description:** Retrieve the checklist items for a specific job. Can be filtered by answer or question code.
+**Description:** Returns the checklist items for a job **plus** the resolved (signed)
+HTTPS URLs of any full signed-checklist scan documents that were
+attached to the underlying survey.
+
+All `file_url` fields and `signed_checklist_files` entries are guaranteed
+to be either fully-qualified HTTPS URLs or `null` — raw S3 keys are never
+returned to the client.
+
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): Unique identifier of the job
@@ -2546,34 +2786,32 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "...",
-      "job_id": "...",
-      "question_code": "string",
-      "question_text": "string",
-      "answer": "string",
-      "remarks": "string",
-      "file_url": "string",
-      "createdAt": "2026-03-07T12:00:00Z",
-      "updatedAt": "2026-03-07T12:00:00Z"
+  "data": {
+    "items": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
+    "signed_checklist_files": [
+      "string"
+    ],
+    "template_files": [
+      "string"
+    ],
+    "template": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "code": "string"
     }
-  ]
-}
-```
-
-</details>
-
-<details><summary><strong>400</strong> - Bad Request</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
+  }
 }
 ```
 
@@ -2609,7 +2847,7 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
-<details><summary><strong>404</strong> - Not Found</summary>
+<details><summary><strong>404</strong> - Job not found</summary>
 
 ```json
 {
@@ -2644,20 +2882,20 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "company_name": "string",
-      "company_code": "string",
-      "email": "string",
-      "phone": "string",
-      "contact_person_name": "string",
-      "contact_person_email": "string",
-      "status": "string",
-      "has_user": true,
-      "created_at": "2026-03-07T12:00:00Z"
-    }
-  ]
+  "data": {
+    "count": 0,
+    "rows": [
+      {
+        "id": "...",
+        "company_name": "string",
+        "company_code": "string",
+        "status": "string",
+        "email": "string",
+        "created_at": "2026-03-07T12:00:00Z",
+        "has_user": true
+      }
+    ]
+  }
 }
 ```
 
@@ -3416,13 +3654,39 @@ CLIENT can only download certificates for their vessels.
 ### GET `/api/v1/incidents`
 **Summary:** Get incidents
 
+#### Parameters
+- **page** (`query` | `integer` | *Optional*): 
+- **limit** (`query` | `integer` | *Optional*): 
+- **status** (`query` | `string` | *Optional*): 
+
 #### Responses
 <details><summary><strong>200</strong> - List of incidents</summary>
 
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "total": 10,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
+      }
+    ],
+    "rows": [
+      {
+        "id": "...",
+        "vessel_id": "...",
+        "reported_by": "...",
+        "title": "string",
+        "status": "string",
+        "created_at": "2026-03-07T12:00:00Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -3452,12 +3716,22 @@ CLIENT can only download certificates for their vessels.
 - **id** (`path` | `string` | *Required*): 
 
 #### Responses
-<details><summary><strong>200</strong> - Incident details</summary>
+<details><summary><strong>200</strong> - Incident detail</summary>
 
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "reported_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "title": "string",
+    "description": "string",
+    "status": "string",
+    "remarks": "string",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
 }
 ```
 
@@ -3529,6 +3803,37 @@ CLIENT can only download certificates for their vessels.
 
 ---
 
+### GET `/api/v1/jobs/upload-url`
+**Summary:** Get presigned S3 upload URL for job documents
+**Description:** Generates a signed URL for uploading files directly to S3. 
+Returns the `uploadUrl` (where to PUT the file) and the `fileKey` 
+(to be used as `file_url` in subsequent job registration calls).
+
+**Roles:** CLIENT, ADMIN, GM, TM, SURVEYOR
+
+
+#### Parameters
+- **fileName** (`query` | `string` | *Required*): 
+- **fileType** (`query` | `string` | *Required*): 
+- **folder** (`query` | `string` | *Optional*): 
+
+#### Responses
+<details><summary><strong>200</strong> - Presigned URL generated</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "uploadUrl": "string",
+    "fileKey": "jobs/1714398721-cert.pdf"
+  }
+}
+```
+
+</details>
+
+---
+
 ### GET `/api/v1/jobs`
 **Summary:** List jobs (role-filtered)
 **Description:** Returns a paginated list of job requests. Visible set depends on caller role:
@@ -3566,9 +3871,16 @@ filter is given. Default is 30.
     "page": 1,
     "limit": 10,
     "totalPages": 5,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
+      }
+    ],
     "jobs": [
       {
         "id": "...",
+        "job_request_number": "GRJ-B1C2D3E4",
         "job_status": "string",
         "vessel_id": "...",
         "certificate_type_id": "...",
@@ -3651,6 +3963,7 @@ applicable).
   "success": true,
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -3688,9 +4001,26 @@ applicable).
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -3702,9 +4032,11 @@ applicable).
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -3811,6 +4143,7 @@ completed and the TM finalizes the survey report.
   "message": "Job finalized.",
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -3848,9 +4181,26 @@ completed and the TM finalizes the survey report.
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -3862,9 +4212,11 @@ completed and the TM finalizes the survey report.
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -3986,6 +4338,7 @@ A `reason` is mandatory for audit purposes.
   "message": "Surveyor reassigned.",
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -4023,9 +4376,26 @@ A `reason` is mandatory for audit purposes.
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -4037,9 +4407,11 @@ A `reason` is mandatory for audit purposes.
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -4161,6 +4533,7 @@ client. The surveyor can now call `POST /api/v1/surveys/start` to begin.
   "message": "Survey authorized. Surveyor can now begin field work.",
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -4198,9 +4571,26 @@ client. The surveyor can now call `POST /api/v1/surveys/start` to begin.
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -4212,9 +4602,11 @@ client. The surveyor can now call `POST /api/v1/surveys/start` to begin.
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -4340,6 +4732,7 @@ Role-specific from-state constraints:
   "message": "Rework requested. Surveyor has been notified.",
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -4377,9 +4770,26 @@ Role-specific from-state constraints:
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -4391,9 +4801,11 @@ Role-specific from-state constraints:
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -4488,11 +4900,10 @@ Role-specific from-state constraints:
 **Description:** **Terminal transition** – moves job to `REJECTED` permanently.
 
 Role-specific constraints:
-- **ADMIN** – Any non-terminal job.
-- **GM** – Only in `CREATED` state.
+- **ADMIN / GM** – Any status before `FINALIZED` or `CERTIFIED`.
 - **TM** – Only in `ASSIGNED`, `SURVEY_DONE`, or `REVIEWED` states.
 
-**Roles:** GM, TM
+**Roles:** ADMIN, GM, TM
 
 
 #### Parameters
@@ -4516,6 +4927,7 @@ Role-specific constraints:
   "message": "Job rejected.",
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -4553,9 +4965,26 @@ Role-specific constraints:
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -4567,9 +4996,11 @@ Role-specific constraints:
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -4663,9 +5094,9 @@ Role-specific constraints:
 **Summary:** CLIENT/GM/TM/ADMIN: Cancel job → REJECTED (terminal)
 **Description:** Cancels the job. Maps internally to the `REJECTED` terminal state.
 
-- **CLIENT** – Must own the vessel; cannot cancel once `FINALIZED`,
-  `CERTIFIED`, or `REJECTED`.
-- **GM / TM / ADMIN** – Any non-terminal job.
+- **CLIENT** – Allowed only while job is in `CREATED` status.
+- **ADMIN / GM** – Any status before `FINALIZED` or `CERTIFIED`.
+- **TM** – Follows same status restrictions as rejection.
 
 **Roles:** CLIENT, GM, TM, ADMIN
 
@@ -4691,6 +5122,7 @@ Role-specific constraints:
   "message": "Job cancelled.",
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -4728,9 +5160,26 @@ Role-specific constraints:
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -4742,9 +5191,11 @@ Role-specific constraints:
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -4873,6 +5324,7 @@ management flag only, used to sort / filter jobs in dashboards.
   "success": true,
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -4910,9 +5362,26 @@ management flag only, used to sort / filter jobs in dashboards.
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -4924,9 +5393,11 @@ management flag only, used to sort / filter jobs in dashboards.
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -5001,12 +5472,210 @@ management flag only, used to sort / filter jobs in dashboards.
 
 ---
 
+### GET `/api/v1/jobs/{id}/documents`
+**Summary:** List job documents with verification status
+**Description:** Returns all uploaded documents for a job, including their verification status
+(PENDING, APPROVED, REJECTED), rejection reasons, and which mandatory documents
+are still missing.
+
+**Roles:** CLIENT, ADMIN, GM, TM, TO
+
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Responses
+<details><summary><strong>200</strong> - Document list with status summary</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "certificate_type": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "string",
+      "issuing_authority": "string",
+      "requires_survey": true
+    },
+    "grouped_requirements": [
+      {
+        "requirement_id": "123e4567-e89b-12d3-a456-426614174000",
+        "document_name": "string",
+        "is_mandatory": true,
+        "status": "string",
+        "uploaded_versions": [
+          {}
+        ]
+      }
+    ],
+    "custom_documents": [
+      {}
+    ],
+    "documents": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "job_id": "123e4567-e89b-12d3-a456-426614174000",
+        "required_document_id": "123e4567-e89b-12d3-a456-426614174000",
+        "file_url": "string",
+        "verification_status": "string",
+        "rejection_reason": "string",
+        "verified_by": "123e4567-e89b-12d3-a456-426614174000"
+      }
+    ],
+    "required_documents": [
+      {}
+    ],
+    "missing_documents": [
+      {}
+    ],
+    "summary": {
+      "total_uploaded": 0,
+      "approved": 0,
+      "rejected": 0,
+      "pending": 0,
+      "missing": 0
+    }
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden – client can only access their own jobs</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Job not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### POST `/api/v1/jobs/{id}/documents`
+**Summary:** Upload or replace job documents
+**Description:** Client or staff uploads additional documents or replaces existing ones.
+Only allowed while job is in `CREATED` status.
+
+This endpoint handles both initial uploads and replacement of rejected 
+documents. If a `required_document_id` is provided for a document that
+already exists, its `file_url` will be updated and its `verification_status`
+will be reset to `PENDING`.
+
+Notifies TO team that new or updated documents are available for review.
+
+**Roles:** CLIENT, ADMIN, GM, TM
+
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Request Body
+**Content-Type:** `application/json`
+
+```json
+{
+  "documents": [
+    {
+      "required_document_id": "123e4567-e89b-12d3-a456-426614174000",
+      "custom_document_name": "string",
+      "file_url": "string"
+    }
+  ]
+}
+```
+
+#### Responses
+<details><summary><strong>201</strong> - Documents uploaded successfully</summary>
+
+```json
+{
+  "success": true,
+  "message": "Documents uploaded successfully.",
+  "data": [
+    {}
+  ]
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Job not in CREATED state, document already exists for this requirement,
+or missing required fields.
+</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden – client can only upload for their own jobs</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Job not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
 ### GET `/api/v1/jobs/{id}/history`
-**Summary:** ADMIN/GM/TM/TO: Job status history & audit trail
+**Summary:** ADMIN/GM/TM/TO/CLIENT/SURVEYOR: Job status history & audit trail
 **Description:** Returns a chronological list of all status transitions for the job,
 including who made each change and the reason.
 
-**Roles:** ADMIN, GM, TM, TO
+**Roles:** ADMIN, GM, TM, TO, CLIENT, SURVEYOR
 
 
 #### Parameters
@@ -5339,23 +6008,7 @@ with a file attachment.
 ```json
 {
   "content": "Vessel is ready for inspection.",
-  "attachmentKey": "string"
-}
-```
-
-#### Request Body (File Upload)
-**Content-Type:** `multipart/form-data`
-
-> **Note for Frontend:** Use `FormData` object in JS. Append fields normally. For files, use `formData.append('fieldName', fileObject)`.
-
-**Form Fields:**
-- `content` (Optional): `string` - Message text
-- `attachment` (Optional): `FILE` - Optional file attachment
-
-```json
-{
-  "content": "Please review the updated checklist attached.",
-  "attachment": "<FILE_UPLOAD>"
+  "attachment_url": "https://s3.aws.com/girik/attachments/my-image.jpg"
 }
 ```
 
@@ -5434,6 +6087,109 @@ with a file attachment.
 
 ---
 
+### GET `/api/v1/non-conformities`
+**Summary:** Get all NCs
+
+#### Parameters
+- **job_id** (`query` | `string` | *Optional*): 
+- **status** (`query` | `string` | *Optional*): 
+- **page** (`query` | `integer` | *Optional*): 
+- **limit** (`query` | `integer` | *Optional*): 
+
+#### Responses
+<details><summary><strong>200</strong> - List of NCs</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "total": 42,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
+      }
+    ],
+    "rows": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "severity": "string",
+        "status": "string",
+        "created_at": "2026-03-07T12:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### GET `/api/v1/non-conformities/{id}`
+**Summary:** Get NC by ID
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Responses
+<details><summary><strong>200</strong> - NC detail</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "description": "string",
+    "severity": "string",
+    "status": "string",
+    "closure_remarks": "string",
+    "closed_at": "2026-03-07T12:00:00Z",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
 ### PUT `/api/v1/non-conformities/{id}/close`
 **Summary:** Close NC
 
@@ -5494,13 +6250,9 @@ with a file attachment.
     {
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "description": "string",
       "severity": "string",
       "status": "string",
-      "closure_remarks": "string",
-      "closed_at": "2026-03-07T12:00:00Z",
-      "created_at": "2026-03-07T12:00:00Z",
-      "updated_at": "2026-03-07T12:00:00Z"
+      "created_at": "2026-03-07T12:00:00Z"
     }
   ]
 }
@@ -5620,9 +6372,11 @@ with a file attachment.
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -5653,7 +6407,10 @@ with a file attachment.
 
 ### POST `/api/v1/payments/invoice`
 **Summary:** Create invoice
-**Description:** Create a new invoice for a job. ADMIN, GM, TM only.
+**Description:** Create a new invoice for a job at any active stage (CREATED through FINALIZED).
+Only blocked for terminal states (CERTIFIED, REJECTED). One invoice per job.
+**ADMIN, GM, TM, TO only.**
+
 
 #### Request Body
 **Content-Type:** `application/json`
@@ -5682,9 +6439,11 @@ with a file attachment.
     "payment_date": "2026-03-07T12:00:00Z",
     "receipt_url": "string",
     "verified_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "amount_collected": "string",
     "refunded_amount": "string",
     "amount_paid": "string",
     "net_amount": "string",
+    "remaining": "string",
     "created_at": "2026-03-07T12:00:00Z",
     "updated_at": "2026-03-07T12:00:00Z",
     "JobRequest": {
@@ -5740,9 +6499,11 @@ with a file attachment.
     "payment_date": "2026-03-07T12:00:00Z",
     "receipt_url": "string",
     "verified_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "amount_collected": "string",
     "refunded_amount": "string",
     "amount_paid": "string",
     "net_amount": "string",
+    "remaining": "string",
     "created_at": "2026-03-07T12:00:00Z",
     "updated_at": "2026-03-07T12:00:00Z",
     "JobRequest": {
@@ -5777,7 +6538,10 @@ with a file attachment.
 
 ### PUT `/api/v1/payments/{id}/pay`
 **Summary:** Mark invoice as paid
-**Description:** Mark an invoice as paid. ADMIN, GM, TM only.
+**Description:** Mark an invoice as fully paid (admin override). Works at any active job stage.
+If partial/advance payments were already collected, only the remaining balance
+is logged as a settlement entry. **ADMIN, GM, TM, TO only.**
+
 
 #### Parameters
 - **id** (`path` | `string` | *Required*): 
@@ -5824,9 +6588,11 @@ with a file attachment.
     "payment_date": "2026-03-07T12:00:00Z",
     "receipt_url": "string",
     "verified_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "amount_collected": "string",
     "refunded_amount": "string",
     "amount_paid": "string",
     "net_amount": "string",
+    "remaining": "string",
     "created_at": "2026-03-07T12:00:00Z",
     "updated_at": "2026-03-07T12:00:00Z",
     "JobRequest": {
@@ -5845,8 +6611,12 @@ with a file attachment.
 ---
 
 ### POST `/api/v1/payments/{id}/partial`
-**Summary:** Record partial payment
-**Description:** Record a partial payment against an invoice. ADMIN, GM, TM only.
+**Summary:** Record payment (advance / partial)
+**Description:** Record an advance or partial payment against an invoice. Each payment
+becomes a ledger entry. Pass `type: ADVANCE` for upfront collections or
+`type: PARTIAL_PAYMENT` (default) for installments. Auto-marks invoice
+as PAID when total collected >= invoice amount. **ADMIN, GM, TM, TO only.**
+
 
 #### Parameters
 - **id** (`path` | `string` | *Required*): 
@@ -5857,6 +6627,7 @@ with a file attachment.
 ```json
 {
   "amount": 0,
+  "type": "string",
   "remarks": "string"
 }
 ```
@@ -5877,9 +6648,11 @@ with a file attachment.
     "payment_date": "2026-03-07T12:00:00Z",
     "receipt_url": "string",
     "verified_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "amount_collected": "string",
     "refunded_amount": "string",
     "amount_paid": "string",
     "net_amount": "string",
+    "remaining": "string",
     "created_at": "2026-03-07T12:00:00Z",
     "updated_at": "2026-03-07T12:00:00Z",
     "JobRequest": {
@@ -6061,6 +6834,7 @@ with a file attachment.
     "jobs": [
       {
         "id": "...",
+        "job_request_number": "GRJ-B1C2D3E4",
         "job_status": "string",
         "vessel_id": "...",
         "certificate_type_id": "...",
@@ -6149,13 +6923,32 @@ with a file attachment.
 ### GET `/api/v1/support`
 **Summary:** Get support tickets
 
+#### Parameters
+- **status** (`query` | `string` | *Optional*): 
+- **page** (`query` | `integer` | *Optional*): 
+- **limit** (`query` | `integer` | *Optional*): 
+
 #### Responses
 <details><summary><strong>200</strong> - List of tickets</summary>
 
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "count": 0,
+    "rows": [
+      {
+        "id": "...",
+        "ticket_number": "string",
+        "subject": "string",
+        "priority": "string",
+        "status": "string",
+        "category": "string",
+        "user_id": "...",
+        "created_at": "2026-03-07T12:00:00Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -6170,12 +6963,39 @@ with a file attachment.
 - **id** (`path` | `string` | *Required*): 
 
 #### Responses
-<details><summary><strong>200</strong> - Ticket details</summary>
+<details><summary><strong>200</strong> - Ticket detail</summary>
 
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "subject": "string",
+    "description": "string",
+    "status": "string",
+    "priority": "string",
+    "category": "string",
+    "resolved_at": "2026-03-07T12:00:00Z",
+    "resolved_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Ticket not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -6581,41 +7401,56 @@ with a file attachment.
 ### GET `/api/v1/surveys`
 **Summary:** List survey reports
 
+#### Parameters
+- **page** (`query` | `integer` | *Optional*): 
+- **limit** (`query` | `integer` | *Optional*): 
+- **survey_status** (`query` | `string` | *Optional*): 
+- **surveyor_id** (`query` | `string` | *Optional*): 
+
 #### Responses
 <details><summary><strong>200</strong> - List of survey reports</summary>
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "surveyor_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "survey_status": "string",
-      "submission_count": 0,
-      "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z",
-      "finalized_at": "2026-03-07T12:00:00Z",
-      "survey_statement_status": "string",
-      "survey_statement_pdf_url": "string",
-      "signed_checklist_files": [
-        "string"
-      ],
-      "JobRequest": {
-        "id": "...",
-        "job_status": "string",
-        "Vessel": {
-          "vessel_name": "...",
-          "imo_number": "..."
-        }
-      },
-      "User": {
-        "name": "string",
-        "email": "string"
+  "data": {
+    "total": 50,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
       }
-    }
-  ]
+    ],
+    "rows": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "surveyor_id": "...",
+        "survey_status": "string",
+        "submission_count": 0,
+        "started_at": "2026-03-07T12:00:00Z",
+        "submitted_at": "2026-03-07T12:00:00Z",
+        "finalized_at": "2026-03-07T12:00:00Z",
+        "survey_statement_status": "string",
+        "survey_statement_pdf_url": "string",
+        "signed_checklist_files": [
+          "..."
+        ],
+        "JobRequest": {
+          "id": "...",
+          "job_status": "...",
+          "Vessel": "..."
+        },
+        "User": {
+          "name": "...",
+          "email": "..."
+        }
+      }
+    ]
+  }
 }
 ```
 
@@ -6660,7 +7495,14 @@ with a file attachment.
     ],
     "started_at": "2026-03-07T12:00:00Z",
     "submitted_at": "2026-03-07T12:00:00Z",
-    "finalized_at": "2026-03-07T12:00:00Z"
+    "finalized_at": "2026-03-07T12:00:00Z",
+    "JobRequest": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "job_status": "string",
+      "ActivityPlannings": [
+        "..."
+      ]
+    }
   }
 }
 ```
@@ -6826,7 +7668,12 @@ with a file attachment.
       ],
       "started_at": "2026-03-07T12:00:00Z",
       "submitted_at": "2026-03-07T12:00:00Z",
-      "finalized_at": "2026-03-07T12:00:00Z"
+      "finalized_at": "2026-03-07T12:00:00Z",
+      "JobRequest": {
+        "id": "...",
+        "job_status": "...",
+        "ActivityPlannings": "..."
+      }
     }
   }
 }
@@ -6998,7 +7845,7 @@ with a file attachment.
 ---
 
 ### GET `/api/v1/certificate-templates`
-**Summary:** Get certificate templates
+**Summary:** List certificate templates
 
 #### Parameters
 - **is_active** (`query` | `boolean` | *Optional*): 
@@ -7011,7 +7858,25 @@ with a file attachment.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": [
+    {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "template_name": "string",
+      "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "certificate_term": "string",
+      "template_file_url": "string",
+      "variables": [
+        "string"
+      ],
+      "is_active": true,
+      "created_at": "2026-03-07T12:00:00Z",
+      "updated_at": "2026-03-07T12:00:00Z",
+      "CertificateType": {
+        "id": "...",
+        "name": "string"
+      }
+    }
+  ]
 }
 ```
 
@@ -7035,7 +7900,7 @@ with a file attachment.
 ---
 
 ### GET `/api/v1/certificate-templates/{id}`
-**Summary:** Get template by ID
+**Summary:** Get certificate template by ID
 
 #### Parameters
 - **id** (`path` | `string` | *Required*): 
@@ -7046,7 +7911,23 @@ with a file attachment.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "template_name": "string",
+    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "certificate_term": "string",
+    "template_file_url": "string",
+    "variables": [
+      "string"
+    ],
+    "is_active": true,
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z",
+    "CertificateType": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string"
+    }
+  }
 }
 ```
 
@@ -7244,6 +8125,55 @@ with a file attachment.
 
 ---
 
+### PUT `/api/v1/users/me`
+**Summary:** Update current user profile
+
+#### Request Body
+**Content-Type:** `application/json`
+
+```json
+{
+  "name": "string",
+  "phone": "string",
+  "contact_person_name": "string",
+  "contact_person_email": "string",
+  "address": "string",
+  "nationality": "string",
+  "qualification": "string",
+  "years_of_experience": 0
+}
+```
+
+#### Responses
+<details><summary><strong>200</strong> - Profile updated</summary>
+
+```json
+{
+  "success": true,
+  "message": "string",
+  "data": {}
+}
+```
+
+</details>
+
+<details><summary><strong>401</strong> - Unauthorized</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
 ### PUT `/api/v1/users/fcm-token`
 **Summary:** Update FCM device token for push notifications
 **Description:** Registers or updates the Firebase Cloud Messaging (FCM) token for the currently authenticated user.
@@ -7377,7 +8307,16 @@ with a file attachment.
 {
   "success": true,
   "data": {
-    "count": 1,
+    "total": 10,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
+      }
+    ],
     "rows": [
       {
         "company": {

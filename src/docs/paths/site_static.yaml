@@ -1,31 +1,138 @@
-/api/v1/website/static-content:
+/api/v1/website/static-content/faq:
   get:
     tags:
       - Website
-    summary: List static content
-    description: Retrieve all static pages/FAQs. Public only sees published.
-    operationId: listStaticContent
-    security:
-      - bearerAuth: []
+    summary: Get FAQ content
+    description: Retrieve the hardcoded Frequently Asked Questions content.
+    operationId: getFaqContent
     responses:
       200:
-        description: List of static content
+        description: FAQ content details
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/SiteStaticContent'
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SiteStaticContent'
     x-roles:
-      - ADMIN
       - PUBLIC
 
+/api/v1/website/static-content/news:
+  get:
+    tags:
+      - Website
+    summary: Get news articles
+    description: Retrieve the list of hardcoded news articles.
+    operationId: getNewsContent
+    responses:
+      200:
+        description: List of news articles
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SiteStaticContent'
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/static-content/privacy:
+  get:
+    tags:
+      - Website
+    summary: Get privacy policy content
+    description: Retrieve the hardcoded Privacy and Regulatory Compliance Policy.
+    operationId: getPrivacyContent
+    responses:
+      200:
+        description: Privacy policy content details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SiteStaticContent'
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/static-content/terms-compliance:
+  get:
+    tags:
+      - Website
+    summary: Get terms & compliance content
+    description: Retrieve the hardcoded Terms and Conditions & Regulatory Compliance Statement.
+    operationId: getTermsContent
+    responses:
+      200:
+        description: Terms & compliance content details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SiteStaticContent'
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/static-content/terms-and-conditions:
+  get:
+    tags:
+      - Website
+    summary: Get terms & conditions content (alias)
+    description: Retrieve the hardcoded Terms and Conditions & Regulatory Compliance Statement.
+    operationId: getTermsAliasContent
+    responses:
+      200:
+        description: Terms & conditions content details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SiteStaticContent'
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/static-content/about-us:
+  get:
+    tags:
+      - Website
+    summary: Get about-us content
+    description: Retrieve the hardcoded About GR-Class content.
+    operationId: getAboutUsContent
+    responses:
+      200:
+        description: About-us content details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SiteStaticContent'
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/static-content/admin:
   post:
     tags:
       - Website
     summary: Create static content (Admin Only)
-    description: Create a new PAGE or FAQ entry.
-    operationId: createStaticContent
+    description: Create a new static page/FAQ row by key.
+    operationId: createStaticContentRow
     security:
       - bearerAuth: []
     requestBody:
@@ -33,55 +140,30 @@
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/SiteStaticContentInput'
+            type: object
+            required: [key, title]
+            properties:
+              key: { type: string, example: "about-us" }
+              title: { type: string, example: "About Us" }
+              body_html: { type: string, example: "<p>About content...</p>" }
+              faq_items: { type: array, items: { type: object } }
+              news_items: { type: array, items: { type: object } }
     responses:
       201:
-        description: Content created
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SiteStaticContent'
+        description: Created successfully
     x-roles:
       - ADMIN
 
-/api/v1/website/static-content/{slug}:
-  get:
-    tags:
-      - Website
-    summary: Get specific static content
-    description: Retrieve a single page/FAQ by its slug.
-    operationId: getStaticContentBySlug
-    parameters:
-      - in: path
-        name: slug
-        required: true
-        schema:
-          type: string
-        example: "about-us"
-    security:
-      - bearerAuth: []
-    responses:
-      200:
-        description: Content details
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SiteStaticContent'
-      404:
-        description: Not found
-    x-roles:
-      - ADMIN
-      - PUBLIC
-
+/api/v1/website/static-content/admin/{key}:
   put:
     tags:
       - Website
     summary: Update static content (Admin Only)
-    description: Modify existing static content by slug.
-    operationId: updateStaticContent
+    description: Edit an existing static page/FAQ row by key.
+    operationId: updateStaticContentRow
     parameters:
       - in: path
-        name: slug
+        name: key
         required: true
         schema:
           type: string
@@ -93,35 +175,15 @@
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/SiteStaticContentInput'
+            type: object
+            properties:
+              title: { type: string, example: "About Us" }
+              body_html: { type: string, example: "<p>Updated content...</p>" }
+              faq_items: { type: array, items: { type: object } }
+              news_items: { type: array, items: { type: object } }
     responses:
       200:
-        description: Content updated
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SiteStaticContent'
-    x-roles:
-      - ADMIN
-
-  delete:
-    tags:
-      - Website
-    summary: Delete static content (Admin Only)
-    description: Remove a static content entry.
-    operationId: deleteStaticContent
-    parameters:
-      - in: path
-        name: slug
-        required: true
-        schema:
-          type: string
-        example: "about-us"
-    security:
-      - bearerAuth: []
-    responses:
-      200:
-        description: Deleted successfully
+        description: Updated successfully
     x-roles:
       - ADMIN
 
@@ -159,4 +221,3 @@
         description: Subscriber list
     x-roles:
       - ADMIN
-

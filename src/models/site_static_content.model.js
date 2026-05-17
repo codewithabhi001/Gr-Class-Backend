@@ -3,55 +3,36 @@ export default (sequelize, DataTypes) => {
         id: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
-            primaryKey: true
+            primaryKey: true,
         },
-        slug: {
+        key: {
             type: DataTypes.STRING(64),
             allowNull: false,
-            unique: true
+            unique: true,
         },
         title: {
             type: DataTypes.STRING(200),
-            allowNull: false
-        },
-        content_type: {
-            type: DataTypes.STRING(20),
-            allowNull: false
+            allowNull: false,
         },
         body_html: {
             type: DataTypes.TEXT('long'),
-            allowNull: true
-        },
-        thumbnail_url: {
-            type: DataTypes.STRING(500),
-            allowNull: true
+            allowNull: true,
         },
         faq_items: {
             type: DataTypes.JSON,
-            allowNull: true
+            allowNull: true,
+            comment: 'Array of { question, answer, sort_order }',
         },
-        is_published: {
-            type: DataTypes.BOOLEAN,
-            allowNull: false,
-            defaultValue: true
-        },
-        published_at: {
-            type: DataTypes.DATE,
-            allowNull: true
-        },
-        updated_by: {
-            type: DataTypes.UUID,
-            allowNull: true
+        news_items: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            comment: 'Array of { id, title, body_html, thumbnail_url, published_at }',
         }
     }, {
         tableName: 'site_static_contents',
         timestamps: true,
-        underscored: true
+        underscored: true,
     });
-
-    SiteStaticContent.associate = (models) => {
-        SiteStaticContent.belongsTo(models.User, { foreignKey: 'updated_by', as: 'editor' });
-    };
 
     return SiteStaticContent;
 };

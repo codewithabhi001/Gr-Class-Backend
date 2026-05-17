@@ -309,589 +309,12 @@ Use **accessToken** in header: `Authorization: Bearer &lt;accessToken&gt;`. Stor
 
 ---
 
-## 🚀 Certificates
-
----
-
-### GET `/api/v1/certificates`
-**Summary:** List certificates
-**Description:** List certificates with strict RBAC and ownership filtering.
-**Access:**
-- **ADMIN / GM / TM / TO:** All certificates.
-- **SURVEYOR:** Only certificates for vessels in jobs assigned to them.
-- **CLIENT:** Only certificates for their own company vessels.
-
-
-#### Parameters
-- **page** (`query` | `integer` | *Optional*): 
-- **limit** (`query` | `integer` | *Optional*): 
-
-#### Responses
-<details><summary><strong>200</strong> - List of certificates</summary>
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "string",
-      "issue_date": "string",
-      "expiry_date": "string",
-      "status": "string",
-      "created_at": "2026-03-07T12:00:00Z",
-      "Vessel": {
-        "id": "...",
-        "vessel_name": "string",
-        "imo_number": "string"
-      },
-      "CertificateType": {
-        "id": "...",
-        "name": "string"
-      }
-    }
-  ]
-}
-```
-
-</details>
-
-<details><summary><strong>401</strong> - Unauthorized</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/types`
-**Summary:** List certificate types (minimal)
-**Description:** Returns a lightweight list of all active certificate types.
-**Does NOT include `required_documents`** — use `GET /types/:id` to fetch
-the full detail with required documents for a specific type.
-
-Pass `?include_inactive=true` (ADMIN / GM only) to also see inactive types.
-
-**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
-
-
-#### Parameters
-- **include_inactive** (`query` | `boolean` | *Optional*): Include INACTIVE types (ADMIN / GM only)
-
-#### Responses
-<details><summary><strong>200</strong> - Minimal list of certificate types</summary>
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174000",
-      "name": "Class Certificate",
-      "issuing_authority": "string",
-      "validity_years": 5,
-      "status": "string",
-      "requires_survey": true
-    }
-  ]
-}
-```
-
-</details>
-
-<details><summary><strong>401</strong> - Unauthorized</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/types/{id}`
-**Summary:** Get certificate type detail (with required documents)
-**Description:** Returns the **full detail** of a single certificate type, including:
-- All metadata fields (`description`, `requires_survey`, etc.)
-- The complete list of `required_documents` with their `is_mandatory` flag
-
-This is the endpoint to call **before creating a job** to know which
-documents must be uploaded.
-
-**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
-
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): Certificate type UUID
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate type detail with required documents</summary>
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "name": "string",
-    "short_code": "string",
-    "issuing_authority": "string",
-    "validity_years": 0,
-    "status": "string",
-    "description": "string",
-    "requires_survey": true,
-    "CertificateRequiredDocuments": [
-      {
-        "id": "...",
-        "certificate_type_id": "...",
-        "document_name": "...",
-        "is_mandatory": "...",
-        "created_at": "...",
-        "updated_at": "..."
-      }
-    ]
-  }
-}
-```
-
-</details>
-
-<details><summary><strong>401</strong> - Unauthorized</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
-<details><summary><strong>404</strong> - Certificate type not found</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/job/{jobId}`
-**Summary:** Get certificate by job ID
-**Description:** Get the certificate associated with a specific job ID.
-**Access:** Limited by job ownership/assignment.
-
-
-#### Parameters
-- **jobId** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate details</summary>
-
-```json
-{
-  "success": true,
-  "message": "Certificate for job fetched successfully",
-  "data": {
-    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_number": "string",
-    "issue_date": "string",
-    "expiry_date": "string",
-    "status": "string",
-    "qr_code_url": "string",
-    "pdf_file_url": "string",
-    "uploaded_file_url": "string",
-    "generated_pdf_url": "string",
-    "issued_at": "2026-03-07T12:00:00Z",
-    "issued_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z",
-    "CertificateType": {
-      "name": "string"
-    },
-    "Vessel": {
-      "vessel_name": "string",
-      "imo_number": "string"
-    },
-    "FlagState": {
-      "flag_state_name": "string"
-    },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
-    "source_type": "string",
-    "version": 0,
-    "certificate_term": "string",
-    "manual_text": {},
-    "remarks": "string"
-  }
-}
-```
-
-</details>
-
-<details><summary><strong>404</strong> - Job not found or certificate not yet generated</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/vessel/{vesselId}`
-**Summary:** Get certificates by vessel
-**Description:** Get all certificates for a specific vessel. Scope restricted (SURVEYOR only assigned, CLIENT only owned).
-
-#### Parameters
-- **vesselId** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Vessel certificates</summary>
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "string",
-      "issue_date": "string",
-      "expiry_date": "string",
-      "status": "string",
-      "created_at": "2026-03-07T12:00:00Z",
-      "Vessel": {
-        "id": "...",
-        "vessel_name": "string",
-        "imo_number": "string"
-      },
-      "CertificateType": {
-        "id": "...",
-        "name": "string"
-      }
-    }
-  ]
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/{id}`
-**Summary:** Get certificate by ID
-**Description:** Get certificate details by ID. Same RBAC as list: ADMIN/GM/TM/TO see all; SURVEYOR only assigned jobs' vessels; CLIENT only own company. Returns 403 if certificate exists but user has no access.
-
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate details</summary>
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "certificate_number": "string",
-    "issue_date": "string",
-    "expiry_date": "string",
-    "status": "string",
-    "qr_code_url": "string",
-    "pdf_file_url": "string",
-    "uploaded_file_url": "string",
-    "generated_pdf_url": "string",
-    "issued_at": "2026-03-07T12:00:00Z",
-    "issued_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-    "created_at": "2026-03-07T12:00:00Z",
-    "updated_at": "2026-03-07T12:00:00Z",
-    "CertificateType": {
-      "name": "string"
-    },
-    "Vessel": {
-      "vessel_name": "string",
-      "imo_number": "string"
-    },
-    "FlagState": {
-      "flag_state_name": "string"
-    },
-    "Authority": {
-      "id": "...",
-      "name": "string",
-      "code": "string",
-      "country": "string",
-      "logo_url": "string",
-      "status": "string"
-    },
-    "source_type": "string",
-    "version": 0,
-    "certificate_term": "string",
-    "manual_text": {},
-    "remarks": "string"
-  }
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden - certificate exists but user has no access</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
-<details><summary><strong>404</strong> - Certificate not found</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/{id}/download`
-**Summary:** Download certificate PDF
-**Description:** Redirects to the certificate PDF URL for download. If the certificate has a stored PDF (pdf_file_url), returns 302 redirect to that URL so the browser can open or download the file.
-CLIENT can only download certificates for their vessels.
-
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): Certificate ID
-
-#### Responses
-<details><summary><strong>200</strong> - Successful download (in case of direct file stream rather than redirect)</summary>
-
-*No content body returned.*
-
-</details>
-
-<details><summary><strong>302</strong> - Redirect to certificate PDF URL</summary>
-
-```json
-{
-  "success": true,
-  "message": "Request successful"
-}
-```
-
-</details>
-
-<details><summary><strong>404</strong> - Certificate not found or PDF not available</summary>
-
-```json
-{
-  "success": false,
-  "message": "Certificate PDF is not available for download yet."
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/{id}/preview`
-**Summary:** Preview certificate
-**Description:** Get certificate preview/PDF. ADMIN, GM, TM, TO, SURVEYOR, CLIENT.
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate preview</summary>
-
-```json
-{
-  "success": true,
-  "data": {}
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/certificates/{id}/history`
-**Summary:** Get certificate history
-**Description:** Get certificate change history.
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Certificate history</summary>
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "status": "string",
-      "changed_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "change_reason": "string",
-      "changed_at": "2026-03-07T12:00:00Z"
-    }
-  ]
-}
-```
-
-</details>
-
----
-
 ## 🚀 Checklist Templates
 
 ---
 
-### GET `/api/v1/checklist-templates`
-**Summary:** Get checklist templates
-
-#### Parameters
-- **status** (`query` | `string` | *Optional*): 
-- **certificate_type_id** (`query` | `string` | *Optional*): 
-
-#### Responses
-<details><summary><strong>200</strong> - List of templates</summary>
-
-```json
-{
-  "success": true,
-  "message": "Request successful"
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
 ### GET `/api/v1/checklist-templates/job/{jobId}`
-**Summary:** Get template for job
+**Summary:** Get template for a specific job
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): 
@@ -902,13 +325,52 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "message": "string",
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "name": "string",
+    "code": "string",
+    "description": "string",
+    "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "sections": [
+      {
+        "title": "string",
+        "items": [
+          "..."
+        ]
+      }
+    ],
+    "status": "string",
+    "template_files": [
+      "string"
+    ],
+    "metadata": {},
+    "created_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "updated_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
 }
 ```
 
 </details>
 
 <details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - No active template for this certificate type</summary>
 
 ```json
 {
@@ -926,25 +388,42 @@ CLIENT can only download certificates for their vessels.
 ---
 
 ### GET `/api/v1/checklist-templates/job/{jobId}/download`
-**Summary:** Download auto-filled checklist DOCX for job
-**Description:** Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns a signed URL.
+**Summary:** Download auto-filled checklist DOCX for a job
+**Description:** Generates a job-specific DOCX by filling Word content-controls (by Tag) with vessel/job data, caches it as a JOB document, and returns signed URLs.
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): 
-- **force** (`query` | `boolean` | *Optional*): Regenerate even if cached document exists
+- **force** (`query` | `boolean` | *Optional*): Regenerate even if a cached document already exists
 
 #### Responses
-<details><summary><strong>200</strong> - Signed URL for filled DOCX</summary>
+<details><summary><strong>200</strong> - Signed URL(s) for filled DOCX</summary>
 
 ```json
 {
   "success": true,
-  "data": {
-    "fileName": "string",
-    "contentType": "string",
-    "expiresAt": "2026-03-07T12:00:00Z",
-    "signedUrl": "string"
-  }
+  "data": [
+    {
+      "fileName": "string",
+      "contentType": "string",
+      "expiresAt": "2026-03-07T12:00:00Z",
+      "signedUrl": "string"
+    }
+  ]
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Template has no template_files configured</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -965,27 +444,7 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
----
-
-### GET `/api/v1/checklist-templates/{id}`
-**Summary:** Get template by ID
-
-#### Parameters
-- **id** (`path` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Template details</summary>
-
-```json
-{
-  "success": true,
-  "message": "Request successful"
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
+<details><summary><strong>404</strong> - Job or active template not found</summary>
 
 ```json
 {
@@ -1008,7 +467,14 @@ CLIENT can only download certificates for their vessels.
 
 ### GET `/api/v1/checklists/jobs/{jobId}`
 **Summary:** Get checklist for a job
-**Description:** Retrieve the checklist items for a specific job. Can be filtered by answer or question code.
+**Description:** Returns the checklist items for a job **plus** the resolved (signed)
+HTTPS URLs of any full signed-checklist scan documents that were
+attached to the underlying survey.
+
+All `file_url` fields and `signed_checklist_files` entries are guaranteed
+to be either fully-qualified HTTPS URLs or `null` — raw S3 keys are never
+returned to the client.
+
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): Unique identifier of the job
@@ -1022,34 +488,32 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "...",
-      "job_id": "...",
-      "question_code": "string",
-      "question_text": "string",
-      "answer": "string",
-      "remarks": "string",
-      "file_url": "string",
-      "createdAt": "2026-03-07T12:00:00Z",
-      "updatedAt": "2026-03-07T12:00:00Z"
+  "data": {
+    "items": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
+    "signed_checklist_files": [
+      "string"
+    ],
+    "template_files": [
+      "string"
+    ],
+    "template": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "code": "string"
     }
-  ]
-}
-```
-
-</details>
-
-<details><summary><strong>400</strong> - Bad Request</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
+  }
 }
 ```
 
@@ -1085,7 +549,7 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
-<details><summary><strong>404</strong> - Not Found</summary>
+<details><summary><strong>404</strong> - Job not found</summary>
 
 ```json
 {
@@ -1103,8 +567,17 @@ CLIENT can only download certificates for their vessels.
 ---
 
 ### PUT `/api/v1/checklists/jobs/{jobId}`
-**Summary:** Submit checklist for a job
-**Description:** Submit or update the checklist items for a job. Multiple submissions are allowed until the survey is finalized. Only the assigned SURVEYOR can perform this action when the survey is in an active state (SRTED, CHECKLIST_SUBMITTED, PROOF_UPLOADED, or REWORK_REQUIRED).
+**Summary:** Submit checklist (answers + optional signed-scan files)
+**Description:** Submit / replace the checklist answers for a job. In the **same call**
+the surveyor can also attach the S3 keys of the full signed-checklist
+scan document(s) — obtained earlier from
+`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.
+
+Re-submission is allowed until the survey is finalized. Only the
+assigned `SURVEYOR` can perform this action while the survey is in an
+active state (`STARTED`, `CHECKLIST_SUBMITTED`, `PROOF_UPLOADED`,
+or `REWORK_REQUIRED`).
+
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): Unique identifier of the job
@@ -1122,6 +595,9 @@ CLIENT can only download certificates for their vessels.
       "remarks": "string",
       "file_url": "string"
     }
+  ],
+  "signed_checklist_files": [
+    "string"
   ]
 }
 ```
@@ -1132,25 +608,38 @@ CLIENT can only download certificates for their vessels.
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "...",
-      "job_id": "...",
-      "question_code": "string",
-      "question_text": "string",
-      "answer": "string",
-      "remarks": "string",
-      "file_url": "string",
-      "createdAt": "2026-03-07T12:00:00Z",
-      "updatedAt": "2026-03-07T12:00:00Z"
+  "data": {
+    "items": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
+    "signed_checklist_files": [
+      "string"
+    ],
+    "template_files": [
+      "string"
+    ],
+    "template": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "name": "string",
+      "code": "string"
     }
-  ]
+  }
 }
 ```
 
 </details>
 
-<details><summary><strong>400</strong> - Bad Request</summary>
+<details><summary><strong>400</strong> - Bad Request (invalid state, terminal job, etc.)</summary>
 
 ```json
 {
@@ -1180,7 +669,7 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
-<details><summary><strong>403</strong> - Forbidden</summary>
+<details><summary><strong>403</strong> - Forbidden — caller is not the assigned surveyor</summary>
 
 ```json
 {
@@ -1195,7 +684,7 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
-<details><summary><strong>404</strong> - Not Found</summary>
+<details><summary><strong>404</strong> - Job not found</summary>
 
 ```json
 {
@@ -1213,8 +702,12 @@ CLIENT can only download certificates for their vessels.
 ---
 
 ### GET `/api/v1/checklists/jobs/{jobId}/get-upload-url`
-**Summary:** Get upload URL for checklist item evidence
-**Description:** Generates a pre-signed S3 URL so the surveyor can directly upload photo evidence for a specific checklist item (e.g. failing items). The returned fileKey is then passed as file_url in the checklist submission.
+**Summary:** Get upload URL for a single checklist-item evidence photo
+**Description:** Generates a pre-signed S3 URL so the surveyor can directly upload one
+photo of evidence for a **single** checklist item (e.g. a failing item).
+The returned `fileKey` is then passed back as `file_url` on that item
+in the next `PUT /checklists/jobs/{jobId}` call.
+
 
 #### Parameters
 - **jobId** (`path` | `string` | *Required*): Unique identifier of the job
@@ -1229,7 +722,7 @@ CLIENT can only download certificates for their vessels.
   "success": true,
   "data": {
     "uploadUrl": "string",
-    "fileKey": "string"
+    "fileKey": "jobs/01933c5e.../report.pdf"
   }
 }
 ```
@@ -1251,7 +744,7 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
-<details><summary><strong>403</strong> - Forbidden</summary>
+<details><summary><strong>403</strong> - Forbidden — caller is not the assigned surveyor</summary>
 
 ```json
 {
@@ -1266,7 +759,193 @@ CLIENT can only download certificates for their vessels.
 
 </details>
 
-<details><summary><strong>404</strong> - Job Not Found</summary>
+<details><summary><strong>404</strong> - Job not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### GET `/api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url`
+**Summary:** Get upload URL for the full signed-checklist scan
+**Description:** Generates a pre-signed S3 URL so the surveyor can upload the full
+filled & signed checklist document (PDF / image) — one or more files
+representing the actual signed sheet.
+
+After uploading directly to S3 with the returned `uploadUrl`, send the
+`fileKey` back inside the `signed_checklist_files` array on the next
+`PUT /checklists/jobs/{jobId}` call.
+
+
+#### Parameters
+- **jobId** (`path` | `string` | *Required*): Unique identifier of the job
+- **fileName** (`query` | `string` | *Required*): The filename with extension (e.g. signed_checklist.pdf)
+- **contentType** (`query` | `string` | *Required*): The MIME type of the file (e.g. application/pdf)
+
+#### Responses
+<details><summary><strong>200</strong> - Upload URL generated successfully</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "uploadUrl": "string",
+    "fileKey": "jobs/01933c5e.../report.pdf"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Bad Request (job not survey-eligible / terminal state)</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden — caller is not the assigned surveyor</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Job not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### PUT `/api/v1/checklists/jobs/{jobId}/signed-checklist-files`
+**Summary:** Update signed checklist scan files (keys only)
+**Description:** Updates **only** the `signed_checklist_files` array for the job's survey.
+
+Use this when your UI flow is split into two screens:
+1) Save checklist answers (PUT `/checklists/jobs/{jobId}`)
+2) Upload signed checklist scan(s) and attach them here
+
+The array is treated as a **full replace**:
+- To replace files: send the new full array
+- To remove all: send `[]`
+
+Each entry must be an S3 key obtained from
+`GET /checklists/jobs/{jobId}/signed-checklist-upload-url`.
+
+
+#### Parameters
+- **jobId** (`path` | `string` | *Required*): Unique identifier of the job
+
+#### Request Body
+**Content-Type:** `application/json`
+
+```json
+{
+  "signed_checklist_files": [
+    "string"
+  ]
+}
+```
+
+#### Responses
+<details><summary><strong>200</strong> - Updated signed checklist files</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "signed_checklist_files": [
+      "string"
+    ]
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>400</strong> - Bad Request (invalid state, terminal job, etc.)</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>401</strong> - Unauthorized</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden — caller is not the assigned surveyor</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Job not found</summary>
 
 ```json
 {
@@ -1737,6 +1416,37 @@ CLIENT can only download certificates for their vessels.
 
 ---
 
+### GET `/api/v1/jobs/upload-url`
+**Summary:** Get presigned S3 upload URL for job documents
+**Description:** Generates a signed URL for uploading files directly to S3. 
+Returns the `uploadUrl` (where to PUT the file) and the `fileKey` 
+(to be used as `file_url` in subsequent job registration calls).
+
+**Roles:** CLIENT, ADMIN, GM, TM, SURVEYOR
+
+
+#### Parameters
+- **fileName** (`query` | `string` | *Required*): 
+- **fileType** (`query` | `string` | *Required*): 
+- **folder** (`query` | `string` | *Optional*): 
+
+#### Responses
+<details><summary><strong>200</strong> - Presigned URL generated</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "uploadUrl": "string",
+    "fileKey": "jobs/1714398721-cert.pdf"
+  }
+}
+```
+
+</details>
+
+---
+
 ### GET `/api/v1/jobs`
 **Summary:** List jobs (role-filtered)
 **Description:** Returns a paginated list of job requests. Visible set depends on caller role:
@@ -1774,9 +1484,16 @@ filter is given. Default is 30.
     "page": 1,
     "limit": 10,
     "totalPages": 5,
+    "status_counts": [
+      {
+        "status": "CREATED",
+        "count": 5
+      }
+    ],
     "jobs": [
       {
         "id": "...",
+        "job_request_number": "GRJ-B1C2D3E4",
         "job_status": "string",
         "vessel_id": "...",
         "certificate_type_id": "...",
@@ -1859,6 +1576,7 @@ applicable).
   "success": true,
   "data": {
     "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_request_number": "GRJ-B1C2D3E4",
     "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "requested_by_user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
     "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
@@ -1896,9 +1614,26 @@ applicable).
       "id": "123e4567-e89b-12d3-a456-426614174000",
       "survey_status": "string",
       "survey_statement_status": "string",
+      "survey_statement_pdf_url": "string",
       "started_at": "2026-03-07T12:00:00Z",
-      "submitted_at": "2026-03-07T12:00:00Z"
+      "submitted_at": "2026-03-07T12:00:00Z",
+      "signed_checklist_files": [
+        "string"
+      ]
     },
+    "ActivityPlannings": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "question_code": "...",
+        "question_text": "...",
+        "answer": "...",
+        "remarks": "...",
+        "file_url": "...",
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ],
     "Payments": [
       {
         "id": "...",
@@ -1910,9 +1645,11 @@ applicable).
         "payment_date": "...",
         "receipt_url": "...",
         "verified_by_user_id": "...",
+        "amount_collected": "...",
         "refunded_amount": "...",
         "amount_paid": "...",
         "net_amount": "...",
+        "remaining": "...",
         "created_at": "...",
         "updated_at": "...",
         "JobRequest": "..."
@@ -1934,6 +1671,102 @@ applicable).
       "name": "string",
       "role": "string"
     }
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>401</strong> - Unauthorized</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>403</strong> - Forbidden</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Job not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### GET `/api/v1/jobs/{id}/history`
+**Summary:** ADMIN/GM/TM/TO/CLIENT/SURVEYOR: Job status history & audit trail
+**Description:** Returns a chronological list of all status transitions for the job,
+including who made each change and the reason.
+
+**Roles:** ADMIN, GM, TM, TO, CLIENT, SURVEYOR
+
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Responses
+<details><summary><strong>200</strong> - Status history list</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "job_history": [
+      {
+        "id": "...",
+        "job_id": "...",
+        "previous_status": "...",
+        "new_status": "...",
+        "changed_by": "...",
+        "reason": "...",
+        "created_at": "...",
+        "User": "..."
+      }
+    ],
+    "survey_history": [
+      {
+        "id": "...",
+        "survey_id": "...",
+        "previous_status": "...",
+        "new_status": "...",
+        "changed_by": "...",
+        "reason": "...",
+        "submission_iteration": "...",
+        "created_at": "...",
+        "User": "..."
+      }
+    ]
   }
 }
 ```
@@ -2073,23 +1906,7 @@ with a file attachment.
 ```json
 {
   "content": "Vessel is ready for inspection.",
-  "attachmentKey": "string"
-}
-```
-
-#### Request Body (File Upload)
-**Content-Type:** `multipart/form-data`
-
-> **Note for Frontend:** Use `FormData` object in JS. Append fields normally. For files, use `formData.append('fieldName', fileObject)`.
-
-**Form Fields:**
-- `content` (Optional): `string` - Message text
-- `attachment` (Optional): `FILE` - Optional file attachment
-
-```json
-{
-  "content": "Please review the updated checklist attached.",
-  "attachment": "<FILE_UPLOAD>"
+  "attachment_url": "https://s3.aws.com/girik/attachments/my-image.jpg"
 }
 ```
 
@@ -2211,6 +2028,51 @@ with a file attachment.
 
 ---
 
+### GET `/api/v1/non-conformities/{id}`
+**Summary:** Get NC by ID
+
+#### Parameters
+- **id** (`path` | `string` | *Required*): 
+
+#### Responses
+<details><summary><strong>200</strong> - NC detail</summary>
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "description": "string",
+    "severity": "string",
+    "status": "string",
+    "closure_remarks": "string",
+    "closed_at": "2026-03-07T12:00:00Z",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
 ### GET `/api/v1/non-conformities/job/{jobId}`
 **Summary:** Get NCs by job
 
@@ -2227,13 +2089,9 @@ with a file attachment.
     {
       "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
       "job_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "description": "string",
       "severity": "string",
       "status": "string",
-      "closure_remarks": "string",
-      "closed_at": "2026-03-07T12:00:00Z",
-      "created_at": "2026-03-07T12:00:00Z",
-      "updated_at": "2026-03-07T12:00:00Z"
+      "created_at": "2026-03-07T12:00:00Z"
     }
   ]
 }
@@ -2354,6 +2212,7 @@ with a file attachment.
     "jobs": [
       {
         "id": "...",
+        "job_request_number": "GRJ-B1C2D3E4",
         "job_status": "string",
         "vessel_id": "...",
         "certificate_type_id": "...",
@@ -2442,13 +2301,32 @@ with a file attachment.
 ### GET `/api/v1/support`
 **Summary:** Get support tickets
 
+#### Parameters
+- **status** (`query` | `string` | *Optional*): 
+- **page** (`query` | `integer` | *Optional*): 
+- **limit** (`query` | `integer` | *Optional*): 
+
 #### Responses
 <details><summary><strong>200</strong> - List of tickets</summary>
 
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "count": 0,
+    "rows": [
+      {
+        "id": "...",
+        "ticket_number": "string",
+        "subject": "string",
+        "priority": "string",
+        "status": "string",
+        "category": "string",
+        "user_id": "...",
+        "created_at": "2026-03-07T12:00:00Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -2463,12 +2341,39 @@ with a file attachment.
 - **id** (`path` | `string` | *Required*): 
 
 #### Responses
-<details><summary><strong>200</strong> - Ticket details</summary>
+<details><summary><strong>200</strong> - Ticket detail</summary>
 
 ```json
 {
   "success": true,
-  "message": "Request successful"
+  "data": {
+    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "user_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "subject": "string",
+    "description": "string",
+    "status": "string",
+    "priority": "string",
+    "category": "string",
+    "resolved_at": "2026-03-07T12:00:00Z",
+    "resolved_by": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+    "created_at": "2026-03-07T12:00:00Z",
+    "updated_at": "2026-03-07T12:00:00Z"
+  }
+}
+```
+
+</details>
+
+<details><summary><strong>404</strong> - Ticket not found</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
 }
 ```
 
@@ -2730,7 +2635,14 @@ with a file attachment.
     ],
     "started_at": "2026-03-07T12:00:00Z",
     "submitted_at": "2026-03-07T12:00:00Z",
-    "finalized_at": "2026-03-07T12:00:00Z"
+    "finalized_at": "2026-03-07T12:00:00Z",
+    "JobRequest": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "job_status": "string",
+      "ActivityPlannings": [
+        "..."
+      ]
+    }
   }
 }
 ```
@@ -2791,7 +2703,14 @@ with a file attachment.
     ],
     "started_at": "2026-03-07T12:00:00Z",
     "submitted_at": "2026-03-07T12:00:00Z",
-    "finalized_at": "2026-03-07T12:00:00Z"
+    "finalized_at": "2026-03-07T12:00:00Z",
+    "JobRequest": {
+      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+      "job_status": "string",
+      "ActivityPlannings": [
+        "..."
+      ]
+    }
   }
 }
 ```
@@ -2883,92 +2802,6 @@ with a file attachment.
 {
   "success": true,
   "message": "Request successful"
-}
-```
-
-</details>
-
----
-
-### GET `/api/v1/surveys/jobs/{jobId}/signed-checklist-upload-url`
-**Summary:** Get upload URL for signed checklist scan
-
-#### Parameters
-- **jobId** (`path` | `string` | *Required*): 
-- **fileName** (`query` | `string` | *Required*): 
-- **contentType** (`query` | `string` | *Required*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Upload URL generated</summary>
-
-```json
-{
-  "success": true,
-  "data": {
-    "uploadUrl": "string",
-    "fileKey": "string"
-  }
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
-}
-```
-
-</details>
-
----
-
-### PUT `/api/v1/surveys/jobs/{jobId}/signed-checklist`
-**Summary:** Save signed checklist scan keys
-
-#### Parameters
-- **jobId** (`path` | `string` | *Required*): 
-
-#### Request Body
-**Content-Type:** `application/json`
-
-```json
-{
-  "fileKeys": [
-    "string"
-  ]
-}
-```
-
-#### Responses
-<details><summary><strong>200</strong> - Keys updated</summary>
-
-```json
-{
-  "success": true,
-  "message": "string"
-}
-```
-
-</details>
-
-<details><summary><strong>403</strong> - Forbidden</summary>
-
-```json
-{
-  "success": false,
-  "error_code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "errors": {},
-  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-  "stack": "string"
 }
 ```
 
@@ -3082,6 +2915,55 @@ with a file attachment.
 {
   "success": true,
   "message": "Request successful"
+}
+```
+
+</details>
+
+<details><summary><strong>401</strong> - Unauthorized</summary>
+
+```json
+{
+  "success": false,
+  "error_code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "errors": {},
+  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+  "stack": "string"
+}
+```
+
+</details>
+
+---
+
+### PUT `/api/v1/users/me`
+**Summary:** Update current user profile
+
+#### Request Body
+**Content-Type:** `application/json`
+
+```json
+{
+  "name": "string",
+  "phone": "string",
+  "contact_person_name": "string",
+  "contact_person_email": "string",
+  "address": "string",
+  "nationality": "string",
+  "qualification": "string",
+  "years_of_experience": 0
+}
+```
+
+#### Responses
+<details><summary><strong>200</strong> - Profile updated</summary>
+
+```json
+{
+  "success": true,
+  "message": "string",
+  "data": {}
 }
 ```
 
