@@ -1,4 +1,5 @@
 import * as paymentService from './payment.service.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
 import db from '../../models/index.js';
 
 const getScopeFilters = async (user) => {
@@ -16,7 +17,7 @@ const getScopeFilters = async (user) => {
 export const getPayments = async (req, res, next) => {
     try {
         const scopeFilters = await getScopeFilters(req.user);
-        const result = await paymentService.getPayments(req.query, scopeFilters);
+        const result = await paymentService.getPayments(req.query, scopeFilters, req.user);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };
@@ -24,7 +25,7 @@ export const getPayments = async (req, res, next) => {
 export const getPaymentById = async (req, res, next) => {
     try {
         const scopeFilters = await getScopeFilters(req.user);
-        const payment = await paymentService.getPaymentById(req.params.id, scopeFilters);
+        const payment = await paymentService.getPaymentById(req.params.id, scopeFilters, req.user);
         res.json({ success: true, data: payment });
     } catch (e) { next(e); }
 };
@@ -47,14 +48,16 @@ export const createInvoice = async (req, res, next) => {
 export const markPaid = async (req, res, next) => {
     try {
         const payment = await paymentService.markPaid(req.params.id, req.user.id, req.file, req.body);
-        res.json({ success: true, data: payment });
+        const resolved = await fileAccessService.resolveEntity(payment, req.user);
+        res.json({ success: true, data: resolved });
     } catch (error) { next(error); }
 };
 
 export const getLedger = async (req, res, next) => {
     try {
         const ledger = await paymentService.getLedger(req.params.id);
-        res.json({ success: true, data: ledger });
+        const resolved = await fileAccessService.resolveEntity(ledger, req.user);
+        res.json({ success: true, data: resolved });
     } catch (e) { next(e); }
 };
 
@@ -75,6 +78,7 @@ export const refund = async (req, res, next) => {
 export const recordPartial = async (req, res, next) => {
     try {
         const result = await paymentService.recordPartialPayment(req.params.id, req.body.amount, req.user.id, req.body);
-        res.json({ success: true, data: result });
+        const resolved = await fileAccessService.resolveEntity(result, req.user);
+        res.json({ success: true, data: resolved });
     } catch (e) { next(e); }
 };

@@ -2,6 +2,7 @@ import db from '../../models/index.js';
 import { v4 as uuidv4 } from 'uuid';
 import * as s3Service from '../../services/s3.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
 import logger from '../../utils/logger.js';
 
 const Payment = db.Payment;
@@ -44,6 +45,16 @@ const enrichPaymentWithLedger = (plain, ledgers) => {
     plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
     plain.remaining = Math.max(0, parseFloat(plain.amount) - collected + refunded).toFixed(2);
 
+    if (!plain.receipt_url && ledgers && ledgers.length > 0) {
+        const latestWithReceipt = [...ledgers].reverse().find(l => {
+            const rUrl = (typeof l.get === 'function') ? l.get('receipt_url') : l.receipt_url;
+            return !!rUrl;
+        });
+        if (latestWithReceipt) {
+            plain.receipt_url = (typeof latestWithReceipt.get === 'function') ? latestWithReceipt.get('receipt_url') : latestWithReceipt.receipt_url;
+        }
+    }
+
     return plain;
 };
 
@@ -57,8 +68,8 @@ export const createInvoice = async (data, userId = null) => {
     // Invoice can be created at any active job stage — only block terminal states
     const job = await JobRequest.findByPk(job_id);
     if (!job) throw { statusCode: 404, message: 'Job not found' };
-    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
-        throw { statusCode: 400, message: `Cannot create invoice: Job is in a terminal state (${job.job_status}).` };
+    if (job.job_status === 'REJECTED') {
+        throw { statusCode: 400, message: `Cannot create invoice: Job is in a rejected state (${job.job_status}).` };
     }
 
     // Prevent double-invoice for the same job
@@ -108,8 +119,8 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
         const job = await JobRequest.findByPk(payment.job_id, { transaction: txn, lock: txn.LOCK.UPDATE });
         if (!job) throw { statusCode: 404, message: 'Job not found for this payment' };
 
-        if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
-            throw { statusCode: 400, message: `Cannot process payment: Job is in a terminal state (${job.job_status}).` };
+        if (job.job_status === 'REJECTED') {
+            throw { statusCode: 400, message: `Cannot process payment: Job is in a rejected state (${job.job_status}).` };
         }
 
         // ── Upload receipt (optional) ──
@@ -136,7 +147,8 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
                 invoice_id: paymentId, job_id: payment.job_id,
                 transaction_type: 'PAYMENT', amount: remainingAmount,
                 performed_by: userId, remarks: remarks || 'Full payment / settlement',
-                balance_after: 0
+                balance_after: 0,
+                receipt_url: receiptUrl
             }, { transaction: txn });
         }
 
@@ -169,7 +181,7 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
 // READ
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getPayments = async (query, scopeFilters = {}) => {
+export const getPayments = async (query, scopeFilters = {}, user = null) => {
     const { page = 1, limit = 10, ...filters } = query;
     const allowedFilters = {};
     const ALLOWED_KEYS = ['payment_status', 'job_id', 'invoice_number'];
@@ -206,13 +218,15 @@ export const getPayments = async (query, scopeFilters = {}) => {
     const enrichedRows = result.rows.map(row => {
         const plain = row.get({ plain: true });
         const pLedgers = ledgers.filter(l => l.invoice_id === plain.id);
+        plain.ledgers = pLedgers;
         return enrichPaymentWithLedger(plain, pLedgers);
     });
 
-    return { count: result.count, rows: enrichedRows };
+    const resolvedRows = await fileAccessService.resolveEntity(enrichedRows, user);
+    return { count: result.count, rows: resolvedRows };
 };
 
-export const getPaymentById = async (id, scopeFilters = {}) => {
+export const getPaymentById = async (id, scopeFilters = {}, user = null) => {
     const payment = await Payment.findOne({
         where: { id, ...scopeFilters },
         include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
@@ -220,9 +234,11 @@ export const getPaymentById = async (id, scopeFilters = {}) => {
     if (!payment) throw { statusCode: 404, message: 'Payment record not found' };
 
     const plain = payment.get({ plain: true });
-    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: id } });
+    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: id }, order: [['createdAt', 'ASC']] });
+    plain.ledgers = ledgers;
 
-    return enrichPaymentWithLedger(plain, ledgers);
+    const enriched = enrichPaymentWithLedger(plain, ledgers);
+    return await fileAccessService.resolveEntity(enriched, user);
 };
 
 
@@ -290,22 +306,22 @@ export const recordPartialPayment = async (paymentId, amount, userId, data = {})
             invoice_id: paymentId, job_id: payment.job_id,
             transaction_type: transactionType, amount: payingNow,
             performed_by: userId, remarks,
+            receipt_url: data.receiptKey || null,
             balance_after: remainingAfterThis
         }, { transaction: txn });
 
         // Update payment status based on total collected
+        const updatedFields = {
+            receipt_url: data.receiptKey || payment.receipt_url || null
+        };
         if (remainingAfterThis <= 0 && payment.payment_status !== 'PAID') {
-            await payment.update({
-                payment_status: 'PAID',
-                payment_date: new Date(),
-                verified_by_user_id: userId
-            }, { transaction: txn });
+            updatedFields.payment_status = 'PAID';
+            updatedFields.payment_date = new Date();
+            updatedFields.verified_by_user_id = userId;
         } else if (totalAfterThis > 0 && payment.payment_status === 'UNPAID') {
-            // Some money collected but not full — mark as PARTIALLY_PAID
-            await payment.update({
-                payment_status: 'PARTIALLY_PAID'
-            }, { transaction: txn });
+            updatedFields.payment_status = 'PARTIALLY_PAID';
         }
+        await payment.update(updatedFields, { transaction: txn });
 
         logger.info({
             entity: 'PAYMENT', event: transactionType,

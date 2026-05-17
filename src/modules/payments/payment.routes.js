@@ -31,7 +31,7 @@ router.post('/:id/refund', authorizeRoles('ADMIN', 'GM'), paymentController.refu
 router.post('/:id/partial', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), paymentController.recordPartial);
 
 // Financial Compliance / Ledger
-router.get('/:id/ledger', authorizeRoles('ADMIN', 'GM'), paymentController.getLedger);
+router.get('/:id/ledger', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getLedger);
 
 // Write off
 router.post('/writeoff', authorizeRoles('ADMIN'), paymentController.writeOff);

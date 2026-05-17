@@ -10,6 +10,7 @@ export default (sequelize, DataTypes) => {
         reference_id: DataTypes.STRING,
         performed_by: DataTypes.UUID,
         remarks: DataTypes.TEXT,
+        receipt_url: DataTypes.STRING,
         balance_after: DataTypes.DECIMAL(10, 2),
     }, {
         tableName: 'financial_ledgers',

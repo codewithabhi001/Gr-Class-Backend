@@ -7,9 +7,10 @@ async function run() {
         await db.sequelize.authenticate();
         console.log('Syncing VesselDocument and Survey...');
         // Sync models that might have missing columns
-        await db.VesselDocument.sync({ alter: true });
-        await db.Survey.sync({ alter: true });
-        await db.SupportTicket.sync({ alter: true });
+        try { await db.VesselDocument.sync({ alter: true }); } catch (e) { console.warn('Skipping VesselDocument sync'); }
+        try { await db.Survey.sync({ alter: true }); } catch (e) { console.warn('Skipping Survey sync'); }
+        try { await db.SupportTicket.sync({ alter: true }); } catch (e) { console.warn('Skipping SupportTicket sync'); }
+        await db.FinancialLedger.sync({ alter: true });
         console.log('Done!');
         process.exit(0);
     } catch (e) {
