@@ -3,6 +3,15 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 
 // Helper to resolve model instance
 const getContentByKey = async (key) => {
+    if (key === 'faq') {
+        return await db.SiteStaticContent.findOne({ where: { key }, attributes: { exclude: ['updatedAt', 'createdAt', 'deletedAt', 'news_items'] } });
+    }
+    if (key === 'news') {
+        return await db.SiteStaticContent.findOne({ where: { key }, attributes: { exclude: ['updatedAt', 'createdAt', 'deletedAt', 'faq_items'] } });
+    }
+    if (key === 'about-us' || key === 'privacy' || key === 'terms-compliance') {
+        return await db.SiteStaticContent.findOne({ where: { key }, attributes: { exclude: ['updatedAt', 'createdAt', 'deletedAt', 'faq_items', 'news_items'] } });
+    }
     return await db.SiteStaticContent.findOne({ where: { key } });
 };
 

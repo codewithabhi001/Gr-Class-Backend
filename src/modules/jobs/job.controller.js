@@ -245,7 +245,28 @@ export const listInternalJobMessages = async (req, res, next) => {
 
 export const createJobMessage = async (req, res, next) => {
     try {
-        const message = await sendMessage(req.params.id, req.user.id, req.body);
+        let attachmentUrl = null;
+        if (req.files && req.files.length > 0) {
+            const file = req.files[0];
+            const s3Service = await import('../../services/s3.service.js');
+            attachmentUrl = await s3Service.uploadFile(
+                file.buffer,
+                file.originalname,
+                file.mimetype,
+                s3Service.UPLOAD_FOLDERS.JOBS_ATTACHMENTS || 'jobs/attachments'
+            );
+        }
+
+        const messageText = req.body.message_text || req.body.message || '';
+        const isInternal = req.body.is_internal === 'true' || req.body.is_internal === true || req.body.type === 'internal';
+
+        const data = {
+            message_text: messageText,
+            is_internal: isInternal,
+            attachment_url: attachmentUrl || req.body.attachment_url || req.body.attachmentKey || null
+        };
+
+        const message = await sendMessage(req.params.id, req.user.id, data);
         res.status(201).json({ success: true, data: message, message: '' });
     } catch (e) { next(e); }
 };

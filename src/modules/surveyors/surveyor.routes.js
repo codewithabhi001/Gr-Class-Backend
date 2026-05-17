@@ -36,6 +36,7 @@ router.use(authenticate);
 router.get('/', authorizeRoles('ADMIN', 'GM', 'TM'), surveyorController.getSurveyors);
 router.post('/', authorizeRoles('ADMIN', 'TM'), validate(schemas.createSurveyor), surveyorController.createSurveyor);
 router.get('/applications', authorizeRoles('ADMIN', 'TM'), surveyorController.getApplications);
+router.get('/applications/:id', authorizeRoles('ADMIN', 'TM', 'GM'), surveyorController.getApplication);
 router.put('/applications/:id/review', authorizeRoles('TM', 'ADMIN'), validate(schemas.reviewSurveyor), surveyorController.reviewApplication);
 
 // Status Management (Suspend/Activate)

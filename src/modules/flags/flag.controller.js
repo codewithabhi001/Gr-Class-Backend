@@ -26,3 +26,10 @@ export const updateFlag = async (req, res, next) => {
         res.json({ success: true, data: flag });
     } catch (error) { next(error); }
 };
+
+export const deleteFlag = async (req, res, next) => {
+    try {
+        const result = await flagService.deleteFlag(req.params.id);
+        res.json({ success: true, ...result });
+    } catch (error) { next(error); }
+};

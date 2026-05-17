@@ -136,3 +136,11 @@ export const getUploadUrls = async (req, res, next) => {
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };
+
+export const getApplication = async (req, res, next) => {
+    try {
+        const result = await surveyorService.getApplication(req.params.id, req.user);
+        res.json({ success: true, message: 'Application details fetched successfully', data: result });
+    } catch (error) { next(error); }
+};
+

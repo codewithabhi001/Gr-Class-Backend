@@ -1213,7 +1213,15 @@ export const getJobHistory = async (id, scopeFilters = {}) => {
 };
 
 export const addInternalNote = async (jobId, noteText, userId) => {
-    return await db.JobNote.create({ job_id: jobId, user_id: userId, note_text: noteText, is_internal: true });
+    const note = await db.JobNote.create({ job_id: jobId, user_id: userId, note_text: noteText, is_internal: true });
+    await db.Message.create({
+        job_id: jobId,
+        sender_id: userId,
+        message_text: noteText,
+        is_internal: true,
+        attachment_url: null
+    });
+    return note;
 };
 
 export const updateJobStatus = (id, status, remarks, userId) => {

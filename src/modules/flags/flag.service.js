@@ -35,3 +35,10 @@ export const updateFlag = async (id, data) => {
     return await resolveEntity(updated);
 };
 
+export const deleteFlag = async (id) => {
+    const flag = await FlagAdministration.findByPk(id);
+    if (!flag) throw { statusCode: 404, message: 'Flag not found' };
+    await flag.destroy();
+    return { message: 'Flag deleted successfully' };
+};
+

@@ -554,11 +554,13 @@ export const schemas = {
         s3_key: Joi.string().required(),
     }),
     createJobMessage: Joi.object({
-        message_text: Joi.string().required(),
+        message: Joi.string().optional().allow('', null),
+        message_text: Joi.string().optional().allow('', null),
+        type: Joi.string().valid('internal', 'external').optional(),
         attachment_url: Joi.string().optional().allow('', null),
         attachmentKey: Joi.string().optional().allow('', null),
-        is_internal: Joi.boolean().optional().default(false),
-    }),
+        is_internal: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional().default(false),
+    }).unknown(true),
     createSiteStaticContent: Joi.object({
         key: Joi.string().max(64).required(),
         title: Joi.string().max(200).required(),

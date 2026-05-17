@@ -352,7 +352,7 @@ export const getSurveyors = async (query = {}, user = null) => {
 
     const surveyors = await SurveyorProfile.findAll({
         where,
-        attributes: ['id', 'user_id', 'license_number', 'status', 'is_available'],
+        attributes: ['id', 'user_id', 'license_number', 'status', 'is_available', 'nationality', 'qualification'],
         include: [
             {
                 model: User,
@@ -418,3 +418,10 @@ export const getUploadUrls = async (query) => {
     await Promise.all(tasks);
     return result;
 };
+
+export const getApplication = async (id, user = null) => {
+    const app = await SurveyorApplication.findByPk(id);
+    if (!app) throw { statusCode: 404, message: 'Application not found' };
+    return await fileAccessService.resolveEntity(app, user);
+};
+
