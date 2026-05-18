@@ -278,6 +278,9 @@ export const schemas = {
     }),
     certAction: Joi.object({
         reason: Joi.string().required(),
+        newOwnerId: Joi.string().guid().optional(),
+        extensionMonths: Joi.number().integer().min(1).optional(),
+        newTypeId: Joi.string().guid().optional(),
     }),
     renewCert: Joi.object({
         validity_years: Joi.number().integer().min(1).max(5).required(),

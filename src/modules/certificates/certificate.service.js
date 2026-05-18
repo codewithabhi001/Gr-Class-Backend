@@ -519,25 +519,38 @@ export const getCertificates = async (query, user) => {
         }
     });
 
+    const vesselInclude = {
+        model: db.Vessel,
+        attributes: ['id', 'vessel_name', 'imo_number', 'client_id'],
+        include: [{ model: db.Client, as: 'Client', attributes: ['id', 'company_name'] }]
+    };
+
+    if (rest.client_id != null && rest.client_id !== '') {
+        vesselInclude.where = { client_id: rest.client_id };
+    }
+
     const { count, rows } = await Certificate.findAndCountAll({
         where,
         attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
-        include: [{ model: db.Vessel, attributes: ['id', 'vessel_name', 'imo_number'] }, { model: db.CertificateType, attributes: ['id', 'name'] }],
-        order: [['createdAt', 'DESC']]
+        include: [vesselInclude, { model: db.CertificateType, attributes: ['id', 'name'] }],
+        order: [['createdAt', 'DESC']],
+        subQuery: false
     });
 
     // Calculate status counts
     const statusWhere = { ...where };
     delete statusWhere.status;
+    
     const statusCounts = await Certificate.findAll({
         where: statusWhere,
         attributes: [
-            ['status', 'status'],
-            [db.sequelize.fn('COUNT', db.sequelize.col('status')), 'count']
+            [db.sequelize.col('Certificate.status'), 'status'],
+            [db.sequelize.fn('COUNT', db.sequelize.col('Certificate.status')), 'count']
         ],
-        group: ['status'],
+        include: [vesselInclude],
+        group: [db.sequelize.col('Certificate.status')],
         raw: true
     });
 
