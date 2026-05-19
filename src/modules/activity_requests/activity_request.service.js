@@ -5,6 +5,20 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 const ActivityRequest = db.ActivityRequest;
 const Vessel = db.Vessel;
 
+const activityRequestVesselInclude = {
+    model: Vessel,
+    attributes: [
+        'id', 'vessel_name', 'imo_number', 'call_sign', 'mmsi_number',
+        'port_of_registry', 'year_built', 'ship_type', 'gross_tonnage',
+        'net_tonnage', 'deadweight', 'class_status', 'current_class_society',
+        'engine_type', 'client_id', 'flag_administration_id',
+    ],
+    include: [
+        { model: db.FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] },
+        { model: db.Client, as: 'Client', attributes: ['company_name', 'company_code'] },
+    ],
+};
+
 const enrichAttachments = async (attachments, user = null) => {
     const urls = Array.isArray(attachments) ? attachments : [];
     return Promise.all(urls.map(async (fileUrl) => {
@@ -33,8 +47,8 @@ export const getActivityRequests = async (query, scopeFilters = {}) => {
         where: { ...filters, ...scopeFilters },
         attributes: ['id', 'request_number', 'activity_type', 'requested_service', 'proposed_date', 'status', 'vessel_id', 'created_at'],
         include: [
-            { model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
-            { model: db.JobRequest, as: 'LinkedJob', attributes: ['id', 'job_status'] }
+            activityRequestVesselInclude,
+            { model: db.JobRequest, as: 'LinkedJob', attributes: ['id', 'job_status', 'job_request_number'] },
         ],
         order: [['created_at', 'DESC']],
         limit: pageLimit,
@@ -54,7 +68,7 @@ export const getActivityRequestById = async (id, scopeFilters = {}, user = null)
         where: { id, ...scopeFilters },
         include: [
             { model: db.User, as: 'Requester', attributes: ['id', 'name', 'email'] },
-            { model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
+            activityRequestVesselInclude,
             {
                 model: db.JobRequest,
                 as: 'LinkedJob',

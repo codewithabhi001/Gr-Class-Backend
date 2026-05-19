@@ -11,16 +11,16 @@ export const flatCertificateListRow = (row) => {
         id: c.id,
         vessel_id: c.vessel_id,
         certificate_type_id: c.certificate_type_id,
-        certificate_number: c.certificate_number,
-        issue_date: c.issue_date,
-        expiry_date: c.expiry_date,
-        status: c.status,
-        createdAt: c.createdAt,
-        vessel_name: c.Vessel?.vessel_name ?? null,
-        imo_number: c.Vessel?.imo_number ?? null,
-        client_id: c.Vessel?.client_id ?? null,
-        company_name: c.Vessel?.Client?.company_name ?? null,
-        certificate_type: c.CertificateType?.name ?? null,
+        certificate_number: na(c.certificate_number),
+        issue_date: na(c.issue_date),
+        expiry_date: na(c.expiry_date),
+        status: na(c.status),
+        createdAt: na(c.createdAt),
+        vessel_name: na(c.Vessel?.vessel_name),
+        imo_number: na(c.Vessel?.imo_number),
+        client_id: na(c.Vessel?.client_id),
+        company_name: na(c.Vessel?.Client?.company_name),
+        certificate_type: na(c.CertificateType?.name),
     };
 };
 
@@ -30,11 +30,11 @@ export const flatIncidentListRow = (row) => {
         id: i.id,
         vessel_id: i.vessel_id,
         reported_by: i.reported_by,
-        title: i.title,
-        status: i.status,
-        created_at: i.created_at,
-        vessel_name: i.Vessel?.vessel_name ?? null,
-        imo_number: i.Vessel?.imo_number ?? null,
+        title: na(i.title),
+        status: na(i.status),
+        created_at: na(i.created_at),
+        vessel_name: na(i.Vessel?.vessel_name),
+        imo_number: na(i.Vessel?.imo_number),
     };
 };
 
@@ -44,18 +44,18 @@ export const flatSurveyReportListRow = (row) => {
         id: s.id,
         job_id: s.job_id,
         surveyor_id: s.surveyor_id,
-        survey_status: s.survey_status,
-        submission_count: s.submission_count,
-        started_at: s.started_at,
-        submitted_at: s.submitted_at,
-        finalized_at: s.finalized_at,
-        survey_statement_status: s.survey_statement_status,
-        survey_statement_pdf_url: s.survey_statement_pdf_url,
-        job_status: s.JobRequest?.job_status ?? null,
-        vessel_name: s.JobRequest?.Vessel?.vessel_name ?? null,
-        imo_number: s.JobRequest?.Vessel?.imo_number ?? null,
-        surveyor_name: s.User?.name ?? null,
-        surveyor_email: s.User?.email ?? null,
+        survey_status: na(s.survey_status),
+        submission_count: na(s.submission_count),
+        started_at: na(s.started_at),
+        submitted_at: na(s.submitted_at),
+        finalized_at: na(s.finalized_at),
+        survey_statement_status: na(s.survey_statement_status),
+        survey_statement_pdf_url: na(s.survey_statement_pdf_url),
+        job_status: na(s.JobRequest?.job_status),
+        vessel_name: na(s.JobRequest?.Vessel?.vessel_name),
+        imo_number: na(s.JobRequest?.Vessel?.imo_number),
+        surveyor_name: na(s.User?.name),
+        surveyor_email: na(s.User?.email),
     };
 };
 
@@ -85,15 +85,15 @@ export const flatSupportTicketListRow = (row) => {
     const t = toPlain(row);
     return {
         id: t.id,
-        ticket_number: t.ticket_number,
-        subject: t.subject,
-        priority: t.priority,
-        status: t.status,
-        category: t.category,
+        ticket_number: na(t.ticket_number),
+        subject: na(t.subject),
+        priority: na(t.priority),
+        status: na(t.status),
+        category: na(t.category),
         user_id: t.user_id,
-        created_at: t.created_at,
-        creator_name: t.Creator?.name ?? null,
-        creator_email: t.Creator?.email ?? null,
+        created_at: na(t.created_at),
+        creator_name: na(t.Creator?.name),
+        creator_email: na(t.Creator?.email),
     };
 };
 
@@ -101,69 +101,99 @@ export const flatContactEnquiryListRow = (row) => {
     const e = toPlain(row);
     return {
         id: e.id,
-        full_name: e.full_name,
-        company: e.company,
-        corporate_email: e.corporate_email,
-        phone: e.phone,
-        subject: e.subject,
-        source_page: e.source_page,
-        status: e.status,
-        internal_note: e.internal_note,
-        replied_by: e.replied_by,
-        replied_at: e.replied_at,
-        created_at: e.created_at,
-        responder_name: e.Responder?.name ?? null,
-        responder_email: e.Responder?.email ?? null,
+        full_name: na(e.full_name),
+        company: na(e.company),
+        corporate_email: na(e.corporate_email),
+        phone: na(e.phone),
+        subject: na(e.subject),
+        source_page: na(e.source_page),
+        status: na(e.status),
+        internal_note: na(e.internal_note),
+        replied_by: na(e.replied_by),
+        replied_at: na(e.replied_at),
+        created_at: na(e.created_at),
+        responder_name: na(e.Responder?.name),
+        responder_email: na(e.Responder?.email),
+    };
+};
+
+/** Flat vessel block for activity request list/detail (no nested Sequelize objects). */
+export const flatActivityRequestVesselBlock = (vessel) => {
+    const v = vessel ? toPlain(vessel) : null;
+    return {
+        id: na(v?.id),
+        vessel_name: na(v?.vessel_name),
+        imo_number: na(v?.imo_number),
+        call_sign: na(v?.call_sign),
+        mmsi_number: na(v?.mmsi_number),
+        port_of_registry: na(v?.port_of_registry),
+        year_built: na(v?.year_built),
+        ship_type: na(v?.ship_type),
+        gross_tonnage: na(v?.gross_tonnage),
+        net_tonnage: na(v?.net_tonnage),
+        deadweight: na(v?.deadweight),
+        class_status: na(v?.class_status),
+        current_class_society: na(v?.current_class_society),
+        engine_type: na(v?.engine_type),
+        flag_state: na(v?.FlagAdministration?.flag_state_name),
+        company_name: na(v?.Client?.company_name),
+        company_code: na(v?.Client?.company_code),
     };
 };
 
 export const flatActivityRequestListRow = (row) => {
     const a = toPlain(row);
+    const vessel = flatActivityRequestVesselBlock(a.Vessel);
     return {
         id: a.id,
-        request_number: a.request_number,
-        activity_type: a.activity_type,
-        requested_service: a.requested_service,
-        proposed_date: a.proposed_date,
-        status: a.status,
-        vessel_id: a.vessel_id,
-        created_at: a.created_at,
-        vessel_name: a.Vessel?.vessel_name ?? null,
-        imo_number: a.Vessel?.imo_number ?? null,
-        linked_job_id: a.LinkedJob?.id ?? null,
-        linked_job_status: a.LinkedJob?.job_status ?? null,
+        request_number: na(a.request_number),
+        activity_type: na(a.activity_type),
+        requested_service: na(a.requested_service),
+        proposed_date: na(a.proposed_date),
+        status: na(a.status),
+        vessel_id: na(a.vessel_id),
+        created_at: na(a.created_at),
+        vessel_name: vessel.vessel_name,
+        imo_number: vessel.imo_number,
+        ship_type: vessel.ship_type,
+        class_status: vessel.class_status,
+        flag_state: vessel.flag_state,
+        company_name: vessel.company_name,
+        vessel,
+        linked_job_id: na(a.linked_job_id ?? a.LinkedJob?.id),
+        linked_job_status: na(a.LinkedJob?.job_status),
+        linked_job_request_number: na(a.LinkedJob?.job_request_number),
     };
 };
 
 export const flatActivityRequestDetailRow = (row) => {
     const a = toPlain(row);
+    const vessel = flatActivityRequestVesselBlock(a.Vessel);
     return {
         id: a.id,
-        request_number: a.request_number,
-        activity_type: a.activity_type,
-        requested_service: a.requested_service,
-        proposed_date: a.proposed_date,
-        status: a.status,
-        vessel_id: a.vessel_id,
-        requested_by: a.requested_by,
-        priority: a.priority,
-        description: a.description,
-        location_port: a.location_port,
-        linked_job_id: a.linked_job_id,
-        rejection_reason: a.rejection_reason,
+        request_number: na(a.request_number),
+        activity_type: na(a.activity_type),
+        requested_service: na(a.requested_service),
+        proposed_date: na(a.proposed_date),
+        status: na(a.status),
+        vessel_id: na(a.vessel_id),
+        requested_by: na(a.requested_by),
+        priority: na(a.priority),
+        description: na(a.description),
+        location_port: na(a.location_port),
+        linked_job_id: na(a.linked_job_id ?? a.LinkedJob?.id),
+        rejection_reason: na(a.rejection_reason),
         attachments: a.attachments ?? [],
-        created_at: a.created_at,
-        updated_at: a.updated_at,
-        vessel_name: a.Vessel?.vessel_name ?? null,
-        imo_number: a.Vessel?.imo_number ?? null,
-        requester_name: a.Requester?.name ?? null,
-        requester_email: a.Requester?.email ?? null,
-        LinkedJob: a.LinkedJob ? {
-            id: a.LinkedJob.id,
-            job_status: a.LinkedJob.job_status,
-            reason: a.LinkedJob.reason ?? null,
-            job_request_number: a.LinkedJob.job_request_number ?? null,
-        } : null,
+        created_at: na(a.created_at),
+        updated_at: na(a.updated_at),
+        vessel_name: vessel.vessel_name,
+        imo_number: vessel.imo_number,
+        requester_name: na(a.Requester?.name),
+        requester_email: na(a.Requester?.email),
+        vessel,
+        linked_job_status: na(a.LinkedJob?.job_status),
+        linked_job_reason: na(a.LinkedJob?.reason),
+        linked_job_request_number: na(a.LinkedJob?.job_request_number),
     };
 };
 
@@ -171,19 +201,19 @@ export const flatChangeRequestListRow = (row) => {
     const cr = toPlain(row);
     return {
         id: cr.id,
-        entity_type: cr.entity_type,
+        entity_type: na(cr.entity_type),
         entity_id: cr.entity_id,
-        change_description: cr.change_description,
-        status: cr.status,
-        priority: cr.priority,
+        change_description: na(cr.change_description),
+        status: na(cr.status),
+        priority: na(cr.priority),
         requested_by: cr.requested_by,
-        approved_by: cr.approved_by,
-        approved_at: cr.approved_at,
-        createdAt: cr.createdAt,
-        requester_name: cr.requester?.name ?? null,
-        requester_email: cr.requester?.email ?? null,
-        approver_name: cr.approver?.name ?? null,
-        approver_email: cr.approver?.email ?? null,
+        approved_by: na(cr.approved_by),
+        approved_at: na(cr.approved_at),
+        createdAt: na(cr.createdAt),
+        requester_name: na(cr.requester?.name),
+        requester_email: na(cr.requester?.email),
+        approver_name: na(cr.approver?.name),
+        approver_email: na(cr.approver?.email),
     };
 };
 
@@ -191,9 +221,9 @@ export const flatSearchVesselRow = (row) => {
     const v = toPlain(row);
     return {
         id: v.id,
-        vessel_name: v.vessel_name,
-        imo_number: v.imo_number,
-        client_id: v.client_id,
+        vessel_name: na(v.vessel_name),
+        imo_number: na(v.imo_number),
+        client_id: na(v.client_id),
     };
 };
 
@@ -201,11 +231,11 @@ export const flatSearchJobRow = (row) => {
     const j = toPlain(row);
     return {
         id: j.id,
-        job_status: j.job_status,
+        job_status: na(j.job_status),
         vessel_id: j.vessel_id,
-        created_at: j.createdAt,
-        vessel_name: j.Vessel?.vessel_name ?? null,
-        imo_number: j.Vessel?.imo_number ?? null,
+        created_at: na(j.createdAt),
+        vessel_name: na(j.Vessel?.vessel_name),
+        imo_number: na(j.Vessel?.imo_number),
     };
 };
 
@@ -213,10 +243,10 @@ export const flatSearchCertificateRow = (row) => {
     const c = toPlain(row);
     return {
         id: c.id,
-        certificate_number: c.certificate_number,
+        certificate_number: na(c.certificate_number),
         vessel_id: c.vessel_id,
-        status: c.status,
-        expiry_date: c.expiry_date,
+        status: na(c.status),
+        expiry_date: na(c.expiry_date),
     };
 };
 
@@ -226,16 +256,16 @@ export const flatFeedbackListRow = (row) => {
         id: f.id,
         job_id: f.job_id,
         client_id: f.client_id,
-        rating: f.rating,
-        timeliness: f.timeliness,
-        professionalism: f.professionalism,
-        documentation: f.documentation,
-        remarks: f.remarks,
-        submitted_at: f.submitted_at,
-        job_request_number: f.JobRequest?.job_request_number ?? null,
-        client_name: f.Client?.name ?? null,
-        client_email: f.Client?.email ?? null,
-        company_name: f.Client?.Client?.company_name ?? null,
+        rating: na(f.rating),
+        timeliness: na(f.timeliness),
+        professionalism: na(f.professionalism),
+        documentation: na(f.documentation),
+        remarks: na(f.remarks),
+        submitted_at: na(f.submitted_at),
+        job_request_number: na(f.JobRequest?.job_request_number),
+        client_name: na(f.Client?.name),
+        client_email: na(f.Client?.email),
+        company_name: na(f.Client?.Client?.company_name),
     };
 };
 
@@ -243,14 +273,14 @@ export const flatAuditLogListRow = (row) => {
     const l = toPlain(row);
     return {
         id: l.id,
-        user_id: l.user_id,
-        action: l.action,
-        entity_name: l.entity_name,
-        entity_id: l.entity_id,
-        created_at: l.created_at,
-        user_name: l.User?.name ?? null,
-        user_email: l.User?.email ?? null,
-        user_role: l.User?.role ?? null,
+        user_id: na(l.user_id),
+        action: na(l.action),
+        entity_name: na(l.entity_name),
+        entity_id: na(l.entity_id),
+        created_at: na(l.created_at),
+        user_name: na(l.User?.name),
+        user_email: na(l.User?.email),
+        user_role: na(l.User?.role),
     };
 };
 
@@ -258,14 +288,14 @@ export const flatVesselListRow = (row) => {
     const v = toPlain(row);
     return {
         id: v.id,
-        vessel_name: v.vessel_name ?? 'N/A',
-        imo_number: v.imo_number ?? 'N/A',
-        ship_type: v.ship_type ?? 'N/A',
-        class_status: v.class_status ?? 'N/A',
-        created_at: v.created_at ?? 'N/A',
-        flag_state: v.FlagAdministration?.flag_state_name ?? 'N/A',
-        company_name: v.Client?.company_name ?? 'N/A',
-        company_code: v.Client?.company_code ?? 'N/A',
+        vessel_name: na(v.vessel_name),
+        imo_number: na(v.imo_number),
+        ship_type: na(v.ship_type),
+        class_status: na(v.class_status),
+        created_at: na(v.created_at),
+        flag_state: na(v.FlagAdministration?.flag_state_name),
+        company_name: na(v.Client?.company_name),
+        company_code: na(v.Client?.company_code),
     };
 };
 
@@ -273,11 +303,11 @@ export const flatClientListRow = (row) => {
     const c = toPlain(row);
     return {
         id: c.id,
-        company_name: c.company_name,
-        company_code: c.company_code,
-        status: c.status,
-        email: c.email,
-        created_at: c.created_at,
+        company_name: na(c.company_name),
+        company_code: na(c.company_code),
+        status: na(c.status),
+        email: na(c.email),
+        created_at: na(c.created_at),
         has_user: !!(c.Users && c.Users.length > 0),
     };
 };
@@ -287,8 +317,8 @@ export const flatNcListRow = (row) => {
     return {
         id: n.id,
         job_id: n.job_id,
-        severity: n.severity,
-        status: n.status,
-        created_at: n.created_at,
+        severity: na(n.severity),
+        status: na(n.status),
+        created_at: na(n.created_at),
     };
 };

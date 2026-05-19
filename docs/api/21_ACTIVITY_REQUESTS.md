@@ -124,8 +124,8 @@
     "priority": "HIGH",
     "description": "Annual safety inspection required...",
     "location_port": "Dubai Port, Jebel Ali",
-    "linked_job_id": null,
-    "rejection_reason": null,
+    "linked_job_id": "N/A",
+    "rejection_reason": "N/A",
     "attachments": [
       {
         "filename": "supporting-doc.pdf",
@@ -136,9 +136,30 @@
     "updated_at": "2026-03-05T18:00:00.000Z",
     "vessel_name": "MV Star",
     "imo_number": "1234567",
+    "vessel": {
+      "id": "019514a2-7e3b-7000-8000-000000000005",
+      "vessel_name": "MV Star",
+      "imo_number": "1234567",
+      "call_sign": "9V1234",
+      "mmsi_number": "563123456",
+      "port_of_registry": "Singapore",
+      "year_built": "2010",
+      "ship_type": "Bulk Carrier",
+      "gross_tonnage": "45000",
+      "net_tonnage": "28000",
+      "deadweight": "82000",
+      "class_status": "ACTIVE",
+      "current_class_society": "GR Class",
+      "engine_type": "Diesel",
+      "flag_state": "Singapore",
+      "company_name": "Pacific Shipping Ltd",
+      "company_code": "PAC-001"
+    },
     "requester_name": "Client User",
     "requester_email": "ops@pacific.com",
-    "LinkedJob": null
+    "linked_job_status": "N/A",
+    "linked_job_reason": "N/A",
+    "linked_job_request_number": "N/A"
   }
 }
 ```

@@ -30,6 +30,50 @@ ActivityRequestCreateRequest:
         type: string
         format: uri
 
+ActivityRequestVesselBlock:
+  type: object
+  description: Flat vessel summary for activity request screens (all fields `N/A` when no vessel linked).
+  properties:
+    id:
+      type: string
+      description: Vessel UUID, or `N/A`
+    vessel_name:
+      type: string
+    imo_number:
+      type: string
+    call_sign:
+      type: string
+    mmsi_number:
+      type: string
+    port_of_registry:
+      type: string
+    year_built:
+      type: string
+      description: Build year, or `N/A`
+    ship_type:
+      type: string
+    gross_tonnage:
+      type: string
+    net_tonnage:
+      type: string
+    deadweight:
+      type: string
+    class_status:
+      type: string
+      enum: [ACTIVE, SUSPENDED, WITHDRAWN, N/A]
+    current_class_society:
+      type: string
+    engine_type:
+      type: string
+    flag_state:
+      type: string
+      description: Flag administration name, or `N/A`
+    company_name:
+      type: string
+      description: Owner/client company, or `N/A`
+    company_code:
+      type: string
+
 ActivityRequestSummary:
   type: object
   properties:
@@ -47,8 +91,38 @@ ActivityRequestSummary:
     status:
       type: string
       enum: [PENDING, APPROVED, REJECTED, CONVERTED_TO_JOB, DRAFT]
-    Vessel:
-      $ref: '#/components/schemas/VesselSummary'
+    vessel_id:
+      type: string
+      description: UUID when set; otherwise `N/A`
+    vessel_name:
+      type: string
+      description: Vessel name, or `N/A`
+    imo_number:
+      type: string
+      description: IMO number, or `N/A`
+    ship_type:
+      type: string
+      description: Vessel type, or `N/A`
+    class_status:
+      type: string
+      description: Class status, or `N/A`
+    flag_state:
+      type: string
+      description: Flag state name, or `N/A`
+    company_name:
+      type: string
+      description: Owner company, or `N/A`
+    vessel:
+      $ref: '#/components/schemas/ActivityRequestVesselBlock'
+    linked_job_id:
+      type: string
+      description: UUID when linked; otherwise `N/A`
+    linked_job_status:
+      type: string
+      description: Linked job status, or `N/A`
+    linked_job_request_number:
+      type: string
+      description: Linked job number, or `N/A`
     created_at:
       type: string
       format: date-time
@@ -69,11 +143,11 @@ ActivityRequestDetailResponse:
         location_port:
           type: string
         linked_job_id:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
+          type: string
+          description: UUID when linked; otherwise `N/A`
         rejection_reason:
           type: string
-          nullable: true
+          description: Rejection text, or `N/A` when not rejected
         attachments:
           type: array
           items:
@@ -83,25 +157,30 @@ ActivityRequestDetailResponse:
               signedUrl: { type: string, format: uri }
         requester_name:
           type: string
-          nullable: true
+          description: Display name, or `N/A`
         requester_email:
           type: string
-          nullable: true
+          description: Email, or `N/A`
         vessel_name:
           type: string
-          nullable: true
+          description: Vessel name, or `N/A`
         imo_number:
           type: string
-          nullable: true
+          description: IMO number, or `N/A`
+        vessel:
+          $ref: '#/components/schemas/ActivityRequestVesselBlock'
         updated_at:
           type: string
           format: date-time
-        LinkedJob:
-          type: object
-          properties:
-            id: { type: string, format: uuid }
-            job_status: { type: string }
-            reason: { type: string }
+        linked_job_status:
+          type: string
+          description: Linked job status, or `N/A`
+        linked_job_reason:
+          type: string
+          description: Linked job reason, or `N/A`
+        linked_job_request_number:
+          type: string
+          description: Linked job number, or `N/A`
 
 ChangeRequestResponse:
   type: object

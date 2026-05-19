@@ -108,7 +108,7 @@
                 id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
                 request_number: "AR-2026-0001"
                 requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
-                vessel_id: null
+                vessel_id: "N/A"
                 activity_type: "INSPECTION"
                 requested_service: "Annual Survey"
                 priority: "MEDIUM"
@@ -116,13 +116,36 @@
                 location_port: "Port of Singapore"
                 proposed_date: "2026-05-15T00:00:00.000Z"
                 status: "PENDING"
-                linked_job_id: null
-                rejection_reason: null
+                linked_job_id: "N/A"
+                rejection_reason: "N/A"
                 attachments: []
-                createdAt: "2026-04-12T13:44:40.000Z"
-                updatedAt: "2026-04-12T13:44:40.000Z"
-                Vessel: null
-                LinkedJob: null
+                created_at: "2026-04-12T13:44:40.000Z"
+                updated_at: "2026-04-12T13:44:40.000Z"
+                vessel_name: "N/A"
+                imo_number: "N/A"
+                vessel:
+                  id: "N/A"
+                  vessel_name: "N/A"
+                  imo_number: "N/A"
+                  call_sign: "N/A"
+                  mmsi_number: "N/A"
+                  port_of_registry: "N/A"
+                  year_built: "N/A"
+                  ship_type: "N/A"
+                  gross_tonnage: "N/A"
+                  net_tonnage: "N/A"
+                  deadweight: "N/A"
+                  class_status: "N/A"
+                  current_class_society: "N/A"
+                  engine_type: "N/A"
+                  flag_state: "N/A"
+                  company_name: "N/A"
+                  company_code: "N/A"
+                requester_name: "N/A"
+                requester_email: "N/A"
+                linked_job_status: "N/A"
+                linked_job_reason: "N/A"
+                linked_job_request_number: "N/A"
       "403": { description: Forbidden }
       "404": { description: Not found }
 
@@ -166,7 +189,7 @@
                 id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
                 request_number: "AR-2026-0001"
                 requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
-                vessel_id: null
+                vessel_id: "N/A"
                 activity_type: "INSPECTION"
                 requested_service: "Annual Survey"
                 priority: "MEDIUM"
@@ -174,9 +197,34 @@
                 location_port: "Port of Singapore"
                 proposed_date: "2026-05-15T00:00:00.000Z"
                 status: "APPROVED"
-                linked_job_id: null
-                rejection_reason: null
+                linked_job_id: "N/A"
+                rejection_reason: "N/A"
                 attachments: []
-                createdAt: "2026-04-12T13:44:40.000Z"
-                updatedAt: "2026-04-12T13:44:42.349Z"
+                created_at: "2026-04-12T13:44:40.000Z"
+                updated_at: "2026-04-12T13:44:42.349Z"
+                vessel_name: "N/A"
+                imo_number: "N/A"
+                vessel:
+                  id: "N/A"
+                  vessel_name: "N/A"
+                  imo_number: "N/A"
+                  call_sign: "N/A"
+                  mmsi_number: "N/A"
+                  port_of_registry: "N/A"
+                  year_built: "N/A"
+                  ship_type: "N/A"
+                  gross_tonnage: "N/A"
+                  net_tonnage: "N/A"
+                  deadweight: "N/A"
+                  class_status: "N/A"
+                  current_class_society: "N/A"
+                  engine_type: "N/A"
+                  flag_state: "N/A"
+                  company_name: "N/A"
+                  company_code: "N/A"
+                requester_name: "N/A"
+                requester_email: "N/A"
+                linked_job_status: "N/A"
+                linked_job_reason: "N/A"
+                linked_job_request_number: "N/A"
       "403": { description: Forbidden }
