@@ -57,15 +57,15 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
     const where = { ...filters, ...scopeFilters };
 
     const flatVessel = (v) => ({
-        id: v.id,
-        vessel_name: v.vessel_name,
-        imo_number: v.imo_number,
-        ship_type: v.ship_type,
-        class_status: v.class_status,
-        created_at: v.created_at,
-        flag_state: v.FlagAdministration?.flag_state_name || null,
-        company_name: v.Client?.company_name || null,
-        company_code: v.Client?.company_code || null
+        id: v.id || 'N/A',
+        vessel_name: v.vessel_name || 'N/A',
+        imo_number: v.imo_number || 'N/A',
+        ship_type: v.ship_type || 'N/A',
+        class_status: v.class_status || 'N/A',
+        created_at: v.created_at || 'N/A',
+        flag_state: v.FlagAdministration?.flag_state_name || 'N/A',
+        company_name: v.Client?.company_name || 'N/A',
+        company_code: v.Client?.company_code || 'N/A'
     });
 
     const { count, rows } = await Vessel.findAndCountAll({
