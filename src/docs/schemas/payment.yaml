@@ -18,6 +18,16 @@ PaymentResponse:
       type: string
       format: date-time
       nullable: true
+      description: Set when invoice is fully paid (detail responses).
+    created_at:
+      type: string
+      format: date-time
+      description: Invoice created at (list).
+    paid_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Full settlement date; null until payment_status is PAID (list).
     receipt_url:
       type: string
       format: uri
@@ -38,12 +48,10 @@ PaymentResponse:
     remaining:
       type: string
       description: Remaining amount to be collected
-    created_at:
-      type: string
-      format: date-time
     updated_at:
       type: string
       format: date-time
+      description: Detail responses only
     JobRequest:
       type: object
       properties:

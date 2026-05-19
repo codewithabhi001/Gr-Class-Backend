@@ -2,6 +2,9 @@
 
 export const toPlain = (row) => (row?.get ? row.get({ plain: true }) : row ?? {});
 
+/** Display null/empty as N/A in flat list rows. */
+export const na = (value) => (value == null || value === '') ? 'N/A' : value;
+
 export const flatCertificateListRow = (row) => {
     const c = toPlain(row);
     return {
@@ -59,24 +62,23 @@ export const flatSurveyReportListRow = (row) => {
 export const flatPaymentListRow = (row) => {
     const p = toPlain(row);
     return {
-        id: p.id,
-        job_id: p.job_id,
-        invoice_number: p.invoice_number,
-        amount: p.amount,
-        currency: p.currency,
-        payment_status: p.payment_status,
-        payment_date: p.payment_date,
-        receipt_url: p.receipt_url,
-        verified_by_user_id: p.verified_by_user_id,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-        amount_collected: p.amount_collected,
-        amount_paid: p.amount_paid,
-        remaining: p.remaining,
-        net_amount: p.net_amount,
-        refunded_amount: p.refunded_amount,
-        vessel_name: p.JobRequest?.Vessel?.vessel_name ?? null,
-        job_status: p.JobRequest?.job_status ?? null,
+        id: na(p.id),
+        job_id: na(p.job_id),
+        job_request_number: na(p.JobRequest?.job_request_number),
+        invoice_number: na(p.invoice_number),
+        amount: na(p.amount),
+        currency: na(p.currency),
+        payment_status: na(p.payment_status),
+        created_at: na(p.created_at),
+        paid_at: p.payment_status === 'PAID' ? na(p.payment_date) : 'N/A',
+        receipt_url: na(p.receipt_url),
+        amount_collected: na(p.amount_collected),
+        amount_paid: na(p.amount_paid),
+        remaining: na(p.remaining),
+        net_amount: na(p.net_amount),
+        refunded_amount: na(p.refunded_amount),
+        vessel_name: na(p.JobRequest?.Vessel?.vessel_name),
+        job_status: na(p.JobRequest?.job_status),
     };
 };
 

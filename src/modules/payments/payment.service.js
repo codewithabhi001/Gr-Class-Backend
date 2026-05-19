@@ -203,15 +203,13 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
             'currency',
             'payment_status',
             'payment_date',
-            'verified_by_user_id',
             'created_at',
-            'updated_at'
         ],
         limit: parseInt(limit),
         offset: (page - 1) * limit,
         include: [{
             model: JobRequest,
-            attributes: ['id', 'job_status', 'vessel_id'],
+            attributes: ['id', 'job_request_number', 'job_status', 'vessel_id'],
             include: [{ model: Vessel, attributes: ['vessel_name'] }]
         }],
         order: [['created_at', 'DESC']]
