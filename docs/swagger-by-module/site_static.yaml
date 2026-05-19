@@ -24,6 +24,141 @@ components:
       bearerFormat: JWT
       description: 'JWT access token from login or refresh-token. Use in header: Authorization: Bearer &lt;accessToken&gt;'
   schemas:
+    ActivityRequestConvertToJobRequest:
+      type: object
+      required:
+        - certificate_type_id
+      description: "Same shape as job create, but only `certificate_type_id` is required.\n`vessel_id`, `target_port`, `target_date`, and `reason` default from the\nactivity request when omitted.\n"
+      properties:
+        certificate_type_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          description: 'Certificate type for the new job (required at conversion).'
+        vessel_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          description: 'Override activity `vessel_id` if needed.'
+        reason:
+          type: string
+          description: 'Job reason; defaults to requested_service + description.'
+        target_port:
+          type: string
+          description: 'Defaults to activity `location_port`.'
+        target_date:
+          type: string
+          format: date
+          description: 'Defaults to activity `proposed_date`.'
+        priority:
+          type: string
+          enum:
+            - LOW
+            - NORMAL
+            - HIGH
+            - URGENT
+          description: 'Defaults from activity priority (MEDIUM → NORMAL).'
+        remarks:
+          type: string
+          description: 'Job remarks; defaults to "Converted from {request_number}".'
+        uploaded_documents:
+          type: array
+          items:
+            type: object
+            required:
+              - required_document_id
+              - file_url
+            properties:
+              required_document_id:
+                $ref: '#/components/schemas/UUID'
+              file_url:
+                type: string
+    ActivityRequestConvertToJobResponse:
+      type: object
+      properties:
+        activity_request:
+          $ref: '#/components/schemas/ActivityRequestDetailResponse'
+        job:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            job_request_number:
+              type: string
+            job_status:
+              type: string
+            vessel_id:
+              $ref: '#/components/schemas/UUID'
+            certificate_type_id:
+              $ref: '#/components/schemas/UUID'
+            target_port:
+              type: string
+            target_date:
+              type: string
+              format: date
+            priority:
+              type: string
+            reason:
+              type: string
+            source_activity_request_id:
+              allOf:
+                -
+                  $ref: '#/components/schemas/UUID'
+              description: 'Back-reference to the originating activity request'
+    ActivityRequestListPaginatedResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 5
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityRequestSummary'
+    ActivityRequestStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+            - DRAFT
+          description: "Cannot be `CONVERTED_TO_JOB` — use `POST .../convert-to-job` instead.\n"
+        remarks:
+          type: string
+          description: 'Required meaningfully when `status` is `REJECTED`'
+    ActivityRequestApiEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ActivityRequestDetailResponse'
+    ActivityRequestConvertApiEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Activity request converted to job successfully'
+        data:
+          $ref: '#/components/schemas/ActivityRequestConvertToJobResponse'
     ActivityRequestCreateRequest:
       type: object
       required:
@@ -42,6 +177,7 @@ components:
             - AUDIT
             - TRAINING
             - VISIT
+            - SURVEY
             - OTHER
         requested_service:
           type: string
@@ -68,6 +204,53 @@ components:
           items:
             type: string
             format: uri
+    ActivityRequestVesselBlock:
+      type: object
+      description: 'Flat vessel summary for activity request screens (all fields `N/A` when no vessel linked).'
+      properties:
+        id:
+          type: string
+          description: 'Vessel UUID, or `N/A`'
+        vessel_name:
+          type: string
+        imo_number:
+          type: string
+        call_sign:
+          type: string
+        mmsi_number:
+          type: string
+        port_of_registry:
+          type: string
+        year_built:
+          type: string
+          description: 'Build year, or `N/A`'
+        ship_type:
+          type: string
+        gross_tonnage:
+          type: string
+        net_tonnage:
+          type: string
+        deadweight:
+          type: string
+        class_status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - WITHDRAWN
+            - N/A
+        current_class_society:
+          type: string
+        engine_type:
+          type: string
+        flag_state:
+          type: string
+          description: 'Flag administration name, or `N/A`'
+        company_name:
+          type: string
+          description: 'Owner/client company, or `N/A`'
+        company_code:
+          type: string
     ActivityRequestSummary:
       type: object
       properties:
@@ -90,8 +273,38 @@ components:
             - REJECTED
             - CONVERTED_TO_JOB
             - DRAFT
-        Vessel:
-          $ref: '#/components/schemas/VesselSummary'
+        vessel_id:
+          type: string
+          description: 'UUID when set; otherwise `N/A`'
+        vessel_name:
+          type: string
+          description: 'Vessel name, or `N/A`'
+        imo_number:
+          type: string
+          description: 'IMO number, or `N/A`'
+        ship_type:
+          type: string
+          description: 'Vessel type, or `N/A`'
+        class_status:
+          type: string
+          description: 'Class status, or `N/A`'
+        flag_state:
+          type: string
+          description: 'Flag state name, or `N/A`'
+        company_name:
+          type: string
+          description: 'Owner company, or `N/A`'
+        vessel:
+          $ref: '#/components/schemas/ActivityRequestVesselBlock'
+        linked_job_id:
+          type: string
+          description: 'UUID when linked; otherwise `N/A`'
+        linked_job_status:
+          type: string
+          description: 'Linked job status, or `N/A`'
+        linked_job_request_number:
+          type: string
+          description: 'Linked job number, or `N/A`'
         created_at:
           type: string
           format: date-time
@@ -113,29 +326,44 @@ components:
             location_port:
               type: string
             linked_job_id:
-              $ref: '#/components/schemas/UUID'
-              nullable: true
+              type: string
+              description: 'UUID when linked; otherwise `N/A`'
             rejection_reason:
               type: string
-              nullable: true
+              description: 'Rejection text, or `N/A` when not rejected'
             attachments:
               type: array
               items:
-                type: string
-                format: uri
+                type: object
+                properties:
+                  filename: {type: string}
+                  signedUrl: {type: string, format: uri}
+            requester_name:
+              type: string
+              description: 'Display name, or `N/A`'
+            requester_email:
+              type: string
+              description: 'Email, or `N/A`'
+            vessel_name:
+              type: string
+              description: 'Vessel name, or `N/A`'
+            imo_number:
+              type: string
+              description: 'IMO number, or `N/A`'
+            vessel:
+              $ref: '#/components/schemas/ActivityRequestVesselBlock'
             updated_at:
               type: string
               format: date-time
-            LinkedJob:
-              type: object
-              properties:
-                id:
-                  type: string
-                  format: uuid
-                job_status:
-                  type: string
-                reason:
-                  type: string
+            linked_job_status:
+              type: string
+              description: 'Linked job status, or `N/A`'
+            linked_job_reason:
+              type: string
+              description: 'Linked job reason, or `N/A`'
+            linked_job_request_number:
+              type: string
+              description: 'Linked job number, or `N/A`'
     ChangeRequestResponse:
       type: object
       properties:
@@ -627,8 +855,6 @@ components:
           properties:
             flag_state_name:
               type: string
-        Authority:
-          $ref: '#/components/schemas/CertificateAuthorityResponse'
         source_type:
           type: string
           enum:
@@ -807,8 +1033,6 @@ components:
           minimum: 1
           maximum: 5
           default: 1
-        certificate_authority_id:
-          $ref: '#/components/schemas/UUID'
         flag_administration_id:
           $ref: '#/components/schemas/UUID'
         certificate_term:
@@ -878,75 +1102,10 @@ components:
       example:
         document_name: 'Registry Certificate (Updated)'
         is_mandatory: false
-    CertificateAuthorityResponse:
-      type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        name:
-          type: string
-        code:
-          type: string
-        country:
-          type: string
-        logo_url:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum:
-            - ACTIVE
-            - INACTIVE
-    CreateCertificateAuthorityRequest:
-      type: object
-      required:
-        - name
-        - code
-        - country
-      properties:
-        name:
-          type: string
-        code:
-          type: string
-        country:
-          type: string
-        logo_url:
-          type: string
-        status:
-          type: string
-          enum:
-            - ACTIVE
-            - INACTIVE
-      example:
-        name: 'Liberian Registry'
-        code: LISCR
-        country: Liberia
-        logo_url: authorities/logos/liscr.png
-        status: ACTIVE
-    UpdateCertificateAuthorityRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        code:
-          type: string
-        country:
-          type: string
-        logo_url:
-          type: string
-        status:
-          type: string
-          enum:
-            - ACTIVE
-            - INACTIVE
-      example:
-        logo_url: authorities/logos/new-logo.png
     UpdateCertificateDraftRequest:
       type: object
       properties:
         flag_administration_id:
-          $ref: '#/components/schemas/UUID'
-        certificate_authority_id:
           $ref: '#/components/schemas/UUID'
         certificate_term:
           type: string
@@ -973,8 +1132,6 @@ components:
         - s3_key
       properties:
         certificate_type_id:
-          $ref: '#/components/schemas/UUID'
-        certificate_authority_id:
           $ref: '#/components/schemas/UUID'
         certificate_number:
           type: string
@@ -1619,6 +1776,26 @@ components:
         created_at:
           type: string
           format: date-time
+        JobRequest:
+          type: object
+          properties:
+            job_request_number:
+              type: string
+        Client:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+            Client:
+              type: object
+              properties:
+                company_name:
+                  type: string
     CustomerFeedbackListItem:
       type: object
       properties:
@@ -1636,6 +1813,11 @@ components:
         created_at:
           type: string
           format: date-time
+        JobRequest:
+          type: object
+          properties:
+            job_request_number:
+              type: string
         Client:
           type: object
           properties:
@@ -1644,6 +1826,13 @@ components:
               format: uuid
             name:
               type: string
+            email:
+              type: string
+            Client:
+              type: object
+              properties:
+                company_name:
+                  type: string
     CustomerFeedbackListResponse:
       type: object
       properties:
@@ -1695,6 +1884,9 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          example: GRJ-B1C2D3E4
         job_status:
           type: string
         vessel_id:
@@ -1708,6 +1900,27 @@ components:
           format: date
         priority:
           type: string
+        source_activity_request_id:
+          allOf:
+            -
+              $ref: '#/components/schemas/UUID'
+          nullable: true
+          description: 'Set when the job was created from an activity request conversion'
+        source_activity_request:
+          type: object
+          nullable: true
+          description: 'Present on job detail when converted from an activity request'
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            request_number:
+              type: string
+            status:
+              type: string
+            activity_type:
+              type: string
+            requested_service:
+              type: string
         createdAt:
           type: string
           format: date-time
@@ -1778,6 +1991,9 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          example: GRJ-B1C2D3E4
         vessel_id:
           $ref: '#/components/schemas/UUID'
         requested_by_user_id:
@@ -1927,6 +2143,28 @@ components:
               type: string
             role:
               type: string
+        uploaded_documents:
+          type: array
+          description: 'Job supporting documents with signed download URLs.'
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/UUID'
+              document_type:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              createdAt:
+                type: string
+                format: date-time
+              filename:
+                type: string
+              signedUrl:
+                type: string
+                format: uri
       example:
         id: 019d3ac5-3464-74f9-891e-f6eda7ee366c
         job_status: ASSIGNED
@@ -2453,10 +2691,16 @@ components:
           type: string
           format: date-time
           nullable: true
-        receipt_url:
+          description: 'Set when invoice is fully paid (detail responses).'
+        created_at:
           type: string
-          format: uri
+          format: date-time
+          description: 'Invoice created at (list).'
+        paid_at:
+          type: string
+          format: date-time
           nullable: true
+          description: 'Full settlement date; null until payment_status is PAID (list).'
         verified_by_user_id:
           $ref: '#/components/schemas/UUID'
           nullable: true
@@ -2472,12 +2716,10 @@ components:
         remaining:
           type: string
           description: 'Remaining amount to be collected'
-        created_at:
-          type: string
-          format: date-time
         updated_at:
           type: string
           format: date-time
+          description: 'Detail responses only'
         JobRequest:
           type: object
           properties:
@@ -2992,15 +3234,52 @@ components:
           type: integer
         cvKey:
           type: string
-          description: 'S3 key for CV document'
+          description: 'S3 key or base64 data for CV document'
         idProofKey:
           type: string
-          description: 'S3 key for ID proof'
+          description: 'S3 key or base64 data for ID proof'
         certificateKeys:
           type: array
           items:
             type: string
-          description: 'S3 keys for other certificates'
+          description: 'S3 keys or base64 data for other certificates'
+    SurveyorApplyMultipartRequest:
+      type: object
+      required:
+        - full_name
+        - email
+        - phone
+        - nationality
+        - qualification
+        - years_of_experience
+      properties:
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        nationality:
+          type: string
+        qualification:
+          type: string
+        years_of_experience:
+          type: integer
+        cv:
+          type: string
+          format: binary
+          description: 'CV document file to upload (Max 2MB)'
+        id_proof:
+          type: string
+          format: binary
+          description: 'ID proof document file to upload (Max 2MB)'
+        certificates:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: 'Other certificate documents to upload (Max 2MB each)'
     SurveyorProfileUpdateRequest:
       type: object
       properties:
@@ -3697,6 +3976,17 @@ components:
               properties:
                 flag_state_name:
                   type: string
+            uploaded_documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: {$ref: '#/components/schemas/UUID'}
+                  document_type: {type: string}
+                  description: {type: string, nullable: true}
+                  createdAt: {type: string, format: date-time}
+                  filename: {type: string}
+                  signedUrl: {type: string, format: uri}
       example:
         id: 019ccbf7-f67a-7443-bd21-17f16ef06cbb
         client_id: 019c79a4-3ab9-7055-a1a7-9d7332fb025e
@@ -3725,314 +4015,27 @@ components:
           status: INACTIVE
         FlagAdministration:
           flag_state_name: 'Marshall Islands Maritime Administrator'
-    WebsiteVideo:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          example: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-        section:
-          type: string
-          example: HOME
-          description: 'Section of the website where the video belongs (e.g., HOME, PORTFOLIO)'
-        title:
-          type: string
-          example: 'Introduction Video'
-        description:
-          type: string
-          example: 'A brief introduction to our services.'
-        video_url:
-          type: string
-          format: uri
-          nullable: true
-          example: 'https://bucket.s3.region.amazonaws.com/website/videos/video.mp4'
-        thumbnail_url:
-          type: string
-          format: uri
-          example: 'https://bucket.s3.region.amazonaws.com/website/videos/thumb.jpg'
-        uploaded_by:
-          type: string
-          format: uuid
-          example: 01933c5e-user-id
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    WebsiteVideoListItem:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        section:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        video_url:
-          type: string
-          format: uri
-          nullable: true
-        thumbnail_url:
-          type: string
-          format: uri
-        created_at:
-          type: string
-          format: date-time
-    WebsiteVideoInput:
-      type: object
-      required:
-        - section
-      properties:
-        section:
-          type: string
-          example: HOME
-        title:
-          type: string
-          example: 'New Video Title'
-        description:
-          type: string
-          example: 'Description of the video'
-        thumbnail_url:
-          type: string
-          example: 'https://example.com/thumb.jpg'
-    WebsiteContact:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-        full_name:
-          type: string
-          example: 'John Maritime'
-        company:
-          type: string
-          example: 'Pacific Shipping Co. Ltd'
-        corporate_email:
-          type: string
-          format: email
-          example: john@pacificshipping.com
-        message:
-          type: string
-          example: 'We are interested in classification services for our fleet.'
-        phone:
-          type: string
-          example: '+91 98765 43210'
-        subject:
-          type: string
-          example: 'Fleet Classification Inquiry'
-        status:
-          type: string
-          enum:
-            - NEW
-            - READ
-            - REPLIED
-            - ARCHIVED
-          example: NEW
-        internal_note:
-          type: string
-          nullable: true
-          example: 'Responded via email on 20 Feb 2026.'
-        replied_by:
-          type: string
-          format: uuid
-          nullable: true
-        replied_at:
-          type: string
-          format: date-time
-          nullable: true
-        ip_address:
-          type: string
-          nullable: true
-          example: 192.168.1.1
-        source_page:
-          type: string
-          example: CONTACT
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        Responder:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: string
-              format: uuid
-            name:
-              type: string
-              example: 'Admin User'
-            email:
-              type: string
-              example: admin@grclass.com
-    WebsiteContactListItem:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        full_name:
-          type: string
-        company:
-          type: string
-          nullable: true
-        corporate_email:
-          type: string
-          format: email
-        phone:
-          type: string
-          nullable: true
-        subject:
-          type: string
-          nullable: true
-        source_page:
-          type: string
-        status:
-          type: string
-          enum:
-            - NEW
-            - READ
-            - REPLIED
-            - ARCHIVED
-        internal_note:
-          type: string
-          nullable: true
-        replied_by:
-          type: string
-          format: uuid
-          nullable: true
-        replied_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        Responder:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: string
-              format: uuid
-            name:
-              type: string
-            email:
-              type: string
-    WebsiteContactResponse:
-      type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        full_name:
-          type: string
-        company:
-          type: string
-          nullable: true
-        corporate_email:
-          type: string
-          format: email
-        message:
-          type: string
-        phone:
-          type: string
-          nullable: true
-        subject:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum:
-            - NEW
-            - READ
-            - REPLIED
-            - ARCHIVED
-        internal_note:
-          type: string
-          nullable: true
-        replied_by:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
-        replied_at:
-          type: string
-          format: date-time
-          nullable: true
-        ip_address:
-          type: string
-          nullable: true
-        source_page:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    WebsiteContactInput:
-      type: object
-      required:
-        - full_name
-        - corporate_email
-        - message
-      properties:
-        full_name:
-          type: string
-        company:
-          type: string
-        corporate_email:
-          type: string
-          format: email
-        message:
-          type: string
-        phone:
-          type: string
-        subject:
-          type: string
-        source_page:
-          type: string
-    WebsiteContactStatusUpdate:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - NEW
-            - READ
-            - REPLIED
-            - ARCHIVED
-        internal_note:
-          type: string
 paths:
-  /api/v1/website/static-content:
+  /api/v1/website/static-content/faq:
     get:
       tags:
         - Website
-      summary: 'List static content'
-      description: 'Retrieve all static pages/FAQs. Public only sees published.'
-      operationId: listStaticContent
-      security:
-        -
-          bearerAuth: []
+      summary: 'Get FAQ content'
+      description: 'Retrieve the hardcoded Frequently Asked Questions content.'
+      operationId: getFaqContent
       responses:
         '200':
-          description: 'List of static content'
+          description: 'FAQ content details'
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SiteStaticContent'
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {$ref: '#/components/schemas/SiteStaticContent'}
               example:
-                -
+                success: true
+                data:
                   id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
                   slug: new-vessel-launch-2026
                   title: 'GR-Class Class Launches Next-Gen Survey Platform'
@@ -4045,14 +4048,169 @@ paths:
                   updated_at: '2026-03-15T10:00:00.000Z'
                   created_at: '2026-03-15T10:00:00.000Z'
       x-roles:
-        - ADMIN
         - PUBLIC
+  /api/v1/website/static-content/news:
+    get:
+      tags:
+        - Website
+      summary: 'Get news articles'
+      description: 'Retrieve the list of hardcoded news articles.'
+      operationId: getNewsContent
+      responses:
+        '200':
+          description: 'List of news articles'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {type: array, items: {$ref: '#/components/schemas/SiteStaticContent'}}
+              example:
+                success: true
+                data:
+                  - {id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h, slug: new-vessel-launch-2026, title: 'GR-Class Class Launches Next-Gen Survey Platform', content_type: NEWS, body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>', thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg', faq_items: [{question: string, answer: string, sort_order: 1}], is_published: true, published_at: '2026-04-03T12:00:00Z', updated_at: '2026-03-15T10:00:00.000Z', created_at: '2026-03-15T10:00:00.000Z'}
+      x-roles:
+        - PUBLIC
+  /api/v1/website/static-content/privacy:
+    get:
+      tags:
+        - Website
+      summary: 'Get privacy policy content'
+      description: 'Retrieve the hardcoded Privacy and Regulatory Compliance Policy.'
+      operationId: getPrivacyContent
+      responses:
+        '200':
+          description: 'Privacy policy content details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {$ref: '#/components/schemas/SiteStaticContent'}
+              example:
+                success: true
+                data:
+                  id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
+                  slug: new-vessel-launch-2026
+                  title: 'GR-Class Class Launches Next-Gen Survey Platform'
+                  content_type: NEWS
+                  body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
+                  thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
+                  faq_items: [{question: string, answer: string, sort_order: 1}]
+                  is_published: true
+                  published_at: '2026-04-03T12:00:00Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
+                  created_at: '2026-03-15T10:00:00.000Z'
+      x-roles:
+        - PUBLIC
+  /api/v1/website/static-content/terms-compliance:
+    get:
+      tags:
+        - Website
+      summary: 'Get terms & compliance content'
+      description: 'Retrieve the hardcoded Terms and Conditions & Regulatory Compliance Statement.'
+      operationId: getTermsContent
+      responses:
+        '200':
+          description: 'Terms & compliance content details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {$ref: '#/components/schemas/SiteStaticContent'}
+              example:
+                success: true
+                data:
+                  id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
+                  slug: new-vessel-launch-2026
+                  title: 'GR-Class Class Launches Next-Gen Survey Platform'
+                  content_type: NEWS
+                  body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
+                  thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
+                  faq_items: [{question: string, answer: string, sort_order: 1}]
+                  is_published: true
+                  published_at: '2026-04-03T12:00:00Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
+                  created_at: '2026-03-15T10:00:00.000Z'
+      x-roles:
+        - PUBLIC
+  /api/v1/website/static-content/terms-and-conditions:
+    get:
+      tags:
+        - Website
+      summary: 'Get terms & conditions content (alias)'
+      description: 'Retrieve the hardcoded Terms and Conditions & Regulatory Compliance Statement.'
+      operationId: getTermsAliasContent
+      responses:
+        '200':
+          description: 'Terms & conditions content details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {$ref: '#/components/schemas/SiteStaticContent'}
+              example:
+                success: true
+                data:
+                  id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
+                  slug: new-vessel-launch-2026
+                  title: 'GR-Class Class Launches Next-Gen Survey Platform'
+                  content_type: NEWS
+                  body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
+                  thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
+                  faq_items: [{question: string, answer: string, sort_order: 1}]
+                  is_published: true
+                  published_at: '2026-04-03T12:00:00Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
+                  created_at: '2026-03-15T10:00:00.000Z'
+      x-roles:
+        - PUBLIC
+  /api/v1/website/static-content/about-us:
+    get:
+      tags:
+        - Website
+      summary: 'Get about-us content'
+      description: 'Retrieve the hardcoded About GR-Class content.'
+      operationId: getAboutUsContent
+      responses:
+        '200':
+          description: 'About-us content details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {$ref: '#/components/schemas/SiteStaticContent'}
+              example:
+                success: true
+                data:
+                  id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
+                  slug: new-vessel-launch-2026
+                  title: 'GR-Class Class Launches Next-Gen Survey Platform'
+                  content_type: NEWS
+                  body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
+                  thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
+                  faq_items: [{question: string, answer: string, sort_order: 1}]
+                  is_published: true
+                  published_at: '2026-04-03T12:00:00Z'
+                  updated_at: '2026-03-15T10:00:00.000Z'
+                  created_at: '2026-03-15T10:00:00.000Z'
+      x-roles:
+        - PUBLIC
+  /api/v1/website/static-content/admin:
     post:
       tags:
         - Website
       summary: 'Create static content (Admin Only)'
-      description: 'Create a new PAGE or FAQ entry.'
-      operationId: createStaticContent
+      description: 'Create a new static page/FAQ row by key.'
+      operationId: createStaticContentRow
       security:
         -
           bearerAuth: []
@@ -4061,95 +4219,55 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SiteStaticContentInput'
+              type: object
+              required:
+                - key
+                - title
+              properties:
+                key:
+                  type: string
+                  example: about-us
+                title:
+                  type: string
+                  example: 'About Us'
+                body_html:
+                  type: string
+                  example: '<p>About content...</p>'
+                faq_items:
+                  type: array
+                  items: {type: object}
+                news_items:
+                  type: array
+                  items: {type: object}
             example:
-              body_html: '<p>About content...</p>'
+              key: about-us
+              title: 'About Us'
       responses:
         '201':
-          description: 'Content created'
+          description: 'Created successfully'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SiteStaticContent'
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Request successful'}
               example:
-                id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
-                slug: new-vessel-launch-2026
-                title: 'GR-Class Class Launches Next-Gen Survey Platform'
-                content_type: NEWS
-                body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
-                thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
-                faq_items:
-                  - {question: string, answer: string, sort_order: 1}
-                is_published: true
-                published_at: '2026-04-03T12:00:00Z'
-                updated_at: '2026-03-15T10:00:00.000Z'
-                created_at: '2026-03-15T10:00:00.000Z'
+                success: true
+                message: 'Request successful'
       x-roles:
         - ADMIN
-  '/api/v1/website/static-content/{slug}':
-    get:
-      tags:
-        - Website
-      summary: 'Get specific static content'
-      description: 'Retrieve a single page/FAQ by its slug.'
-      operationId: getStaticContentBySlug
-      parameters:
-        -
-          in: path
-          name: slug
-          required: true
-          schema:
-            type: string
-          example: about-us
-      security:
-        -
-          bearerAuth: []
-      responses:
-        '200':
-          description: 'Content details'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SiteStaticContent'
-              example:
-                id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
-                slug: new-vessel-launch-2026
-                title: 'GR-Class Class Launches Next-Gen Survey Platform'
-                content_type: NEWS
-                body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
-                thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
-                faq_items:
-                  - {question: string, answer: string, sort_order: 1}
-                is_published: true
-                published_at: '2026-04-03T12:00:00Z'
-                updated_at: '2026-03-15T10:00:00.000Z'
-                created_at: '2026-03-15T10:00:00.000Z'
-        '404':
-          description: 'Not found'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error_code: VALIDATION_ERROR
-                message: 'Validation failed. Please correct the highlighted fields.'
-                errors:
-                  vessel_id: 'vessel_id is required'
-                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-      x-roles:
-        - ADMIN
-        - PUBLIC
+  '/api/v1/website/static-content/admin/{key}':
     put:
       tags:
         - Website
       summary: 'Update static content (Admin Only)'
-      description: 'Modify existing static content by slug.'
-      operationId: updateStaticContent
+      description: 'Edit an existing static page/FAQ row by key.'
+      operationId: updateStaticContentRow
       parameters:
         -
           in: path
-          name: slug
+          name: key
           required: true
           schema:
             type: string
@@ -4162,51 +4280,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SiteStaticContentInput'
-            example:
-              body_html: '<p>About content...</p>'
-      responses:
-        '200':
-          description: 'Content updated'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SiteStaticContent'
-              example:
-                id: 018f2a3b-7c4d-4e5f-9a1b-2c3d4e5f6g7h
-                slug: new-vessel-launch-2026
-                title: 'GR-Class Class Launches Next-Gen Survey Platform'
-                content_type: NEWS
-                body_html: '<h1>Strategic Launch</h1><p>GR-Class Class sets new industry benchmarks...</p>'
-                thumbnail_url: 'https://grclass.com/assets/news-thumb-001.jpg'
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: 'About Us'
+                body_html:
+                  type: string
+                  example: '<p>Updated content...</p>'
                 faq_items:
-                  - {question: string, answer: string, sort_order: 1}
-                is_published: true
-                published_at: '2026-04-03T12:00:00Z'
-                updated_at: '2026-03-15T10:00:00.000Z'
-                created_at: '2026-03-15T10:00:00.000Z'
-      x-roles:
-        - ADMIN
-    delete:
-      tags:
-        - Website
-      summary: 'Delete static content (Admin Only)'
-      description: 'Remove a static content entry.'
-      operationId: deleteStaticContent
-      parameters:
-        -
-          in: path
-          name: slug
-          required: true
-          schema:
-            type: string
-          example: about-us
-      security:
-        -
-          bearerAuth: []
+                  type: array
+                  items: {type: object}
+                news_items:
+                  type: array
+                  items: {type: object}
+            example:
+              title: 'About Us'
+              body_html: '<p>Updated content...</p>'
+              faq_items:
+                - {}
+              news_items:
+                - {}
       responses:
         '200':
-          description: 'Deleted successfully'
+          description: 'Updated successfully'
           content:
             application/json:
               schema:

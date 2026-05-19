@@ -130,7 +130,14 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
 // CREATE
 // ─────────────────────────────────────────────
 
-export const createJob = async (data, userId) => {
+export const createJob = async (data, userId, options = {}) => {
+    const {
+        transaction: externalTxn,
+        requestedByUserId,
+        statusHistoryReason = 'Initial creation',
+        skipNotifications = false,
+        skipMandatoryDocumentCheck = false,
+    } = options;
     let isSurveyRequired = true;
     const [certType, requiredDocs, vessel] = await Promise.all([
         data.certificate_type_id ? CertificateType.findByPk(data.certificate_type_id) : Promise.resolve(null),
@@ -144,7 +151,7 @@ export const createJob = async (data, userId) => {
         if (!certType) throw { statusCode: 400, message: 'The selected certificate type is invalid.' };
         isSurveyRequired = certType.requires_survey;
 
-        if (requiredDocs.length > 0) {
+        if (!skipMandatoryDocumentCheck && requiredDocs.length > 0) {
             const uploadedDocIds = data.uploaded_documents?.map(d => d.required_document_id) || [];
             const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
 
@@ -176,13 +183,15 @@ export const createJob = async (data, userId) => {
         }
     }
 
-    const { job_status: _omit, uploaded_documents, ...safeData } = data;
+    const { job_status: _omit, uploaded_documents, requested_by_user_id: _rbu, ...safeData } = data;
+    const requestedBy = requestedByUserId || userId;
 
-    const txn = await db.sequelize.transaction();
+    const txn = externalTxn || await db.sequelize.transaction();
+    const ownsTransaction = !externalTxn;
     try {
         const job = await JobRequest.create({
             ...safeData,
-            requested_by_user_id: userId,
+            requested_by_user_id: requestedBy,
             job_status: 'CREATED',
             is_survey_required: isSurveyRequired
         }, { transaction: txn });
@@ -205,27 +214,31 @@ export const createJob = async (data, userId) => {
             previous_status: null,
             new_status: 'CREATED',
             changed_by: userId,
-            reason: 'Initial creation'
+            reason: statusHistoryReason
         }, { transaction: txn });
 
-        await txn.commit();
+        if (ownsTransaction) {
+            await txn.commit();
 
-        const jobWithVessel = await JobRequest.findByPk(job.id, { include: ['Vessel'] });
-        notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_CREATED', {
-            vesselName: jobWithVessel.Vessel.vessel_name,
-            port: jobWithVessel.target_port
-        });
+            if (!skipNotifications) {
+                const jobWithVessel = await JobRequest.findByPk(job.id, { include: ['Vessel'] });
+                notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_CREATED', {
+                    vesselName: jobWithVessel.Vessel.vessel_name,
+                    port: jobWithVessel.target_port
+                });
 
-        const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
-        if (clientUser) {
-            notificationService.sendNotification(clientUser.id, 'JOB_CREATED', {
-                vesselName: jobWithVessel.Vessel.vessel_name, port: jobWithVessel.target_port
-            });
+                const clientUser = await User.findOne({ where: { client_id: jobWithVessel.Vessel.client_id, role: 'CLIENT' } });
+                if (clientUser) {
+                    notificationService.sendNotification(clientUser.id, 'JOB_CREATED', {
+                        vesselName: jobWithVessel.Vessel.vessel_name, port: jobWithVessel.target_port
+                    });
+                }
+            }
         }
 
         return job;
     } catch (error) {
-        await txn.rollback();
+        if (ownsTransaction) await txn.rollback();
         throw error;
     }
 };
@@ -352,6 +365,11 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
         include: [
             'Vessel', 'CertificateType',
             {
+                model: db.ActivityRequest,
+                as: 'SourceActivityRequest',
+                attributes: ['id', 'request_number', 'status', 'activity_type', 'requested_service'],
+            },
+            {
                 model: Survey,
                 as: 'survey'
             },
@@ -390,6 +408,17 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
     }
 
     jobPlain.uploaded_documents = await enrichUploadedDocuments(id, user);
+
+    if (jobPlain.SourceActivityRequest) {
+        jobPlain.source_activity_request = {
+            id: jobPlain.SourceActivityRequest.id,
+            request_number: jobPlain.SourceActivityRequest.request_number,
+            status: jobPlain.SourceActivityRequest.status,
+            activity_type: jobPlain.SourceActivityRequest.activity_type,
+            requested_service: jobPlain.SourceActivityRequest.requested_service,
+        };
+        delete jobPlain.SourceActivityRequest;
+    }
 
     return await fileAccessService.resolveEntity(jobPlain, user);
 };

@@ -9,6 +9,21 @@ JobSummary:
     target_port: { type: string }
     target_date: { type: string, format: date }
     priority: { type: string }
+    source_activity_request_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+      nullable: true
+      description: Set when the job was created from an activity request conversion
+    source_activity_request:
+      type: object
+      nullable: true
+      description: Present on job detail when converted from an activity request
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        request_number: { type: string }
+        status: { type: string }
+        activity_type: { type: string }
+        requested_service: { type: string }
     createdAt: { type: string, format: date-time }
     Vessel:
       type: object

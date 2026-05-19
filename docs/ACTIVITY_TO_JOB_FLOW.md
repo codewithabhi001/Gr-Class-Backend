@@ -29,18 +29,21 @@ The **Activity Request** acts as a "Pre-Sales" or "Intent" phase. It captures cl
     *   `APPROVE`: Status = `APPROVED`.
 
 ### Phase 3: Conversion to Job (Formal Compliance)
-*   **Actor**: Admin / Manager
-*   **Action**: Clicks "Convert to Job" on an `APPROVED` request.
+*   **Actor**: Admin / GM / TM
+*   **Action**: `POST /api/v1/activity-requests/:id/convert-to-job` on an `APPROVED` request.
+*   **API**: Body like job create; only `certificate_type_id` required. `vessel_id`, `target_port`, `target_date`, and `reason` default from the activity row when omitted.
 *   **Logic**:
-    1.  **Certificate Selection**: Manager MUST select a `CertificateType` (e.g., *Hull Survey Certificate*).
-    2.  **Job Creation**: A new record is created in `job_requests` table.
+    1.  **Certificate Selection**: Manager MUST send `certificate_type_id` in the convert body.
+    2.  **Job Creation**: A new record is created in `job_requests` (same validation as `POST /jobs`).
     3.  **Automatic Linking**: 
-        *   `JobRequest.vessel_id` is copied from Activity Request.
-        *   `ActivityRequest.linked_job_id` is updated with the New Job UUID.
-        *   `ActivityRequest.status` changes to `CONVERTED_TO_JOB`.
-    4.  **Document Activation**: 
-        *   Based on the `CertificateType`, the system automatically fetches the **Required Documents List**.
-        *   The Job Checklist is populated with these mandatory document placeholders.
+        *   `JobRequest.vessel_id` from activity (or body override).
+        *   `JobRequest.requested_by_user_id` = original activity `requested_by` (client).
+        *   `JobRequest.source_activity_request_id` = activity UUID (reverse link for job detail).
+        *   `ActivityRequest.linked_job_id` = new job UUID.
+        *   `ActivityRequest.status` = `CONVERTED_TO_JOB`.
+    4.  **Mandatory documents**: Not required at convert time; upload on the job before document verification.
+    5.  **Status API**: `PUT .../status` cannot set `CONVERTED_TO_JOB` — use convert endpoint only.
+    6.  **Document checklist**: Based on `CertificateType`, required documents apply on the job workflow (upload before verification).
 
 ---
 

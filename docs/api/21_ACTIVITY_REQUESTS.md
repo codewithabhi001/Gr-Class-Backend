@@ -3,6 +3,9 @@
 **Base URL:** `/api/v1/activity-requests`  
 **Auth:** `Authorization: Bearer <accessToken>`
 
+> **Full frontend guide (req/res, UI checklist, AI prompt):** [ACTIVITY_REQUEST_FRONTEND_IMPLEMENTATION.md](../ACTIVITY_REQUEST_FRONTEND_IMPLEMENTATION.md)  
+> **Swagger:** `src/docs/paths/activity_requests.yaml` + `src/docs/schemas/activity.yaml` → `/api-docs` → Activity Requests
+
 ---
 
 ## 1. POST `/api/v1/activity-requests`
@@ -166,7 +169,100 @@
 
 ---
 
-## 4. PUT `/api/v1/activity-requests/:id/status`
+## 4. POST `/api/v1/activity-requests/:id/convert-to-job`
+
+> **Access:** `ADMIN`, `GM`, `TM`  
+> Convert an **APPROVED** activity request into a formal job. Creates the job, sets `linked_job_id`, and sets status to `CONVERTED_TO_JOB`.
+
+### Path Params
+| Param | Type | Required |
+|-------|------|----------|
+| `id` | UUID | ✅ |
+
+### Request Body
+
+Same idea as `POST /api/v1/jobs`, but only **`certificate_type_id` is required**. Other fields are optional and default from the activity request.
+
+```json
+{
+  "certificate_type_id": "019514a2-7e3b-7000-8000-000000000020"
+}
+```
+
+Full override example:
+
+```json
+{
+  "certificate_type_id": "019514a2-7e3b-7000-8000-000000000020",
+  "vessel_id": "019514a2-7e3b-7000-8000-000000000005",
+  "target_port": "Port of Singapore",
+  "target_date": "2026-05-15",
+  "reason": "Annual hull survey — converted from client request",
+  "priority": "HIGH",
+  "remarks": "Converted from AR-2026-0042",
+  "uploaded_documents": []
+}
+```
+
+| Field | Type | Required | Default source |
+|-------|------|----------|----------------|
+| `certificate_type_id` | UUID | ✅ | — (GM must choose) |
+| `vessel_id` | UUID | optional | activity `vessel_id` |
+| `target_port` | string | optional | activity `location_port` |
+| `target_date` | ISO date | optional | activity `proposed_date` |
+| `reason` | string | optional | `requested_service` + `description` |
+| `priority` | string | optional | activity `priority` (MEDIUM → NORMAL) |
+| `remarks` | string | optional | `Converted from {request_number}` |
+| `uploaded_documents` | array | optional | Upload on convert if ready; otherwise add on job before verification |
+
+### Response `201 Created`
+```json
+{
+  "success": true,
+  "message": "Activity request converted to job successfully",
+  "data": {
+    "activity_request": {
+      "id": "uuid",
+      "status": "CONVERTED_TO_JOB",
+      "linked_job_id": "uuid",
+      "linked_job_request_number": "GRJ-A1B2C3D4",
+      "vessel": { "...": "..." }
+    },
+    "job": {
+      "id": "uuid",
+      "job_request_number": "GRJ-A1B2C3D4",
+      "job_status": "CREATED",
+      "vessel_id": "uuid",
+      "certificate_type_id": "uuid",
+      "target_port": "Port of Singapore",
+      "target_date": "2026-05-15",
+      "priority": "NORMAL",
+      "reason": "Annual Survey — client hull inspection",
+      "source_activity_request_id": "uuid"
+    }
+  }
+}
+```
+
+**Notes:**
+- Blank strings in the body (e.g. `"target_port": ""`) are ignored; values fall back to the activity request.
+- Mandatory certificate documents are **not** required at convert; upload them on the job before document verification.
+- `GET /jobs/:id` returns `source_activity_request` when the job was converted from an activity request.
+
+### Errors
+| Code | When |
+|------|------|
+| `400` | Status is not `APPROVED`, or vessel/port/date cannot be resolved |
+| `409` | Already has `linked_job_id` |
+
+### End-to-end flow
+1. Client → `POST /activity-requests` → `PENDING`
+2. GM/TM → `PUT /activity-requests/:id/status` → `{ "status": "APPROVED" }`
+3. GM/TM → `POST /activity-requests/:id/convert-to-job` → job + `CONVERTED_TO_JOB`
+
+---
+
+## 5. PUT `/api/v1/activity-requests/:id/status`
 
 > **Access:** `ADMIN`, `GM`, `TM`  
 > Approve/reject an activity request.
@@ -186,7 +282,7 @@
 
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
-| `status` | string | ✅ | `APPROVED`, `REJECTED`, `CONVERTED_TO_JOB` |
+| `status` | string | ✅ | `APPROVED`, `REJECTED`, `PENDING`, `DRAFT` — **not** `CONVERTED_TO_JOB` (use convert-to-job) |
 | `remarks` | string | optional | — |
 
 ### Response `200 OK`

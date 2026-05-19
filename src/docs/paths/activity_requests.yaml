@@ -1,7 +1,13 @@
+# Activity Requests — full lifecycle (create → approve → convert → job)
+# All list/detail fields use "N/A" for empty values (never null).
+
 /api/v1/activity-requests:
   post:
     tags: [Activity Requests]
     summary: Create activity request
+    description: |
+      **Step 1 — Client intent.** Lightweight pre-job request.
+      CLIENT must send `vessel_id`. Status becomes `PENDING`.
     operationId: createActivityRequest
     x-roles: [CLIENT, ADMIN, GM, TM]
     requestBody:
@@ -10,53 +16,86 @@
         application/json:
           schema:
             $ref: '#/components/schemas/ActivityRequestCreateRequest'
+          example:
+            vessel_id: "019514a2-7e3b-7000-8000-000000000005"
+            activity_type: "SURVEY"
+            requested_service: "Annual hull inspection"
+            priority: "HIGH"
+            description: "Request survey before Rotterdam departure"
+            location_port: "Port of Singapore"
+            proposed_date: "2026-05-15"
+            attachments: ["certificates/supporting-doc.pdf"]
     responses:
       "201":
-        description: Request created
+        description: Flat activity request detail (same shape as GET by id)
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success: { type: boolean }
-                data: { $ref: '#/components/schemas/ActivityRequestDetailResponse' }
+              $ref: '#/components/schemas/ActivityRequestApiEnvelope'
             example:
               success: true
               data:
                 id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
                 request_number: "AR-2026-0001"
-                activity_type: "INSPECTION"
-                requested_service: "Annual Survey"
-                location_port: "Port of Singapore"
-                proposed_date: "2026-05-15T00:00:00.000Z"
-                description: "Testing API response capture"
-                priority: "MEDIUM"
-                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
+                activity_type: "SURVEY"
+                requested_service: "Annual hull inspection"
+                proposed_date: "2026-05-15"
                 status: "PENDING"
-                updatedAt: "2026-04-12T13:44:40.278Z"
-                createdAt: "2026-04-12T13:44:40.278Z"
+                vessel_id: "019514a2-7e3b-7000-8000-000000000005"
+                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
+                priority: "HIGH"
+                description: "Request survey before Rotterdam departure"
+                location_port: "Port of Singapore"
+                linked_job_id: "N/A"
+                rejection_reason: "N/A"
                 attachments: []
+                created_at: "2026-04-12T13:44:40.000Z"
+                updated_at: "2026-04-12T13:44:40.000Z"
+                vessel_name: "MV Star"
+                imo_number: "9123456"
+                requester_name: "Client User"
+                requester_email: "ops@pacific.com"
+                vessel:
+                  id: "019514a2-7e3b-7000-8000-000000000005"
+                  vessel_name: "MV Star"
+                  imo_number: "9123456"
+                  ship_type: "Bulk Carrier"
+                  class_status: "ACTIVE"
+                  flag_state: "Singapore"
+                  company_name: "Pacific Shipping Ltd"
+                  company_code: "PAC-001"
+                linked_job_status: "N/A"
+                linked_job_reason: "N/A"
+                linked_job_request_number: "N/A"
+      "400": { description: Validation error }
       "403": { description: Forbidden }
 
   get:
     tags: [Activity Requests]
-    summary: Get activity requests (List)
-    description: Returns a list of activity requests with minimal details.
+    summary: List activity requests
+    description: Paginated flat rows. CLIENT sees only own requests.
     operationId: getActivityRequests
     x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: page
         in: query
-        schema: { type: integer, default: 1 }
+        schema: { type: integer, default: 1, minimum: 1 }
       - name: limit
         in: query
-        schema: { type: integer, default: 10 }
+        schema: { type: integer, default: 10, minimum: 1, maximum: 100 }
       - name: status
         in: query
-        schema: { type: string, enum: [PENDING, APPROVED, REJECTED, CONVERTED_TO_JOB, DRAFT] }
+        schema:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, CONVERTED_TO_JOB, DRAFT]
+      - name: activity_type
+        in: query
+        schema:
+          type: string
+          enum: [INSPECTION, AUDIT, TRAINING, VISIT, SURVEY, OTHER]
     responses:
       "200":
-        description: List of requests
+        description: Paginated list
         content:
           application/json:
             schema:
@@ -64,27 +103,40 @@
               properties:
                 success: { type: boolean }
                 data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/ActivityRequestSummary'
+                  $ref: '#/components/schemas/ActivityRequestListPaginatedResponse'
             example:
               success: true
               data:
-                - id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
-                  request_number: "AR-2026-0001"
-                  activity_type: "INSPECTION"
-                  requested_service: "Annual Survey"
-                  proposed_date: "2026-05-15T00:00:00.000Z"
-                  status: "PENDING"
-                  Vessel: null
-                  created_at: "2026-04-12T13:44:40.000Z"
+                total: 2
+                page: 1
+                limit: 10
+                totalPages: 1
+                rows:
+                  - id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+                    request_number: "AR-2026-0001"
+                    activity_type: "SURVEY"
+                    requested_service: "Annual hull inspection"
+                    proposed_date: "2026-05-15"
+                    status: "PENDING"
+                    vessel_id: "019514a2-7e3b-7000-8000-000000000005"
+                    vessel_name: "MV Star"
+                    imo_number: "9123456"
+                    ship_type: "Bulk Carrier"
+                    class_status: "ACTIVE"
+                    flag_state: "Singapore"
+                    company_name: "Pacific Shipping Ltd"
+                    vessel: { vessel_name: "MV Star", imo_number: "9123456" }
+                    linked_job_id: "N/A"
+                    linked_job_status: "N/A"
+                    linked_job_request_number: "N/A"
+                    created_at: "2026-04-12T13:44:40.000Z"
       "403": { description: Forbidden }
 
 /api/v1/activity-requests/{id}:
   get:
     tags: [Activity Requests]
-    summary: Get request by ID (Detailed)
-    description: Returns full details of an activity request including associations.
+    summary: Get activity request by ID
+    description: Full flat detail including `vessel` block and signed attachment URLs.
     operationId: getActivityRequestById
     x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
@@ -94,65 +146,21 @@
         schema: { type: string, format: uuid }
     responses:
       "200":
-        description: Request details
+        description: Activity request detail
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success: { type: boolean }
-                data: { $ref: '#/components/schemas/ActivityRequestDetailResponse' }
-            example:
-              success: true
-              data:
-                id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
-                request_number: "AR-2026-0001"
-                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
-                vessel_id: "N/A"
-                activity_type: "INSPECTION"
-                requested_service: "Annual Survey"
-                priority: "MEDIUM"
-                description: "Testing API response capture"
-                location_port: "Port of Singapore"
-                proposed_date: "2026-05-15T00:00:00.000Z"
-                status: "PENDING"
-                linked_job_id: "N/A"
-                rejection_reason: "N/A"
-                attachments: []
-                created_at: "2026-04-12T13:44:40.000Z"
-                updated_at: "2026-04-12T13:44:40.000Z"
-                vessel_name: "N/A"
-                imo_number: "N/A"
-                vessel:
-                  id: "N/A"
-                  vessel_name: "N/A"
-                  imo_number: "N/A"
-                  call_sign: "N/A"
-                  mmsi_number: "N/A"
-                  port_of_registry: "N/A"
-                  year_built: "N/A"
-                  ship_type: "N/A"
-                  gross_tonnage: "N/A"
-                  net_tonnage: "N/A"
-                  deadweight: "N/A"
-                  class_status: "N/A"
-                  current_class_society: "N/A"
-                  engine_type: "N/A"
-                  flag_state: "N/A"
-                  company_name: "N/A"
-                  company_code: "N/A"
-                requester_name: "N/A"
-                requester_email: "N/A"
-                linked_job_status: "N/A"
-                linked_job_reason: "N/A"
-                linked_job_request_number: "N/A"
+              $ref: '#/components/schemas/ActivityRequestApiEnvelope'
       "403": { description: Forbidden }
       "404": { description: Not found }
 
 /api/v1/activity-requests/{id}/status:
   put:
     tags: [Activity Requests]
-    summary: Update request status
+    summary: Approve or reject activity request
+    description: |
+      **Step 2 — Internal review.** Set `APPROVED` before convert, or `REJECTED` with remarks.
+      Do **not** send `CONVERTED_TO_JOB` here.
     operationId: updateActivityRequestStatus
     x-roles: [ADMIN, GM, TM]
     parameters:
@@ -165,66 +173,107 @@
       content:
         application/json:
           schema:
-            type: object
-            required: [status]
-            properties:
-              status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
-              remarks: { type: string }
-          example:
-            status: "APPROVED"
-            remarks: "Surveyor assigned"
+            $ref: '#/components/schemas/ActivityRequestStatusUpdateRequest'
+          examples:
+            approve:
+              summary: Approve for conversion
+              value:
+                status: "APPROVED"
+                remarks: "Approved — ready to convert to job"
+            reject:
+              summary: Reject
+              value:
+                status: "REJECTED"
+                remarks: "Insufficient information"
     responses:
       "200":
-        description: Status updated
+        description: Updated flat detail
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success: { type: boolean }
-                data: { $ref: '#/components/schemas/ActivityRequestDetailResponse' }
+              $ref: '#/components/schemas/ActivityRequestApiEnvelope'
             example:
               success: true
               data:
                 id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
                 request_number: "AR-2026-0001"
-                requested_by: "019c79a4-4475-729b-ae3e-98373803b963"
-                vessel_id: "N/A"
-                activity_type: "INSPECTION"
-                requested_service: "Annual Survey"
-                priority: "MEDIUM"
-                description: "Testing API response capture"
-                location_port: "Port of Singapore"
-                proposed_date: "2026-05-15T00:00:00.000Z"
                 status: "APPROVED"
-                linked_job_id: "N/A"
                 rejection_reason: "N/A"
-                attachments: []
-                created_at: "2026-04-12T13:44:40.000Z"
-                updated_at: "2026-04-12T13:44:42.349Z"
-                vessel_name: "N/A"
-                imo_number: "N/A"
-                vessel:
-                  id: "N/A"
-                  vessel_name: "N/A"
-                  imo_number: "N/A"
-                  call_sign: "N/A"
-                  mmsi_number: "N/A"
-                  port_of_registry: "N/A"
-                  year_built: "N/A"
-                  ship_type: "N/A"
-                  gross_tonnage: "N/A"
-                  net_tonnage: "N/A"
-                  deadweight: "N/A"
-                  class_status: "N/A"
-                  current_class_society: "N/A"
-                  engine_type: "N/A"
-                  flag_state: "N/A"
-                  company_name: "N/A"
-                  company_code: "N/A"
-                requester_name: "N/A"
-                requester_email: "N/A"
-                linked_job_status: "N/A"
-                linked_job_reason: "N/A"
-                linked_job_request_number: "N/A"
+                linked_job_id: "N/A"
+      "400":
+        description: Invalid status (e.g. CONVERTED_TO_JOB) or already converted
       "403": { description: Forbidden }
+      "404": { description: Not found }
+
+/api/v1/activity-requests/{id}/convert-to-job:
+  post:
+    tags: [Activity Requests]
+    summary: Convert approved activity request to job
+    description: |
+      **Step 3 — Formal job.** Requires status `APPROVED`.
+      Only `certificate_type_id` is required in the body; vessel, port, date, and reason
+      default from the activity request. Blank strings in the body are ignored.
+      Mandatory job documents are **not** required at convert (upload on job later).
+    operationId: convertActivityRequestToJob
+    x-roles: [ADMIN, GM, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActivityRequestConvertToJobRequest'
+          examples:
+            minimal:
+              summary: Defaults from activity request
+              value:
+                certificate_type_id: "019514a2-7e3b-7000-8000-000000000020"
+            full:
+              summary: Override all optional fields
+              value:
+                certificate_type_id: "019514a2-7e3b-7000-8000-000000000020"
+                vessel_id: "019514a2-7e3b-7000-8000-000000000005"
+                target_port: "Jebel Ali"
+                target_date: "2026-06-01"
+                reason: "Intermediate survey — converted from AR-2026-0001"
+                priority: "HIGH"
+                remarks: "Converted from AR-2026-0001"
+                uploaded_documents: []
+    responses:
+      "201":
+        description: Job created; activity linked
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityRequestConvertApiEnvelope'
+            example:
+              success: true
+              message: Activity request converted to job successfully
+              data:
+                activity_request:
+                  id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+                  request_number: "AR-2026-0001"
+                  status: "CONVERTED_TO_JOB"
+                  linked_job_id: "019514a2-7e3b-7000-8000-000000000200"
+                  linked_job_request_number: "GRJ-A1B2C3D4"
+                  linked_job_status: "CREATED"
+                job:
+                  id: "019514a2-7e3b-7000-8000-000000000200"
+                  job_request_number: "GRJ-A1B2C3D4"
+                  job_status: "CREATED"
+                  vessel_id: "019514a2-7e3b-7000-8000-000000000005"
+                  certificate_type_id: "019514a2-7e3b-7000-8000-000000000020"
+                  target_port: "Port of Singapore"
+                  target_date: "2026-05-15"
+                  priority: "HIGH"
+                  reason: "Annual hull inspection — Request survey before Rotterdam departure"
+                  source_activity_request_id: "019d81ef-f655-76a2-a6ea-7b9d4ca5cdbc"
+      "400":
+        description: Not APPROVED, missing vessel/port/date, or invalid certificate type
+      "403": { description: Forbidden }
+      "404": { description: Activity request not found }
+      "409": { description: Already linked to a job }

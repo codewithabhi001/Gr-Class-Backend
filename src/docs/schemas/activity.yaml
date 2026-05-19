@@ -1,3 +1,109 @@
+ActivityRequestConvertToJobRequest:
+  type: object
+  required: [certificate_type_id]
+  description: |
+    Same shape as job create, but only `certificate_type_id` is required.
+    `vessel_id`, `target_port`, `target_date`, and `reason` default from the
+    activity request when omitted.
+  properties:
+    certificate_type_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+      description: Certificate type for the new job (required at conversion).
+    vessel_id:
+      allOf:
+        - $ref: '#/components/schemas/UUID'
+      description: Override activity `vessel_id` if needed.
+    reason:
+      type: string
+      description: Job reason; defaults to requested_service + description.
+    target_port:
+      type: string
+      description: Defaults to activity `location_port`.
+    target_date:
+      type: string
+      format: date
+      description: Defaults to activity `proposed_date`.
+    priority:
+      type: string
+      enum: [LOW, NORMAL, HIGH, URGENT]
+      description: Defaults from activity priority (MEDIUM → NORMAL).
+    remarks:
+      type: string
+      description: Job remarks; defaults to "Converted from {request_number}".
+    uploaded_documents:
+      type: array
+      items:
+        type: object
+        required: [required_document_id, file_url]
+        properties:
+          required_document_id:
+            $ref: '#/components/schemas/UUID'
+          file_url:
+            type: string
+
+ActivityRequestConvertToJobResponse:
+  type: object
+  properties:
+    activity_request:
+      $ref: '#/components/schemas/ActivityRequestDetailResponse'
+    job:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        job_request_number: { type: string }
+        job_status: { type: string }
+        vessel_id: { $ref: '#/components/schemas/UUID' }
+        certificate_type_id: { $ref: '#/components/schemas/UUID' }
+        target_port: { type: string }
+        target_date: { type: string, format: date }
+        priority: { type: string }
+        reason: { type: string }
+        source_activity_request_id:
+          allOf:
+            - $ref: '#/components/schemas/UUID'
+          description: Back-reference to the originating activity request
+
+ActivityRequestListPaginatedResponse:
+  type: object
+  properties:
+    total: { type: integer, example: 42 }
+    page: { type: integer, example: 1 }
+    limit: { type: integer, example: 10 }
+    totalPages: { type: integer, example: 5 }
+    rows:
+      type: array
+      items:
+        $ref: '#/components/schemas/ActivityRequestSummary'
+
+ActivityRequestStatusUpdateRequest:
+  type: object
+  required: [status]
+  properties:
+    status:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED, DRAFT]
+      description: |
+        Cannot be `CONVERTED_TO_JOB` — use `POST .../convert-to-job` instead.
+    remarks:
+      type: string
+      description: Required meaningfully when `status` is `REJECTED`
+
+ActivityRequestApiEnvelope:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    data:
+      $ref: '#/components/schemas/ActivityRequestDetailResponse'
+
+ActivityRequestConvertApiEnvelope:
+  type: object
+  properties:
+    success: { type: boolean, example: true }
+    message: { type: string, example: Activity request converted to job successfully }
+    data:
+      $ref: '#/components/schemas/ActivityRequestConvertToJobResponse'
+
 ActivityRequestCreateRequest:
   type: object
   required: [activity_type, requested_service, proposed_date, location_port]

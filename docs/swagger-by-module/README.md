@@ -36,7 +36,6 @@ Generated from `src/docs/paths/*.yaml` and merged OpenAPI components.
 - `toca`: [toca.yaml](./toca.yaml), [toca.json](./toca.json)
 - `users`: [users.yaml](./users.yaml), [users.json](./users.json)
 - `vessels`: [vessels.yaml](./vessels.yaml), [vessels.json](./vessels.json)
-- `website`: [website.yaml](./website.yaml), [website.json](./website.json)
 
 Regenerate:
 ```bash

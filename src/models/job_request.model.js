@@ -43,7 +43,12 @@ export default (sequelize, DataTypes) => {
             defaultValue: 'NORMAL',
             allowNull: false,
             comment: 'Job priority set via PUT /:id/priority by ADMIN/GM/TM/TO'
-        }
+        },
+        source_activity_request_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            comment: 'Set when job is created via activity request conversion',
+        },
     }, {
         tableName: 'job_requests',
         underscored: true,
@@ -75,6 +80,10 @@ export default (sequelize, DataTypes) => {
         JobRequest.hasMany(models.JobDocument, { foreignKey: 'job_id' });
         JobRequest.hasMany(models.JobReschedule, { foreignKey: 'job_id' });
         JobRequest.hasOne(models.Survey, { foreignKey: 'job_id', as: 'survey' });
+        JobRequest.belongsTo(models.ActivityRequest, {
+            foreignKey: 'source_activity_request_id',
+            as: 'SourceActivityRequest',
+        });
     };
 
     return JobRequest;
