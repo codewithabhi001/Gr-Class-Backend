@@ -283,20 +283,20 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     });
 
     const jobs = (await fileAccessService.resolveEntity(rows)).map(j => {
-        const vessel_name = j.Vessel?.vessel_name || null;
-        const imo_number = j.Vessel?.imo_number || null;
-        const certificate_name = j.CertificateType?.name || null;
-        const issuing_authority = j.CertificateType?.issuing_authority || null;
+        const vessel_name = j.Vessel?.vessel_name || 'N/A';
+        const imo_number = j.Vessel?.imo_number || 'N/A';
+        const certificate_name = j.CertificateType?.name || 'N/A';
+        const issuing_authority = j.CertificateType?.issuing_authority || 'N/A';
 
         return {
-            id: j.id,
-            job_request_number: j.job_request_number,
-            job_status: j.job_status,
-            priority: j.priority,
-            target_port: j.target_port,
-            target_date: j.target_date,
-            createdAt: j.createdAt,
-            updatedAt: j.updatedAt,
+            id: j.id || 'N/A',
+            job_request_number: j.job_request_number || 'N/A',
+            job_status: j.job_status || 'N/A',
+            priority: j.priority || 'N/A',
+            target_port: j.target_port || 'N/A',
+            target_date: j.target_date || 'N/A',
+            createdAt: j.createdAt || 'N/A',
+            updatedAt: j.updatedAt || 'N/A',
 
             // Flat related fields (no IDs!)
             vessel_name,
