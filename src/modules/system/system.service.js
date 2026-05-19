@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { flatAuditLogListRow } from '../../utils/listRowFlatten.util.js';
 import logger from '../../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
@@ -79,7 +80,7 @@ export const getAuditLogs = async (query) => {
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / limit),
-        logs: rows
+        logs: rows.map(flatAuditLogListRow),
     };
 };
 

@@ -35,8 +35,7 @@ export const getAllEnquiries = async (req, res, next) => {
         const result = await contactService.getAllEnquiries(req.query);
         res.status(200).json({
             success: true,
-            total: result.count,
-            data: result.rows,
+            data: result,
         });
     } catch (error) {
         next(error);

@@ -4,6 +4,7 @@ import * as s3Service from '../../services/s3.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import logger from '../../utils/logger.js';
+import { flatPaymentListRow } from '../../utils/listRowFlatten.util.js';
 
 const Payment = db.Payment;
 const JobRequest = db.JobRequest;
@@ -218,12 +219,11 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
     const enrichedRows = result.rows.map(row => {
         const plain = row.get({ plain: true });
         const pLedgers = ledgers.filter(l => l.invoice_id === plain.id);
-        plain.ledgers = pLedgers;
         return enrichPaymentWithLedger(plain, pLedgers);
     });
 
     const resolvedRows = await fileAccessService.resolveEntity(enrichedRows, user);
-    return { count: result.count, rows: resolvedRows };
+    return { count: result.count, rows: resolvedRows.map(flatPaymentListRow) };
 };
 
 export const getPaymentById = async (id, scopeFilters = {}, user = null) => {

@@ -702,14 +702,18 @@ Content-Type: multipart/form-data
 
 ### 17. List My Certificates
 ```http
-GET /certificates?page=1&limit=20&status=VALID&vessel_id=uuid
+GET /certificates?page=1&limit=20&status=VALID&vessel_id=uuid&expiring_within_days=30
 ```
 
 **Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | VALID, EXPIRED, SUSPENDED, REVOKED |
+| `page`, `limit` | integer | Pagination |
+| `status` | string | DRAFT, ISSUED, VALID, EXPIRED, SUSPENDED, REVOKED, TRANSFERRED, DOWNGRADED |
 | `vessel_id` | UUID | Filter by vessel |
+| `certificate_type_id` | UUID | Filter by certificate type |
+| `client_id` | UUID | Filter by client (staff roles) |
+| `expiring_within_days` | integer | VALID certificates expiring within N days (defaults status to VALID if omitted) |
 
 **Response (200):**
 ```json
@@ -717,32 +721,42 @@ GET /certificates?page=1&limit=20&status=VALID&vessel_id=uuid
   "success": true,
   "message": "Certificates fetched successfully",
   "data": {
+    "total": 10,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1,
+    "status_counts": [
+      { "status": "DRAFT", "count": 0 },
+      { "status": "ISSUED", "count": 1 },
+      { "status": "VALID", "count": 8 },
+      { "status": "EXPIRED", "count": 1 },
+      { "status": "SUSPENDED", "count": 0 },
+      { "status": "REVOKED", "count": 0 },
+      { "status": "TRANSFERRED", "count": 0 },
+      { "status": "DOWNGRADED", "count": 0 }
+    ],
     "rows": [
       {
         "id": "uuid",
-        "certificate_number": "GR-CLASS-2026-0042",
         "vessel_id": "uuid",
         "certificate_type_id": "uuid",
+        "certificate_number": "GR-CLASS-2026-0042",
         "issue_date": "2026-01-15",
         "expiry_date": "2031-01-15",
         "status": "VALID",
-        "issued_by_user_id": "uuid",
-        "qr_code_url": "https://...",
-        "pdf_file_url": "https://...",
-        "created_at": "2026-01-15T00:00:00.000Z",
-        "Vessel": {
-          "vessel_name": "MV Star",
-          "imo_number": "1234567"
-        },
-        "CertificateType": {
-          "name": "Safety Management Certificate"
-        }
+        "createdAt": "2026-01-15T00:00:00.000Z",
+        "vessel_name": "MV Star",
+        "imo_number": "1234567",
+        "client_id": "uuid",
+        "company_name": "Acme Shipping",
+        "certificate_type": "Safety Management Certificate"
       }
-    ],
-    "count": 10
+    ]
   }
 }
 ```
+
+> `status_counts` always includes **every** status for the entity (count `0` when none). Counts respect the same filters as the list except the `status` filter (so tab totals stay useful).
 
 ---
 

@@ -38,6 +38,8 @@
     summary: List certificates
     description: |
       List certificates with strict RBAC and ownership filtering.
+      Use `expiring_within_days` to filter certificates expiring soon (defaults to VALID when status omitted).
+      `status_counts` returns every certificate status with count 0 where none match (same filters as list except `status`).
       **Access:**
       - **ADMIN / GM / TM / TO:** All certificates.
       - **CLIENT:** Only certificates for their own company vessels.

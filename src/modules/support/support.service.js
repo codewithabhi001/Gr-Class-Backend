@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { flatSupportTicketListRow } from '../../utils/listRowFlatten.util.js';
 import * as notificationService from '../../services/notification.service.js';
 import { Op } from 'sequelize';
 
@@ -54,7 +55,7 @@ export const getTickets = async (query, user) => {
         ];
     }
 
-    return await SupportTicket.findAndCountAll({
+    const result = await SupportTicket.findAndCountAll({
         where,
         attributes: ['id', 'ticket_number', 'subject', 'priority', 'status', 'category', 'user_id', 'created_at'],
         limit: Math.max(1, parseInt(limit, 10)),
@@ -63,6 +64,10 @@ export const getTickets = async (query, user) => {
         order: [['createdAt', 'DESC']]
     });
 
+    return {
+        count: result.count,
+        rows: result.rows.map(flatSupportTicketListRow),
+    };
 };
 
 export const getTicketById = async (id, user) => {

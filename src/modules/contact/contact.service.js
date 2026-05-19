@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import db from '../../models/index.js';
+import { flatContactEnquiryListRow } from '../../utils/listRowFlatten.util.js';
 import * as notificationService from '../../services/notification.service.js';
 import emailService from '../../services/email.service.js';
 import logger from '../../utils/logger.js';
@@ -92,7 +93,7 @@ export const getAllEnquiries = async (query) => {
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.max(1, parseInt(limit, 10));
 
-    return await WebsiteContact.findAndCountAll({
+    const result = await WebsiteContact.findAndCountAll({
         where,
         attributes: [
             'id',
@@ -120,6 +121,14 @@ export const getAllEnquiries = async (query) => {
         limit: limitNum,
         offset: (pageNum - 1) * limitNum,
     });
+
+    return {
+        total: result.count,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(result.count / limitNum),
+        rows: result.rows.map(flatContactEnquiryListRow),
+    };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

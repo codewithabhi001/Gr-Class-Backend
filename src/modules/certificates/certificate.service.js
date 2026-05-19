@@ -10,6 +10,9 @@ import * as emailService from '../../services/email.service.js';
 import * as s3Service from '../../services/s3.service.js';
 import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
+import { CERTIFICATE_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
+import { flatCertificateListRow } from '../../utils/listRowFlatten.util.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -571,8 +574,8 @@ export const getCertificates = async (query, user) => {
         page: parseInt(page),
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
-        rows
+        status_counts: buildFullStatusCounts(statusCounts, CERTIFICATE_STATUSES),
+        rows: rows.map(flatCertificateListRow),
     };
 };
 
@@ -592,12 +595,13 @@ export const getCertificatesByVessel = async (vesselId, user) => {
         }
     }
 
-    return await Certificate.findAll({
+    const certs = await Certificate.findAll({
         where,
         attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         include: [{ model: db.CertificateType, attributes: ['name'] }],
         order: [['expiry_date', 'ASC']]
     });
+    return certs.map(flatCertificateListRow);
 };
 
 /** Get certificate generated for a specific job. */
