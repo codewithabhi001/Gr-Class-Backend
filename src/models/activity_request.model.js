@@ -6,7 +6,7 @@ export default (sequelize, DataTypes) => {
         requested_by: { type: DataTypes.UUID, allowNull: false },
         vessel_id: { type: DataTypes.UUID, allowNull: true, comment: 'Vessel ID (for Client requests)' },
         activity_type: {
-            type: DataTypes.ENUM('INSPECTION', 'AUDIT', 'TRAINING', 'VISIT', 'OTHER'),
+            type: DataTypes.ENUM('INSPECTION', 'AUDIT', 'TRAINING', 'VISIT', 'SURVEY', 'OTHER'),
             allowNull: false
         },
         requested_service: { type: DataTypes.STRING, comment: 'Specific service name e.g. "Annual Survey"' },

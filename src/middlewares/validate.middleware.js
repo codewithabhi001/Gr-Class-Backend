@@ -556,6 +556,19 @@ export const schemas = {
         expiry_date: Joi.date().iso().required(),
         s3_key: Joi.string().required(),
     }),
+    createActivityRequest: Joi.object({
+        vessel_id: Joi.string().guid().optional().allow(null, ''),
+        activity_type: Joi.string()
+            .uppercase()
+            .valid('INSPECTION', 'AUDIT', 'TRAINING', 'VISIT', 'SURVEY', 'OTHER')
+            .required(),
+        requested_service: Joi.string().required(),
+        priority: Joi.string().valid('LOW', 'MEDIUM', 'HIGH', 'URGENT').optional(),
+        description: Joi.string().optional().allow('', null),
+        location_port: Joi.string().required(),
+        proposed_date: Joi.date().iso().required(),
+        attachments: Joi.array().items(Joi.string().uri()).optional(),
+    }),
     createJobMessage: Joi.object({
         message: Joi.string().optional().allow('', null),
         message_text: Joi.string().optional().allow('', null),

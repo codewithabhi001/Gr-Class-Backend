@@ -27,7 +27,7 @@
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
 | `vessel_id` | UUID | optional | For client requests |
-| `activity_type` | string | ✅ | `INSPECTION`, `AUDIT`, `TRAINING`, `VISIT`, `OTHER` |
+| `activity_type` | string | ✅ | `INSPECTION`, `AUDIT`, `TRAINING`, `VISIT`, `SURVEY`, `OTHER` |
 | `requested_service` | string | optional | Specific service name |
 | `priority` | string | optional | `LOW`, `MEDIUM`, `HIGH`, `URGENT` (default `MEDIUM`) |
 | `description` | string | optional | — |

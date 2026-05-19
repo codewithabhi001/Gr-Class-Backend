@@ -7,7 +7,7 @@ ActivityRequestCreateRequest:
       description: "Mandatory for CLIENT requests"
     activity_type:
       type: string
-      enum: [INSPECTION, AUDIT, TRAINING, VISIT, OTHER]
+      enum: [INSPECTION, AUDIT, TRAINING, VISIT, SURVEY, OTHER]
     requested_service:
       type: string
       example: "Annual Survey"
