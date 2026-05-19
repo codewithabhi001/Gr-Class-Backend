@@ -2297,42 +2297,6 @@ documents must be uploaded.
 
 ---
 
-### GET `/api/v1/certificates/expiring`
-
-**Summary:** Get expiring certificates
-
-**Description:** Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.
-
-**Allowed Roles:** `CLIENT, ADMIN, GM, TM, TO`
-
-**Parameters:**
-- `days` (query):  Optional
-
-**Responses:**
-
-- **200**: Expiring certificates
-
-  <details><summary>View Schema</summary>
-
-  ```json
-  {
-    "type": "object",
-    "properties": {
-      "success": {
-        "type": "boolean",
-        "example": true
-      },
-      "data": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/CertificateResponse"
-        }
-      }
-    }
-  }
-  ```
-  </details>
-
 
 ---
 

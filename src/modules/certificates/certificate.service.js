@@ -10,8 +10,6 @@ import * as emailService from '../../services/email.service.js';
 import * as s3Service from '../../services/s3.service.js';
 import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
-import { CERTIFICATE_STATUSES } from '../../constants/statuses.js';
-import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -22,7 +20,7 @@ const JobStatusHistory = db.JobStatusHistory;
 const AuditLog = db.AuditLog;
 const { Op } = db.Sequelize;
 
-/** Reusable scope filter for certificate list/get by role. Used in getCertificates, getCertificateById, getExpiringCertificates, preview, getHistory, download. */
+/** Reusable scope filter for certificate list/get by role. Used in getCertificates, getCertificateById, preview, getHistory, download. */
 export const getCertificateScopeFilter = async (user) => {
     return buildCertificateScopeWhere(user, { JobRequest, Vessel });
 };
@@ -521,6 +519,17 @@ export const getCertificates = async (query, user) => {
         }
     });
 
+    if (rest.expiring_within_days != null && rest.expiring_within_days !== '') {
+        const days = Math.max(1, parseInt(rest.expiring_within_days, 10) || 30);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(today);
+        target.setDate(today.getDate() + days);
+        target.setHours(23, 59, 59, 999);
+        where.status = where.status || 'VALID';
+        where.expiry_date = { [Op.between]: [today, target] };
+    }
+
     const vesselInclude = {
         model: db.Vessel,
         attributes: ['id', 'vessel_name', 'imo_number', 'client_id'],
@@ -533,18 +542,19 @@ export const getCertificates = async (query, user) => {
 
     const { count, rows } = await Certificate.findAndCountAll({
         where,
-        attributes: ['id', 'certificate_number', 'issue_date', 'expiry_date', 'status'],
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
-        include: [vesselInclude, { model: db.CertificateType, attributes: ['name'] }],
+        include: [vesselInclude, { model: db.CertificateType, attributes: ['id', 'name'] }],
         order: [['createdAt', 'DESC']],
         subQuery: false
     });
 
+    // Calculate status counts
     const statusWhere = { ...where };
     delete statusWhere.status;
-
-    const statusCountsRaw = await Certificate.findAll({
+    
+    const statusCounts = await Certificate.findAll({
         where: statusWhere,
         attributes: [
             [db.sequelize.col('Certificate.status'), 'status'],
@@ -561,18 +571,8 @@ export const getCertificates = async (query, user) => {
         page: parseInt(page),
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: buildFullStatusCounts(statusCountsRaw, CERTIFICATE_STATUSES),
-        rows: rows.map((c) => ({
-            id: c.id,
-            certificate_number: c.certificate_number,
-            vessel_name: c.Vessel?.vessel_name ?? null,
-            imo_number: c.Vessel?.imo_number ?? null,
-            client_company_name: c.Vessel?.Client?.company_name ?? null,
-            certificate_type: c.CertificateType?.name ?? null,
-            status: c.status,
-            issued: c.issue_date,
-            expires: c.expiry_date,
-        })),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
+        rows
     };
 };
 
@@ -940,26 +940,6 @@ export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
     });
 
     return newCert;
-};
-
-export const getExpiringCertificates = async (days, user) => {
-    const scopeWhere = await getCertificateScopeFilter(user);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-    const target = new Date();
-    target.setDate(today.getDate() + days);
-    target.setHours(23, 59, 59, 999); // End of target day
-
-    return await Certificate.findAll({
-        where: {
-            ...scopeWhere,
-            status: 'VALID',
-            expiry_date: {
-                [Op.between]: [today, target],
-            },
-        },
-        include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number', 'client_id'] }],
-    });
 };
 
 export const bulkRenew = async (ids, validityYears, reason, userId) => {

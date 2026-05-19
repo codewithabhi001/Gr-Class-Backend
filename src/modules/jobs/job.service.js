@@ -5,8 +5,6 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import { Op } from 'sequelize';
 import { finalizeSurvey } from '../surveys/survey.service.js';
-import { JOB_STATUSES } from '../../constants/statuses.js';
-import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 
 const JobRequest = db.JobRequest;
 const JobStatusHistory = db.JobStatusHistory;
@@ -310,7 +308,7 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     return {
         total: count, page: parseInt(page), limit: parseInt(limit),
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: buildFullStatusCounts(statusCounts, JOB_STATUSES),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
         jobs
     };
 };
@@ -324,7 +322,11 @@ export const getJobById = async (id, scopeFilters = {}) => {
                 model: Survey,
                 as: 'survey'
             },
-            { model: Certificate, as: 'Certificate', attributes: ['id', 'certificate_number', 'pdf_file_url'] },
+            {
+                model: Certificate,
+                as: 'Certificate',
+                attributes: ['id', 'certificate_number', 'source_type', 'uploaded_file_url', 'generated_pdf_url', 'pdf_file_url'],
+            },
             { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
             { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
             { model: User, as: 'surveyor', attributes: ['id', 'name', 'email'] },
@@ -338,14 +340,20 @@ export const getJobById = async (id, scopeFilters = {}) => {
     // Expose payment status at top level
     jobPlain.payment_status = jobPlain.Payments?.[0]?.payment_status || 'N/A';
 
-    if (job.Certificate?.pdf_file_url) {
-        const key = fileAccessService.getKeyFromUrl(job.Certificate.pdf_file_url);
-        const url = key?.startsWith('public/certificates/')
-            ? fileAccessService.generatePublicCdnUrl(key)
-            : await fileAccessService.generateSignedUrl(key, 3600);
-        jobPlain.certificate_url = url;
-        jobPlain.certificate_number = job.Certificate.certificate_number;
-        jobPlain.certificate_id = job.Certificate.id;
+    if (job.Certificate) {
+        const cert = job.Certificate;
+        const fileKey = cert.source_type === 'EXTERNAL'
+            ? (cert.uploaded_file_url || cert.pdf_file_url)
+            : (cert.generated_pdf_url || cert.pdf_file_url);
+        if (fileKey) {
+            const key = fileAccessService.getKeyFromUrl(fileKey);
+            jobPlain.certificate_url = key?.startsWith('public/certificates/')
+                ? fileAccessService.generatePublicCdnUrl(key)
+                : await fileAccessService.generateSignedUrl(key, 3600);
+        }
+        jobPlain.certificate_number = cert.certificate_number;
+        jobPlain.certificate_id = cert.id;
+        jobPlain.Certificate = { id: cert.id, certificate_number: cert.certificate_number, source_type: cert.source_type };
     }
 
     return await fileAccessService.resolveEntity(jobPlain);

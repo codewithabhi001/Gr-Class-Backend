@@ -101,7 +101,6 @@ async function runTests() {
   await test('GET', '/certificates/verify/TEST-NUM');
   await test('GET', '/certificates/types');
   await test('GET', '/certificates');
-  await test('GET', '/certificates/expiring');
   await test('GET', `/certificates/job/${JOB_ID}`);
   await test('GET', `/certificates/${PID}`);
   await test('GET', `/certificates/${PID}/preview`);

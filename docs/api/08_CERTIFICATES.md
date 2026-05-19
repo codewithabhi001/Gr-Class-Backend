@@ -218,39 +218,6 @@
 
 ---
 
-## 7. GET `/api/v1/certificates/expiring`
-
-> **Access:** `CLIENT`, `ADMIN`, `GM`, `TM`, `TO`
-
-### Query Params
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `days` | number | optional | Default 30 |
-
-### Response `200 OK`
-```json
-{
-  "success": true,
-  "message": "Certificates expiring within 30 days fetched successfully",
-  "data": {
-    "expirations": [
-      {
-        "id": "uuid",
-        "certificate_number": "GR-CLASS-2026-0010",
-        "vessel_id": "uuid",
-        "expiry_date": "2026-04-01",
-        "status": "VALID",
-        "Vessel": { "vessel_name": "MV Star" },
-        "CertificateType": { "name": "SMC" }
-      }
-    ],
-    "count": 3,
-    "days": 30
-  }
-}
-```
-
----
 
 ## 8. GET `/api/v1/certificates/vessel/:vesselId`
 

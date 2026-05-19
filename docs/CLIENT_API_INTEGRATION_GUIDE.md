@@ -804,37 +804,12 @@ GET /certificates/types/:id
 
 ---
 
-### 20. Get Expiring Certificates
+### 20. List Expiring Certificates (via list filter)
 ```http
-GET /certificates/expiring?days=30
+GET /certificates?expiring_within_days=30&page=1&limit=20
 ```
 
-**Response (200):**
-```json
-{
-  "success": true,
-  "message": "Certificates expiring within 30 days fetched successfully",
-  "data": {
-    "expirations": [
-      {
-        "id": "uuid",
-        "certificate_number": "GR-CLASS-2026-0010",
-        "vessel_id": "uuid",
-        "expiry_date": "2026-04-01",
-        "status": "VALID",
-        "Vessel": {
-          "vessel_name": "MV Star"
-        },
-        "CertificateType": {
-          "name": "SMC"
-        }
-      }
-    ],
-    "count": 3,
-    "days": 30
-  }
-}
-```
+Uses the standard certificate list response (`data.rows`, `data.total`, etc.).
 
 ---
 

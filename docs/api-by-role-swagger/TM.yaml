@@ -3903,40 +3903,6 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  /api/v1/certificates/expiring:
-    get:
-      tags:
-        - Certificates
-      summary: 'Get expiring certificates'
-      description: 'Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.'
-      operationId: getExpiringCertificates
-      x-roles:
-        - CLIENT
-        - ADMIN
-        - GM
-        - TM
-        - TO
-      parameters:
-        -
-          name: days
-          in: query
-          schema:
-            type: integer
-            default: 90
-      responses:
-        '200':
-          description: 'Expiring certificates'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: {type: boolean, example: true}
-                  data: {type: array, items: {$ref: '#/components/schemas/CertificateSummary'}}
-              example:
-                success: true
-                data:
-                  - {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, vessel_id: string, certificate_type_id: string, certificate_number: string, issue_date: '2026-03-15', expiry_date: '2026-03-15', status: DRAFT, created_at: '2026-03-15T10:00:00.000Z', Vessel: {id: string, vessel_name: string, imo_number: string}, CertificateType: {id: string, name: string}}
   '/api/v1/certificates/job/{jobId}':
     get:
       tags:

@@ -55,6 +55,33 @@
         schema:
           type: integer
           default: 20
+      - name: vessel_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: certificate_type_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [DRAFT, ISSUED, VALID, EXPIRED, SUSPENDED, REVOKED, TRANSFERRED, DOWNGRADED]
+      - name: client_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: expiring_within_days
+        in: query
+        description: Return VALID certificates expiring within N days (default 30 when used).
+        schema:
+          type: integer
+          minimum: 1
+          example: 30
     responses:
       "200":
         description: List of certificates
@@ -722,35 +749,6 @@
         description: Bulk renewal completed
       "403":
         description: Forbidden
-
-/api/v1/certificates/expiring:
-  get:
-    tags: [Certificates]
-    summary: Get expiring certificates
-    description: Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.
-    operationId: getExpiringCertificates
-    x-roles: [CLIENT, ADMIN, GM, TM, TO]
-    parameters:
-      - name: days
-        in: query
-        schema:
-          type: integer
-          default: 90
-    responses:
-      "200":
-        description: Expiring certificates
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/CertificateSummary'
 
 /api/v1/certificates/job/{jobId}:
   get:

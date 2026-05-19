@@ -1605,29 +1605,7 @@ If already used, returns **409**.
 
 ---
 
-### GET `/api/v1/certificates/expiring`
-**Summary:** Get expiring certificates
-**Description:** Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.
-
-#### Parameters
-- **days** (`query` | `integer` | *Optional*): 
-
-#### Responses
-<details><summary><strong>200</strong> - Expiring certificates</summary>
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "vessel_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_type_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
-      "certificate_number": "string",
-      "issue_date": "string",
-      "expiry_date": "string",
-      "status": "string",
-      "created_at": "2026-03-07T12:00:00Z",
+Z",
       "Vessel": {
         "id": "...",
         "vessel_name": "string",

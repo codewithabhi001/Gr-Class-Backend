@@ -1,7 +1,5 @@
 import crypto from 'crypto';
 import db from '../../models/index.js';
-import { SURVEY_STATUSES } from '../../constants/statuses.js';
-import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 import * as s3Service from '../../services/s3.service.js';
 import * as notificationService from '../../services/notification.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
@@ -604,7 +602,7 @@ export const getSurveyReports = async (query, user) => {
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / limit),
-        status_counts: buildFullStatusCounts(statusCounts, SURVEY_STATUSES),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count) })),
         rows: await fileAccessService.resolveEntity(rows, { id: user?.id })
     };
 };

@@ -92,7 +92,6 @@ Base API prefix: `/api/v1`
 - Certificates
   - `GET /api/v1/certificates/types`
   - `GET /api/v1/certificates`
-  - `GET /api/v1/certificates/expiring`
   - `GET /api/v1/certificates/:id`
   - `GET /api/v1/certificates/:id/download`
   - `GET /api/v1/certificates/:id/preview`
@@ -124,7 +123,6 @@ Base API prefix: `/api/v1`
 - `GET /api/v1/jobs/:id/history`, `POST /api/v1/jobs/:id/notes`
 - `GET /api/v1/jobs/:id/messages/external`, `GET /api/v1/jobs/:id/messages/internal`, `POST /api/v1/jobs/:id/messages`
 - `GET /api/v1/surveys`
-- `GET /api/v1/certificates/types`, `GET /api/v1/certificates`, `GET /api/v1/certificates/expiring`
 - `GET /api/v1/certificates/:id`, `GET /api/v1/certificates/:id/download`, `GET /api/v1/certificates/:id/preview`, `GET /api/v1/certificates/:id/signature`, `GET /api/v1/certificates/:id/history`
 - `GET /api/v1/checklist-templates/job/:jobId`
 - `POST /api/v1/non-conformities`, `PUT /api/v1/non-conformities/:id/close`, `GET /api/v1/non-conformities/job/:jobId`
@@ -253,7 +251,6 @@ Notes:
   Reason: operational manager role for assignments and oversight.
 
 - Certificates
-  - GET /api/v1/certificates, GET /api/v1/certificates/:id, GET /api/v1/certificates/types, GET /api/v1/certificates/expiring
   - POST /api/v1/certificates — generate certificate (ADMIN, GM, TM)
   - Advanced actions often require ADMIN or TM (transfer/extend/downgrade)
   Reason: approve/generate certificates and view certificate data.
@@ -353,7 +350,6 @@ Notes:
 
 - Certificates
   - GET /api/v1/certificates/types, GET /api/v1/certificates, GET /api/v1/certificates/:id, GET /api/v1/certificates/:id/download
-  - GET /api/v1/certificates/expiring
   Reason: clients need access to their vessel certificates and downloads.
 
 - Documents / Feedback / Incidents

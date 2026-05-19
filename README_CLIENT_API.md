@@ -34,7 +34,6 @@ This is the definitive API reference for developing the **GR-CLASS Client Portal
 
 ### Certificates
 - **List issued:** `GET /certificates`
-- **Expiring soon:** `GET /certificates/expiring` (Defaults to 90 days)
 - **Vessel-specific:** `GET /certificates/vessel/:vesselId`
 - **Download PDF:** `GET /certificates/:id/download` (HTTP 302 Redirect to S3)
 - **Types Lookup:** `GET /certificates/types` (Use for dropdowns in Request Job)

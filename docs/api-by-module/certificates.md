@@ -549,47 +549,9 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 15. GET /api/v1/certificates/expiring
-- Summary: Get expiring certificates
-- Operation ID: `getExpiringCertificates`
-- Access Roles: CLIENT, ADMIN, GM, TM, TO
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
-- `days` (query, optional, integer)
-- Request Body from YAML:
-- None
-- Req usage in controller: params=[], query=[days], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
-- `200`: Expiring certificates (application/json => object)
-- Controller response envelope(s):
-```js
-{
-            success: true,
-            message: `Certificates expiring within ${days} days fetched successfully`,
-            data: { expirations: certs, count: certs.length, days }
-        }
-```
-
-Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:33`
-- Controller: `src/modules/certificates/certificate.controller.js:236`
-- Service: `src/modules/certificates/certificate.service.js:977` (`certService.getExpiringCertificates`)
-- Models touched: Certificate.findAll
-- Service returns (detected): await Certificate.findAll({
-        where: {
-            ...scopeWhere,
-            status: 'VALID',
-            expiry_date: {
-                [Op.between]: [today, target],
-            },
-        },
-        include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number', 'client_id'] }],
-    })
+### 15. GET /api/v1/certificates (expiring filter)
+- Use list endpoint with query `expiring_within_days=30` (and optional `status`, `vessel_id`, etc.).
+- Defaults to `VALID` certificates when `expiring_within_days` is set and `status` is omitted.
 
 ### 16. GET /api/v1/certificates/job/{jobId}
 - Summary: Get certificate by job ID

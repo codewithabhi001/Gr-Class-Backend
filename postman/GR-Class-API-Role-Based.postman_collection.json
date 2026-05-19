@@ -755,44 +755,6 @@
               "response": []
             },
             {
-              "name": "Get expiring certificates",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/certificates/expiring",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "certificates",
-                    "expiring"
-                  ],
-                  "query": [
-                    {
-                      "key": "days",
-                      "value": "90",
-                      "description": ""
-                    }
-                  ]
-                },
-                "description": "Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{token}}",
-                      "type": "string"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
               "name": "Get certificates by vessel",
               "request": {
                 "method": "GET",
@@ -7209,44 +7171,6 @@
               "response": []
             },
             {
-              "name": "Get expiring certificates",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/certificates/expiring",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "certificates",
-                    "expiring"
-                  ],
-                  "query": [
-                    {
-                      "key": "days",
-                      "value": "90",
-                      "description": ""
-                    }
-                  ]
-                },
-                "description": "Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{token}}",
-                      "type": "string"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
               "name": "Get certificates by vessel",
               "request": {
                 "method": "GET",
@@ -11829,44 +11753,6 @@
                       "language": "json"
                     }
                   }
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get expiring certificates",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/certificates/expiring",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "certificates",
-                    "expiring"
-                  ],
-                  "query": [
-                    {
-                      "key": "days",
-                      "value": "90",
-                      "description": ""
-                    }
-                  ]
-                },
-                "description": "Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{token}}",
-                      "type": "string"
-                    }
-                  ]
                 }
               },
               "response": []
@@ -18038,44 +17924,6 @@
                   ]
                 },
                 "description": "Returns the **full detail** of a single certificate type, including:\n- All metadata fields (`description`, `requires_survey`, etc.)\n- The complete list of `required_documents` with their `is_mandatory` flag\n\nThis is the endpoint to call **before creating a job** to know which\ndocuments must be uploaded.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{token}}",
-                      "type": "string"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get expiring certificates",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/certificates/expiring",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "certificates",
-                    "expiring"
-                  ],
-                  "query": [
-                    {
-                      "key": "days",
-                      "value": "90",
-                      "description": ""
-                    }
-                  ]
-                },
-                "description": "Get certificates expiring within a date range. ADMIN, GM, TM, TO, CLIENT.",
                 "auth": {
                   "type": "bearer",
                   "bearer": [

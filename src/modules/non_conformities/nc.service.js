@@ -1,7 +1,5 @@
 import db from '../../models/index.js';
 import * as notificationService from '../../services/notification.service.js';
-import { NC_STATUSES } from '../../constants/statuses.js';
-import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 
 const NonConformity = db.NonConformity;
 
@@ -58,7 +56,7 @@ export const getNCs = async (query) => {
         page: parseInt(page),
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: buildFullStatusCounts(statusCounts, NC_STATUSES),
+        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
         rows
     };
 };
