@@ -5,6 +5,8 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import { Op } from 'sequelize';
 import { finalizeSurvey } from '../surveys/survey.service.js';
+import { JOB_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 
 const JobRequest = db.JobRequest;
 const JobStatusHistory = db.JobStatusHistory;
@@ -308,7 +310,7 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     return {
         total: count, page: parseInt(page), limit: parseInt(limit),
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
+        status_counts: buildFullStatusCounts(statusCounts, JOB_STATUSES),
         jobs
     };
 };

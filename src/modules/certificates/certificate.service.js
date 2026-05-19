@@ -10,6 +10,8 @@ import * as emailService from '../../services/email.service.js';
 import * as s3Service from '../../services/s3.service.js';
 import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
+import { CERTIFICATE_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -531,19 +533,18 @@ export const getCertificates = async (query, user) => {
 
     const { count, rows } = await Certificate.findAndCountAll({
         where,
-        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
+        attributes: ['id', 'certificate_number', 'issue_date', 'expiry_date', 'status'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
-        include: [vesselInclude, { model: db.CertificateType, attributes: ['id', 'name'] }],
+        include: [vesselInclude, { model: db.CertificateType, attributes: ['name'] }],
         order: [['createdAt', 'DESC']],
         subQuery: false
     });
 
-    // Calculate status counts
     const statusWhere = { ...where };
     delete statusWhere.status;
-    
-    const statusCounts = await Certificate.findAll({
+
+    const statusCountsRaw = await Certificate.findAll({
         where: statusWhere,
         attributes: [
             [db.sequelize.col('Certificate.status'), 'status'],
@@ -560,8 +561,18 @@ export const getCertificates = async (query, user) => {
         page: parseInt(page),
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
-        rows
+        status_counts: buildFullStatusCounts(statusCountsRaw, CERTIFICATE_STATUSES),
+        rows: rows.map((c) => ({
+            id: c.id,
+            certificate_number: c.certificate_number,
+            vessel_name: c.Vessel?.vessel_name ?? null,
+            imo_number: c.Vessel?.imo_number ?? null,
+            client_company_name: c.Vessel?.Client?.company_name ?? null,
+            certificate_type: c.CertificateType?.name ?? null,
+            status: c.status,
+            issued: c.issue_date,
+            expires: c.expiry_date,
+        })),
     };
 };
 
