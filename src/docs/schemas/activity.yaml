@@ -76,7 +76,23 @@ ActivityRequestDetailResponse:
           nullable: true
         attachments:
           type: array
-          items: { type: string, format: uri }
+          items:
+            type: object
+            properties:
+              filename: { type: string }
+              signedUrl: { type: string, format: uri }
+        requester_name:
+          type: string
+          nullable: true
+        requester_email:
+          type: string
+          nullable: true
+        vessel_name:
+          type: string
+          nullable: true
+        imo_number:
+          type: string
+          nullable: true
         updated_at:
           type: string
           format: date-time

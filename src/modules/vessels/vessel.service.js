@@ -2,6 +2,22 @@ import db from '../../models/index.js';
 import { VESSEL_CLASS_STATUSES } from '../../constants/statuses.js';
 import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
 import { flatVesselListRow } from '../../utils/listRowFlatten.util.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
+
+const enrichVesselUploadedDocuments = async (docs, user = null) => {
+    return Promise.all(docs.map(async (doc) => {
+        const plain = doc.get ? doc.get({ plain: true }) : doc;
+        const { fileName, signedUrl } = await fileAccessService.processFileAccess(plain, user);
+        return {
+            id: plain.id,
+            document_type: plain.document_type,
+            description: plain.description ?? null,
+            createdAt: plain.createdAt ?? plain.created_at,
+            filename: fileName,
+            signedUrl
+        };
+    }));
+};
 
 const Vessel = db.Vessel;
 const Client = db.Client;
@@ -112,20 +128,9 @@ export const getVesselById = async (id, scopeFilters = {}, user = null) => {
 
     const vesselPlain = vessel.get({ plain: true });
 
-    if (vesselPlain.Documents && vesselPlain.Documents.length > 0) {
-        const { processFileAccess } = await import('../../services/fileAccess.service.js');
-        const enrichedDocs = await Promise.all(vesselPlain.Documents.map(async (doc) => {
-            const accessInfo = await processFileAccess(doc, user);
-            return {
-                ...doc,
-                ...accessInfo,
-                file_url: undefined // hide raw s3 url
-            };
-        }));
-        vesselPlain.uploaded_documents = enrichedDocs;
-    } else {
-        vesselPlain.uploaded_documents = [];
-    }
+    vesselPlain.uploaded_documents = vesselPlain.Documents?.length
+        ? await enrichVesselUploadedDocuments(vesselPlain.Documents, user)
+        : [];
 
     delete vesselPlain.Documents; // remove raw DB nested object if needed, or keep it, replacing is cleaner.
 

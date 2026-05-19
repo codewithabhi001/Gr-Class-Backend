@@ -223,11 +223,14 @@
       "country": "PA",
       "authority_name": "Panama Maritime Authority"
     },
-    "Documents": [
+    "uploaded_documents": [
       {
         "id": "uuid",
-        "document_type": "Class Certificate",
-        "file_url": "https://..."
+        "document_type": "REGISTRY_CERTIFICATE",
+        "description": "Ship Registry Certificate",
+        "createdAt": "2026-03-05T18:30:00.000Z",
+        "filename": "registry-cert.pdf",
+        "signedUrl": "https://bucket.s3.amazonaws.com/...?X-Amz-Signature=..."
       }
     ],
     "JobRequests": [

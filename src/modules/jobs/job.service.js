@@ -22,6 +22,37 @@ const Survey = db.Survey;
 const SurveyorProfile = db.SurveyorProfile;
 const Payment = db.Payment;
 
+/**
+ * Map job_documents rows to client-facing uploaded_documents (signed URLs, no raw S3 keys).
+ */
+const enrichUploadedDocuments = async (jobId, user = null) => {
+    const docs = await JobDocument.findAll({
+        where: { job_id: jobId },
+        include: [{
+            model: CertificateRequiredDocument,
+            attributes: ['id', 'document_name', 'is_mandatory']
+        }],
+        order: [['createdAt', 'ASC']]
+    });
+
+    return Promise.all(docs.map(async (doc) => {
+        const plain = doc.get({ plain: true });
+        const { fileName, signedUrl } = await fileAccessService.processFileAccess(plain, user);
+        const documentType = plain.CertificateRequiredDocument?.document_name
+            || plain.custom_document_name
+            || null;
+
+        return {
+            id: plain.id,
+            document_type: documentType,
+            description: null,
+            createdAt: plain.createdAt,
+            filename: fileName,
+            signedUrl
+        };
+    }));
+};
+
 // ─────────────────────────────────────────────
 // INTERNAL HELPERS
 // ─────────────────────────────────────────────
@@ -315,7 +346,7 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     };
 };
 
-export const getJobById = async (id, scopeFilters = {}) => {
+export const getJobById = async (id, scopeFilters = {}, user = null) => {
     const job = await JobRequest.findOne({
         where: { id, ...scopeFilters },
         include: [
@@ -358,7 +389,9 @@ export const getJobById = async (id, scopeFilters = {}) => {
         jobPlain.Certificate = { id: cert.id, certificate_number: cert.certificate_number, source_type: cert.source_type };
     }
 
-    return await fileAccessService.resolveEntity(jobPlain);
+    jobPlain.uploaded_documents = await enrichUploadedDocuments(id, user);
+
+    return await fileAccessService.resolveEntity(jobPlain, user);
 };
 
 export const getEligibleSurveyors = async (jobId, queryParams = {}) => {

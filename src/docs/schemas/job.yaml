@@ -178,6 +178,18 @@ JobResponse:
         id: { $ref: '#/components/schemas/UUID' }
         name: { type: string }
         role: { type: string }
+    uploaded_documents:
+      type: array
+      description: Job supporting documents with signed download URLs.
+      items:
+        type: object
+        properties:
+          id: { $ref: '#/components/schemas/UUID' }
+          document_type: { type: string, nullable: true }
+          description: { type: string, nullable: true }
+          createdAt: { type: string, format: date-time }
+          filename: { type: string }
+          signedUrl: { type: string, format: uri }
     payment_status: { type: string }
   example:
     id: "019d3ac5-3464-74f9-891e-f6eda7ee366c"

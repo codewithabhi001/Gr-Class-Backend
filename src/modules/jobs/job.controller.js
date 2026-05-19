@@ -58,7 +58,7 @@ export const getJobs = async (req, res, next) => {
 export const getJobById = async (req, res, next) => {
     try {
         const scopeFilters = await getScopeFilters(req.user);
-        const job = await jobService.getJobById(req.params.id, scopeFilters);
+        const job = await jobService.getJobById(req.params.id, scopeFilters, req.user);
         res.json({ success: true, data: job });
     } catch (error) { next(error); }
 };

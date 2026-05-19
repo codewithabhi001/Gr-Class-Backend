@@ -218,6 +218,17 @@ VesselResponse:
           type: object
           properties:
             flag_state_name: { type: string }
+        uploaded_documents:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { $ref: '#/components/schemas/UUID' }
+              document_type: { type: string }
+              description: { type: string, nullable: true }
+              createdAt: { type: string, format: date-time }
+              filename: { type: string }
+              signedUrl: { type: string, format: uri }
   example:
     id: "019ccbf7-f67a-7443-bd21-17f16ef06cbb"
     client_id: "019c79a4-3ab9-7055-a1a7-9d7332fb025e"

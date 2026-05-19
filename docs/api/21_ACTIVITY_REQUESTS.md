@@ -109,7 +109,39 @@
 | `id` | UUID | ✅ |
 
 ### Response `200 OK`
-Full activity request object (same as create response with associations).
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "request_number": "AR-2026-001",
+    "activity_type": "INSPECTION",
+    "requested_service": "Annual Safety Inspection",
+    "proposed_date": "2026-04-10T00:00:00.000Z",
+    "status": "PENDING",
+    "vessel_id": "uuid",
+    "requested_by": "uuid",
+    "priority": "HIGH",
+    "description": "Annual safety inspection required...",
+    "location_port": "Dubai Port, Jebel Ali",
+    "linked_job_id": null,
+    "rejection_reason": null,
+    "attachments": [
+      {
+        "filename": "supporting-doc.pdf",
+        "signedUrl": "https://bucket.s3.amazonaws.com/...?X-Amz-Signature=..."
+      }
+    ],
+    "created_at": "2026-03-05T18:00:00.000Z",
+    "updated_at": "2026-03-05T18:00:00.000Z",
+    "vessel_name": "MV Star",
+    "imo_number": "1234567",
+    "requester_name": "Client User",
+    "requester_email": "ops@pacific.com",
+    "LinkedJob": null
+  }
+}
+```
 
 ---
 

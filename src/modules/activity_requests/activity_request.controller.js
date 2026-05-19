@@ -26,7 +26,7 @@ export const getRequests = async (req, res, next) => {
 export const getRequestById = async (req, res, next) => {
     try {
         const scopeFilters = getScopeFilters(req.user);
-        const result = await activityService.getActivityRequestById(req.params.id, scopeFilters);
+        const result = await activityService.getActivityRequestById(req.params.id, scopeFilters, req.user);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };

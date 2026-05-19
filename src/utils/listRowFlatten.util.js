@@ -135,6 +135,38 @@ export const flatActivityRequestListRow = (row) => {
     };
 };
 
+export const flatActivityRequestDetailRow = (row) => {
+    const a = toPlain(row);
+    return {
+        id: a.id,
+        request_number: a.request_number,
+        activity_type: a.activity_type,
+        requested_service: a.requested_service,
+        proposed_date: a.proposed_date,
+        status: a.status,
+        vessel_id: a.vessel_id,
+        requested_by: a.requested_by,
+        priority: a.priority,
+        description: a.description,
+        location_port: a.location_port,
+        linked_job_id: a.linked_job_id,
+        rejection_reason: a.rejection_reason,
+        attachments: a.attachments ?? [],
+        created_at: a.created_at,
+        updated_at: a.updated_at,
+        vessel_name: a.Vessel?.vessel_name ?? null,
+        imo_number: a.Vessel?.imo_number ?? null,
+        requester_name: a.Requester?.name ?? null,
+        requester_email: a.Requester?.email ?? null,
+        LinkedJob: a.LinkedJob ? {
+            id: a.LinkedJob.id,
+            job_status: a.LinkedJob.job_status,
+            reason: a.LinkedJob.reason ?? null,
+            job_request_number: a.LinkedJob.job_request_number ?? null,
+        } : null,
+    };
+};
+
 export const flatChangeRequestListRow = (row) => {
     const cr = toPlain(row);
     return {

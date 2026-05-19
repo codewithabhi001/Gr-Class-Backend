@@ -181,10 +181,29 @@ CREATED → DOCUMENT_VERIFIED → APPROVED → ASSIGNED → SURVEY_AUTHORIZED �
       "id": "uuid",
       "survey_status": "NOT_SRTED",
       "surveyor_id": "uuid"
-    }
+    },
+    "uploaded_documents": [
+      {
+        "id": "019514a2-7e3b-7000-8000-000000000091",
+        "document_type": "Safety Management Certificate",
+        "description": null,
+        "createdAt": "2026-03-05T18:30:00.000Z",
+        "filename": "smc-cert.pdf",
+        "signedUrl": "https://bucket.s3.amazonaws.com/...?X-Amz-Signature=..."
+      }
+    ]
   }
 }
 ```
+
+| `uploaded_documents[]` field | Type | Description |
+|-------------------------------|------|-------------|
+| `id` | UUID | Job document record ID |
+| `document_type` | string | Required document name or custom document name |
+| `description` | string \| null | Reserved; always `null` for job documents (no description column) |
+| `createdAt` | ISO datetime | Upload timestamp |
+| `filename` | string | Original file name from storage key |
+| `signedUrl` | string | Time-limited HTTPS URL to download the file |
 
 ---
 
