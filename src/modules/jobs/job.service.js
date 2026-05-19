@@ -256,22 +256,12 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     const pageLimit = Math.max(1, parseInt(limit, 10));
     const isSurveyor = userRole === 'SURVEYOR';
 
-    const jobAttributes = isSurveyor
-        ? ['id', 'job_request_number', 'reason', 'vessel_id', 'certificate_type_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt', 'is_survey_required', 'reschedule_count']
-        : ['id', 'job_request_number', 'reason', 'vessel_id', 'certificate_type_id', 'requested_by_user_id', 'assigned_surveyor_id',
-            'assigned_by_user_id', 'approved_by_user_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt', 'is_survey_required', 'reschedule_count'];
+    const jobAttributes = ['id', 'job_request_number', 'vessel_id', 'certificate_type_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt'];
 
     const include = [
-        { model: Vessel, attributes: isSurveyor ? ['id', 'vessel_name', 'imo_number'] : ['id', 'vessel_name', 'imo_number', 'client_id'] },
-        { model: CertificateType, attributes: ['id', 'name', 'issuing_authority'] },
-        { model: Survey, as: 'survey', attributes: ['id', 'survey_status', 'survey_statement_status', 'started_at', 'submitted_at'] },
-        { model: Payment, attributes: ['id', 'payment_status', 'amount', 'currency'] }
+        { model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
+        { model: CertificateType, attributes: ['id', 'name', 'issuing_authority'] }
     ];
-    if (!isSurveyor) include.push(
-        { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
-        { model: User, as: 'surveyor', attributes: ['id', 'name', 'email'] },
-        { model: User, as: 'approver', attributes: ['id', 'name', 'role'] }
-    );
 
     const { count, rows } = await JobRequest.findAndCountAll({
         where: whereClause, attributes: jobAttributes,
@@ -292,10 +282,43 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
         raw: true
     });
 
-    const jobs = (await fileAccessService.resolveEntity(rows)).map(j => ({
-        ...j,
-        payment_status: j.Payments?.[0]?.payment_status || 'N/A'
-    }));
+    const jobs = (await fileAccessService.resolveEntity(rows)).map(j => {
+        const vessel_name = j.Vessel?.vessel_name || null;
+        const imo_number = j.Vessel?.imo_number || null;
+        const certificate_name = j.CertificateType?.name || null;
+        const issuing_authority = j.CertificateType?.issuing_authority || null;
+
+        return {
+            id: j.id,
+            job_request_number: j.job_request_number,
+            job_status: j.job_status,
+            priority: j.priority,
+            target_port: j.target_port,
+            target_date: j.target_date,
+            createdAt: j.createdAt,
+            updatedAt: j.updatedAt,
+
+            // Flat related fields
+            vessel_id: j.vessel_id,
+            vessel_name,
+            imo_number,
+            certificate_type_id: j.certificate_type_id,
+            certificate_name,
+            issuing_authority,
+
+            // Lightweight nested objects for 100% backward compatibility
+            Vessel: j.Vessel ? {
+                id: j.Vessel.id,
+                vessel_name: j.Vessel.vessel_name,
+                imo_number: j.Vessel.imo_number
+            } : null,
+            CertificateType: j.CertificateType ? {
+                id: j.CertificateType.id,
+                name: j.CertificateType.name,
+                issuing_authority: j.CertificateType.issuing_authority
+            } : null
+        };
+    });
     return {
         total: count, page: parseInt(page), limit: parseInt(limit),
         totalPages: Math.ceil(count / pageLimit),
