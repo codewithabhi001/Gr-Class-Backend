@@ -28,11 +28,6 @@ PaymentResponse:
       format: date-time
       nullable: true
       description: Full settlement date; null until payment_status is PAID (list).
-    receipt_url:
-      type: string
-      format: uri
-      nullable: true
-      description: Computed from the latest financial_ledger row with a receipt (not stored on payments).
     verified_by_user_id:
       $ref: '#/components/schemas/UUID'
       nullable: true

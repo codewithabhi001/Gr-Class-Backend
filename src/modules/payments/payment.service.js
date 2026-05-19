@@ -34,22 +34,9 @@ const calculateLedgerTotals = (ledgers) => {
     return { collected, refunded };
 };
 
-/** Latest receipt S3 key from ledger entries (source of truth for payment proofs). */
-const getLatestReceiptFromLedgers = (ledgers) => {
-    if (!ledgers?.length) return null;
-    const latestWithReceipt = [...ledgers].reverse().find((l) => {
-        const rUrl = typeof l.get === 'function' ? l.get('receipt_url') : l.receipt_url;
-        return !!rUrl;
-    });
-    if (!latestWithReceipt) return null;
-    return typeof latestWithReceipt.get === 'function'
-        ? latestWithReceipt.get('receipt_url')
-        : latestWithReceipt.receipt_url;
-};
-
 /**
- * Enrich a plain payment object with ledger-derived financial data.
- * receipt_url in API responses is computed from ledger rows, not stored on payments.
+ * Enrich a plain payment object with ledger-derived financial totals.
+ * Receipts live on ledger rows only (see formatLedgerRows / GET :id/ledger).
  */
 const enrichPaymentWithLedger = (plain, ledgers) => {
     const { collected, refunded } = calculateLedgerTotals(ledgers);
@@ -59,10 +46,25 @@ const enrichPaymentWithLedger = (plain, ledgers) => {
     plain.amount_paid = collected.toFixed(2);
     plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
     plain.remaining = Math.max(0, parseFloat(plain.amount) - collected + refunded).toFixed(2);
-    plain.receipt_url = getLatestReceiptFromLedgers(ledgers);
 
     return plain;
 };
+
+const formatLedgerRows = (ledgers) => ledgers.map((l) => {
+    const entry = typeof l.get === 'function' ? l.get({ plain: true }) : l;
+    return {
+        id: entry.id,
+        transaction_type: entry.transaction_type,
+        amount: entry.amount,
+        currency: entry.currency,
+        reference_id: entry.reference_id,
+        remarks: entry.remarks,
+        receipt_url: entry.receipt_url || null,
+        balance_after: entry.balance_after,
+        performed_by: entry.performed_by,
+        created_at: entry.createdAt,
+    };
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE INVOICE
@@ -176,7 +178,9 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
 
         await txn.commit();
         const ledgersAfter = await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']] });
-        return enrichPaymentWithLedger(payment.get({ plain: true }), ledgersAfter);
+        const plain = enrichPaymentWithLedger(payment.get({ plain: true }), ledgersAfter);
+        plain.ledgers = formatLedgerRows(ledgersAfter);
+        return plain;
     } catch (error) {
         await txn.rollback();
         throw error;
@@ -231,15 +235,25 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
 export const getPaymentById = async (id, scopeFilters = {}, user = null) => {
     const payment = await Payment.findOne({
         where: { id, ...scopeFilters },
-        include: [{ model: JobRequest, include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
+        include: [{
+            model: JobRequest,
+            attributes: ['id', 'job_request_number', 'job_status'],
+            include: [{ model: Vessel, attributes: ['vessel_name', 'imo_number'] }],
+        }],
     });
     if (!payment) throw { statusCode: 404, message: 'Payment record not found' };
 
     const plain = payment.get({ plain: true });
     const ledgers = await FinancialLedger.findAll({ where: { invoice_id: id }, order: [['createdAt', 'ASC']] });
-    plain.ledgers = ledgers;
 
     const enriched = enrichPaymentWithLedger(plain, ledgers);
+    enriched.job_request_number = plain.JobRequest?.job_request_number ?? null;
+    enriched.vessel_name = plain.JobRequest?.Vessel?.vessel_name ?? null;
+    enriched.imo_number = plain.JobRequest?.Vessel?.imo_number ?? null;
+    enriched.job_status = plain.JobRequest?.job_status ?? null;
+    delete enriched.JobRequest;
+    enriched.ledgers = formatLedgerRows(ledgers);
+
     return await fileAccessService.resolveEntity(enriched, user);
 };
 
@@ -269,8 +283,10 @@ export const getFinancialSummary = async (scopeFilters = {}) => {
     };
 };
 
-export const getLedger = async (paymentId) =>
-    await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']] });
+export const getLedger = async (paymentId) => {
+    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']] });
+    return formatLedgerRows(ledgers);
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COLLECT PAYMENT (Advance / Partial — each becomes a ledger entry)
