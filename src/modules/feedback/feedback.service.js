@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { flatFeedbackListRow } from '../../utils/listRowFlatten.util.js';
 import * as notificationService from '../../services/notification.service.js';
 
 const CustomerFeedback = db.CustomerFeedback;
@@ -71,9 +72,11 @@ export const getFeedbackById = async (id) => {
 
 export const getAllFeedback = async (query) => {
     const { page = 1, limit = 10 } = query;
-    return await CustomerFeedback.findAndCountAll({
-        limit: parseInt(limit, 10),
-        offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const pageLimit = Math.max(1, parseInt(limit, 10));
+    const result = await CustomerFeedback.findAndCountAll({
+        limit: pageLimit,
+        offset: (pageNum - 1) * pageLimit,
         order: [['createdAt', 'DESC']],
         include: [
             {
@@ -93,5 +96,12 @@ export const getAllFeedback = async (query) => {
             }
         ]
     });
+    return {
+        total: result.count,
+        page: pageNum,
+        limit: pageLimit,
+        totalPages: Math.ceil(result.count / pageLimit),
+        rows: result.rows.map(flatFeedbackListRow),
+    };
 };
 

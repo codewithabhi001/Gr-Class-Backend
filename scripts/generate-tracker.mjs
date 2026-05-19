@@ -165,7 +165,6 @@ const modules = [
       { method: 'PUT',    endpoint: '/api/v1/certificates/types/:id/required-documents/:docId', description: 'Update required doc rule',               roles: 'ADMIN,TM',          be: 'Done', fe: 'Pending' },
       { method: 'DELETE', endpoint: '/api/v1/certificates/types/:id/required-documents/:docId', description: 'Remove required doc rule',               roles: 'ADMIN,TM',          be: 'Done', fe: 'Pending' },
       { method: 'GET',    endpoint: '/api/v1/certificates',                              description: 'List all certificates (with filters)',           roles: 'All',               be: 'Done', fe: 'Pending' },
-      { method: 'GET',    endpoint: '/api/v1/certificates/expiring',                     description: 'List expiring certificates',                     roles: 'CLIENT,ADMIN,GM,TM,TO', be: 'Done', fe: 'Pending' },
       { method: 'GET',    endpoint: '/api/v1/certificates/upload-url',                   description: 'Get presigned URL to upload certificate file',   roles: 'ADMIN,GM,TM',       be: 'Done', fe: 'Pending' },
       { method: 'POST',   endpoint: '/api/v1/certificates/vessel/:vesselId/external',    description: 'Upload externally issued certificate',            roles: 'ADMIN,GM,TM',       be: 'Done', fe: 'Pending' },
       { method: 'GET',    endpoint: '/api/v1/certificates/vessel/:vesselId',             description: 'Get all certificates for a vessel',              roles: 'All',               be: 'Done', fe: 'Pending' },

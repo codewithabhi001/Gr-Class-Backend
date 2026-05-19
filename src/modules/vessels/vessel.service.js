@@ -1,4 +1,7 @@
 import db from '../../models/index.js';
+import { VESSEL_CLASS_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
+import { flatVesselListRow } from '../../utils/listRowFlatten.util.js';
 
 const Vessel = db.Vessel;
 const Client = db.Client;
@@ -56,18 +59,6 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
     const { page = 1, limit = 10, ...filters } = query;
     const where = { ...filters, ...scopeFilters };
 
-    const flatVessel = (v) => ({
-        id: v.id || 'N/A',
-        vessel_name: v.vessel_name || 'N/A',
-        imo_number: v.imo_number || 'N/A',
-        ship_type: v.ship_type || 'N/A',
-        class_status: v.class_status || 'N/A',
-        created_at: v.created_at || 'N/A',
-        flag_state: v.FlagAdministration?.flag_state_name || 'N/A',
-        company_name: v.Client?.company_name || 'N/A',
-        company_code: v.Client?.company_code || 'N/A'
-    });
-
     const { count, rows } = await Vessel.findAndCountAll({
         where,
         attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
@@ -93,20 +84,13 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
         raw: true
     });
 
-    const activeCount = statusCounts.find(sc => sc.status?.toUpperCase() === 'ACTIVE')?.count || 0;
-    const inactiveCount = statusCounts.find(sc => sc.status?.toUpperCase() === 'INACTIVE')?.count || 0;
-
     return {
         total: count,
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / limit),
-        status_counts: {
-            total: parseInt(count, 10),
-            active: parseInt(activeCount, 10),
-            inactive: parseInt(inactiveCount, 10)
-        },
-        rows: rows.map(flatVessel)
+        status_counts: buildFullStatusCounts(statusCounts, VESSEL_CLASS_STATUSES),
+        rows: rows.map(flatVesselListRow),
     };
 };
 
@@ -174,16 +158,14 @@ export const getVesselsByClientId = async (clientId) => {
     });
 
     return {
-        client: {
-            id: client.id,
-            name: client.company_name,
-            code: client.company_code,
-            email: client.email,
-            phone: client.phone,
-            status: client.status
-        },
-        vessels,
-        count: vessels.length
+        client_id: client.id,
+        client_name: client.company_name,
+        client_code: client.company_code,
+        client_email: client.email,
+        client_phone: client.phone,
+        client_status: client.status,
+        count: vessels.length,
+        rows: vessels.map(flatVesselListRow),
     };
 };
 

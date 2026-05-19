@@ -3,6 +3,9 @@ import db from '../../models/index.js';
 import * as s3Service from '../../services/s3.service.js';
 import * as notificationService from '../../services/notification.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
+import { SURVEY_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
+import { flatSurveyReportListRow } from '../../utils/listRowFlatten.util.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import logger from '../../utils/logger.js';
 
@@ -587,8 +590,10 @@ export const getSurveyReports = async (query, user) => {
         ],
         order: [['submitted_at', 'DESC']]
     });
+    const statusCountWhere = { ...allowedFilters };
+    delete statusCountWhere.survey_status;
     const statusCounts = await Survey.findAll({
-        where: allowedFilters,
+        where: statusCountWhere,
         attributes: [
             ['survey_status', 'status'],
             [db.sequelize.fn('COUNT', db.sequelize.col('survey_status')), 'count']
@@ -602,8 +607,8 @@ export const getSurveyReports = async (query, user) => {
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / limit),
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count) })),
-        rows: await fileAccessService.resolveEntity(rows, { id: user?.id })
+        status_counts: buildFullStatusCounts(statusCounts, SURVEY_STATUSES),
+        rows: (await fileAccessService.resolveEntity(rows, { id: user?.id })).map(flatSurveyReportListRow),
     };
 };
 

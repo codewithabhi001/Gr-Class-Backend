@@ -10,6 +10,9 @@ import * as emailService from '../../services/email.service.js';
 import * as s3Service from '../../services/s3.service.js';
 import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
+import { CERTIFICATE_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
+import { flatCertificateListRow } from '../../utils/listRowFlatten.util.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -20,7 +23,7 @@ const JobStatusHistory = db.JobStatusHistory;
 const AuditLog = db.AuditLog;
 const { Op } = db.Sequelize;
 
-/** Reusable scope filter for certificate list/get by role. Used in getCertificates, getCertificateById, getExpiringCertificates, preview, getHistory, download. */
+/** Reusable scope filter for certificate list/get by role. Used in getCertificates, getCertificateById, preview, getHistory, download. */
 export const getCertificateScopeFilter = async (user) => {
     return buildCertificateScopeWhere(user, { JobRequest, Vessel });
 };
@@ -519,6 +522,17 @@ export const getCertificates = async (query, user) => {
         }
     });
 
+    if (rest.expiring_within_days != null && rest.expiring_within_days !== '') {
+        const days = Math.max(1, parseInt(rest.expiring_within_days, 10) || 30);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(today);
+        target.setDate(today.getDate() + days);
+        target.setHours(23, 59, 59, 999);
+        where.status = where.status || 'VALID';
+        where.expiry_date = { [Op.between]: [today, target] };
+    }
+
     const vesselInclude = {
         model: db.Vessel,
         attributes: ['id', 'vessel_name', 'imo_number', 'client_id'],
@@ -560,8 +574,8 @@ export const getCertificates = async (query, user) => {
         page: parseInt(page),
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
-        rows
+        status_counts: buildFullStatusCounts(statusCounts, CERTIFICATE_STATUSES),
+        rows: rows.map(flatCertificateListRow),
     };
 };
 
@@ -581,12 +595,13 @@ export const getCertificatesByVessel = async (vesselId, user) => {
         }
     }
 
-    return await Certificate.findAll({
+    const certs = await Certificate.findAll({
         where,
         attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         include: [{ model: db.CertificateType, attributes: ['name'] }],
         order: [['expiry_date', 'ASC']]
     });
+    return certs.map(flatCertificateListRow);
 };
 
 /** Get certificate generated for a specific job. */
@@ -929,26 +944,6 @@ export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
     });
 
     return newCert;
-};
-
-export const getExpiringCertificates = async (days, user) => {
-    const scopeWhere = await getCertificateScopeFilter(user);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-    const target = new Date();
-    target.setDate(today.getDate() + days);
-    target.setHours(23, 59, 59, 999); // End of target day
-
-    return await Certificate.findAll({
-        where: {
-            ...scopeWhere,
-            status: 'VALID',
-            expiry_date: {
-                [Op.between]: [today, target],
-            },
-        },
-        include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number', 'client_id'] }],
-    });
 };
 
 export const bulkRenew = async (ids, validityYears, reason, userId) => {

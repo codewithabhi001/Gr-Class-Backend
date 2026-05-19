@@ -16,7 +16,6 @@ Base Path: `/api/v1`
 | `GET` | `/api/v1/certificates/:id/preview` |
 | `GET` | `/api/v1/certificates/:id/signature` |
 | `GET` | `/api/v1/certificates/:id` |
-| `GET` | `/api/v1/certificates/expiring` |
 | `GET` | `/api/v1/certificates/job/:jobId` |
 | `GET` | `/api/v1/certificates/types/:id` |
 | `GET` | `/api/v1/certificates/types` |

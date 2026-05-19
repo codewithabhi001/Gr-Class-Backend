@@ -27,9 +27,6 @@ router.delete('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'T
 
 // List all certificates
 router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificates);
-// Get certificates expiring within a range
-router.get('/expiring', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getExpiringCertificates);
-
 // Get internal/external upload signed URL
 router.get('/upload-url', authorizeRoles('ADMIN', 'GM', 'TM'), certController.getCertificateUploadUrl);
 

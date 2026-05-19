@@ -1,4 +1,7 @@
 import db from '../../models/index.js';
+import { INCIDENT_STATUSES } from '../../constants/statuses.js';
+import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
+import { flatIncidentListRow } from '../../utils/listRowFlatten.util.js';
 
 const Incident = db.Incident;
 const Vessel = db.Vessel;
@@ -51,8 +54,8 @@ export const getIncidents = async (query, scopeFilters = {}) => {
         page: parseInt(page),
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
-        rows
+        status_counts: buildFullStatusCounts(statusCounts, INCIDENT_STATUSES),
+        rows: rows.map(flatIncidentListRow),
     };
 };
 

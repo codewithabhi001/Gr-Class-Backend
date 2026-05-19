@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { flatChangeRequestListRow } from '../../utils/listRowFlatten.util.js';
 import logger from '../../utils/logger.js';
 
 const { ChangeRequest, User } = db;
@@ -40,7 +41,7 @@ export const getChangeRequests = async (filters = {}) => {
         order: [['createdAt', 'DESC']]
     });
 
-    return changeRequests;
+    return changeRequests.map(flatChangeRequestListRow);
 };
 
 /**

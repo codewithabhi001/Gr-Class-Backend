@@ -233,18 +233,6 @@ export const downgradeCertificate = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-export const getExpiringCertificates = async (req, res, next) => {
-    try {
-        const days = parseInt(req.query.days, 10) || 30;
-        const certs = await certService.getExpiringCertificates(days, req.user);
-        res.json({
-            success: true,
-            message: `Certificates expiring within ${days} days fetched successfully`,
-            data: { expirations: certs, count: certs.length, days }
-        });
-    } catch (e) { next(e); }
-};
-
 export const getCertificateTypes = async (req, res, next) => {
     try {
         const includeInactive = req.query.include_inactive === 'true' && ['ADMIN', 'GM'].includes(req.user?.role);

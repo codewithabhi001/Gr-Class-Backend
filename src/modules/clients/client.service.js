@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { flatClientListRow } from '../../utils/listRowFlatten.util.js';
 import * as authService from '../auth/auth.service.js';
 
 const Client = db.Client;
@@ -61,12 +62,7 @@ export const getClients = async (query) => {
         offset: (page - 1) * limit,
     });
 
-    result.rows = result.rows.map(client => {
-        const plainClient = client.get({ plain: true });
-        plainClient.has_user = !!(plainClient.Users && plainClient.Users.length > 0);
-        delete plainClient.Users;
-        return plainClient;
-    });
+    result.rows = result.rows.map(flatClientListRow);
 
     return result;
 };

@@ -148,17 +148,6 @@
 }
 ```
 
-### GET `/api/v1/certificates/expiring`
-**Query:** `?days=30`
-**Response `200`:**
-```json
-{
-  "success": true, "data": {
-    "expirations": [{ "id": "uuid", "certificate_number": "GR-CLASS-2026-0010", "expiry_date": "2026-04-01", "status": "VALID", "Vessel": { "vessel_name": "MV Star" }, "CertificateType": { "name": "SMC" } }],
-    "count": 12, "days": 30
-  }
-}
-```
 
 ### POST `/api/v1/certificates` — Generate
 **Request:** `{ "job_id": "uuid", "validity_years": 5 }`

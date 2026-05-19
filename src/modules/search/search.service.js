@@ -1,4 +1,9 @@
 import db from '../../models/index.js';
+import {
+    flatSearchCertificateRow,
+    flatSearchJobRow,
+    flatSearchVesselRow,
+} from '../../utils/listRowFlatten.util.js';
 
 export const globalSearch = async (query, user) => {
     let { q } = query;
@@ -90,21 +95,21 @@ export const globalSearch = async (query, user) => {
         });
     }
 
-    results.vessels = await db.Vessel.findAll({
+    const vessels = await db.Vessel.findAll({
         where: vesselWhere,
         include: vesselInclude,
         attributes: ['id', 'vessel_name', 'imo_number', 'client_id'],
         limit: 10
     });
 
-    results.jobs = await db.JobRequest.findAll({
+    const jobs = await db.JobRequest.findAll({
         where: jobWhere,
         attributes: ['id', 'job_status', 'vessel_id', 'created_at'],
         include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }],
         limit: 10
     });
 
-    results.certificates = await db.Certificate.findAll({
+    const certificates = await db.Certificate.findAll({
         where: certWhere,
         include: certInclude,
         attributes: ['id', 'certificate_number', 'vessel_id', 'status', 'expiry_date'],
@@ -112,5 +117,9 @@ export const globalSearch = async (query, user) => {
         subQuery: false
     });
 
-    return results;
+    return {
+        vessels: vessels.map(flatSearchVesselRow),
+        jobs: jobs.map(flatSearchJobRow),
+        certificates: certificates.map(flatSearchCertificateRow),
+    };
 };

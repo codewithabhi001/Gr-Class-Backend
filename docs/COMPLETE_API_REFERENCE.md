@@ -243,9 +243,8 @@
 | 7 | `POST` | `/types/:id/required-documents` | `ADMIN`, `TM` | Add a mandatory document requirement. |
 | 8 | `PUT` | `/types/:id/required-documents/:docId` | `ADMIN`, `TM` | Update a mandatory document requirement. |
 | 9 | `DELETE` | `/types/:id/required-documents/:docId` | `ADMIN`, `TM` | Remove a mandatory document requirement. |
-| 10 | `GET` | `/` | `CLIENT`, `ADMIN`, `GM`, `TM`, `TO`, `SURVEYOR` | List all certificates. Clients see only their own. |
-| 11 | `GET` | `/expiring` | `CLIENT`, `ADMIN`, `GM`, `TM`, `TO` | Get certificates expiring within a date range. |
-| 12 | `GET` | `/upload-url` | `ADMIN`, `GM`, `TM` | Get pre-signed S3 URL for uploading certificate-related files. |
+| 10 | `GET` | `/` | `CLIENT`, `ADMIN`, `GM`, `TM`, `TO`, `SURVEYOR` | List certificates (`?expiring_within_days=30` for expiring soon). |
+| 11 | `GET` | `/upload-url` | `ADMIN`, `GM`, `TM` | Get pre-signed S3 URL for uploading certificate-related files. |
 | 13 | `POST` | `/vessel/:vesselId/external` | `ADMIN`, `GM`, `TM` | Upload an externally-issued certificate for a vessel. |
 | 14 | `GET` | `/vessel/:vesselId` | `CLIENT`, `ADMIN`, `GM`, `TM`, `TO`, `SURVEYOR` | Get all certificates for a specific vessel. |
 | 15 | `GET` | `/job/:jobId` | `CLIENT`, `ADMIN`, `GM`, `TM`, `TO`, `SURVEYOR` | Get the certificate generated from a specific job. |
