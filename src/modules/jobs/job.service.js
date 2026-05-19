@@ -298,25 +298,11 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
             createdAt: j.createdAt,
             updatedAt: j.updatedAt,
 
-            // Flat related fields
-            vessel_id: j.vessel_id,
+            // Flat related fields (no IDs!)
             vessel_name,
             imo_number,
-            certificate_type_id: j.certificate_type_id,
             certificate_name,
-            issuing_authority,
-
-            // Lightweight nested objects for 100% backward compatibility
-            Vessel: j.Vessel ? {
-                id: j.Vessel.id,
-                vessel_name: j.Vessel.vessel_name,
-                imo_number: j.Vessel.imo_number
-            } : null,
-            CertificateType: j.CertificateType ? {
-                id: j.CertificateType.id,
-                name: j.CertificateType.name,
-                issuing_authority: j.CertificateType.issuing_authority
-            } : null
+            issuing_authority
         };
     });
     return {
