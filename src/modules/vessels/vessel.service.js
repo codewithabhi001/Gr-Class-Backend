@@ -56,63 +56,31 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
     const { page = 1, limit = 10, ...filters } = query;
     const where = { ...filters, ...scopeFilters };
 
-    // For CLIENT role, return paginated vessels as before
-    if (userRole === 'CLIENT') {
-        const { count, rows } = await Vessel.findAndCountAll({
-            where,
-            attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
-            limit: parseInt(limit),
-            offset: (page - 1) * limit,
-            include: [
-                { model: Client, as: 'Client', attributes: ['id', 'company_name', 'company_code', 'status'] },
-                { model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }
-            ],
-            order: [['created_at', 'DESC']]
-        });
+    const flatVessel = (v) => ({
+        id: v.id,
+        vessel_name: v.vessel_name,
+        imo_number: v.imo_number,
+        ship_type: v.ship_type,
+        class_status: v.class_status,
+        created_at: v.created_at,
+        flag_state: v.FlagAdministration?.flag_state_name || null,
+        company_name: v.Client?.company_name || null,
+        company_code: v.Client?.company_code || null
+    });
 
-        // Calculate status counts
-        const statusWhere = { ...where };
-        delete statusWhere.class_status;
-        const statusCounts = await Vessel.findAll({
-            where: statusWhere,
-            attributes: [
-                ['class_status', 'status'],
-                [db.sequelize.fn('COUNT', db.sequelize.col('class_status')), 'count']
-            ],
-            group: ['class_status'],
-            raw: true
-        });
-
-        return {
-            total: count,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(count / limit),
-            status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
-            rows
-        };
-    }
-
-    // For other roles, group by company name
-    const vessels = await Vessel.findAll({
+    const { count, rows } = await Vessel.findAndCountAll({
         where,
         attributes: ['id', 'vessel_name', 'imo_number', 'ship_type', 'class_status', 'client_id', 'flag_administration_id', 'created_at'],
+        limit: parseInt(limit),
+        offset: (page - 1) * limit,
         include: [
-            {
-                model: Client,
-                as: 'Client',
-                attributes: ['id', 'company_name', 'company_code', 'status']
-            },
-            {
-                model: FlagAdministration,
-                as: 'FlagAdministration',
-                attributes: ['flag_state_name']
-            }
+            { model: Client, as: 'Client', attributes: ['id', 'company_name', 'company_code', 'status'] },
+            { model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }
         ],
         order: [['created_at', 'DESC']]
     });
 
-    // Calculate status counts for non-client roles
+    // Calculate status counts
     const statusWhere = { ...where };
     delete statusWhere.class_status;
     const statusCounts = await Vessel.findAll({
@@ -125,38 +93,20 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
         raw: true
     });
 
-    // Group vessels by company
-    const groupedByCompany = vessels.reduce((acc, vessel) => {
-        const companyName = vessel.Client?.company_name || 'Unknown Company';
-        const companyId = vessel.Client?.id || 'unknown';
-
-        if (!acc[companyId]) {
-            acc[companyId] = {
-                company: {
-                    id: vessel.Client?.id,
-                    name: companyName,
-                    code: vessel.Client?.company_code,
-                    email: vessel.Client?.email,
-                    phone: vessel.Client?.phone,
-                    status: vessel.Client?.status
-                },
-                vessels: []
-            };
-        }
-
-        acc[companyId].vessels.push(vessel);
-        return acc;
-    }, {});
-
-    // Convert to array and sort companies alphabetically
-    const result = Object.values(groupedByCompany).sort((a, b) =>
-        a.company.name.localeCompare(b.company.name)
-    );
+    const activeCount = statusCounts.find(sc => sc.status?.toUpperCase() === 'ACTIVE')?.count || 0;
+    const inactiveCount = statusCounts.find(sc => sc.status?.toUpperCase() === 'INACTIVE')?.count || 0;
 
     return {
-        count: vessels.length,
-        status_counts: statusCounts.map(sc => ({ status: sc.status, count: parseInt(sc.count, 10) })),
-        rows: result
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit),
+        status_counts: {
+            total: parseInt(count, 10),
+            active: parseInt(activeCount, 10),
+            inactive: parseInt(inactiveCount, 10)
+        },
+        rows: rows.map(flatVessel)
     };
 };
 

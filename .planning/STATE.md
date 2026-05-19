@@ -21,7 +21,8 @@ See: `.planning/PROJECT.md` (updated April 2026)
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 260519-fhv | Flatten job list api response to optimize performance and prevent nesting | 2026-05-19 | `683d948` | [.planning/quick/260519-fhv-flatten-job-list-api-response](./quick/260519-fhv-flatten-job-list-api-response/) |
+| 260519-fhv | Flatten job list api response to optimize performance and prevent nesting | 2026-05-19 | `ac449b8` | [.planning/quick/260519-fhv-flatten-job-list-api-response](./quick/260519-fhv-flatten-job-list-api-response/) |
+| 260519-vsl | Flatten vessel list api response and return structured active/inactive count | 2026-05-19 | `36bfdcc` | [.planning/quick/260519-vsl-flatten-vessels-api-response](./quick/260519-vsl-flatten-vessels-api-response/) |
 
 ---
 *Last updated: May 2026*
