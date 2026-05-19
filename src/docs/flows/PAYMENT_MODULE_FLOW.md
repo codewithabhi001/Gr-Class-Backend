@@ -109,6 +109,8 @@ sequenceDiagram
 }
 ```
 
+> `receipt_url` on payment responses is **derived from `financial_ledgers.receipt_url`** (latest entry with a receipt). It is not stored on the `payments` table.
+
 ---
 
 ### 3.3 Record Partial / Advance Payment

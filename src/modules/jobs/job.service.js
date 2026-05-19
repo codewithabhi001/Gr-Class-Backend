@@ -332,7 +332,7 @@ export const getJobById = async (id, scopeFilters = {}) => {
             { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
             { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
             { model: User, as: 'surveyor', attributes: ['id', 'name', 'email'] },
-            { model: Payment, attributes: ['id', 'payment_status', 'amount', 'currency', 'invoice_number', 'payment_date', 'receipt_url'] }
+            { model: Payment, attributes: ['id', 'payment_status', 'amount', 'currency', 'invoice_number', 'payment_date'] }
         ]
     });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };

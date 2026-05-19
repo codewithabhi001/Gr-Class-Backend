@@ -22,6 +22,7 @@ PaymentResponse:
       type: string
       format: uri
       nullable: true
+      description: Computed from the latest financial_ledger row with a receipt (not stored on payments).
     verified_by_user_id:
       $ref: '#/components/schemas/UUID'
       nullable: true

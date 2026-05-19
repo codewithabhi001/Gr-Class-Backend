@@ -34,8 +34,22 @@ const calculateLedgerTotals = (ledgers) => {
     return { collected, refunded };
 };
 
+/** Latest receipt S3 key from ledger entries (source of truth for payment proofs). */
+const getLatestReceiptFromLedgers = (ledgers) => {
+    if (!ledgers?.length) return null;
+    const latestWithReceipt = [...ledgers].reverse().find((l) => {
+        const rUrl = typeof l.get === 'function' ? l.get('receipt_url') : l.receipt_url;
+        return !!rUrl;
+    });
+    if (!latestWithReceipt) return null;
+    return typeof latestWithReceipt.get === 'function'
+        ? latestWithReceipt.get('receipt_url')
+        : latestWithReceipt.receipt_url;
+};
+
 /**
  * Enrich a plain payment object with ledger-derived financial data.
+ * receipt_url in API responses is computed from ledger rows, not stored on payments.
  */
 const enrichPaymentWithLedger = (plain, ledgers) => {
     const { collected, refunded } = calculateLedgerTotals(ledgers);
@@ -45,16 +59,7 @@ const enrichPaymentWithLedger = (plain, ledgers) => {
     plain.amount_paid = collected.toFixed(2);
     plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
     plain.remaining = Math.max(0, parseFloat(plain.amount) - collected + refunded).toFixed(2);
-
-    if (!plain.receipt_url && ledgers && ledgers.length > 0) {
-        const latestWithReceipt = [...ledgers].reverse().find(l => {
-            const rUrl = (typeof l.get === 'function') ? l.get('receipt_url') : l.receipt_url;
-            return !!rUrl;
-        });
-        if (latestWithReceipt) {
-            plain.receipt_url = (typeof latestWithReceipt.get === 'function') ? latestWithReceipt.get('receipt_url') : latestWithReceipt.receipt_url;
-        }
-    }
+    plain.receipt_url = getLatestReceiptFromLedgers(ledgers);
 
     return plain;
 };
@@ -126,7 +131,7 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
 
         // ── Upload receipt (optional) ──
         const oldPaymentStatus = payment.payment_status;
-        let receiptUrl = data.receiptKey || payment.receipt_url || null;
+        let receiptUrl = data.receiptKey || null;
         if (receiptFile) {
             receiptUrl = await s3Service.uploadFile(
                 receiptFile.buffer, receiptFile.originalname, receiptFile.mimetype,
@@ -158,20 +163,20 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             payment_status: 'PAID',
             payment_date: new Date(),
             verified_by_user_id: userId,
-            receipt_url: receiptUrl
         }, { transaction: txn });
 
         await AuditLog.create({
             user_id: userId, action: 'MARK_PAYMENT_PAID',
             entity_name: 'Payment', entity_id: payment.id,
-            old_values: { payment_status: oldPaymentStatus, receipt_url: payment.receipt_url || null },
-            new_values: { payment_status: 'PAID', receipt_url: receiptUrl, verified_by_user_id: userId }
+            old_values: { payment_status: oldPaymentStatus },
+            new_values: { payment_status: 'PAID', ledger_receipt_url: receiptUrl, verified_by_user_id: userId }
         }, { transaction: txn });
 
         logger.info({ entity: 'PAYMENT', event: 'MARKED_PAID', jobId: payment.job_id, paymentId, triggeredBy: userId });
 
         await txn.commit();
-        return payment;
+        const ledgersAfter = await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']] });
+        return enrichPaymentWithLedger(payment.get({ plain: true }), ledgersAfter);
     } catch (error) {
         await txn.rollback();
         throw error;
@@ -198,7 +203,6 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
             'currency',
             'payment_status',
             'payment_date',
-            'receipt_url',
             'verified_by_user_id',
             'created_at',
             'updated_at'
@@ -311,9 +315,7 @@ export const recordPartialPayment = async (paymentId, amount, userId, data = {})
         }, { transaction: txn });
 
         // Update payment status based on total collected
-        const updatedFields = {
-            receipt_url: data.receiptKey || payment.receipt_url || null
-        };
+        const updatedFields = {};
         if (remainingAfterThis <= 0 && payment.payment_status !== 'PAID') {
             updatedFields.payment_status = 'PAID';
             updatedFields.payment_date = new Date();
