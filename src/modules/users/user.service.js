@@ -19,7 +19,7 @@ export const getUsers = async (query, excludeId) => {
 
     const users = await User.findAll({
         where,
-        attributes: ['id', 'name', 'email', 'role', 'status', 'created_at']
+        attributes: ['id', 'name', 'email', 'role', 'status', 'created_at', 'profile_pic_url', 'phone', 'last_login_at']
     });
 
 
@@ -110,7 +110,7 @@ export const updateSelfProfile = async (id, role, data) => {
     const userUpdates = {};
     if (data.name) userUpdates.name = data.name;
     if (data.phone) userUpdates.phone = data.phone;
-    
+
     if (Object.keys(userUpdates).length > 0) {
         await user.update(userUpdates);
     }
@@ -124,12 +124,12 @@ export const updateSelfProfile = async (id, role, data) => {
             if (data.contact_person_email) clientUpdates.contact_person_email = data.contact_person_email;
             if (data.address) clientUpdates.address = data.address;
             if (data.phone) clientUpdates.phone = data.phone;
-            
+
             if (Object.keys(clientUpdates).length > 0) {
                 await client.update(clientUpdates);
             }
         }
-    } 
+    }
     // Handle Surveyor specific profile update
     else if (role === 'SURVEYOR') {
         const profile = await db.SurveyorProfile.findOne({ where: { user_id: id } });
@@ -138,7 +138,7 @@ export const updateSelfProfile = async (id, role, data) => {
             if (data.nationality) profileUpdates.nationality = data.nationality;
             if (data.qualification) profileUpdates.qualification = data.qualification;
             if (data.years_of_experience) profileUpdates.years_of_experience = data.years_of_experience;
-            
+
             if (Object.keys(profileUpdates).length > 0) {
                 await profile.update(profileUpdates);
             }
