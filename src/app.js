@@ -96,7 +96,7 @@ app.use('/api/v1', apiLogger);
 // Routes
 app.use('/api/v1', routes);
 
-// OpenAPI Swagger docs (role-specific: /api-docs, /api-docs/admin, /api-docs/gm, etc.)
+// OpenAPI Swagger docs (rol e-specific: /api-docs, /api-docs/admin, /api-docs/gm, etc.)
 setupSwagger(app);
 
 // Serve generated docs folder (module-wise swagger, role-wise docs, etc.)
