@@ -42,7 +42,7 @@ async function seedBase() {
     const [surveyorId, tmId, requesterId, clientId] = await Promise.all([
         seedUser('SURVEYOR'), seedUser('TM'), seedUser('GM'), (async () => {
             const id = uuidv7();
-            await db.Client.create({ id, company_name: `Corp-${Date.now()}`, email: `c${Date.now()}@t.com`, status: 'ACTIVE' });
+            await db.Client.create({ id, company_name: `Corp-${Date.now()}`, company_code: `C${Date.now().toString().slice(-4)}`, email: `c${Date.now()}@t.com`, status: 'ACTIVE' });
             return id;
         })()
     ]);

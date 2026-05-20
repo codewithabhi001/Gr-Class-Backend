@@ -15,7 +15,8 @@ describe('Public Flags Service', () => {
             country: 'TestLand',
             authority_name: 'Test Authority Active',
             logo_url: 'https://cdn.example.com/logo-active.png',
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            contact_email: 'active@flag.com'
         });
 
         // Create an INACTIVE flag administration
@@ -24,7 +25,8 @@ describe('Public Flags Service', () => {
             country: 'SecretLand',
             authority_name: 'Test Authority Inactive',
             logo_url: 'https://cdn.example.com/logo-inactive.png',
-            status: 'INACTIVE'
+            status: 'INACTIVE',
+            contact_email: 'inactive@flag.com'
         });
 
         // Fetch flags using public service

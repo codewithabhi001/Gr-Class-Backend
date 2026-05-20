@@ -72,8 +72,12 @@ export const createVessel = async (data, userId) => {
 };
 
 export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
-    const { page = 1, limit = 10, ...filters } = query;
+    const { page = 1, limit = 10, search, ...filters } = query;
+    const { Op } = db.Sequelize;
     const where = { ...filters, ...scopeFilters };
+    if (search) {
+        where.vessel_name = { [Op.like]: `%${search}%` };
+    }
 
     const { count, rows } = await Vessel.findAndCountAll({
         where,

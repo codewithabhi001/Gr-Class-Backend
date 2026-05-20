@@ -8,8 +8,14 @@ export const createFlag = async (data) => {
     return await resolveEntity(flag);
 };
 
-export const getFlags = async () => {
+export const getFlags = async (search) => {
+    const { Op } = db.Sequelize;
+    const where = {};
+    if (search) {
+        where.flag_state_name = { [Op.like]: `%${search}%` };
+    }
     const list = await FlagAdministration.findAll({
+        where,
         attributes: [
             'id',
             'flag_state_name',

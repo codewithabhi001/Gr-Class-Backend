@@ -9,7 +9,8 @@ export const createFlag = async (req, res, next) => {
 
 export const getFlags = async (req, res, next) => {
     try {
-        const list = await flagService.getFlags();
+        const search = req.query.search;
+        const list = await flagService.getFlags(search);
         res.json({ success: true, data: list });
     } catch (error) { next(error); }
 };

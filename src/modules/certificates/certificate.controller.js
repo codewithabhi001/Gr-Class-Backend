@@ -236,7 +236,8 @@ export const downgradeCertificate = async (req, res, next) => {
 export const getCertificateTypes = async (req, res, next) => {
     try {
         const includeInactive = req.query.include_inactive === 'true' && ['ADMIN', 'GM'].includes(req.user?.role);
-        const types = await certService.getCertificateTypes(includeInactive);
+        const search = req.query.search;
+        const types = await certService.getCertificateTypes({ includeInactive, search });
         res.json({ success: true, data: types });
     } catch (e) { next(e); }
 };

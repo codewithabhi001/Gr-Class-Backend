@@ -29,8 +29,21 @@ export const getCertificateScopeFilter = async (user) => {
 };
 
 /** List certificate types — minimal fields only (no required_documents for performance). */
-export const getCertificateTypes = async (includeInactive = false) => {
+export const getCertificateTypes = async (options = {}) => {
+    let includeInactive = false;
+    let search = null;
+    if (typeof options === 'object' && options !== null) {
+        includeInactive = options.includeInactive ?? false;
+        search = options.search;
+    } else {
+        includeInactive = !!options;
+    }
+
     const where = includeInactive ? {} : { status: 'ACTIVE' };
+    if (search) {
+        where.name = { [Op.like]: `%${search}%` };
+    }
+
     return await CertificateType.findAll({
         where,
         attributes: ['id', 'name', 'issuing_authority', 'validity_years', 'status', 'requires_survey'],
