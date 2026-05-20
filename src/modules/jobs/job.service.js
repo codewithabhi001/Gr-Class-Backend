@@ -269,7 +269,7 @@ const hasAnyUserFilter = (rest) =>
         .some(k => rest[k] != null && String(rest[k]).trim() !== '');
 
 export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
-    const { page = 1, limit = 10, status, created_from, created_to, recent_days, ...rest } = query;
+    const { page = 1, limit = 10, status, created_from, created_to, recent_days, search, ...rest } = query;
 
     const whereClause = {};
     Object.entries(scopeFilters || {}).forEach(([k, v]) => {
@@ -296,6 +296,14 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
         const since = new Date();
         since.setDate(since.getDate() - days);
         whereClause.createdAt = { [Op.gte]: since };
+    }
+
+    if (search && String(search).trim().length >= 3) {
+        const term = String(search).trim();
+        whereClause[Op.or] = [
+            { job_request_number: { [Op.like]: `%${term}%` } },
+            { target_port: { [Op.like]: `%${term}%` } }
+        ];
     }
 
     const pageNum = Math.max(1, parseInt(page, 10));

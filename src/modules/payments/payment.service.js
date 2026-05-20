@@ -194,8 +194,23 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
 export const getPayments = async (query, scopeFilters = {}, user = null) => {
     const { page = 1, limit = 10, ...filters } = query;
     const allowedFilters = {};
-    const ALLOWED_KEYS = ['payment_status', 'job_id', 'invoice_number'];
+    const ALLOWED_KEYS = ['payment_status', 'job_id', 'invoice_number', 'vessel_id'];
     ALLOWED_KEYS.forEach(key => { if (filters[key]) allowedFilters[key] = filters[key]; });
+
+    const include = [{
+        model: JobRequest,
+        attributes: ['id', 'job_request_number', 'job_status', 'vessel_id'],
+        include: [{ model: Vessel, attributes: ['vessel_name'] }]
+    }];
+
+    // Filter by vessel via JobRequest join
+    if (allowedFilters.vessel_id) {
+        include[0] = {
+            ...include[0],
+            where: { vessel_id: allowedFilters.vessel_id }
+        };
+        delete allowedFilters.vessel_id;
+    }
 
     const result = await Payment.findAndCountAll({
         where: { ...allowedFilters, ...scopeFilters },
@@ -211,11 +226,7 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
         ],
         limit: parseInt(limit),
         offset: (page - 1) * limit,
-        include: [{
-            model: JobRequest,
-            attributes: ['id', 'job_request_number', 'job_status', 'vessel_id'],
-            include: [{ model: Vessel, attributes: ['vessel_name'] }]
-        }],
+        include,
         order: [['created_at', 'DESC']]
     });
 
