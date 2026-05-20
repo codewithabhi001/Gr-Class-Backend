@@ -158,6 +158,27 @@ export const updateSelfProfile = async (id, role, data) => {
     return await getProfile(id, role);
 };
 
+const formatWithNa = (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (key === 'Client' || key === 'SurveyorProfile' || key === 'User') {
+            if (value && typeof value === 'object') {
+                result[key] = formatWithNa(value);
+            } else {
+                result[key] = null;
+            }
+        } else if (value === null || value === undefined || value === '') {
+            result[key] = 'N/A';
+        } else if (typeof value === 'object' && !(value instanceof Date) && !Array.isArray(value)) {
+            result[key] = formatWithNa(value);
+        } else {
+            result[key] = value;
+        }
+    }
+    return result;
+};
+
 export const getUserById = async (id) => {
     const user = await User.findByPk(id, {
         include: [
@@ -168,5 +189,6 @@ export const getUserById = async (id) => {
     });
 
     if (!user) throw { statusCode: 404, message: 'User not found' };
-    return await fileAccessService.resolveEntity(user);
+    const resolved = await fileAccessService.resolveEntity(user);
+    return formatWithNa(resolved);
 };

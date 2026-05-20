@@ -29,6 +29,9 @@ describe('User Detail Service (getUserById)', () => {
         assert.strictEqual(retrieved.id, userId);
         assert.strictEqual(retrieved.email, userEmail);
         assert.strictEqual(retrieved.password_hash, undefined, 'password_hash must be excluded');
+        assert.strictEqual(retrieved.phone, 'N/A', 'Null phone must be returned as N/A');
+        assert.strictEqual(retrieved.last_login_at, 'N/A', 'Null last_login_at must be returned as N/A');
+        assert.strictEqual(retrieved.Client, null, 'Unassociated Client must remain null');
 
         // Clean up
         await db.User.destroy({ where: { id: userId } });
