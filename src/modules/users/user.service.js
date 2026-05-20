@@ -21,7 +21,17 @@ export const getUsers = async (query, excludeId) => {
         where,
         attributes: ['id', 'name', 'email', 'role', 'status', 'created_at', 'profile_pic_url', 'phone', 'last_login_at']
     });
-
+    users.map(user => {
+        if (!user.profile_pic_url) {
+            user.profile_pic_url = 'N/A';
+        }
+        if (!user.phone) {
+            user.phone = 'N/A';
+        }
+        if (!user.last_login_at) {
+            user.last_login_at = 'N/A';
+        }
+    });
 
     return await fileAccessService.resolveEntity(users);
 };
