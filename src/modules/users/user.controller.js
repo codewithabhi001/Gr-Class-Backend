@@ -90,3 +90,14 @@ export const updateProfilePic = async (req, res, next) => {
         });
     } catch (error) { next(error); }
 };
+
+export const getUserById = async (req, res, next) => {
+    try {
+        const user = await userService.getUserById(req.params.id);
+        res.json({
+            success: true,
+            message: 'User details fetched successfully',
+            data: user
+        });
+    } catch (error) { next(error); }
+};

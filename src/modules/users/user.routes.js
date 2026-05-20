@@ -25,6 +25,9 @@ router.get('/', authorizeRoles('ADMIN'), userController.getUsers);
 // Create a new user
 router.post('/', authorizeRoles('ADMIN'), validate(schemas.createUser), userController.createUser);
 
+// Get user details
+router.get('/:id', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), userController.getUserById);
+
 // Update user details
 router.put('/:id', authorizeRoles('ADMIN'), validate(schemas.updateUser), userController.updateUser);
 

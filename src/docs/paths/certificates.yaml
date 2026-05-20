@@ -249,6 +249,10 @@
         in: query
         description: Include INACTIVE types (ADMIN / GM only)
         schema: { type: boolean, default: false }
+      - name: search
+        in: query
+        description: Search certificate types by name
+        schema: { type: string }
     responses:
       "200":
         description: Minimal list of certificate types

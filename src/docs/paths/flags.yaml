@@ -35,6 +35,11 @@
     summary: Get flags
     operationId: getFlags
     x-roles: [ADMIN, GM, TM, TO]
+    parameters:
+      - name: search
+        in: query
+        description: Search flags by state name
+        schema: { type: string }
     responses:
       "200":
         description: List of flags

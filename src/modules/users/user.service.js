@@ -157,3 +157,16 @@ export const updateSelfProfile = async (id, role, data) => {
 
     return await getProfile(id, role);
 };
+
+export const getUserById = async (id) => {
+    const user = await User.findByPk(id, {
+        include: [
+            { model: db.Client },
+            { model: db.SurveyorProfile }
+        ],
+        attributes: { exclude: ['password_hash'] }
+    });
+
+    if (!user) throw { statusCode: 404, message: 'User not found' };
+    return await fileAccessService.resolveEntity(user);
+};
