@@ -12,7 +12,11 @@ import { buildTagValuesForJob } from '../../utils/tagBuilder.util.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
 import { CERTIFICATE_STATUSES } from '../../constants/statuses.js';
 import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
-import { flatCertificateListRow } from '../../utils/listRowFlatten.util.js';
+import {
+    flatCertificateListRow,
+    flatCertificateTypeListRow,
+    shapeCertificateTypeDetail,
+} from '../../utils/listRowFlatten.util.js';
 
 const Certificate = db.Certificate;
 const CertificateType = db.CertificateType;
@@ -28,7 +32,7 @@ export const getCertificateScopeFilter = async (user) => {
     return buildCertificateScopeWhere(user, { JobRequest, Vessel });
 };
 
-/** List certificate types — minimal fields only (no required_documents for performance). */
+/** List certificate types — minimal fields only (no description / required_documents). */
 export const getCertificateTypes = async (options = {}) => {
     let includeInactive = false;
     let search = null;
@@ -44,25 +48,28 @@ export const getCertificateTypes = async (options = {}) => {
         where.name = { [Op.like]: `%${search}%` };
     }
 
-    return await CertificateType.findAll({
+    const types = await CertificateType.findAll({
         where,
         attributes: ['id', 'name', 'issuing_authority', 'validity_years', 'status', 'requires_survey'],
         order: [['name', 'ASC']],
     });
+    return types.map(flatCertificateTypeListRow);
 };
 
-/** Get a single certificate type by ID with full detail including all required documents. */
+/** Get a single certificate type by ID with full detail including description and required documents. */
 export const getCertificateTypeById = async (id) => {
     const type = await CertificateType.findByPk(id, {
         attributes: ['id', 'name', 'issuing_authority', 'validity_years', 'status', 'description', 'requires_survey'],
         include: [{
             model: db.CertificateRequiredDocument,
             attributes: ['id', 'document_name', 'is_mandatory'],
-            order: [['document_name', 'ASC']]
         }],
     });
     if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
-    return type;
+    const plain = type.get({ plain: true });
+    plain.CertificateRequiredDocuments = (plain.CertificateRequiredDocuments || [])
+        .sort((a, b) => (a.document_name || '').localeCompare(b.document_name || ''));
+    return shapeCertificateTypeDetail(plain);
 };
 
 /** Create a new certificate type (ADMIN). */
@@ -92,9 +99,7 @@ export const createCertificateType = async (data) => {
         }
 
         await txn.commit();
-        return await CertificateType.findByPk(type.id, {
-            include: [{ model: db.CertificateRequiredDocument, attributes: ['id', 'document_name', 'is_mandatory'] }]
-        });
+        return await getCertificateTypeById(type.id);
     } catch (e) {
         await txn.rollback();
         throw e;
@@ -130,9 +135,7 @@ export const updateCertificateType = async (id, data) => {
         }
 
         await txn.commit();
-        return await CertificateType.findByPk(id, {
-            include: [{ model: db.CertificateRequiredDocument, attributes: ['id', 'document_name', 'is_mandatory'] }]
-        });
+        return await getCertificateTypeById(id);
     } catch (e) {
         await txn.rollback();
         throw e;

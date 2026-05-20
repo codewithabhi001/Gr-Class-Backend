@@ -5,6 +5,39 @@ export const toPlain = (row) => (row?.get ? row.get({ plain: true }) : row ?? {}
 /** Display null/empty as N/A in flat list rows. */
 export const na = (value) => (value == null || value === '') ? 'N/A' : value;
 
+/** Minimal certificate type row for list endpoints (no description / required_documents). */
+export const flatCertificateTypeListRow = (row) => {
+    const t = toPlain(row);
+    return {
+        id: t.id,
+        name: t.name,
+        issuing_authority: t.issuing_authority,
+        validity_years: t.validity_years,
+        status: t.status,
+        requires_survey: t.requires_survey,
+    };
+};
+
+/** Full certificate type payload for detail/create/update responses. */
+export const shapeCertificateTypeDetail = (row) => {
+    const t = toPlain(row);
+    const docs = t.CertificateRequiredDocuments || t.required_documents || [];
+    return {
+        id: t.id,
+        name: t.name,
+        issuing_authority: t.issuing_authority,
+        validity_years: t.validity_years,
+        status: t.status,
+        description: t.description ?? null,
+        requires_survey: t.requires_survey,
+        required_documents: docs.map((d) => ({
+            id: d.id,
+            document_name: d.document_name,
+            is_mandatory: d.is_mandatory,
+        })),
+    };
+};
+
 export const flatCertificateListRow = (row) => {
     const c = toPlain(row);
     return {
