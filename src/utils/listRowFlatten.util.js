@@ -178,23 +178,18 @@ export const flatActivityRequestVesselBlock = (vessel) => {
 
 export const flatActivityRequestListRow = (row) => {
     const a = toPlain(row);
-    const vessel = flatActivityRequestVesselBlock(a.Vessel);
     return {
         id: a.id,
         request_number: na(a.request_number),
         activity_type: na(a.activity_type),
         requested_service: na(a.requested_service),
         proposed_date: na(a.proposed_date),
+        location_port: na(a.location_port),
         status: na(a.status),
         vessel_id: na(a.vessel_id),
         created_at: na(a.created_at),
-        vessel_name: vessel.vessel_name,
-        imo_number: vessel.imo_number,
-        ship_type: vessel.ship_type,
-        class_status: vessel.class_status,
-        flag_state: vessel.flag_state,
-        company_name: vessel.company_name,
-        vessel,
+        vessel_name: na(a.Vessel?.vessel_name),
+        imo_number: na(a.Vessel?.imo_number),
         linked_job_id: na(a.linked_job_id ?? a.LinkedJob?.id),
         linked_job_status: na(a.LinkedJob?.job_status),
         linked_job_request_number: na(a.LinkedJob?.job_request_number),

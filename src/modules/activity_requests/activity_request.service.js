@@ -49,9 +49,12 @@ export const getActivityRequests = async (query, scopeFilters = {}) => {
     const pageLimit = Math.max(1, parseInt(limit, 10));
     const { count, rows } = await ActivityRequest.findAndCountAll({
         where: { ...filters, ...scopeFilters },
-        attributes: ['id', 'request_number', 'activity_type', 'requested_service', 'proposed_date', 'status', 'vessel_id', 'created_at'],
+        attributes: ['id', 'request_number', 'activity_type', 'requested_service', 'proposed_date', 'location_port', 'status', 'vessel_id', 'created_at'],
         include: [
-            activityRequestVesselInclude,
+            {
+                model: Vessel,
+                attributes: ['id', 'vessel_name', 'imo_number'],
+            },
             { model: db.JobRequest, as: 'LinkedJob', attributes: ['id', 'job_status', 'job_request_number'] },
         ],
         order: [['created_at', 'DESC']],
