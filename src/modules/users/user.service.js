@@ -16,6 +16,9 @@ export const getUsers = async (query, excludeId) => {
     if (role) {
         where.role = role;
     }
+    if (status) {
+        where.status = status;
+    }
 
     const users = await User.findAll({
         where,
