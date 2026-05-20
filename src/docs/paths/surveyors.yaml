@@ -98,6 +98,30 @@
                   $ref: '#/components/schemas/SurveyorApplicationListResponse'
       "403": { description: Forbidden }
 
+/api/v1/surveyors/applications/{id}:
+  get:
+    tags: [Surveyors]
+    summary: Get surveyor application
+    operationId: getSurveyorApplication
+    x-roles: [ADMIN, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: Application details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  $ref: '#/components/schemas/SurveyorApplicationResponse'
+      "403": { description: Forbidden }
+
 /api/v1/surveyors/applications/{id}/review:
   put:
     tags: [Surveyors]
