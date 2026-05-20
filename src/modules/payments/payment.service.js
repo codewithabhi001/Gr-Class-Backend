@@ -34,6 +34,25 @@ const calculateLedgerTotals = (ledgers) => {
     return { collected, refunded };
 };
 
+/** Latest collection ledger entry date (ADVANCE / PARTIAL_PAYMENT / PAYMENT). */
+const getLatestCollectionLedgerDate = (ledgers) => {
+    const latest = ledgers
+        .filter(l => COLLECTION_TYPES.includes(l.transaction_type))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    return latest?.createdAt ?? null;
+};
+
+/**
+ * paid_at: full settlement uses payment_date; otherwise latest ledger collection date.
+ */
+const resolvePaidAt = (paymentStatus, paymentDate, ledgers) => {
+    if (paymentStatus === 'PAID') {
+        return paymentDate ?? getLatestCollectionLedgerDate(ledgers);
+    }
+    if (paymentDate) return paymentDate;
+    return getLatestCollectionLedgerDate(ledgers);
+};
+
 /**
  * Enrich a plain payment object with ledger-derived financial totals.
  * Receipts live on ledger rows only (see formatLedgerRows / GET :id/ledger).
@@ -46,6 +65,7 @@ const enrichPaymentWithLedger = (plain, ledgers) => {
     plain.amount_paid = collected.toFixed(2);
     plain.net_amount = (parseFloat(plain.amount) - refunded).toFixed(2);
     plain.remaining = Math.max(0, parseFloat(plain.amount) - collected + refunded).toFixed(2);
+    plain.paid_at = resolvePaidAt(plain.payment_status, plain.payment_date, ledgers);
 
     return plain;
 };

@@ -70,7 +70,7 @@ export const flatPaymentListRow = (row) => {
         currency: na(p.currency),
         payment_status: na(p.payment_status),
         created_at: na(p.created_at),
-        paid_at: p.payment_status === 'PAID' ? na(p.payment_date) : 'N/A',
+        paid_at: na(p.paid_at),
         amount_collected: na(p.amount_collected),
         amount_paid: na(p.amount_paid),
         remaining: na(p.remaining),
