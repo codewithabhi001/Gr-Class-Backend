@@ -6,7 +6,7 @@ import * as s3Service from '../../services/s3.service.js';
 const User = db.User;
 
 export const getUsers = async (query, excludeId) => {
-    const { role } = query;
+    const { role,status } = query;
     const where = {};
 
     if (excludeId) {
