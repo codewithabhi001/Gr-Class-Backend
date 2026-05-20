@@ -140,6 +140,7 @@ export const schemas = {
     updateSurveyorProfile: Joi.object({
         full_name: Joi.string().optional(),
         name: Joi.string().optional(),
+        email: Joi.string().email().optional(),
         phone: Joi.string().optional().allow(''),
         nationality: Joi.string().optional().allow(''),
         qualification: Joi.string().optional().allow(''),
