@@ -14,6 +14,8 @@ import { errorMiddleware } from './middlewares/error.middleware.js';
 import { apiLogger, errorLogger } from './middlewares/api.logger.middleware.js';
 import { setupSwagger } from './middlewares/swagger.middleware.js';
 import { contextMiddleware } from './middlewares/context.middleware.js';
+import { probeBlockMiddleware } from './middlewares/probe-block.middleware.js';
+import { isAuthRateLimitedRoute, rateLimitClientKey } from './middlewares/rate-limit.util.js';
 import './models/index.js'; // Initialize DB
 
 const app = express();
@@ -26,6 +28,9 @@ app.use(contextMiddleware);
 
 // Trust proxy for rate limiting behind Nginx/CloudFront
 app.set('trust proxy', 1);
+
+// Drop scanner paths (/secrets.json, phpinfo.php, etc.) before they hit rate limits or heavy logging
+app.use(probeBlockMiddleware);
 
 // CORS
 const allowedOrigins = [
@@ -74,20 +79,28 @@ app.use(helmet({
     referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 
-// Request Logging
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+// Request Logging (skip noise from blocked scanner probes)
+app.use(morgan('combined', {
+    skip: (req, res) => res.statusCode === 404 && !req.path?.startsWith('/api/v1'),
+    stream: { write: message => logger.info(message.trim()) }
+}));
 
 // Body Parsing
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ limit: '25mb', extended: true }));
 app.use(cookieParser());
 
-// Rate Limiting (global — keep stricter limits on /auth/* in auth.routes.js)
+// Rate limiting — API only; auth/login has its own limiter in auth.routes.js
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: Number(process.env.GLOBAL_RATE_LIMIT_MAX) || 400,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: rateLimitClientKey,
+    skip: isAuthRateLimitedRoute,
+    message: { success: false, message: 'Too many requests, please try again later.' },
 });
-app.use(limiter);
+app.use('/api/v1', limiter);
 
 // API Request/Response Logger - Logs every API hit with details
 // API Request/Response Logger - Logs every API hit with details
