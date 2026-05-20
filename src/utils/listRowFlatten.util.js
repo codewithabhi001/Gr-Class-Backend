@@ -77,6 +77,8 @@ export const flatPaymentListRow = (row) => {
         net_amount: na(p.net_amount),
         refunded_amount: na(p.refunded_amount),
         vessel_name: na(p.JobRequest?.Vessel?.vessel_name),
+        client_id: na(p.JobRequest?.Vessel?.client_id),
+        company_name: na(p.JobRequest?.Vessel?.Client?.company_name),
         job_status: na(p.JobRequest?.job_status),
     };
 };

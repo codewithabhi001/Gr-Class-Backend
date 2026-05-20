@@ -200,7 +200,11 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
     const include = [{
         model: JobRequest,
         attributes: ['id', 'job_request_number', 'job_status', 'vessel_id'],
-        include: [{ model: Vessel, attributes: ['vessel_name'] }]
+        include: [{
+            model: Vessel,
+            attributes: ['vessel_name', 'client_id'],
+            include: [{ model: db.Client, attributes: ['company_name'] }]
+        }]
     }];
 
     // Filter by vessel via JobRequest join
