@@ -203,7 +203,7 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
         include: [{
             model: Vessel,
             attributes: ['vessel_name', 'client_id'],
-            include: [{ model: db.Client, attributes: ['company_name'] }]
+            include: [{ model: db.Client, as: 'Client', attributes: ['company_name'] }]
         }]
     }];
 
