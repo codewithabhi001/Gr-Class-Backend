@@ -63,7 +63,7 @@ router.put('/:id/reject', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.rej
 router.put('/:id/cancel', authorizeRoles('CLIENT', 'GM', 'TM', 'ADMIN'), jobController.cancelJob);
 
 // ─── Priority ────────────────────────────────────────────
-router.put('/:id/priority', authorizeRoles('GM', 'TM'), jobController.updatePriority);
+router.put('/:id/priority', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.updatePriority);
 
 // ─── Job Documents ───────────────────────────────────────
 // List documents for a job (with verification status)
