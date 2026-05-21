@@ -245,7 +245,7 @@ export const listInternalJobMessages = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
-export const createJobMessage = async (req, res, next) => {
+const handleCreateJobMessage = async (req, res, next, isInternal) => {
     try {
         let attachmentUrl = null;
         if (req.files && req.files.length > 0) {
@@ -260,8 +260,6 @@ export const createJobMessage = async (req, res, next) => {
         }
 
         const messageText = req.body.message_text || req.body.message || '';
-        const isInternal = req.body.is_internal === 'true' || req.body.is_internal === true || req.body.type === 'internal';
-
         const data = {
             message_text: messageText,
             is_internal: isInternal,
@@ -271,6 +269,14 @@ export const createJobMessage = async (req, res, next) => {
         const message = await sendMessage(req.params.id, req.user.id, data);
         res.status(201).json({ success: true, data: message, message: '' });
     } catch (e) { next(e); }
+};
+
+export const createExternalJobMessage = async (req, res, next) => {
+    await handleCreateJobMessage(req, res, next, false);
+};
+
+export const createInternalJobMessage = async (req, res, next) => {
+    await handleCreateJobMessage(req, res, next, true);
 };
 
 // ─────────────────────────────────────────────

@@ -84,6 +84,8 @@ router.get('/:id/messages/external', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM
 
 router.get('/:id/messages/internal', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), jobController.listInternalJobMessages);
 
-router.post('/:id/messages', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), upload.any(), validate(schemas.createJobMessage), jobController.createJobMessage);
+router.post('/:id/messages/external', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), upload.any(), validate(schemas.createJobMessage), jobController.createExternalJobMessage);
+
+router.post('/:id/messages/internal', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), upload.any(), validate(schemas.createJobMessage), jobController.createInternalJobMessage);
 
 export default router;

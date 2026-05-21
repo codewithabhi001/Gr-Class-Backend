@@ -1301,6 +1301,66 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+  post:
+    tags: [Jobs]
+    summary: Send external (client-visible) message
+    description: |
+      Posts a new external message to the job thread. Supports text-only or multipart
+      with a file attachment.
+
+      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+    operationId: sendExternalJobMessage
+    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [content]
+            properties:
+              content:
+                type: string
+                description: Message text
+                example: "Vessel is ready for inspection."
+              attachment_url:
+                type: string
+                description: "Optional: S3/CDN URL of an attachment. (Upload via pre-signed URL first)"
+                example: "https://s3.aws.com/girik/attachments/my-image.jpg"
+            example:
+              content: "Vessel is ready for inspection."
+              attachment_url: "https://s3.aws.com/girik/attachments/my-image.jpg"
+    responses:
+      "201":
+        description: Message sent successfully.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/JobMessageResponse' }
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Job not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
 /api/v1/jobs/{id}/messages/internal:
   get:
     tags: [Jobs]
@@ -1340,17 +1400,16 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
-/api/v1/jobs/{id}/messages:
   post:
     tags: [Jobs]
-    summary: Send message (with optional attachment)
+    summary: "ADMIN/GM/TM/TO: Send internal (staff-only) message"
     description: |
-      Posts a new message to the job thread. Supports text-only or multipart
+      Posts a new internal message to the job thread. Supports text-only or multipart
       with a file attachment.
 
-      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
-    operationId: sendJobMessage
-    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+      **Roles:** ADMIN, GM, TM, TO
+    operationId: sendInternalJobMessage
+    x-roles: [ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -1367,14 +1426,14 @@
               content:
                 type: string
                 description: Message text
-                example: "Vessel is ready for inspection."
+                example: "Discussion regarding the surveyor report."
               attachment_url:
                 type: string
                 description: "Optional: S3/CDN URL of an attachment. (Upload via pre-signed URL first)"
-                example: "https://s3.aws.com/girik/attachments/my-image.jpg"
+                example: "https://s3.aws.com/girik/attachments/internal-memo.pdf"
             example:
-              content: "Vessel is ready for inspection."
-              attachment_url: "https://s3.aws.com/girik/attachments/my-image.jpg"
+              content: "Discussion regarding the surveyor report."
+              attachment_url: "https://s3.aws.com/girik/attachments/internal-memo.pdf"
     responses:
       "201":
         description: Message sent successfully.
