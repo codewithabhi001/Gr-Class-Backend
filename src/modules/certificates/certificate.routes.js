@@ -20,7 +20,7 @@ router.get('/types/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), ce
 router.put('/types/:id', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateCertificateType), certController.updateCertificateType);
 
 // Required documents per certificate type (ADMIN/TM)
-router.get('/types/:id/required-documents', authorizeRoles('ADMIN', 'TM'), certController.getCertificateTypeRequiredDocuments);
+router.get('/types/:id/required-documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateTypeRequiredDocuments);
 router.post('/types/:id/required-documents', authorizeRoles('ADMIN', 'TM'), validate(schemas.addCertificateTypeRequiredDocument), certController.addCertificateTypeRequiredDocument);
 router.put('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateCertificateTypeRequiredDocument), certController.updateCertificateTypeRequiredDocument);
 router.delete('/types/:id/required-documents/:docId', authorizeRoles('ADMIN', 'TM'), certController.deleteCertificateTypeRequiredDocument);

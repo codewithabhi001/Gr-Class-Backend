@@ -640,7 +640,7 @@ export const verifyJobDocuments = async (id, body, user) => {
     // ── Document Approval Flow (all docs valid) ──────────────
     // A requirement is considered "satisfied" if it has at least one PENDING or APPROVED version.
     // We only block "Approve All" if there are mandatory requirements that have ONLY REJECTED versions (or no versions at all).
-    
+
     // 1. Get all documents for this job
     const allDocs = await JobDocument.findAll({
         where: { job_id: id }
@@ -1048,7 +1048,7 @@ export const getJobDocuments = async (jobId, user) => {
     // Grouping by requirement
     const groupedRequirements = requiredDocs.map(rd => {
         const docsForReq = resolvedDocs.filter(d => d.required_document_id === rd.id);
-        
+
         let status = 'MISSING';
         if (docsForReq.length > 0) {
             // Sort by createdAt desc to get the latest version first

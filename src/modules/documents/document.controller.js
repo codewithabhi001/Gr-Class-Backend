@@ -8,7 +8,10 @@ import db from '../../models/index.js';
 export const getDocuments = async (req, res, next) => {
     try {
         const { entityId } = req.params;
-        const entityType = req.params.entityType.toUpperCase();
+        let entityType = req.params.entityType.toUpperCase();
+        if (entityType === 'JOBS') entityType = 'JOB';
+        if (entityType === 'VESSELS') entityType = 'VESSEL';
+        if (entityType === 'CERTIFICATES') entityType = 'CERTIFICATE';
 
         const hasAccess = await fileAccessService.validateUserEntityAccess(req.user, entityType, entityId);
         if (!hasAccess) {
@@ -56,7 +59,10 @@ export const getDocumentById = async (req, res, next) => {
 export const uploadDocument = async (req, res, next) => {
     try {
         const { entityId } = req.params;
-        const entityType = req.params.entityType.toUpperCase();
+        let entityType = req.params.entityType.toUpperCase();
+        if (entityType === 'JOBS') entityType = 'JOB';
+        if (entityType === 'VESSELS') entityType = 'VESSEL';
+        if (entityType === 'CERTIFICATES') entityType = 'CERTIFICATE';
 
         const hasAccess = await fileAccessService.validateUserEntityAccess(req.user, entityType, entityId);
         if (!hasAccess) {

@@ -47,7 +47,7 @@ async function seedBase() {
         })()
     ]);
     const vesselId = uuidv7(), certTypeId = uuidv7(), flagId = uuidv7();
-    await db.FlagAdministration.create({ id: flagId, flag_state_name: `Test-${Date.now()}-${Math.random()}`, country: 'Test', authority_name: 'Test', status: 'ACTIVE' });
+    await db.FlagAdministration.create({ id: flagId, flag_state_name: `Test-${Date.now()}-${Math.random()}`, country: 'Test', authority_name: 'Test', contact_email: 'test@flag.com', status: 'ACTIVE' });
     await db.Vessel.create({ id: vesselId, vessel_name: 'MV Prod', imo_number: `${Math.floor(1000000 + Math.random() * 8999999)}`, client_id: clientId, flag_administration_id: flagId });
     await db.CertificateType.create({ id: certTypeId, name: 'Annual Survey', issuing_authority: 'CLASS', validity_years: 1 });
     return { surveyorId, tmId, requesterId, vesselId, certTypeId };
@@ -55,7 +55,17 @@ async function seedBase() {
 
 async function makeJob(fx, status) {
     const id = uuidv7();
-    await db.JobRequest.create({ id, vessel_id: fx.vesselId, requested_by_user_id: fx.requesterId, assigned_surveyor_id: fx.surveyorId, certificate_type_id: fx.certTypeId, job_status: status });
+    await db.JobRequest.create({
+        id,
+        vessel_id: fx.vesselId,
+        requested_by_user_id: fx.requesterId,
+        assigned_surveyor_id: fx.surveyorId,
+        certificate_type_id: fx.certTypeId,
+        job_status: status,
+        reason: 'Annual',
+        target_port: 'Singapore',
+        target_date: '2026-12-31'
+    });
     await db.JobStatusHistory.create({ job_id: id, old_status: null, new_status: status, changed_by: fx.requesterId });
     return id;
 }

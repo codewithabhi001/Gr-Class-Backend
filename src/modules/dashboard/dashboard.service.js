@@ -455,6 +455,9 @@ export const getTODashboard = async (user) => {
             rework_items: reworkJobs.map(formatJob),
             open_non_conformities: openNCs.map(n => ({
                 id: n.id,
+                job_id: n.job_id,
+                job_request_number: n.JobRequest?.job_request_number,
+                vessel_name: n.JobRequest?.Vessel?.vessel_name,
                 vessel: n.JobRequest?.Vessel?.vessel_name,
                 description: n.description,
                 severity: n.severity,
@@ -710,6 +713,9 @@ export const getClientDashboard = async (clientId) => {
         })),
         open_non_conformities_list: ncs.filter(n => n.status === 'OPEN').slice(0, 5).map(n => ({
             id: n.id,
+            job_id: n.job_id,
+            job_request_number: n.JobRequest?.job_request_number,
+            vessel_name: n.JobRequest?.Vessel?.vessel_name,
             vessel: n.JobRequest?.Vessel?.vessel_name,
             description: n.description,
             severity: n.severity,

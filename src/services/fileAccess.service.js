@@ -212,6 +212,11 @@ export const resolveEntity = async (data, user = null) => {
  */
 export const validateUserEntityAccess = async (user, entityType, entityId) => {
     if (!entityId) return false;
+    entityType = String(entityType).toUpperCase();
+    if (entityType === 'JOBS') entityType = 'JOB';
+    if (entityType === 'VESSELS') entityType = 'VESSEL';
+    if (entityType === 'CERTIFICATES') entityType = 'CERTIFICATE';
+
     if (user.role === 'ADMIN' || user.role === 'GM' || user.role === 'TM' || user.role === 'TO') return true; // Admins/Internal staff access all
 
     if (user.role === 'CLIENT') {

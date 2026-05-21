@@ -5,6 +5,13 @@ NonConformityResponse:
       $ref: '#/components/schemas/UUID'
     job_id:
       $ref: '#/components/schemas/UUID'
+    job_request_number:
+      type: string
+      nullable: true
+      description: Human-readable job reference (e.g. GRJ-XXXXXXXX)
+    vessel_name:
+      type: string
+      nullable: true
     description:
       type: string
     severity:
@@ -34,6 +41,12 @@ NonConformityListItem:
       $ref: '#/components/schemas/UUID'
     job_id:
       $ref: '#/components/schemas/UUID'
+    job_request_number:
+      type: string
+      nullable: true
+    vessel_name:
+      type: string
+      nullable: true
     severity:
       type: string
       enum: [MINOR, MAJOR, CRITICAL]

@@ -347,8 +347,27 @@ export const flatNcListRow = (row) => {
     return {
         id: n.id,
         job_id: n.job_id,
+        job_request_number: na(n.JobRequest?.job_request_number),
+        vessel_name: na(n.JobRequest?.Vessel?.vessel_name),
         severity: na(n.severity),
         status: na(n.status),
         created_at: na(n.created_at),
+    };
+};
+
+export const flatNcDetailRow = (row) => {
+    const n = toPlain(row);
+    return {
+        id: n.id,
+        job_id: n.job_id,
+        job_request_number: na(n.JobRequest?.job_request_number),
+        vessel_name: na(n.JobRequest?.Vessel?.vessel_name),
+        description: n.description ?? null,
+        severity: na(n.severity),
+        status: na(n.status),
+        closure_remarks: n.closure_remarks ?? null,
+        closed_at: na(n.closed_at),
+        created_at: na(n.created_at ?? n.createdAt),
+        updated_at: na(n.updated_at ?? n.updatedAt),
     };
 };

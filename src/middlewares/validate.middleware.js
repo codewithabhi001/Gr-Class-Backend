@@ -69,7 +69,8 @@ export const schemas = {
         target_port: Joi.string().required(),
         target_date: Joi.date().iso().required(),
         uploaded_documents: Joi.array().items(Joi.object({
-            required_document_id: Joi.string().guid().required(),
+            required_document_id: Joi.string().guid().optional().allow(null, ''),
+            custom_document_name: Joi.string().optional().allow(null, ''),
             file_url: Joi.string().required()
         })).optional()
     }),
@@ -583,7 +584,8 @@ export const schemas = {
         priority: Joi.string().valid('LOW', 'NORMAL', 'HIGH', 'URGENT').optional(),
         remarks: Joi.string().optional().allow('', null),
         uploaded_documents: Joi.array().items(Joi.object({
-            required_document_id: Joi.string().guid().required(),
+            required_document_id: Joi.string().guid().optional().allow(null, ''),
+            custom_document_name: Joi.string().optional().allow(null, ''),
             file_url: Joi.string().required(),
         })).optional(),
     }),

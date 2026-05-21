@@ -74,10 +74,10 @@ router.put(
     surveyController.finalizeSurvey
 );
 
-// Request rework — GM / TM (survey must be SUBMITTED)
+// Request rework — GM / TM / TO / ADMIN (survey must be SUBMITTED)
 router.put(
     '/jobs/:jobId/rework',
-    authorizeRoles('GM', 'TM'),
+    authorizeRoles('GM', 'TM', 'TO', 'ADMIN'),
     surveyController.requestRework
 );
 

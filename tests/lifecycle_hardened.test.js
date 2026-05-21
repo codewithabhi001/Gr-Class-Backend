@@ -57,7 +57,7 @@ async function createFixtures() {
     await db.User.create({ id: tmId, name: 'Test TM', email: `t_${Date.now()}@test.com`, role: 'TM', password_hash: 'x' });
     await db.User.create({ id: requesterId, name: 'Requester', email: `r_${Date.now()}@test.com`, role: 'GM', password_hash: 'x' });
     await db.Client.create({ id: clientId, company_name: 'Test Corp', company_code: 'TC01', email: `c_${Date.now()}@test.com`, status: 'ACTIVE' });
-    await db.FlagAdministration.create({ id: flagId, flag_state_name: `Test-${Date.now()}-${Math.random()}`, country: 'Test', authority_name: 'Test', status: 'ACTIVE' });
+    await db.FlagAdministration.create({ id: flagId, flag_state_name: `Test-${Date.now()}-${Math.random()}`, country: 'Test', authority_name: 'Test', contact_email: 'test@flag.com', status: 'ACTIVE' });
     await db.Vessel.create({ id: vesselId, vessel_name: 'MV Test', imo_number: `${Math.floor(1000000 + Math.random() * 8999999)}`, client_id: clientId, flag_administration_id: flagId });
     await db.CertificateType.create({ id: certTypeId, name: 'Annual Survey', issuing_authority: 'CLASS', validity_years: 1 });
 
@@ -69,7 +69,7 @@ async function makeJob(vesselId, requesterId, surveyorId, certTypeId, startStatu
     await db.JobRequest.create({
         id, vessel_id: vesselId, requested_by_user_id: requesterId,
         assigned_surveyor_id: surveyorId, certificate_type_id: certTypeId,
-        job_status: startStatus
+        job_status: startStatus, reason: 'Annual', target_port: 'Singapore', target_date: '2026-12-31'
     });
     await db.JobStatusHistory.create({ job_id: id, old_status: null, new_status: startStatus, changed_by: requesterId });
     return id;

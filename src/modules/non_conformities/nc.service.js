@@ -2,9 +2,18 @@ import db from '../../models/index.js';
 import * as notificationService from '../../services/notification.service.js';
 import { NC_STATUSES } from '../../constants/statuses.js';
 import { buildFullStatusCounts } from '../../utils/statusCount.util.js';
-import { flatNcListRow } from '../../utils/listRowFlatten.util.js';
+import { flatNcListRow, flatNcDetailRow } from '../../utils/listRowFlatten.util.js';
 
 const NonConformity = db.NonConformity;
+const { JobRequest, Vessel } = db;
+
+const NC_JOB_INCLUDE = [
+    {
+        model: JobRequest,
+        attributes: ['id', 'job_request_number', 'vessel_id'],
+        include: [{ model: Vessel, attributes: ['vessel_name'] }],
+    },
+];
 
 export const createNC = async (data, user) => {
     const nc = await NonConformity.create({ ...data, status: 'OPEN' });
@@ -35,6 +44,7 @@ export const getNCs = async (query) => {
     const { count, rows } = await NonConformity.findAndCountAll({
         where,
         attributes: NC_LIST_ATTRIBUTES,
+        include: NC_JOB_INCLUDE,
         limit: parseInt(limit, 10),
         offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
         order: [['createdAt', 'DESC']]
@@ -65,15 +75,18 @@ export const getNCs = async (query) => {
 };
 
 export const getNCById = async (id) => {
-    const nc = await NonConformity.findByPk(id);
+    const nc = await NonConformity.findByPk(id, { include: NC_JOB_INCLUDE });
     if (!nc) throw { statusCode: 404, message: 'Non-Conformity not found' };
-    return nc;
+    return flatNcDetailRow(nc);
 };
 
 export const getByJob = async (jobId) => {
-    return await NonConformity.findAll({
+    const rows = await NonConformity.findAll({
         where: { job_id: jobId },
-        attributes: NC_LIST_ATTRIBUTES
+        attributes: NC_LIST_ATTRIBUTES,
+        include: NC_JOB_INCLUDE,
+        order: [['createdAt', 'DESC']],
     });
+    return rows.map(flatNcListRow);
 };
 
