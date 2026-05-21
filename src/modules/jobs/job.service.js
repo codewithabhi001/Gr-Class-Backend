@@ -929,34 +929,7 @@ export const rescheduleJob = async (id, data, userId) => {
     }
 };
 
-/**
- * SURVEY_DONE / REVIEWED → REWORK_REQUESTED
- * Roles: ADMIN, TM, TO
- */
-export const sendBackJob = async (id, remarks, user) => {
-    const job = await requireJob(id, { includeVessel: true });
-    if (!job.is_survey_required) {
-        throw { statusCode: 400, message: 'Rework requests are only applicable for jobs that require a survey.' };
-    }
-    const allowedFromStates = { ADMIN: null, TM: ['SURVEY_DONE', 'REVIEWED'], TO: ['SURVEY_DONE'] };
-    const allowed = allowedFromStates[user.role];
-    if (!allowed && user.role !== 'ADMIN') {
-        throw { statusCode: 403, message: `You do not have permission to request rework for this job.` };
-    }
-    if (allowed && !allowed.includes(job.job_status)) {
-        throw { statusCode: 400, message: `Rework can only be requested when the job status is ${allowed.join(' or ')}.` };
-    }
-    const updated = await lifecycleService.updateJobStatus(id, 'REWORK_REQUESTED', user.id,
-        remarks || `${user.role} requested rework`);
 
-    // Vessel already loaded
-    if (job.assigned_surveyor_id) {
-        notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_SENT_BACK', {
-            jobId: id, vesselName: job.Vessel.vessel_name, remarks: remarks || 'Rework requested'
-        });
-    }
-    return updated;
-};
 
 /**
  * → REJECTED (terminal)

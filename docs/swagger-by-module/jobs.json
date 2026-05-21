@@ -5359,6 +5359,81 @@
           }
         }
       },
+      "UserDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "GM",
+              "TM",
+              "TO",
+              "SURVEYOR",
+              "CLIENT"
+            ]
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SUSPENDED"
+            ]
+          },
+          "client_id": {
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
+          },
+          "force_password_reset": {
+            "type": "boolean"
+          },
+          "last_login_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fcm_token": {
+            "type": "string",
+            "nullable": true
+          },
+          "profile_pic_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Client": {
+            "$ref": "#/components/schemas/ClientResponse",
+            "nullable": true
+          },
+          "SurveyorProfile": {
+            "$ref": "#/components/schemas/SurveyorProfileResponse",
+            "nullable": true
+          }
+        }
+      },
       "VesselSummary": {
         "type": "object",
         "properties": {
@@ -7814,202 +7889,6 @@
           },
           "403": {
             "description": "Forbidden – only TO",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error_code": "VALIDATION_ERROR",
-                  "message": "Validation failed. Please correct the highlighted fields.",
-                  "errors": {
-                    "vessel_id": "vessel_id is required"
-                  },
-                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Job not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error_code": "VALIDATION_ERROR",
-                  "message": "Validation failed. Please correct the highlighted fields.",
-                  "errors": {
-                    "vessel_id": "vessel_id is required"
-                  },
-                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/jobs/{id}/send-back": {
-      "put": {
-        "tags": [
-          "Jobs"
-        ],
-        "summary": "ADMIN/TM/TO: Request rework → REWORK_REQUESTED",
-        "description": "**Transition:** `SURVEY_DONE` or `REVIEWED → REWORK_REQUESTED`\n\nSends the job back to the surveyor for corrections.\nNotifies the assigned surveyor with the `remarks` reason.\n\nRole-specific from-state constraints:\n- **ADMIN** – Any non-terminal state.\n- **TM** – `SURVEY_DONE` or `REVIEWED`.\n- **TO** – `SURVEY_DONE` only.\n\n**Roles:** TM, TO\n",
-        "operationId": "sendBackJob",
-        "x-roles": [
-          "TM",
-          "TO"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "remarks": {
-                    "type": "string",
-                    "example": "Engine section checklist is incomplete. Please revise."
-                  }
-                }
-              },
-              "example": {
-                "remarks": "Engine section checklist is incomplete. Please revise."
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Rework requested. Status → REWORK_REQUESTED.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Rework requested. Surveyor has been notified."
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/JobResponse"
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "message": "Rework requested. Surveyor has been notified.",
-                  "data": {
-                    "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
-                    "job_status": "ASSIGNED",
-                    "vessel_id": "019cbf1d-d9c1-732d-8d10-f866bb6e9dec",
-                    "certificate_type_id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                    "requested_by_user_id": "019c79a4-3eee-731a-9eff-b0eed303e215",
-                    "assigned_surveyor_id": "019c79a4-4930-71fd-aa73-887301791935",
-                    "target_port": "Mumbai",
-                    "target_date": "2026-12-31",
-                    "priority": "NORMAL",
-                    "createdAt": "2026-03-29T18:04:55.000Z",
-                    "updatedAt": "2026-04-11T11:42:13.000Z",
-                    "is_survey_required": true,
-                    "reschedule_count": 0,
-                    "Vessel": {
-                      "id": "019cbf1d-d9c1-732d-8d10-f866bb6e9dec",
-                      "vessel_name": "MV Pacific Guardian",
-                      "imo_number": "9876501",
-                      "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
-                    },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
-                    "requester": {
-                      "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
-                      "name": "System Admin",
-                      "email": "admin@grclass.com",
-                      "role": "ADMIN"
-                    },
-                    "surveyor": {
-                      "id": "019c79a4-4930-71fd-aa73-887301791935",
-                      "name": "Abhishek Singh",
-                      "email": "abhisheksingh@gmail.com"
-                    },
-                    "approver": {
-                      "id": "019c79a4-42ee-772c-be48-490a7c1f4444",
-                      "name": "General Manager",
-                      "role": "GM"
-                    },
-                    "payment_status": "N/A"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Role-state constraint violation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error_code": "VALIDATION_ERROR",
-                  "message": "Validation failed. Please correct the highlighted fields.",
-                  "errors": {
-                    "vessel_id": "vessel_id is required"
-                  },
-                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error_code": "VALIDATION_ERROR",
-                  "message": "Validation failed. Please correct the highlighted fields.",
-                  "errors": {
-                    "vessel_id": "vessel_id is required"
-                  },
-                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {

@@ -19,9 +19,6 @@ export const RBAC = {
     /** PUT /jobs/:id/review */
     REVIEW_JOB: ['ADMIN', 'TO'],
 
-    /** PUT /jobs/:id/send-back */
-    SEND_BACK_JOB: ['ADMIN', 'TM', 'TO'],
-
     /** PUT /jobs/:id/assign */
     ASSIGN_JOB: ['ADMIN', 'GM'],
 

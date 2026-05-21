@@ -5359,6 +5359,81 @@
           }
         }
       },
+      "UserDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "GM",
+              "TM",
+              "TO",
+              "SURVEYOR",
+              "CLIENT"
+            ]
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SUSPENDED"
+            ]
+          },
+          "client_id": {
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
+          },
+          "force_password_reset": {
+            "type": "boolean"
+          },
+          "last_login_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fcm_token": {
+            "type": "string",
+            "nullable": true
+          },
+          "profile_pic_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Client": {
+            "$ref": "#/components/schemas/ClientResponse",
+            "nullable": true
+          },
+          "SurveyorProfile": {
+            "$ref": "#/components/schemas/SurveyorProfileResponse",
+            "nullable": true
+          }
+        }
+      },
       "VesselSummary": {
         "type": "object",
         "properties": {
@@ -6085,6 +6160,181 @@
       }
     },
     "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user details by ID",
+        "description": "Retrieve details for a specific user by ID. If the user has role CLIENT, includes client and company details. ADMIN, GM, TM, TO only.",
+        "operationId": "getUserById",
+        "x-roles": [
+          "ADMIN",
+          "GM",
+          "TM",
+          "TO"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "User details fetched successfully"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/UserDetailResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "User details fetched successfully",
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "name": "string",
+                    "email": "user@example.com",
+                    "role": "ADMIN",
+                    "phone": "string",
+                    "status": "ACTIVE",
+                    "client_id": "string",
+                    "force_password_reset": true,
+                    "last_login_at": "2026-03-15T10:00:00.000Z",
+                    "fcm_token": "string",
+                    "profile_pic_url": "https://example.com/resource",
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "updated_at": "2026-03-15T10:00:00.000Z",
+                    "Client": {
+                      "id": "string",
+                      "company_name": "string",
+                      "company_code": "string",
+                      "email": "user@example.com",
+                      "address": "string",
+                      "country": "string",
+                      "phone": "string",
+                      "contact_person_name": "string",
+                      "contact_person_email": "user@example.com",
+                      "status": "ACTIVE",
+                      "has_user": true,
+                      "created_at": "2026-03-15T10:00:00.000Z"
+                    },
+                    "SurveyorProfile": {
+                      "id": "string",
+                      "user_id": "string",
+                      "surveyor_application_id": "string",
+                      "license_number": "string",
+                      "authorized_ship_types": [
+                        "string"
+                      ],
+                      "authorized_certificates": [
+                        "string"
+                      ],
+                      "valid_from": "2026-03-15",
+                      "valid_to": "2026-03-15",
+                      "status": "ACTIVE",
+                      "is_available": true,
+                      "nationality": "string",
+                      "qualification": "string",
+                      "years_of_experience": 1,
+                      "cv_url": "https://example.com/resource",
+                      "id_proof_url": "https://example.com/resource",
+                      "license_copy_url": "https://example.com/resource",
+                      "created_at": "2026-03-15T10:00:00.000Z",
+                      "updated_at": "2026-03-15T10:00:00.000Z",
+                      "User": {
+                        "id": "string",
+                        "name": "string",
+                        "email": "user@example.com",
+                        "role": "ADMIN",
+                        "status": "ACTIVE",
+                        "client_id": "string",
+                        "profile_pic_url": "https://example.com/resource",
+                        "force_password_reset": true,
+                        "last_login_at": "2026-03-15T10:00:00.000Z"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "Users"

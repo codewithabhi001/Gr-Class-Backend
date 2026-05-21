@@ -4,7 +4,47 @@ Source YAML: `src/docs/paths/non_conformities.yaml`
 
 ## Routes
 
-### 1. POST /api/v1/non-conformities
+### 1. GET /api/v1/non-conformities
+- Summary: Get all NCs
+- Operation ID: `getNCs`
+- Access Roles: ADMIN, GM, TM, TO
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `job_id` (query, optional, string)
+- `status` (query, optional, string)
+- `page` (query, optional, integer)
+- `limit` (query, optional, integer)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: List of NCs (application/json => object)
+- `403`: Forbidden
+- Controller response envelope(s):
+```js
+{ success: true, data: result }
+```
+
+Implementation Trace
+- Route file: `src/modules/non_conformities/nc.routes.js:11`
+- Controller: `src/modules/non_conformities/nc.controller.js:22`
+- Service: `src/modules/non_conformities/nc.service.js:29` (`ncService.getNCs`)
+- Models touched: NonConformity.findAndCountAll, NonConformity.findAll
+- Service returns (detected): {
+        total: count,
+        page: parseInt(page),
+        limit: pageLimit,
+        totalPages: Math.ceil(count / pageLimit),
+        status_counts: buildFullStatusCounts(statusCounts, NC_STATUSES),
+        rows: rows.map(flatNcListRow),
+    }
+
+### 2. POST /api/v1/non-conformities
 - Summary: Create NC
 - Operation ID: `createNC`
 - Access Roles: SURVEYOR, TO
@@ -17,7 +57,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createNC`
-- Joi schema source: `src/middlewares/validate.middleware.js:132`
+- Joi schema source: `src/middlewares/validate.middleware.js:176`
 ```js
 Joi.object({
         job_id: Joi.string().guid().required(),
@@ -32,17 +72,47 @@ Response (Actual)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
-nc
+{ success: true, data: nc }
 ```
 
 Implementation Trace
 - Route file: `src/modules/non_conformities/nc.routes.js:10`
 - Controller: `src/modules/non_conformities/nc.controller.js:3`
-- Service: `src/modules/non_conformities/nc.service.js:6` (`ncService.createNC`)
+- Service: `src/modules/non_conformities/nc.service.js:9` (`ncService.createNC`)
 - Models touched: NonConformity.create
 - Service returns (detected): nc
 
-### 2. PUT /api/v1/non-conformities/{id}/close
+### 3. GET /api/v1/non-conformities/{id}
+- Summary: Get NC by ID
+- Operation ID: `getNCById`
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: NC detail (application/json => object)
+- `404`: Not found
+- Controller response envelope(s):
+```js
+{ success: true, data: nc }
+```
+
+Implementation Trace
+- Route file: `src/modules/non_conformities/nc.routes.js:12`
+- Controller: `src/modules/non_conformities/nc.controller.js:31`
+- Service: `src/modules/non_conformities/nc.service.js:67` (`ncService.getNCById`)
+- Models touched: NonConformity.findByPk
+- Service returns (detected): nc
+
+### 4. PUT /api/v1/non-conformities/{id}/close
 - Summary: Close NC
 - Operation ID: `closeNC`
 - Access Roles: TO, TM
@@ -55,7 +125,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[id], query=[], body=[closure_remarks], user=[], files=[]
 - Validation schema key: `closeNC`
-- Joi schema source: `src/middlewares/validate.middleware.js:137`
+- Joi schema source: `src/middlewares/validate.middleware.js:181`
 ```js
 Joi.object({
         closure_remarks: Joi.string().required(),
@@ -68,17 +138,17 @@ Response (Actual)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
-nc
+{ success: true, data: nc }
 ```
 
 Implementation Trace
-- Route file: `src/modules/non_conformities/nc.routes.js:11`
+- Route file: `src/modules/non_conformities/nc.routes.js:13`
 - Controller: `src/modules/non_conformities/nc.controller.js:12`
-- Service: `src/modules/non_conformities/nc.service.js:15` (`ncService.closeNC`)
+- Service: `src/modules/non_conformities/nc.service.js:18` (`ncService.closeNC`)
 - Models touched: NonConformity.findByPk
 - Service returns (detected): nc
 
-### 3. GET /api/v1/non-conformities/job/{jobId}
+### 5. GET /api/v1/non-conformities/job/{jobId}
 - Summary: Get NCs by job
 - Operation ID: `getNCsByJob`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR

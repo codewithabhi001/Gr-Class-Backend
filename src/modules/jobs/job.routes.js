@@ -10,6 +10,7 @@ const upload = docUpload;
 const router = express.Router();
 
 router.use(authenticate);
+// @deprecated - Use GET /api/v1/documents/get-upload-url instead
 router.get('/upload-url', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), jobController.getUploadUrl);
 
 // ─── List & Detail ───────────────────────────────────────
@@ -49,7 +50,7 @@ router.put('/:id/review', authorizeRoles('TO'), jobController.reviewJob);
 
 // REVIEWED → REWORK_REQUESTED  (ADMIN / TM / TO — requests surveyor correction)
 // NOTE: preferred path is PUT /api/v1/surveys/:id/rework
-router.put('/:id/send-back', authorizeRoles('TM', 'TO'), jobController.sendBackJob);
+
 
 // PAYMENT_DONE → CERTIFIED  (triggered internally by certificate.service.generateCertificate)
 // No direct endpoint: finalization & certification happen via survey + certificate endpoints

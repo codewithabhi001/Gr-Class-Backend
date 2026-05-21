@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/payments.yaml`
 ### 1. GET /api/v1/payments
 - Summary: List payments
 - Operation ID: `getPayments`
-- Access Roles: CLIENT, ADMIN, GM, TM
+- Access Roles: CLIENT, ADMIN, GM, TM, TO
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -30,8 +30,8 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/payments/payment.routes.js:13`
-- Controller: `src/modules/payments/payment.controller.js:16`
-- Service: `src/modules/payments/payment.service.js:122` (`paymentService.getPayments`)
+- Controller: `src/modules/payments/payment.controller.js:17`
+- Service: `src/modules/payments/payment.service.js:214` (`paymentService.getPayments`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -59,16 +59,16 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/payments/payment.routes.js:16`
-- Controller: `src/modules/payments/payment.controller.js:32`
-- Service: `src/modules/payments/payment.service.js:203` (`paymentService.getFinancialSummary`)
+- Controller: `src/modules/payments/payment.controller.js:33`
+- Service: `src/modules/payments/payment.service.js:296` (`paymentService.getFinancialSummary`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
 ### 3. POST /api/v1/payments/invoice
 - Summary: Create invoice
 - Operation ID: `createInvoice`
-- Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
+- Access Roles: ADMIN, GM, TM, TO
+- Change Access: ADMIN, GM, TM, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -89,15 +89,15 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/payments/payment.routes.js:22`
-- Controller: `src/modules/payments/payment.controller.js:40`
-- Service: `src/modules/payments/payment.service.js:17` (`paymentService.createInvoice`)
+- Controller: `src/modules/payments/payment.controller.js:41`
+- Service: `src/modules/payments/payment.service.js:93` (`paymentService.createInvoice`)
 - Models touched: JobRequest.findByPk, Payment.findOne, Payment.create, AuditLog.create
 - Service returns (detected): payment
 
 ### 4. GET /api/v1/payments/{id}
 - Summary: Get payment by ID
 - Operation ID: `getPaymentById`
-- Access Roles: CLIENT, ADMIN, GM, TM
+- Access Roles: CLIENT, ADMIN, GM, TM, TO
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -119,16 +119,16 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/payments/payment.routes.js:19`
-- Controller: `src/modules/payments/payment.controller.js:24`
-- Service: `src/modules/payments/payment.service.js:178` (`paymentService.getPaymentById`)
+- Controller: `src/modules/payments/payment.controller.js:25`
+- Service: `src/modules/payments/payment.service.js:270` (`paymentService.getPaymentById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
 ### 5. PUT /api/v1/payments/{id}/pay
 - Summary: Mark invoice as paid
 - Operation ID: `markPaymentPaid`
-- Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
+- Access Roles: ADMIN, GM, TM, TO
+- Change Access: ADMIN, GM, TM, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -174,10 +174,10 @@ Implementation Trace
 - Services: N/A
 
 ### 7. POST /api/v1/payments/{id}/partial
-- Summary: Record partial payment
+- Summary: Record payment (advance / partial)
 - Operation ID: `recordPartialPayment`
-- Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
+- Access Roles: ADMIN, GM, TM, TO
+- Change Access: ADMIN, GM, TM, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:

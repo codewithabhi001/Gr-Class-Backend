@@ -12,7 +12,9 @@ Source YAML: `src/docs/paths/incidents.yaml`
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
-- None
+- `page` (query, optional, integer)
+- `limit` (query, optional, integer)
+- `status` (query, optional, string)
 - Request Body from YAML:
 - None
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
@@ -20,7 +22,7 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: List of incidents
+- `200`: List of incidents (application/json => object)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
@@ -30,7 +32,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/incidents/incident.routes.js:10`
 - Controller: `src/modules/incidents/incident.controller.js:19`
-- Service: `src/modules/incidents/incident.service.js:20` (`incidentService.getIncidents`)
+- Service: `src/modules/incidents/incident.service.js:24` (`incidentService.getIncidents`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -60,7 +62,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/incidents/incident.routes.js:9`
 - Controller: `src/modules/incidents/incident.controller.js:11`
-- Service: `src/modules/incidents/incident.service.js:6` (`incidentService.reportIncident`)
+- Service: `src/modules/incidents/incident.service.js:9` (`incidentService.reportIncident`)
 - Models touched: Vessel.findOne, Incident.create
 - Service returns (detected): await Incident.create({
         ...data,
@@ -84,7 +86,7 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: Incident details
+- `200`: Incident detail (application/json => object)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
@@ -94,7 +96,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/incidents/incident.routes.js:11`
 - Controller: `src/modules/incidents/incident.controller.js:27`
-- Service: `src/modules/incidents/incident.service.js:31` (`incidentService.getIncidentById`)
+- Service: `src/modules/incidents/incident.service.js:63` (`incidentService.getIncidentById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 

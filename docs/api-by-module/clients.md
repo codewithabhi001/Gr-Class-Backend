@@ -33,11 +33,11 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/clients/client.routes.js:21`
+- Route file: `src/modules/clients/client.routes.js:16`
 - Controller: `src/modules/clients/client.controller.js:14`
-- Service: `src/modules/clients/client.service.js:45` (`clientService.getClients`)
+- Service: `src/modules/clients/client.service.js:46` (`clientService.getClients`)
 - Models touched: Client.findAndCountAll
-- Service returns (detected): plainClient | result
+- Service returns (detected): result
 
 ### 2. POST /api/v1/clients
 - Summary: Create client
@@ -52,7 +52,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ClientCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createClient`
-- Joi schema source: `src/middlewares/validate.middleware.js:176`
+- Joi schema source: `src/middlewares/validate.middleware.js:226`
 ```js
 Joi.object({
         company_name: Joi.string().required(),
@@ -88,62 +88,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/clients/client.routes.js:20`
+- Route file: `src/modules/clients/client.routes.js:15`
 - Controller: `src/modules/clients/client.controller.js:3`
-- Service: `src/modules/clients/client.service.js:16` (`clientService.createClient`)
+- Service: `src/modules/clients/client.service.js:17` (`clientService.createClient`)
 - Models touched: Client.create
 - Service returns (detected): await Client.create(clientFields) | { client, user } | result
 
-### 3. GET /api/v1/clients/profile
-- Summary: Get client profile
-- Operation ID: `getClientProfile`
-- Access Roles: CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
-- None
-- Request Body from YAML:
-- None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
-- `200`: Client profile (application/json => object)
-- `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
-
-### 4. PUT /api/v1/clients/profile
-- Summary: Update client profile
-- Operation ID: `updateClientProfile`
-- Access Roles: CLIENT
-- Change Access: CLIENT
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
-- None
-- Request Body from YAML:
-- `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
-- `200`: Profile updated (application/json => object)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
-
-### 5. GET /api/v1/clients/profile/documents
+### 3. GET /api/v1/clients/profile/documents
 - Summary: Get client profile documents
 - Operation ID: `getClientProfileDocuments`
 - Access Roles: CLIENT
@@ -167,31 +118,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 6. GET /api/v1/clients/dashboard
-- Summary: Get client dashboard
-- Operation ID: `getClientDashboard`
-- Access Roles: CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
-- None
-- Request Body from YAML:
-- None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
-- `200`: Client dashboard data (application/json => object)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
-
-### 7. GET /api/v1/clients/{id}/documents
+### 4. GET /api/v1/clients/{id}/documents
 - Summary: Get client documents by ID
 - Operation ID: `getClientDocumentsById`
 - Access Roles: ADMIN, GM, TM, TO
@@ -215,7 +142,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 8. GET /api/v1/clients/{id}
+### 5. GET /api/v1/clients/{id}
 - Summary: Get client by ID
 - Operation ID: `getClientById`
 - Access Roles: ADMIN, GM, TM, TO
@@ -243,13 +170,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/clients/client.routes.js:22`
+- Route file: `src/modules/clients/client.routes.js:17`
 - Controller: `src/modules/clients/client.controller.js:25`
-- Service: `src/modules/clients/client.service.js:76` (`clientService.getClientById`)
+- Service: `src/modules/clients/client.service.js:70` (`clientService.getClientById`)
 - Models touched: Client.findByPk
 - Service returns (detected): client
 
-### 9. PUT /api/v1/clients/{id}
+### 6. PUT /api/v1/clients/{id}
 - Summary: Update client
 - Operation ID: `updateClient`
 - Access Roles: ADMIN, GM, TM
@@ -276,13 +203,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/clients/client.routes.js:24`
+- Route file: `src/modules/clients/client.routes.js:19`
 - Controller: `src/modules/clients/client.controller.js:36`
-- Service: `src/modules/clients/client.service.js:82` (`clientService.updateClient`)
+- Service: `src/modules/clients/client.service.js:76` (`clientService.updateClient`)
 - Models touched: N/A
 - Service returns (detected): await client.update(data)
 
-### 10. DELETE /api/v1/clients/{id}
+### 7. DELETE /api/v1/clients/{id}
 - Summary: Delete client
 - Operation ID: `deleteClient`
 - Access Roles: ADMIN
@@ -309,8 +236,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/clients/client.routes.js:25`
+- Route file: `src/modules/clients/client.routes.js:20`
 - Controller: `src/modules/clients/client.controller.js:47`
-- Service: `src/modules/clients/client.service.js:87` (`clientService.deleteClient`)
+- Service: `src/modules/clients/client.service.js:81` (`clientService.deleteClient`)
 - Models touched: N/A
 - Service returns (detected): await client.update({ status: 'INACTIVE' })

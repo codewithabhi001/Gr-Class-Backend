@@ -12,10 +12,10 @@ Source YAML: `src/docs/paths/flags.yaml`
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
-- None
+- `search` (query, optional, string)
 - Request Body from YAML:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Req usage in controller: params=[], query=[search], body=[], user=[], files=[]
 - Validation schema key: `N/A`
 
 Response (Actual)
@@ -30,19 +30,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/flags/flag.routes.js:11`
 - Controller: `src/modules/flags/flag.controller.js:10`
-- Service: `src/modules/flags/flag.service.js:8` (`flagService.getFlags`)
+- Service: `src/modules/flags/flag.service.js:11` (`flagService.getFlags`)
 - Models touched: FlagAdministration.findAll
-- Service returns (detected): await FlagAdministration.findAll({
-        attributes: [
-            'id',
-            'flag_state_name',
-            'country',
-            'authority_name',
-            'contact_email',
-            'logo_url',
-            'status'
-        ]
-    })
+- Service returns (detected): await resolveEntity(list)
 
 ### 2. POST /api/v1/flags
 - Summary: Create flag
@@ -57,7 +47,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createFlag`
-- Joi schema source: `src/middlewares/validate.middleware.js:158`
+- Joi schema source: `src/middlewares/validate.middleware.js:208`
 ```js
 Joi.object({
         flag_state_name: Joi.string().required(),
@@ -82,9 +72,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/flags/flag.routes.js:10`
 - Controller: `src/modules/flags/flag.controller.js:3`
-- Service: `src/modules/flags/flag.service.js:4` (`flagService.createFlag`)
+- Service: `src/modules/flags/flag.service.js:6` (`flagService.createFlag`)
 - Models touched: FlagAdministration.create
-- Service returns (detected): await FlagAdministration.create(data)
+- Service returns (detected): await resolveEntity(flag)
 
 ### 3. PUT /api/v1/flags/{id}
 - Summary: Update flag
@@ -99,7 +89,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateFlag`
-- Joi schema source: `src/middlewares/validate.middleware.js:167`
+- Joi schema source: `src/middlewares/validate.middleware.js:217`
 ```js
 Joi.object({
         flag_state_name: Joi.string().optional(),
@@ -123,7 +113,7 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/flags/flag.routes.js:13`
-- Controller: `src/modules/flags/flag.controller.js:23`
-- Service: `src/modules/flags/flag.service.js:25` (`flagService.updateFlag`)
+- Controller: `src/modules/flags/flag.controller.js:24`
+- Service: `src/modules/flags/flag.service.js:37` (`flagService.updateFlag`)
 - Models touched: FlagAdministration.findByPk
-- Service returns (detected): await flag.update(data)
+- Service returns (detected): await resolveEntity(updated)

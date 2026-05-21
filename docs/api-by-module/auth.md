@@ -36,7 +36,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/auth/auth.routes.js:24`
+- Route file: `src/modules/auth/auth.routes.js:31`
 - Controller: `src/modules/auth/auth.controller.js:19`
 - Service: `src/modules/auth/auth.service.js` (`authService.login`)
 - Models touched: N/A
@@ -66,7 +66,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/auth/auth.routes.js:30`
+- Route file: `src/modules/auth/auth.routes.js:37`
 - Controller: `src/modules/auth/auth.controller.js:46`
 - Service: `src/modules/auth/auth.service.js:158` (`authService.logout`)
 - Models touched: AuditLog.create
@@ -107,7 +107,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/auth/auth.routes.js:34`
+- Route file: `src/modules/auth/auth.routes.js:41`
 - Controller: `src/modules/auth/auth.controller.js:58`
 - Service: `src/modules/auth/auth.service.js:175` (`authService.refreshToken`)
 - Models touched: User.findByPk
@@ -147,7 +147,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/auth/auth.routes.js:38`
+- Route file: `src/modules/auth/auth.routes.js:45`
 - Controller: `src/modules/auth/auth.controller.js:75`
 - Service: `src/modules/auth/auth.service.js:213` (`authService.forgotPassword`)
 - Models touched: User.findOne
@@ -185,7 +185,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/auth/auth.routes.js:42`
+- Route file: `src/modules/auth/auth.routes.js:49`
 - Controller: `src/modules/auth/auth.controller.js:84`
 - Service: `src/modules/auth/auth.service.js:228` (`authService.resetPassword`)
 - Models touched: User.findByPk
@@ -223,7 +223,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/auth/auth.routes.js:46`
+- Route file: `src/modules/auth/auth.routes.js:53`
 - Controller: `src/modules/auth/auth.controller.js:93`
 - Service: `src/modules/auth/auth.service.js:247` (`authService.changePassword`)
 - Models touched: User.findByPk

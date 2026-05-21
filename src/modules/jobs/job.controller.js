@@ -31,7 +31,15 @@ export const getUploadUrl = async (req, res, next) => {
         }
 
         const data = await documentService.generatePresignedUrl(fileName, fileType, folder);
-        res.json({ success: true, data });
+        
+        // Mark as deprecated by sending warning header and deprecated metadata
+        res.set('Warning', '299 - "GET /api/v1/jobs/upload-url is deprecated. Use GET /api/v1/documents/get-upload-url instead."');
+        res.json({ 
+            success: true, 
+            deprecated: true,
+            message: "Deprecated: Use GET /api/v1/documents/get-upload-url instead.",
+            data 
+        });
     } catch (e) { next(e); }
 };
 // ─────────────────────────────────────────────
@@ -132,13 +140,7 @@ export const reviewJob = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-/** SURVEY_DONE / REVIEWED → REWORK_REQUESTED  (ADMIN / TM / TO) */
-export const sendBackJob = async (req, res, next) => {
-    try {
-        const job = await jobService.sendBackJob(req.params.id, req.body?.remarks, req.user);
-        res.json({ success: true, message: 'Rework requested. Surveyor has been notified.', data: job });
-    } catch (error) { next(error); }
-};
+
 
 /** Reschedule Job (ADMIN / GM) */
 export const rescheduleJob = async (req, res, next) => {

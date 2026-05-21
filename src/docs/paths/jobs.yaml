@@ -744,68 +744,6 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
-/api/v1/jobs/{id}/send-back:
-  put:
-    tags: [Jobs]
-    summary: "ADMIN/TM/TO: Request rework → REWORK_REQUESTED"
-    description: |
-      **Transition:** `SURVEY_DONE` or `REVIEWED → REWORK_REQUESTED`
-
-      Sends the job back to the surveyor for corrections.
-      Notifies the assigned surveyor with the `remarks` reason.
-
-      Role-specific from-state constraints:
-      - **ADMIN** – Any non-terminal state.
-      - **TM** – `SURVEY_DONE` or `REVIEWED`.
-      - **TO** – `SURVEY_DONE` only.
-
-      **Roles:** TM, TO
-    operationId: sendBackJob
-    x-roles: [TM, TO]
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-    requestBody:
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              remarks: { type: string, example: "Engine section checklist is incomplete. Please revise." }
-    responses:
-      "200":
-        description: Rework requested. Status → REWORK_REQUESTED.
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                success: { type: boolean, example: true }
-                message: { type: string, example: "Rework requested. Surveyor has been notified." }
-                data: { $ref: '#/components/schemas/JobResponse' }
-      "400":
-        description: Role-state constraint violation
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
-      "401":
-        description: Unauthorized
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
-      "403":
-        description: Forbidden
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
-      "404":
-        description: Job not found
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ErrorResponse' }
-
 /api/v1/jobs/{id}/reschedule:
   put:
     tags: [Jobs]

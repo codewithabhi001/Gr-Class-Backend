@@ -12,7 +12,7 @@ Source YAML: `src/docs/paths/users.yaml`
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
-- None
+- `role` (query, optional, string)
 - Request Body from YAML:
 - None
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
@@ -20,7 +20,7 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: List of users
+- `200`: List of users (application/json => object)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
@@ -32,8 +32,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/users/user.routes.js:22`
-- Controller: `src/modules/users/user.controller.js:10`
+- Route file: `src/modules/users/user.routes.js:23`
+- Controller: `src/modules/users/user.controller.js:17`
 - Service: `src/modules/users/user.service.js:8` (`userService.getUsers`)
 - Models touched: User.findAll
 - Service returns (detected): await fileAccessService.resolveEntity(users)
@@ -51,7 +51,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UserCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createUser`
-- Joi schema source: `src/middlewares/validate.middleware.js:194`
+- Joi schema source: `src/middlewares/validate.middleware.js:244`
 ```js
 Joi.object({
         name: Joi.string().required(),
@@ -81,9 +81,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/users/user.routes.js:25`
-- Controller: `src/modules/users/user.controller.js:21`
-- Service: `src/modules/users/user.service.js:44` (`userService.createUser`)
+- Route file: `src/modules/users/user.routes.js:26`
+- Controller: `src/modules/users/user.controller.js:28`
+- Service: `src/modules/users/user.service.js:58` (`userService.createUser`)
 - Models touched: N/A
 - Service returns (detected): await authService.register(data)
 
@@ -112,7 +112,68 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 4. PUT /api/v1/users/{id}
+### 4. PUT /api/v1/users/me
+- Summary: Update current user profile
+- Operation ID: `updateMyProfile`
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- None
+- Request Body from YAML:
+- `application/json`: object
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Profile updated (application/json => object)
+- `401`: Unauthorized
+- Controller response envelope(s): N/A
+
+Implementation Trace
+- Route file: `N/A`
+- Controller: `N/A`
+- Services: N/A
+
+### 5. GET /api/v1/users/{id}
+- Summary: Get user details by ID
+- Operation ID: `getUserById`
+- Access Roles: ADMIN, GM, TM, TO
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: User details retrieved successfully (application/json => object)
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: User not found
+- Controller response envelope(s):
+```js
+{
+            success: true,
+            message: 'User details fetched successfully',
+            data: user
+        }
+```
+
+Implementation Trace
+- Route file: `src/modules/users/user.routes.js:29`
+- Controller: `src/modules/users/user.controller.js:94`
+- Service: `src/modules/users/user.service.js:185` (`userService.getUserById`)
+- Models touched: User.findByPk
+- Service returns (detected): formatWithNa(resolved)
+
+### 6. PUT /api/v1/users/{id}
 - Summary: Update user
 - Operation ID: `updateUser`
 - Access Roles: ADMIN
@@ -125,7 +186,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UserUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateUser`
-- Joi schema source: `src/middlewares/validate.middleware.js:427`
+- Joi schema source: `src/middlewares/validate.middleware.js:500`
 ```js
 Joi.object({
         name: Joi.string().optional(),
@@ -151,13 +212,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/users/user.routes.js:28`
-- Controller: `src/modules/users/user.controller.js:32`
-- Service: `src/modules/users/user.service.js:48` (`userService.updateUser`)
+- Route file: `src/modules/users/user.routes.js:32`
+- Controller: `src/modules/users/user.controller.js:39`
+- Service: `src/modules/users/user.service.js:62` (`userService.updateUser`)
 - Models touched: User.findByPk, User.findOne
 - Service returns (detected): user
 
-### 5. DELETE /api/v1/users/{id}
+### 7. DELETE /api/v1/users/{id}
 - Summary: Delete user
 - Operation ID: `deleteUser`
 - Access Roles: ADMIN
@@ -185,13 +246,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/users/user.routes.js:34`
-- Controller: `src/modules/users/user.controller.js:54`
-- Service: `src/modules/users/user.service.js:70` (`userService.deleteUser`)
+- Route file: `src/modules/users/user.routes.js:38`
+- Controller: `src/modules/users/user.controller.js:61`
+- Service: `src/modules/users/user.service.js:84` (`userService.deleteUser`)
 - Models touched: User.findByPk
 - Service returns (detected): { message: 'User deleted' }
 
-### 6. PUT /api/v1/users/{id}/status
+### 8. PUT /api/v1/users/{id}/status
 - Summary: Update user status
 - Operation ID: `updateUserStatus`
 - Access Roles: ADMIN
@@ -216,7 +277,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 7. PUT /api/v1/users/fcm-token
+### 9. PUT /api/v1/users/fcm-token
 - Summary: Update FCM device token for push notifications
 - Operation ID: `updateFcmToken`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
@@ -229,7 +290,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UpdateFcmTokenRequest
 - Req usage in controller: params=[], query=[], body=[fcmToken], user=[id], files=[]
 - Validation schema key: `updateFcmToken`
-- Joi schema source: `src/middlewares/validate.middleware.js:479`
+- Joi schema source: `src/middlewares/validate.middleware.js:525`
 ```js
 Joi.object({
         fcmToken: Joi.string().required(),
@@ -251,13 +312,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/users/user.routes.js:19`
-- Controller: `src/modules/users/user.controller.js:65`
-- Service: `src/modules/users/user.service.js:77` (`userService.updateFcmToken`)
+- Route file: `src/modules/users/user.routes.js:20`
+- Controller: `src/modules/users/user.controller.js:72`
+- Service: `src/modules/users/user.service.js:91` (`userService.updateFcmToken`)
 - Models touched: User.findByPk
 - Service returns (detected): { success: true }
 
-### 8. PUT /api/v1/users/profile-pic
+### 10. PUT /api/v1/users/profile-pic
 - Summary: Update profile picture
 - Operation ID: `updateProfilePic`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
@@ -286,8 +347,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/users/user.routes.js:16`
-- Controller: `src/modules/users/user.controller.js:76`
-- Service: `src/modules/users/user.service.js:84` (`userService.updateProfilePic`)
+- Route file: `src/modules/users/user.routes.js:17`
+- Controller: `src/modules/users/user.controller.js:83`
+- Service: `src/modules/users/user.service.js:98` (`userService.updateProfilePic`)
 - Models touched: N/A
 - Service returns (detected): N/A

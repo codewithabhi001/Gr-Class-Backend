@@ -7,7 +7,7 @@ Source YAML: `src/docs/paths/change_requests.yaml`
 ### 1. GET /api/v1/change-requests
 - Summary: Get change requests
 - Operation ID: `getChangeRequests`
-- Access Roles: ADMIN, GM, TM
+- Access Roles: ADMIN, GM, TM, CLIENT
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -25,6 +25,7 @@ Response (Actual)
 - Controller response envelope(s):
 ```js
 {
+            success: true,
             change_requests: changeRequests,
             total: changeRequests.length
         }
@@ -32,8 +33,8 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/change_requests/change_request.routes.js:10`
-- Controller: `src/modules/change_requests/change_request.controller.js:27`
-- Service: `src/modules/change_requests/change_request.service.js:27` (`changeRequestService.getChangeRequests`)
+- Controller: `src/modules/change_requests/change_request.controller.js:37`
+- Service: `src/modules/change_requests/change_request.service.js:28` (`changeRequestService.getChangeRequests`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -53,11 +54,12 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `201`: Change request created
+- `201`: Change request created successfully
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
 {
+            success: true,
             message: 'Change request created successfully',
             change_request: changeRequest
         }
@@ -65,12 +67,46 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/change_requests/change_request.routes.js:9`
-- Controller: `src/modules/change_requests/change_request.controller.js:7`
-- Service: `src/modules/change_requests/change_request.service.js:9` (`changeRequestService.createChangeRequest`)
+- Controller: `src/modules/change_requests/change_request.controller.js:16`
+- Service: `src/modules/change_requests/change_request.service.js:10` (`changeRequestService.createChangeRequest`)
 - Models touched: ChangeRequest.create
 - Service returns (detected): changeRequest
 
-### 3. PUT /api/v1/change-requests/{id}/approve
+### 3. GET /api/v1/change-requests/{id}
+- Summary: Get change request by ID
+- Operation ID: `getChangeRequestById`
+- Access Roles: ADMIN, GM, TM, CLIENT
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Change request details
+- `403`: Forbidden
+- `404`: Change request not found
+- Controller response envelope(s):
+```js
+{
+            success: true,
+            change_request: changeRequest
+        }
+```
+
+Implementation Trace
+- Route file: `src/modules/change_requests/change_request.routes.js:11`
+- Controller: `src/modules/change_requests/change_request.controller.js:63`
+- Service: `src/modules/change_requests/change_request.service.js:50` (`changeRequestService.getChangeRequestById`)
+- Models touched: N/A
+- Service returns (detected): N/A
+
+### 4. PUT /api/v1/change-requests/{id}/approve
 - Summary: Approve change request
 - Operation ID: `approveChangeRequest`
 - Access Roles: ADMIN, GM
@@ -80,7 +116,7 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - `id` (path, required, string)
 - Request Body from YAML:
-- None
+- `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `N/A`
 
@@ -97,13 +133,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/change_requests/change_request.routes.js:11`
-- Controller: `src/modules/change_requests/change_request.controller.js:50`
-- Service: `src/modules/change_requests/change_request.service.js:49` (`changeRequestService.approveChangeRequest`)
+- Route file: `src/modules/change_requests/change_request.routes.js:12`
+- Controller: `src/modules/change_requests/change_request.controller.js:81`
+- Service: `src/modules/change_requests/change_request.service.js:69` (`changeRequestService.approveChangeRequest`)
 - Models touched: ChangeRequest.findByPk
 - Service returns (detected): changeRequest
 
-### 4. PUT /api/v1/change-requests/{id}/reject
+### 5. PUT /api/v1/change-requests/{id}/reject
 - Summary: Reject change request
 - Operation ID: `rejectChangeRequest`
 - Access Roles: ADMIN, GM
@@ -113,7 +149,7 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - `id` (path, required, string)
 - Request Body from YAML:
-- None
+- `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `N/A`
 
@@ -130,8 +166,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/change_requests/change_request.routes.js:12`
-- Controller: `src/modules/change_requests/change_request.controller.js:74`
-- Service: `src/modules/change_requests/change_request.service.js:76` (`changeRequestService.rejectChangeRequest`)
+- Route file: `src/modules/change_requests/change_request.routes.js:13`
+- Controller: `src/modules/change_requests/change_request.controller.js:105`
+- Service: `src/modules/change_requests/change_request.service.js:96` (`changeRequestService.rejectChangeRequest`)
 - Models touched: ChangeRequest.findByPk
 - Service returns (detected): changeRequest

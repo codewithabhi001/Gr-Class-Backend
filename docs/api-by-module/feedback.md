@@ -30,9 +30,15 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/feedback/feedback.routes.js:13`
 - Controller: `src/modules/feedback/feedback.controller.js:17`
-- Service: `src/modules/feedback/feedback.service.js` (`feedbackService.getAllFeedback`)
-- Models touched: N/A
-- Service returns (detected): N/A
+- Service: `src/modules/feedback/feedback.service.js:73` (`feedbackService.getAllFeedback`)
+- Models touched: CustomerFeedback.findAndCountAll
+- Service returns (detected): {
+        total: result.count,
+        page: pageNum,
+        limit: pageLimit,
+        totalPages: Math.ceil(result.count / pageLimit),
+        rows: result.rows.map(flatFeedbackListRow),
+    }
 
 ### 2. POST /api/v1/customer-feedback
 - Summary: Submit feedback
@@ -60,11 +66,41 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/feedback/feedback.routes.js:10`
 - Controller: `src/modules/feedback/feedback.controller.js:3`
-- Service: `src/modules/feedback/feedback.service.js:7` (`feedbackService.submitFeedback`)
+- Service: `src/modules/feedback/feedback.service.js:8` (`feedbackService.submitFeedback`)
 - Models touched: JobRequest.findByPk, CustomerFeedback.findOne, CustomerFeedback.create
 - Service returns (detected): feedback
 
-### 3. GET /api/v1/customer-feedback/job/{jobId}
+### 3. GET /api/v1/customer-feedback/{id}
+- Summary: Get feedback detail
+- Operation ID: `getFeedbackById`
+- Access Roles: ADMIN, GM
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Feedback detail (application/json => #/components/schemas/CustomerFeedbackResponse)
+- `404`: Not found
+- Controller response envelope(s):
+```js
+{ success: true, data: feedback }
+```
+
+Implementation Trace
+- Route file: `src/modules/feedback/feedback.routes.js:14`
+- Controller: `src/modules/feedback/feedback.controller.js:24`
+- Service: `src/modules/feedback/feedback.service.js:49` (`feedbackService.getFeedbackById`)
+- Models touched: CustomerFeedback.findByPk
+- Service returns (detected): feedback
+
+### 4. GET /api/v1/customer-feedback/job/{jobId}
 - Summary: Get feedback for job
 - Operation ID: `getFeedbackForJob`
 - Access Roles: ADMIN, GM, CLIENT
@@ -88,9 +124,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/feedback/feedback.routes.js:14`
+- Route file: `src/modules/feedback/feedback.routes.js:15`
 - Controller: `src/modules/feedback/feedback.controller.js:10`
-- Service: `src/modules/feedback/feedback.service.js:41` (`feedbackService.getFeedbackForJob`)
+- Service: `src/modules/feedback/feedback.service.js:42` (`feedbackService.getFeedbackForJob`)
 - Models touched: CustomerFeedback.findOne
 - Service returns (detected): await CustomerFeedback.findOne({
         where: { job_id: jobId },

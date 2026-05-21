@@ -2856,6 +2856,73 @@
           }
         }
       },
+      "SurveyorApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string"
+          },
+          "qualification": {
+            "type": "string"
+          },
+          "years_of_experience": {
+            "type": "integer"
+          },
+          "cv_file_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "certificate_files_url": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "id_proof_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "DOCUMENTS_REQUIRED",
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "reviewer_remarks": {
+            "type": "string",
+            "nullable": true
+          },
+          "approved_user_id": {
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "SurveyorReviewRequest": {
         "type": "object",
         "required": [
@@ -18380,6 +18447,92 @@
                         "created_at": "2026-03-15T10:00:00.000Z"
                       }
                     ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/surveyors/applications/{id}": {
+      "get": {
+        "tags": [
+          "Surveyors"
+        ],
+        "summary": "Get surveyor application",
+        "operationId": "getSurveyorApplication",
+        "x-roles": [
+          "ADMIN",
+          "TM"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SurveyorApplicationResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "full_name": "string",
+                    "email": "user@example.com",
+                    "phone": "string",
+                    "nationality": "string",
+                    "qualification": "string",
+                    "years_of_experience": 1,
+                    "cv_file_url": "https://example.com/resource",
+                    "certificate_files_url": [
+                      "https://example.com/resource"
+                    ],
+                    "id_proof_url": "https://example.com/resource",
+                    "status": "PENDING",
+                    "reviewer_remarks": "string",
+                    "approved_user_id": "string",
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "updated_at": "2026-03-15T10:00:00.000Z"
                   }
                 }
               }

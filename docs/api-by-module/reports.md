@@ -15,7 +15,7 @@ Request (Code + Schema)
 - None
 - Request Body from YAML:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
 - Validation schema key: `N/A`
 
 Response (Actual)
@@ -29,8 +29,8 @@ report
 
 Implementation Trace
 - Route file: `src/modules/reports/report.routes.js:10`
-- Controller: `src/modules/reports/report.controller.js:3`
-- Service: `src/modules/reports/report.service.js:6` (`reportService.getCertificateReport`)
+- Controller: `src/modules/reports/report.controller.js:9`
+- Service: `src/modules/reports/report.service.js:31` (`reportService.getCertificateReport`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -45,7 +45,7 @@ Request (Code + Schema)
 - None
 - Request Body from YAML:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
 - Validation schema key: `N/A`
 
 Response (Actual)
@@ -59,8 +59,8 @@ report
 
 Implementation Trace
 - Route file: `src/modules/reports/report.routes.js:11`
-- Controller: `src/modules/reports/report.controller.js:12`
-- Service: `src/modules/reports/report.service.js:43` (`reportService.getSurveyorPerformanceReport`)
+- Controller: `src/modules/reports/report.controller.js:24`
+- Service: `src/modules/reports/report.service.js:68` (`reportService.getSurveyorPerformanceReport`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -75,7 +75,7 @@ Request (Code + Schema)
 - None
 - Request Body from YAML:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
 - Validation schema key: `N/A`
 
 Response (Actual)
@@ -89,8 +89,8 @@ report
 
 Implementation Trace
 - Route file: `src/modules/reports/report.routes.js:12`
-- Controller: `src/modules/reports/report.controller.js:21`
-- Service: `src/modules/reports/report.service.js:75` (`reportService.getNonConformityReport`)
+- Controller: `src/modules/reports/report.controller.js:39`
+- Service: `src/modules/reports/report.service.js:113` (`reportService.getNonConformityReport`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -105,7 +105,7 @@ Request (Code + Schema)
 - None
 - Request Body from YAML:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
 - Validation schema key: `N/A`
 
 Response (Actual)
@@ -119,7 +119,7 @@ report
 
 Implementation Trace
 - Route file: `src/modules/reports/report.routes.js:13`
-- Controller: `src/modules/reports/report.controller.js:30`
-- Service: `src/modules/reports/report.service.js:101` (`reportService.getFinancialReport`)
+- Controller: `src/modules/reports/report.controller.js:54`
+- Service: `src/modules/reports/report.service.js:119` (`reportService.getFinancialReport`)
 - Models touched: N/A
 - Service returns (detected): N/A

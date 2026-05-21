@@ -30,6 +30,12 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/search/search.routes.js:8`
 - Controller: `src/modules/search/search.controller.js:3`
-- Service: `src/modules/search/search.service.js:3` (`searchService.globalSearch`)
+- Service: `src/modules/search/search.service.js:8` (`searchService.globalSearch`)
 - Models touched: Vessel.findAll, JobRequest.findAll, Certificate.findAll
-- Service returns (detected): results
+- Service returns (detected): empty jobs
+            jobWhere = { id: null } | empty certificates
+            certWhere = { id: null } | {
+        vessels: vessels.map(flatSearchVesselRow),
+        jobs: jobs.map(flatSearchJobRow),
+        certificates: certificates.map(flatSearchCertificateRow),
+    }

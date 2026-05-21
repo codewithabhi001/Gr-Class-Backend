@@ -12,7 +12,9 @@ Source YAML: `src/docs/paths/support.yaml`
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
-- None
+- `status` (query, optional, string)
+- `page` (query, optional, integer)
+- `limit` (query, optional, integer)
 - Request Body from YAML:
 - None
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
@@ -20,7 +22,7 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: List of tickets
+- `200`: List of tickets (application/json => object)
 - Controller response envelope(s): N/A
 
 Implementation Trace
@@ -68,7 +70,8 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: Ticket details
+- `200`: Ticket detail (application/json => object)
+- `404`: Ticket not found
 - Controller response envelope(s): N/A
 
 Implementation Trace

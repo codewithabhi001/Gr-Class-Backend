@@ -33,9 +33,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveyors/surveyor.routes.js:32`
-- Controller: `src/modules/surveyors/surveyor.controller.js:92`
-- Service: `src/modules/surveyors/surveyor.service.js:287` (`surveyorService.getSurveyors`)
+- Route file: `src/modules/surveyors/surveyor.routes.js:36`
+- Controller: `src/modules/surveyors/surveyor.controller.js:110`
+- Service: `src/modules/surveyors/surveyor.service.js:347` (`surveyorService.getSurveyors`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -52,7 +52,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UserCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createSurveyor`
-- Joi schema source: `src/middlewares/validate.middleware.js:206`
+- Joi schema source: `src/middlewares/validate.middleware.js:256`
 ```js
 Joi.object({
         name: Joi.string().required(),
@@ -84,9 +84,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveyors/surveyor.routes.js:33`
-- Controller: `src/modules/surveyors/surveyor.controller.js:60`
-- Service: `src/modules/surveyors/surveyor.service.js:145` (`surveyorService.createSurveyor`)
+- Route file: `src/modules/surveyors/surveyor.routes.js:37`
+- Controller: `src/modules/surveyors/surveyor.controller.js:78`
+- Service: `src/modules/surveyors/surveyor.service.js:205` (`surveyorService.createSurveyor`)
 - Models touched: SurveyorProfile.create
 - Service returns (detected): await fileAccessService.resolveEntity({ user, profile })
 
@@ -100,7 +100,7 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - None
 - Request Body from YAML:
-- `multipart/form-data`: #/components/schemas/SurveyorApplyRequest
+- `multipart/form-data`: #/components/schemas/SurveyorApplyMultipartRequest
 - `application/json`: #/components/schemas/SurveyorApplyRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `N/A`
@@ -140,7 +140,32 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 5. PUT /api/v1/surveyors/applications/{id}/review
+### 5. GET /api/v1/surveyors/applications/{id}
+- Summary: Get surveyor application
+- Operation ID: `getSurveyorApplication`
+- Access Roles: ADMIN, TM
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Application details (application/json => object)
+- `403`: Forbidden
+- Controller response envelope(s): N/A
+
+Implementation Trace
+- Route file: `N/A`
+- Controller: `N/A`
+- Services: N/A
+
+### 6. PUT /api/v1/surveyors/applications/{id}/review
 - Summary: Review application
 - Operation ID: `reviewSurveyorApplication`
 - Access Roles: ADMIN, TM
@@ -165,7 +190,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 6. GET /api/v1/surveyors/{id}/profile
+### 7. GET /api/v1/surveyors/{id}/profile
 - Summary: Get surveyor profile
 - Operation ID: `getSurveyorProfile`
 - Access Roles: ADMIN, TM, SURVEYOR
@@ -190,7 +215,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 7. PUT /api/v1/surveyors/{id}/profile
+### 8. PUT /api/v1/surveyors/{id}/profile
 - Summary: Update surveyor profile
 - Operation ID: `updateSurveyorProfile`
 - Access Roles: ADMIN, TM
@@ -215,7 +240,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 8. PUT /api/v1/surveyors/{id}/status
+### 9. PUT /api/v1/surveyors/{id}/status
 - Summary: Update surveyor status (Suspend/Activate)
 - Operation ID: `updateSurveyorStatus`
 - Access Roles: ADMIN, TM
@@ -240,7 +265,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 9. POST /api/v1/surveyors/availability
+### 10. POST /api/v1/surveyors/availability
 - Summary: Update availability
 - Operation ID: `updateSurveyorAvailability`
 - Access Roles: SURVEYOR
@@ -265,7 +290,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 10. POST /api/v1/surveyors/location
+### 11. POST /api/v1/surveyors/location
 - Summary: Report location
 - Operation ID: `reportSurveyorLocation`
 - Access Roles: SURVEYOR
@@ -290,7 +315,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 11. GET /api/v1/surveyors/{id}/location-history
+### 12. GET /api/v1/surveyors/{id}/location-history
 - Summary: Get GPS history
 - Operation ID: `getSurveyorGPSHistory`
 - Access Roles: ADMIN, TM

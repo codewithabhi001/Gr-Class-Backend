@@ -5,7 +5,7 @@ Source YAML: `src/docs/paths/templates.yaml`
 ## Routes
 
 ### 1. GET /api/v1/certificate-templates
-- Summary: Get certificate templates
+- Summary: List certificate templates
 - Operation ID: `getTemplates`
 - Access Roles: ADMIN, GM, TM
 - Change Access: N/A (read endpoint)
@@ -22,7 +22,7 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: List of templates
+- `200`: List of templates (application/json => object)
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
@@ -32,7 +32,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:14`
 - Controller: `src/modules/templates/template.controller.js:10`
-- Service: `src/modules/templates/template.service.js:16` (`templateService.getTemplates`)
+- Service: `src/modules/templates/template.service.js:30` (`templateService.getTemplates`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -46,16 +46,16 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - None
 - Request Body from YAML:
-- `application/json`: object
+- `application/json`: #/components/schemas/CertificateTemplateCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:325`
+- Joi schema source: `src/middlewares/validate.middleware.js:378`
 ```js
 Joi.object({
         template_name: Joi.string().required(),
         certificate_type_id: Joi.string().guid().required(),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional().allow(null),
-        template_content: Joi.string().required(),
+        template_file_url: Joi.string().required(),
         variables: Joi.array().items(Joi.string()).optional(),
         is_active: Joi.boolean().optional().default(true)
     })
@@ -63,8 +63,8 @@ Joi.object({
 
 Response (Actual)
 - YAML response map:
-- `201`: Template created
-- `400`: Bad request
+- `201`: Template created (application/json => object)
+- `400`: Validation error
 - `403`: Forbidden
 - Controller response envelope(s):
 ```js
@@ -74,19 +74,46 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:11`
 - Controller: `src/modules/templates/template.controller.js:3`
-- Service: `src/modules/templates/template.service.js:5` (`templateService.createTemplate`)
+- Service: `src/modules/templates/template.service.js:6` (`templateService.createTemplate`)
 - Models touched: CertificateTemplate.create
 - Service returns (detected): await CertificateTemplate.create({
         template_name: data.template_name,
         certificate_type_id: data.certificate_type_id,
         certificate_term: data.certificate_term ?? null,
-        template_content: data.template_content,
+        template_file_url: data.template_file_url,
         variables: data.variables || [],
         is_active: data.is_active !== false
     })
 
-### 3. GET /api/v1/certificate-templates/{id}
-- Summary: Get template by ID
+### 3. GET /api/v1/certificate-templates/get-upload-url
+- Summary: Get S3 upload URL for the certificate-template DOCX
+- Operation ID: `getCertificateTemplateUploadUrl`
+- Access Roles: ADMIN
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `fileName` (query, required, string)
+- `contentType` (query, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Upload URL generated (application/json => #/components/schemas/UploadUrlResponse)
+- `400`: Missing fileName / contentType
+- `403`: Forbidden
+- Controller response envelope(s): N/A
+
+Implementation Trace
+- Route file: `N/A`
+- Controller: `N/A`
+- Services: N/A
+
+### 4. GET /api/v1/certificate-templates/{id}
+- Summary: Get certificate template by ID
 - Operation ID: `getTemplateById`
 - Access Roles: ADMIN, GM, TM
 - Change Access: N/A (read endpoint)
@@ -101,7 +128,7 @@ Request (Code + Schema)
 
 Response (Actual)
 - YAML response map:
-- `200`: Template details
+- `200`: Template details (application/json => object)
 - `403`: Forbidden
 - `404`: Template not found
 - Controller response envelope(s):
@@ -110,14 +137,14 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/templates/template.routes.js:17`
+- Route file: `src/modules/templates/template.routes.js:21`
 - Controller: `src/modules/templates/template.controller.js:17`
-- Service: `src/modules/templates/template.service.js:29` (`templateService.getTemplateById`)
+- Service: `src/modules/templates/template.service.js:42` (`templateService.getTemplateById`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): template
 
-### 4. PUT /api/v1/certificate-templates/{id}
-- Summary: Update template
+### 5. PUT /api/v1/certificate-templates/{id}
+- Summary: Update certificate template
 - Operation ID: `updateTemplate`
 - Access Roles: ADMIN
 - Change Access: ADMIN
@@ -126,16 +153,16 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - `id` (path, required, string)
 - Request Body from YAML:
-- `application/json`: object
+- `application/json`: #/components/schemas/CertificateTemplateUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:333`
+- Joi schema source: `src/middlewares/validate.middleware.js:386`
 ```js
 Joi.object({
         template_name: Joi.string().optional(),
         certificate_type_id: Joi.string().guid().optional(),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional().allow(null),
-        template_content: Joi.string().optional(),
+        template_file_url: Joi.string().optional(),
         variables: Joi.array().items(Joi.string()).optional(),
         is_active: Joi.boolean().optional()
     })
@@ -143,8 +170,8 @@ Joi.object({
 
 Response (Actual)
 - YAML response map:
-- `200`: Template updated
-- `400`: Bad request
+- `200`: Template updated (application/json => object)
+- `400`: Validation error
 - `403`: Forbidden
 - `404`: Template not found
 - Controller response envelope(s):
@@ -153,14 +180,14 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/templates/template.routes.js:20`
+- Route file: `src/modules/templates/template.routes.js:24`
 - Controller: `src/modules/templates/template.controller.js:24`
-- Service: `src/modules/templates/template.service.js:37` (`templateService.updateTemplate`)
+- Service: `src/modules/templates/template.service.js:50` (`templateService.updateTemplate`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): await template.update(data)
 
-### 5. DELETE /api/v1/certificate-templates/{id}
-- Summary: Delete template
+### 6. DELETE /api/v1/certificate-templates/{id}
+- Summary: Delete certificate template
 - Operation ID: `deleteTemplate`
 - Access Roles: ADMIN
 - Change Access: ADMIN
@@ -184,8 +211,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/templates/template.routes.js:23`
+- Route file: `src/modules/templates/template.routes.js:27`
 - Controller: `src/modules/templates/template.controller.js:31`
-- Service: `src/modules/templates/template.service.js:44` (`templateService.deleteTemplate`)
+- Service: `src/modules/templates/template.service.js:57` (`templateService.deleteTemplate`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): { message: 'Template deleted successfully' }

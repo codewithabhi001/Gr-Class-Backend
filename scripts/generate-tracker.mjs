@@ -101,7 +101,6 @@ const modules = [
       { method: 'PUT',  endpoint: '/api/v1/jobs/:id/reschedule',             description: 'GM reschedules job date/time',               roles: 'ADMIN,GM',         be: 'Done', fe: 'Pending' },
       { method: 'PUT',  endpoint: '/api/v1/jobs/:id/authorize-survey',       description: 'Authorize surveyor to begin work on-site',   roles: 'ADMIN,GM,TM', be: 'Done', fe: 'Pending' },
       { method: 'PUT',  endpoint: '/api/v1/jobs/:id/review',                 description: 'TO reviews completed survey',                roles: 'ADMIN,TO',         be: 'Done', fe: 'Pending' },
-      { method: 'PUT',  endpoint: '/api/v1/jobs/:id/send-back',              description: 'Send job back for corrections',              roles: 'ADMIN,TM,TO',      be: 'Done', fe: 'Pending' },
       { method: 'PUT',  endpoint: '/api/v1/jobs/:id/reject',                 description: 'Reject job request',                         roles: 'ADMIN,GM,TM',      be: 'Done', fe: 'Pending' },
       { method: 'PUT',  endpoint: '/api/v1/jobs/:id/cancel',                 description: 'Cancel job',                                 roles: 'CLIENT,GM,TM,ADMIN',be: 'Done', fe: 'Pending' },
       { method: 'PUT',  endpoint: '/api/v1/jobs/:id/priority',               description: 'Update job priority level',                  roles: 'ADMIN,GM,TM',      be: 'Done', fe: 'Pending' },

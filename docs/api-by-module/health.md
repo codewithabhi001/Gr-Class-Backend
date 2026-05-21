@@ -27,6 +27,6 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/system/system.routes.js:11`
+- Route file: `src/modules/system/system.routes.js:9`
 - Controller: `src/modules/system/system.controller.js:45`
 - Services: N/A

@@ -14,6 +14,7 @@ Request (Code + Schema)
 - Route Params/Query from YAML:
 - `page` (query, optional, integer)
 - `limit` (query, optional, integer)
+- `search` (query, optional, string)
 - Request Body from YAML:
 - None
 - Req usage in controller: params=[], query=[], body=[], user=[role], files=[]
@@ -35,7 +36,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/vessels/vessel.routes.js:12`
 - Controller: `src/modules/vessels/vessel.controller.js:22`
-- Service: `src/modules/vessels/vessel.service.js:55` (`vesselService.getVessels`)
+- Service: `src/modules/vessels/vessel.service.js:74` (`vesselService.getVessels`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -52,7 +53,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/VesselCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `createVessel`
-- Joi schema source: `src/middlewares/validate.middleware.js:373`
+- Joi schema source: `src/middlewares/validate.middleware.js:446`
 ```js
 Joi.object({
         client_id: Joi.string().guid().required(),
@@ -99,7 +100,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/vessels/vessel.routes.js:18`
 - Controller: `src/modules/vessels/vessel.controller.js:11`
-- Service: `src/modules/vessels/vessel.service.js:17` (`vesselService.createVessel`)
+- Service: `src/modules/vessels/vessel.service.js:36` (`vesselService.createVessel`)
 - Models touched: Client.findByPk, Vessel.findOne, Vessel.create, VesselDocument.bulkCreate
 - Service returns (detected): vessel
 
@@ -158,7 +159,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/vessels/vessel.routes.js:21`
 - Controller: `src/modules/vessels/vessel.controller.js:34`
-- Service: `src/modules/vessels/vessel.service.js:127` (`vesselService.getVesselById`)
+- Service: `src/modules/vessels/vessel.service.js:117` (`vesselService.getVesselById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -175,7 +176,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/VesselUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `updateVessel`
-- Joi schema source: `src/middlewares/validate.middleware.js:400`
+- Joi schema source: `src/middlewares/validate.middleware.js:473`
 ```js
 Joi.object({
         client_id: Joi.string().guid().optional(),
@@ -222,6 +223,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/vessels/vessel.routes.js:24`
 - Controller: `src/modules/vessels/vessel.controller.js:57`
-- Service: `src/modules/vessels/vessel.service.js:203` (`vesselService.updateVessel`)
+- Service: `src/modules/vessels/vessel.service.js:181` (`vesselService.updateVessel`)
 - Models touched: N/A
 - Service returns (detected): N/A
