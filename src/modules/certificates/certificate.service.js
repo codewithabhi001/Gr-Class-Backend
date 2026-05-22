@@ -273,9 +273,9 @@ const _generateCertificateFile = async (cert, user, transaction = null) => {
             flag_state: cert.FlagState?.flag_state_name || '',
             port: dynamicTags.place_of_survey || '',
             place: dynamicTags.place_of_survey || '',
+            surveyor_name: dynamicTags.surveyor_name || '',
             gr_class_logo: grClassLogo,
-            flag_logo: flagLogo,
-            ...(cert.manual_text || {})
+            flag_logo: flagLogo
         };
 
         // 3. (QR code skipped - already in template)
@@ -708,7 +708,6 @@ export const renewCertificate = async (id, validityYears, reason, userId) => {
         issue_date: issueDate,
         expiry_date: expiryDate,
         status: 'DRAFT', // Using DRAFT instead of VALID so admins can generate a new PDF
-        manual_text: oldCert.manual_text,
         certificate_term: oldCert.certificate_term,
         flag_administration_id: oldCert.flag_administration_id,
         issued_by_user_id: userId
@@ -730,12 +729,11 @@ export const updateDraft = async (id, data, user) => {
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
     if (cert.status !== 'DRAFT') throw { statusCode: 400, message: 'Only draft certificates can be updated' };
 
-    const { flag_administration_id, certificate_term, manual_text, remarks, issue_date, expiry_date } = data;
+    const { flag_administration_id, certificate_term, remarks, issue_date, expiry_date } = data;
     
     await cert.update({
         flag_administration_id,
         certificate_term,
-        manual_text,
         remarks,
         issue_date,
         expiry_date

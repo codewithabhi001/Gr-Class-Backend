@@ -18,21 +18,7 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             defaultValue: 1
         },
-        manual_text: {
-            type: DataTypes.TEXT,
-            comment: 'Stores structured JSON for template fields',
-            get() {
-                const rawValue = this.getDataValue('manual_text');
-                try {
-                    return rawValue ? JSON.parse(rawValue) : {};
-                } catch (e) {
-                    return rawValue || {};
-                }
-            },
-            set(value) {
-                this.setDataValue('manual_text', typeof value === 'object' ? JSON.stringify(value) : value);
-            }
-        },
+
         remarks: DataTypes.TEXT,
         issue_date: DataTypes.DATEONLY,
         expiry_date: DataTypes.DATEONLY,

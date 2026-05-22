@@ -546,7 +546,6 @@ export const schemas = {
     updateCertificateDraft: Joi.object({
         flag_administration_id: Joi.string().guid().optional(),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
-        manual_text: Joi.alternatives().try(Joi.object(), Joi.string()).optional(),
         remarks: Joi.string().allow('', null).optional(),
         issue_date: Joi.date().iso().optional(),
         expiry_date: Joi.date().iso().optional(),

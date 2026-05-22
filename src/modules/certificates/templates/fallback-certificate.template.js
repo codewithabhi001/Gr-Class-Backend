@@ -19,7 +19,7 @@ export const buildFallbackCertificateHtml = ({ variables, issuingAuthority, qrDa
     const expiryDate = escapeHtml(formatDate(variables?.expiry_date));
     const grLogo = variables?.gr_class_logo || 'https://grclass.com/grclass-logo.webp';
     const caLogo = variables?.authority_logo;
-    const mt = variables?.manual_text || {};
+    const mt = variables || {};
 
     const qrHtml = qrDataUrl
         ? `<div style="width:120px;height:120px;"><img src="${qrDataUrl}" style="width:100%;height:100%;" alt="QR"/></div>`
