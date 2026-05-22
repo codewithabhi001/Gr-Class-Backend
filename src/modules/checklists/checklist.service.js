@@ -185,18 +185,25 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
 
         // Persist the signed-checklist scan objects on the same survey row, if provided.
         if (Array.isArray(signedChecklistFiles)) {
-            // If the caller sends plain strings (legacy/simple upload), wrap them into objects
-            const normalizedFiles = signedChecklistFiles.map(file => {
-                if (typeof file === 'string') {
-                    return { url: file, status: 'PENDING', rejection_reason: null };
-                }
-                return { 
-                    ...file, 
-                    status: 'PENDING', 
-                    rejection_reason: null 
-                };
+            const existingFiles = survey.signed_checklist_files || [];
+            const existingUrlMap = new Map();
+            existingFiles.forEach(f => {
+                const u = typeof f === 'string' ? f : f.url;
+                existingUrlMap.set(u, f);
             });
-            survey.set('signed_checklist_files', normalizedFiles);
+
+            for (const file of signedChecklistFiles) {
+                const url = typeof file === 'string' ? file : file.url;
+                if (!existingUrlMap.has(url)) {
+                    existingUrlMap.set(url, {
+                        url,
+                        status: 'PENDING',
+                        rejection_reason: null
+                    });
+                }
+            }
+
+            survey.set('signed_checklist_files', Array.from(existingUrlMap.values()));
             survey.changed('signed_checklist_files', true);
             await survey.save({ transaction: txn });
         }
@@ -278,19 +285,30 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
     }
 
     // Normalized: Ensure they are objects with PENDING status if they are being updated/added
-    const normalizedFiles = signedChecklistFiles.map(file => {
-        if (typeof file === 'string') {
-            return { url: file, status: 'PENDING', rejection_reason: null };
-        }
-        // If it's already an object, reset its status to PENDING as it's a re-upload/edit
-        return { ...file, status: 'PENDING', rejection_reason: null };
+    const existingFiles = survey.signed_checklist_files || [];
+    const existingUrlMap = new Map();
+    existingFiles.forEach(f => {
+        const u = typeof f === 'string' ? f : f.url;
+        existingUrlMap.set(u, f);
     });
 
-    survey.set('signed_checklist_files', normalizedFiles);
+    for (const file of signedChecklistFiles) {
+        const url = typeof file === 'string' ? file : file.url;
+        if (!existingUrlMap.has(url)) {
+            existingUrlMap.set(url, {
+                url,
+                status: 'PENDING',
+                rejection_reason: null
+            });
+        }
+    }
+
+    const updatedFiles = Array.from(existingUrlMap.values());
+    survey.set('signed_checklist_files', updatedFiles);
     survey.changed('signed_checklist_files', true);
     await survey.save();
 
-    const signedFilesResolved = await resolveKeyArray(normalizedFiles, userObj);
+    const signedFilesResolved = await resolveKeyArray(updatedFiles, userObj);
     return { signed_checklist_files: signedFilesResolved };
 };
 
@@ -343,7 +361,16 @@ const resolveKeyArray = async (items, user = null) => {
                 : await fileAccessService.resolveUrl(rawKey, user, true);
                 
             if (isObject) {
-                return { ...item, url: fullUrl };
+                // Extract file name from rawKey (e.g., path/to/file.jpg -> file.jpg)
+                let fileName = rawKey.split('/').pop() || rawKey;
+                // Cleanup timestamps if possible, e.g., '123123123_signed_checklist_456.jpg' -> 'signed_checklist_456.jpg'
+                if (fileName.includes('_')) {
+                    const parts = fileName.split('_');
+                    if (!isNaN(parts[0])) {
+                        fileName = parts.slice(1).join('_');
+                    }
+                }
+                return { ...item, url: fullUrl, file_name: fileName };
             }
             return fullUrl;
         })
