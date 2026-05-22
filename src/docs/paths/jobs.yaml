@@ -525,9 +525,9 @@
       `role = SURVEYOR`. Records `assigned_surveyor_id` and `assigned_by_user_id`
       and sends a push notification to the surveyor.
 
-      **Roles:** GM
+      **Roles:** ADMIN, GM
     operationId: assignSurveyor
-    x-roles: [GM]
+    x-roles: [ADMIN, GM]
     parameters:
       - name: id
         in: path
@@ -575,15 +575,15 @@
 /api/v1/jobs/{id}/reassign:
   put:
     tags: [Jobs]
-    summary: "GM/TM: Reassign surveyor (no status change)"
+    summary: "ADMIN/GM/TM: Reassign surveyor (no status change)"
     description: |
       Replaces the assigned surveyor without changing job status.  
       Can be called on any non-terminal job that already has a surveyor.
       A `reason` is mandatory for audit purposes.
 
-      **Roles:** GM, TM
+      **Roles:** ADMIN, GM, TM
     operationId: reassignSurveyor
-    x-roles: [GM, TM]
+    x-roles: [ADMIN, GM, TM]
     parameters:
       - name: id
         in: path
@@ -640,9 +640,9 @@
       Requires a surveyor to already be assigned. Notifies the surveyor and the
       client. The surveyor can now call `POST /api/v1/surveys/start` to begin.
 
-      **Roles:** TM
+      **Roles:** ADMIN, TM
     operationId: authorizeSurvey
-    x-roles: [TM]
+    x-roles: [ADMIN, TM]
     parameters:
       - name: id
         in: path
@@ -991,6 +991,85 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+# ── Eligible Surveyors ────────────────────────────────────────────────────────
+
+/api/v1/jobs/{id}/eligible-surveyors:
+  get:
+    tags: [Jobs]
+    summary: "ADMIN/GM/TM: Get eligible surveyors for a job"
+    description: |
+      Returns all active surveyors with eligibility status for the given job.
+      Checks authorization against the job's vessel type and certificate type.
+      Surveyors who lack the required authorizations or are unavailable are
+      returned in a separate `not_eligible` list with reasons.
+
+      **Roles:** ADMIN, GM, TM
+    operationId: getEligibleSurveyors
+    x-roles: [ADMIN, GM, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Job UUID
+        schema: { type: string, format: uuid }
+      - name: search
+        in: query
+        description: Search by surveyor name or license number
+        schema: { type: string }
+    responses:
+      "200":
+        description: List of surveyors with eligibility
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    surveyors:
+                      type: array
+                      description: All active surveyors
+                      items:
+                        type: object
+                        properties:
+                          id: { type: string, format: uuid }
+                          name: { type: string }
+                          email: { type: string, format: email }
+                          phone: { type: string }
+                          is_available: { type: boolean }
+                          status: { type: string }
+                          license_number: { type: string }
+                          years_of_experience: { type: integer }
+                          is_eligible: { type: boolean }
+                          missing_reasons:
+                            type: array
+                            items: { type: string }
+                    eligible:
+                      type: array
+                      description: Surveyors who match all requirements
+                      items: { type: object }
+                    not_eligible:
+                      type: array
+                      description: Surveyors who lack authorizations or are unavailable
+                      items: { type: object }
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Job not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
 # ── Job Documents ─────────────────────────────────────────────────────────────
 
 /api/v1/jobs/{id}/documents:
@@ -1167,6 +1246,72 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+
+/api/v1/jobs/{id}/documents/{documentId}:
+  put:
+    tags: [Jobs]
+    summary: "Re-upload a rejected document"
+    description: |
+      Client or staff replaces a previously rejected document with a new version.
+      Only documents with `verification_status = REJECTED` can be re-uploaded.
+      The new version is created as a separate record (PENDING) to maintain
+      audit trail of the rejected original.
+
+      Only allowed while the job is in `CREATED` status.
+
+      **Roles:** CLIENT, ADMIN, GM, TM
+    operationId: reuploadJobDocument
+    x-roles: [CLIENT, ADMIN, GM, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Job UUID
+        schema: { type: string, format: uuid }
+      - name: documentId
+        in: path
+        required: true
+        description: UUID of the rejected JobDocument to replace
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [file_url]
+            properties:
+              file_url:
+                type: string
+                description: "S3/CDN URL of the replacement file"
+                example: "https://cdn.example.com/docs/updated-certificate.pdf"
+    responses:
+      "200":
+        description: Document re-uploaded successfully (new version in PENDING state)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Document re-uploaded successfully." }
+                data: { type: object }
+      "400":
+        description: |
+          Job not in CREATED state, or the document is not in REJECTED status.
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden – client can only re-upload for their own jobs
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Job or document not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
 
 # ── History & Notes ──────────────────────────────────────────────────────────
 /api/v1/jobs/{id}/history:

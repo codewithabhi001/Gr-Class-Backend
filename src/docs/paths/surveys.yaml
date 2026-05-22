@@ -177,7 +177,7 @@
     summary: Request Rework
     description: GM or TM requests corrections/rework on a submitted survey.
     operationId: requestRework
-    x-roles: [GM, TM]
+    x-roles: [GM, TM, TO, ADMIN]
     parameters:
       - name: jobId
         in: path
@@ -266,7 +266,7 @@
     summary: Get survey execution timeline
     description: Analytical view of survey duration and GPS variance.
     operationId: getSurveyTimeline
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR]
     parameters:
       - name: jobId
         in: path
@@ -289,7 +289,7 @@
     summary: Flag survey violation
     description: Flag discrepancies found in survey execution (e.g. location mismatch).
     operationId: flagViolation
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     parameters:
       - name: jobId
         in: path
@@ -365,3 +365,81 @@
               fileKey: { type: string, description: "S3 key for signed PDF" }
     responses:
       "200": { description: Issued }
+
+/api/v1/surveys/jobs/{jobId}/sync:
+  post:
+    tags: [Surveys]
+    summary: Offline sync — replay batched data
+    description: |
+      Replays batched checklist answers and GPS points captured offline.
+      The surveyor's mobile app collects data while offline and sends it
+      in a single batch when connectivity is restored.
+
+      **Payload shape:**
+      - `checklist` — array of checklist answers to upsert
+      - `gps_points` — array of GPS pings to bulk-create
+
+      All items are written atomically inside a single transaction.
+    operationId: syncOfflineData
+    x-roles: [SURVEYOR]
+    parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              checklist:
+                type: array
+                description: Checklist answers captured offline
+                items:
+                  type: object
+                  required: [question_code, question_text, answer]
+                  properties:
+                    question_code: { type: string, example: "Q1" }
+                    question_text: { type: string, example: "Is the fire extinguisher inspected?" }
+                    answer: { type: string, example: "YES" }
+                    remarks: { type: string, example: "All in order" }
+              gps_points:
+                type: array
+                description: GPS pings captured offline with timestamps
+                items:
+                  type: object
+                  required: [latitude, longitude]
+                  properties:
+                    latitude: { type: number, example: 1.3521 }
+                    longitude: { type: number, example: 103.8198 }
+                    captured_at: { type: string, format: date-time, description: "When the GPS point was captured (defaults to now)" }
+          example:
+            checklist:
+              - question_code: "Q1"
+                question_text: "Is the fire extinguisher inspected?"
+                answer: "YES"
+                remarks: "All in order"
+            gps_points:
+              - latitude: 1.3521
+                longitude: 103.8198
+                captured_at: "2026-05-22T10:30:00.000Z"
+    responses:
+      "200":
+        description: Offline data synced successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Offline data synced successfully." }
+                synced:
+                  type: object
+                  properties:
+                    checklist_items: { type: integer, example: 5 }
+                    gps_points: { type: integer, example: 12 }
+      "400": { description: Invalid job state or surveyor mismatch }
+      "403": { description: Forbidden — caller is not the assigned surveyor }
+      "404": { description: Job or survey not found }
