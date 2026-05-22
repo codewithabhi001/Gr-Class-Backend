@@ -371,7 +371,14 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
     const job = await JobRequest.findOne({
         where: { id, ...scopeFilters },
         include: [
-            'Vessel', 'CertificateType',
+            {
+                model: Vessel,
+                include: [
+                    { model: db.FlagAdministration, as: 'FlagAdministration', attributes: ['id', 'flag_state_name'] },
+                    { model: db.Client, as: 'Client', attributes: ['id', 'company_name'] }
+                ]
+            },
+            'CertificateType',
             {
                 model: db.ActivityRequest,
                 as: 'SourceActivityRequest',
@@ -395,6 +402,17 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
     const jobPlain = job.get({ plain: true });
+
+    // ── Vessel Details (flat, N/A for nulls) ──
+    const v = jobPlain.Vessel || {};
+    jobPlain.vessel_details = {
+        vessel_name:  v.vessel_name   || 'N/A',
+        imo_number:   v.imo_number    || 'N/A',
+        ship_type:    v.ship_type     || 'N/A',
+        flag_state:   v.FlagAdministration?.flag_state_name || 'N/A',
+        company_name: v.Client?.company_name               || 'N/A',
+        class_status: v.class_status  || 'N/A',
+    };
 
     // Expose payment status at top level
     jobPlain.payment_status = jobPlain.Payments?.[0]?.payment_status || 'N/A';
