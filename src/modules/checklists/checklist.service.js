@@ -183,7 +183,6 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
             results.push(record);
         }
 
-        // Persist the signed-checklist scan objects on the same survey row, if provided.
         if (Array.isArray(signedChecklistFiles)) {
             const existingFiles = survey.signed_checklist_files || [];
             const existingUrlMap = new Map();
@@ -192,10 +191,13 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
                 existingUrlMap.set(u, f);
             });
 
+            const updatedFiles = [];
             for (const file of signedChecklistFiles) {
                 const url = typeof file === 'string' ? file : file.url;
-                if (!existingUrlMap.has(url)) {
-                    existingUrlMap.set(url, {
+                if (existingUrlMap.has(url)) {
+                    updatedFiles.push(existingUrlMap.get(url));
+                } else {
+                    updatedFiles.push({
                         url,
                         status: 'PENDING',
                         rejection_reason: null
@@ -203,7 +205,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
                 }
             }
 
-            survey.set('signed_checklist_files', Array.from(existingUrlMap.values()));
+            survey.set('signed_checklist_files', updatedFiles);
             survey.changed('signed_checklist_files', true);
             await survey.save({ transaction: txn });
         }
@@ -292,10 +294,13 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
         existingUrlMap.set(u, f);
     });
 
+    const updatedFiles = [];
     for (const file of signedChecklistFiles) {
         const url = typeof file === 'string' ? file : file.url;
-        if (!existingUrlMap.has(url)) {
-            existingUrlMap.set(url, {
+        if (existingUrlMap.has(url)) {
+            updatedFiles.push(existingUrlMap.get(url));
+        } else {
+            updatedFiles.push({
                 url,
                 status: 'PENDING',
                 rejection_reason: null
@@ -303,7 +308,6 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
         }
     }
 
-    const updatedFiles = Array.from(existingUrlMap.values());
     survey.set('signed_checklist_files', updatedFiles);
     survey.changed('signed_checklist_files', true);
     await survey.save();
