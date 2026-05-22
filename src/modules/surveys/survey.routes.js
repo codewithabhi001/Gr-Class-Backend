@@ -66,11 +66,10 @@ router.post(
 // MANAGEMENT ACTIONS (TM / GM)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Finalize survey — TM ONLY
+// Finalize survey — TM / GM / ADMIN
 router.put(
     '/jobs/:jobId/finalize',
-    authorizeRoles('TM'),
-    preventSelfApproval('JobRequest', 'assigned_by_user_id'),
+    authorizeRoles('TM', 'GM', 'ADMIN'),
     surveyController.finalizeSurvey
 );
 

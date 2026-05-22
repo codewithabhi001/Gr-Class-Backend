@@ -666,7 +666,9 @@ const CERT_TRANSITIONS = {
     VALID: ['SUSPENDED', 'REVOKED', 'EXPIRED'], // legacy/external
     SUSPENDED: ['ISSUED', 'VALID', 'REVOKED'],
     REVOKED: [],
-    EXPIRED: ['ISSUED', 'VALID']
+    EXPIRED: ['ISSUED', 'VALID'],
+    DOWNGRADED: ['REVOKED'],
+    TRANSFERRED: ['REVOKED']
 };
 
 export const updateStatus = async (id, status, reason, userId) => {
