@@ -530,7 +530,7 @@ Checklist evidence is uploaded **directly to S3** via a pre-signed URL, then the
 }
 ```
 
-### 7.2 Upload binary to S3
+### 8.2 Upload binary to S3
 
 **Why:** This avoids sending big files through backend; faster and cheaper.
 
@@ -544,7 +544,7 @@ Checklist evidence is uploaded **directly to S3** via a pre-signed URL, then the
 
 ---
 
-## 8) Upload “signed checklist scan” (filled + signed doc(s))
+## 9) Upload “signed checklist scan” (filled + signed doc(s))
 
 This is the scanned / signed checklist PDF/JPG that must be attached before final survey submission.
 
@@ -554,7 +554,7 @@ This is the scanned / signed checklist PDF/JPG that must be attached before fina
 - `signed_checklist_files` are **new uploads created by the surveyor** after filling & signing the checklist (scan/photo/export-to-PDF).
   They are **not expected** to be “download the same file and re-upload it”.
 
-### 8.1 `GET /api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url`
+### 9.1 `GET /api/v1/checklists/jobs/{jobId}/signed-checklist-upload-url`
 
 **Why:** Get a pre-signed S3 PUT URL for the full signed checklist scan.
 
@@ -575,13 +575,13 @@ This is the scanned / signed checklist PDF/JPG that must be attached before fina
 }
 ```
 
-### 8.2 Upload to S3 (PUT)
+### 9.2 Upload to S3 (PUT)
 
 Same as evidence upload.
 
 ---
 
-## 9) Save checklist answers + attach uploaded file keys
+## 10) Save checklist answers + attach uploaded file keys
 
 ### `PUT /api/v1/checklists/jobs/{jobId}`
 
@@ -677,7 +677,7 @@ Same as `GET /api/v1/checklists/jobs/{jobId}`: `ChecklistResponse`.
 
 ---
 
-## 10) (Optional) Download auto-filled checklist DOCX (job-specific)
+## 11) (Optional) Download auto-filled checklist DOCX (job-specific)
 
 This is optional (UX feature): backend generates a filled DOCX using job/vessel data, caches it, and returns a signed URL.
 
@@ -713,7 +713,7 @@ Query params:
 
 ---
 
-## 11) Upload proof (survey evidence package)
+## 12) Upload proof (survey evidence package)
 
 ### `POST /api/v1/surveys/jobs/{jobId}/proof`
 
@@ -750,7 +750,7 @@ Query params:
 
 ---
 
-## 12) Live GPS tracking (optional but recommended)
+## 13) Live GPS tracking (optional but recommended)
 
 ### `POST /api/v1/surveys/jobs/{jobId}/location`
 
@@ -777,7 +777,7 @@ Query params:
 
 ---
 
-## 13) Offline sync (optional)
+## 14) Offline sync (optional)
 
 ### `POST /api/v1/surveys/jobs/{jobId}/sync`
 
@@ -828,7 +828,7 @@ All fields are optional (send what you have). Payload:
 
 ---
 
-## 14) Draft survey statement PDF (combined PDF includes signed checklist scans)
+## 15) Draft survey statement PDF (combined PDF includes signed checklist scans)
 
 ### `POST /api/v1/surveys/jobs/{jobId}/statement/draft`
 
@@ -882,7 +882,7 @@ Body (optional for TM/ADMIN, required in practice for SURVEYOR):
 
 ---
 
-## 15) Submit survey report (Check-out / final submit)
+## 16) Submit survey report (Check-out / final submit)
 
 ### `POST /api/v1/surveys`
 
@@ -891,7 +891,7 @@ Body (optional for TM/ADMIN, required in practice for SURVEYOR):
 **Pre-conditions (backend enforced)**
 
 - Checklist must be submitted.
-- Proof should be uploaded (moves survey to `PROOF_UPLOADED`).
+- Proof should be uploaded (optional if status is already `CHECKLIST_SUBMITTED` or `REWORK_REQUIRED`).
 - Signed checklist scans should be attached.
 - **NO REJECTED ITEMS**: All checklist items must be `PENDING` or `APPROVED`.
 - **NO REJECTED DOCUMENTS**: All signed documents must be `PENDING` or `APPROVED`.
@@ -960,9 +960,9 @@ If any checklist items or files are still `REJECTED`:
 
 ---
 
-## 16) Reporting Non-Conformities (NCs)
+## 17) Reporting Non-Conformities (NCs)
 
-### 16.1 `POST /api/v1/non-conformities`
+### 17.1 `POST /api/v1/non-conformities`
 
 **Why:** If the surveyor finds a major safety or technical violation during the survey, they should raise an NC. This alerts the Technical Manager (TM) immediately.
 
@@ -994,7 +994,7 @@ If any checklist items or files are still `REJECTED`:
 }
 ```
 
-### 16.2 `GET /api/v1/non-conformities/job/{jobId}`
+### 17.2 `GET /api/v1/non-conformities/job/{jobId}`
 
 **Why:** See all NCs currently active for this specific job.
 

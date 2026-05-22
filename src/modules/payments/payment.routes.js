@@ -13,7 +13,7 @@ router.use(authenticate);
 router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getPayments);
 
 // Financial Summary
-router.get('/summary', authorizeRoles('CLIENT', 'ADMIN', 'GM'), paymentController.getFinancialSummary);
+router.get('/summary', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getFinancialSummary);
 
 // Get specific payment details
 router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getPaymentById);
