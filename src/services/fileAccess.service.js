@@ -167,6 +167,18 @@ export const resolveEntity = async (data, user = null) => {
                                     });
                                 }
                                 return resolved;
+                            } else if (v && typeof v === 'object' && typeof v.url === 'string' && !v.url.startsWith('http')) {
+                                const forcePublic = key === 'profile_pic_url' || key === 'logo_url';
+                                const resolved = await resolveUrl(v.url, user, true, forcePublic);
+                                if (user && !v.url.startsWith('public/')) {
+                                    auditEntries.push({
+                                        user_id: user.id,
+                                        action: 'GENERATE_SIGNED_URL',
+                                        entity_name: 'File',
+                                        new_values: { key: v.url, field: key }
+                                    });
+                                }
+                                return { ...v, url: resolved };
                             }
                             return v;
                         }));
