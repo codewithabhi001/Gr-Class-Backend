@@ -181,6 +181,113 @@
       "200": { description: Profile updated }
       "403": { description: Forbidden }
 
+/api/v1/surveyors/{id}/authorization-checklist:
+  get:
+    tags: [Surveyors]
+    summary: Get surveyor authorization checklist
+    description: |
+      Returns a combined checklist of **all vessel ship types** and **all active
+      certificate types**, each marked with `is_authorized: true/false` based on
+      the surveyor's current profile authorizations.
+
+      Useful for displaying a read-only checklist UI showing what the surveyor is
+      already authorized for.
+
+      **Roles:** ADMIN, TM, GM, SURVEYOR
+    security: [{ bearerAuth: [] }]
+    operationId: getSurveyorAuthorizationChecklist
+    x-roles: [ADMIN, TM, GM, SURVEYOR]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID or Surveyor Profile ID
+        schema: { type: string, format: uuid }
+    responses:
+      "200":
+        description: Authorization checklist fetched successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Authorization checklist fetched successfully" }
+                data:
+                  type: object
+                  properties:
+                    surveyor:
+                      type: object
+                      properties:
+                        profile_id: { type: string, format: uuid }
+                        user_id: { type: string, format: uuid }
+                        name: { type: string, example: "John Doe" }
+                        email: { type: string, example: "john@grclass.com" }
+                    vessel_types:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          ship_type: { type: string, example: "Bulk Carrier" }
+                          is_authorized: { type: boolean, example: true }
+                    certificate_types:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id: { type: string, format: uuid }
+                          name: { type: string, example: "Class Certificate" }
+                          issuing_authority:
+                            type: string
+                            enum: [CLASS, FLAG]
+                          is_authorized: { type: boolean, example: false }
+            example:
+              success: true
+              message: "Authorization checklist fetched successfully"
+              data:
+                surveyor:
+                  profile_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                  user_id: "019c79a4-aaaa-bbbb-cccc-f6bee169ab04"
+                  name: "John Doe"
+                  email: "john@grclass.com"
+                vessel_types:
+                  - ship_type: "Bulk Carrier"
+                    is_authorized: true
+                  - ship_type: "Container Ship"
+                    is_authorized: false
+                  - ship_type: "Oil Tanker"
+                    is_authorized: true
+                  - ship_type: "RORO Vessel"
+                    is_authorized: false
+                certificate_types:
+                  - id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                    name: "Class Certificate"
+                    issuing_authority: "CLASS"
+                    is_authorized: true
+                  - id: "019c79a4-1111-2222-3333-f6bee169ab05"
+                    name: "Load Line Certificate"
+                    issuing_authority: "FLAG"
+                    is_authorized: false
+                  - id: "019c79a4-aaaa-bbbb-cccc-f6bee169ab06"
+                    name: "Safety Construction Certificate"
+                    issuing_authority: "CLASS"
+                    is_authorized: true
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Surveyor not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
 /api/v1/surveyors/{id}/status:
   put:
     tags: [Surveyors]

@@ -144,3 +144,13 @@ export const getApplication = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const getAuthorizationChecklist = async (req, res, next) => {
+    try {
+        const data = await surveyorService.getSurveyorAuthorizationChecklist(req.params.id);
+        res.json({
+            success: true,
+            message: 'Authorization checklist fetched successfully',
+            data,
+        });
+    } catch (error) { next(error); }
+};

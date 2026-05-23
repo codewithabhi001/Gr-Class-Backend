@@ -46,6 +46,9 @@ router.put('/:id/status', authorizeRoles('ADMIN', 'TM'), validate(schemas.update
 router.get('/:id/profile', authorizeRoles('ADMIN', 'TM', 'SURVEYOR','GM'), surveyorController.getProfile);
 router.put('/:id/profile', authorizeRoles('ADMIN', 'TM'), validate(schemas.updateSurveyorProfile), surveyorController.updateProfile);
 
+// Authorization Checklist — vessel types + certificate types with is_authorized flags
+router.get('/:id/authorization-checklist', authorizeRoles('ADMIN', 'TM', 'GM', 'SURVEYOR'), surveyorController.getAuthorizationChecklist);
+
 // Surveyor self-operations
 router.post('/availability', authorizeRoles('SURVEYOR'), surveyorController.updateAvailability);
 router.post('/location', authorizeRoles('SURVEYOR'), surveyorController.reportLocation);

@@ -425,3 +425,66 @@ export const getApplication = async (id, user = null) => {
     return await fileAccessService.resolveEntity(app, user);
 };
 
+/**
+ * Returns a combined checklist of all vessel ship_types and certificate types
+ * with is_authorized flag based on the surveyor's profile.
+ * Used for the authorization checklist UI.
+ */
+export const getSurveyorAuthorizationChecklist = async (surveyorId) => {
+    const { Op } = db.Sequelize;
+
+    // 1. Fetch surveyor profile (by user_id or profile_id)
+    const profile = await SurveyorProfile.findOne({
+        where: { [Op.or]: [{ id: surveyorId }, { user_id: surveyorId }] },
+        attributes: ['id', 'user_id', 'authorized_ship_types', 'authorized_certificates'],
+        include: [{ model: User, attributes: ['id', 'name', 'email'] }],
+    });
+    if (!profile) throw { statusCode: 404, message: 'Surveyor profile not found' };
+
+    const authorizedShipTypes = Array.isArray(profile.authorized_ship_types)
+        ? profile.authorized_ship_types
+        : [];
+    const authorizedCertIds = Array.isArray(profile.authorized_certificates)
+        ? profile.authorized_certificates
+        : [];
+
+    // 2. Fetch all distinct vessel ship_types from DB
+    const vesselTypeRows = await db.Vessel.findAll({
+        where: { ship_type: { [Op.ne]: null } },
+        attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('ship_type')), 'ship_type']],
+        raw: true,
+        order: [['ship_type', 'ASC']],
+    });
+    const allShipTypes = vesselTypeRows.map((r) => r.ship_type).filter(Boolean);
+
+    // 3. Fetch all active certificate types
+    const certTypes = await db.CertificateType.findAll({
+        where: { status: 'ACTIVE' },
+        attributes: ['id', 'name', 'issuing_authority'],
+        order: [['name', 'ASC']],
+    });
+
+    // 4. Build checklists
+    const vesselTypes = allShipTypes.map((type) => ({
+        ship_type: type,
+        is_authorized: authorizedShipTypes.includes(type),
+    }));
+
+    const certificateTypes = certTypes.map((ct) => ({
+        id: ct.id,
+        name: ct.name,
+        issuing_authority: ct.issuing_authority,
+        is_authorized: authorizedCertIds.includes(ct.id),
+    }));
+
+    return {
+        surveyor: {
+            profile_id: profile.id,
+            user_id: profile.user_id,
+            name: profile.User?.name ?? null,
+            email: profile.User?.email ?? null,
+        },
+        vessel_types: vesselTypes,
+        certificate_types: certificateTypes,
+    };
+};
