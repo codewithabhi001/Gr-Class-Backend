@@ -183,6 +183,50 @@ export const resolveEntity = async (data, user = null) => {
                             return v;
                         }));
                     }
+
+                    // Extract and append file names dynamically for S3 keys / resolved URLs
+                    if (typeof value === 'string' && value) {
+                        const s3Key = getKeyFromUrl(value);
+                        if (s3Key) {
+                            const fullFileName = s3Key.split('/').pop();
+                            const cleanFileName = fullFileName.replace(/^[0-9]+_/, '');
+                            
+                            const baseNameKey = key.endsWith('_url') ? key.replace(/_url$/, '_name') : `${key}_name`;
+                            const originalNameKey = `original_${baseNameKey}`;
+                            
+                            plain[baseNameKey] = fullFileName;
+                            plain[originalNameKey] = cleanFileName;
+                            
+                            if (key === 'template_file_url' || key === 'file_url') {
+                                plain['file_name'] = fullFileName;
+                                plain['fileName'] = fullFileName;
+                                plain['original_file_name'] = cleanFileName;
+                            }
+                        }
+                    } else if (Array.isArray(value)) {
+                        const fullNames = [];
+                        const cleanNames = [];
+                        for (const v of value) {
+                            let itemKey = null;
+                            if (typeof v === 'string' && v) {
+                                itemKey = getKeyFromUrl(v);
+                            } else if (v && typeof v === 'object' && typeof v.url === 'string') {
+                                itemKey = getKeyFromUrl(v.url);
+                            }
+                            if (itemKey) {
+                                const fullFileName = itemKey.split('/').pop();
+                                const cleanFileName = fullFileName.replace(/^[0-9]+_/, '');
+                                fullNames.push(fullFileName);
+                                cleanNames.push(cleanFileName);
+                            }
+                        }
+                        if (fullNames.length > 0) {
+                            const baseNamesKey = key.endsWith('s') ? `${key}_names` : `${key}s_names`;
+                            const originalNamesKey = `original_${baseNamesKey}`;
+                            plain[baseNamesKey] = fullNames;
+                            plain[originalNamesKey] = cleanNames;
+                        }
+                    }
                 } else if (value && (typeof value === 'object' || Array.isArray(value))) {
                     plain[key] = await recurse(value);
                 }
