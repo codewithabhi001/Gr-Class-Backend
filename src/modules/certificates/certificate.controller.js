@@ -242,6 +242,25 @@ export const getCertificateTypes = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+/**
+ * GET /api/v1/certificates/type-names
+ * Slim dropdown list — returns only id + name of ACTIVE certificate types.
+ * Supports optional ?search= query.
+ */
+export const getCertificateTypeNames = async (req, res, next) => {
+    try {
+        const search = req.query.search || null;
+        const types = await certService.getCertificateTypes({ includeInactive: false, search });
+        const slim = types.map(({ id, name }) => ({ id, name }));
+        res.json({
+            success: true,
+            message: 'Certificate type names fetched successfully',
+            data: slim,
+        });
+    } catch (e) { next(e); }
+};
+
+
 export const getCertificateTypeById = async (req, res, next) => {
     try {
         const type = await certService.getCertificateTypeById(req.params.id);

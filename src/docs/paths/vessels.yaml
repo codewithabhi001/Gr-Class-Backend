@@ -1,3 +1,68 @@
+/api/v1/vessels/types:
+  get:
+    tags: [Vessels]
+    summary: Get distinct vessel types
+    description: |
+      Returns a deduplicated list of all `ship_type` values present in the
+      vessels table. Useful for populating dropdowns and filter chips.
+      Supports optional `?search=` query for partial matching.
+
+      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+    security: [{ bearerAuth: [] }]
+    operationId: getVesselTypes
+    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    parameters:
+      - name: search
+        in: query
+        required: false
+        description: Filter vessel types by partial name match (case-insensitive LIKE)
+        schema:
+          type: string
+          example: "tanker"
+    responses:
+      "200":
+        description: List of distinct vessel ship_type values
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Vessel types fetched successfully"
+                data:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - "Bulk Carrier"
+                    - "Container Ship"
+                    - "Oil Tanker"
+                    - "RORO Vessel"
+            example:
+              success: true
+              message: "Vessel types fetched successfully"
+              data:
+                - "Bulk Carrier"
+                - "Container Ship"
+                - "Oil Tanker"
+                - "RORO Vessel"
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 /api/v1/vessels:
   get:
     tags: [Vessels]

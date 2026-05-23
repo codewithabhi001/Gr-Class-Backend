@@ -229,6 +229,77 @@
                 success: { type: boolean, example: true }
                 data: { $ref: '#/components/schemas/CertificateResponse' }
 
+/api/v1/certificates/type-names:
+  get:
+    tags: [Certificates]
+    summary: Get certificate type names (slim dropdown list)
+    description: |
+      Returns a lightweight list of **ACTIVE** certificate types containing
+      only `id` and `name` — ideal for populating dropdowns and select menus
+      without loading full metadata.
+
+      Supports optional `?search=` query for partial name matching.
+
+      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+    security: [{ bearerAuth: [] }]
+    operationId: getCertificateTypeNames
+    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
+    parameters:
+      - name: search
+        in: query
+        required: false
+        description: Filter certificate types by partial name match
+        schema:
+          type: string
+          example: "safety"
+    responses:
+      "200":
+        description: Slim list of certificate type id+name pairs
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Certificate type names fetched successfully"
+                data:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, name]
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                      name:
+                        type: string
+                        example: "Safety Construction Certificate"
+            example:
+              success: true
+              message: "Certificate type names fetched successfully"
+              data:
+                - id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                  name: "Class Certificate"
+                - id: "019c79a4-aaaa-bbbb-cccc-f6bee169ab04"
+                  name: "Load Line Certificate"
+                - id: "019c79a4-1111-2222-3333-f6bee169ab05"
+                  name: "Safety Construction Certificate"
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
 /api/v1/certificates/types:
   get:
     tags: [Certificates]

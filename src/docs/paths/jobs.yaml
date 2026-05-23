@@ -17,7 +17,10 @@
   get:
     tags: [Jobs]
     summary: "Get presigned S3 upload URL for job documents"
+    deprecated: true
     description: |
+      > **Deprecated** – Use `GET /api/v1/documents/get-upload-url` instead.
+
       Generates a signed URL for uploading files directly to S3. 
       Returns the `uploadUrl` (where to PUT the file) and the `fileKey` 
       (to be used as `file_url` in subsequent job registration calls).
@@ -286,11 +289,11 @@
 /api/v1/jobs/{id}/verify-documents:
   put:
     tags: [Jobs]
-    summary: "TO: Verify or reject documents"
+    summary: "ADMIN/GM/TO: Verify or reject documents"
     description: |
       **Transition:** `CREATED → DOCUMENT_VERIFIED` (when all docs approved)
 
-      Technical Officer reviews uploaded documents for validity and completeness.
+      Technical Officer (or Admin/GM) reviews uploaded documents for validity and completeness.
 
       **Two flows:**
       1. **Approve all** (`approved: true` or empty body) — Marks all documents as
@@ -302,9 +305,9 @@
       If mandatory documents are missing (not uploaded at all), returns `400`
       regardless of the `approved` flag.
 
-      **Roles:** TO
+      **Roles:** ADMIN, GM, TO
     operationId: verifyJobDocuments
-    x-roles: [TO]
+    x-roles: [ADMIN, GM, TO]
     parameters:
       - name: id
         in: path
@@ -389,7 +392,7 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
       "403":
-        description: Forbidden – only TO can call this endpoint
+        description: Forbidden – only ADMIN, GM, or TO can call this endpoint
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -409,9 +412,9 @@
       General Manager or Admin formally approves the job request after document
       verification. Records `approved_by_user_id` on the job.
 
-      **Roles:** GM
+      **Roles:** ADMIN, GM
     operationId: approveRequest
-    x-roles: [GM]
+    x-roles: [ADMIN, GM]
     parameters:
       - name: id
         in: path
@@ -467,9 +470,9 @@
       require a survey, finalization happens automatically when the survey is
       completed and the TM finalizes the survey report.
 
-      **Roles:** GM, TM
+      **Roles:** ADMIN, GM, TM
     operationId: finalizeJob
-    x-roles: [GM, TM]
+    x-roles: [ADMIN, GM, TM]
     parameters:
       - name: id
         in: path
@@ -690,16 +693,15 @@
 /api/v1/jobs/{id}/review:
   put:
     tags: [Jobs]
-    summary: "TO: Technical review → REVIEWED"
+    summary: "ADMIN/TO: Technical review → REVIEWED"
     description: |
       **Transition:** `SURVEY_DONE → REVIEWED`
 
-      Technical Officer performs a technical review of the submitted survey findings.
-      Only a TO can call this endpoint.
+      Technical Officer (or Admin) performs a technical review of the submitted survey findings.
 
-      **Roles:** TO
+      **Roles:** ADMIN, TO
     operationId: reviewJob
-    x-roles: [TO]
+    x-roles: [ADMIN, TO]
     parameters:
       - name: id
         in: path
@@ -734,7 +736,7 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
       "403":
-        description: Forbidden – only TO
+        description: Forbidden – only ADMIN or TO
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }

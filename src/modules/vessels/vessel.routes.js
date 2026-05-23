@@ -11,6 +11,9 @@ router.use(authenticate);
 // List all vessels (scoped by client_id for CLIENT)
 router.get('/', authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'CLIENT'), vesselController.getVessels);
 
+// Get distinct vessel types (ship_type) — for dropdowns/filters
+router.get('/types', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), vesselController.getVesselTypes);
+
 // Get all vessels of a specific client (for management)
 router.get('/client/:clientId', authorizeRoles('ADMIN', 'GM', 'TM'), vesselController.getVesselsByClientId);
 

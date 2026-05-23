@@ -33,6 +33,27 @@ const ensureValidFlag = async (flagId) => {
     }
 };
 
+/**
+ * Returns a distinct list of all vessel ship_type values.
+ * Supports optional ?search= query to filter by name.
+ */
+export const getVesselTypes = async (search = null) => {
+    const { Op } = db.Sequelize;
+    const where = { ship_type: { [Op.ne]: null } };
+    if (search) {
+        where.ship_type = { [Op.and]: [{ [Op.ne]: null }, { [Op.like]: `%${search}%` }] };
+    }
+
+    const rows = await Vessel.findAll({
+        where,
+        attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('ship_type')), 'ship_type']],
+        raw: true,
+        order: [['ship_type', 'ASC']],
+    });
+
+    return rows.map((r) => r.ship_type).filter(Boolean);
+};
+
 export const createVessel = async (data, userId) => {
     // Check if client exists
     const client = await Client.findByPk(data.client_id || data.vessel_owner_id);

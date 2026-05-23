@@ -1,5 +1,17 @@
 import * as vesselService from './vessel.service.js';
 
+export const getVesselTypes = async (req, res, next) => {
+    try {
+        const { search } = req.query;
+        const types = await vesselService.getVesselTypes(search || null);
+        res.json({
+            success: true,
+            message: 'Vessel types fetched successfully',
+            data: types,
+        });
+    } catch (error) { next(error); }
+};
+
 const getScopeFilters = (user) => {
     const scopeFilters = {};
     if (user.role === 'CLIENT') {

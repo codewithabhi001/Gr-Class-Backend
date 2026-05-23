@@ -14,6 +14,7 @@ router.get('/verify/:number', certController.verifyCertificate);
 router.use(authenticate);
 
 // Metadata – certificate types
+router.get('/type-names', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), certController.getCertificateTypeNames);
 router.get('/types', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateTypes);
 router.post('/types', authorizeRoles('ADMIN'), validate(schemas.createCertificateType), certController.createCertificateType);
 router.get('/types/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateTypeById);
