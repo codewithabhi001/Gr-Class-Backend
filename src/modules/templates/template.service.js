@@ -4,6 +4,27 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 
 const { CertificateTemplate } = db;
 
+const addFilenameToTemplate = (template) => {
+    if (!template) return template;
+    
+    const processSingle = (tpl) => {
+        if (!tpl || !tpl.template_file_url) return tpl;
+        const key = fileAccessService.getKeyFromUrl(tpl.template_file_url);
+        if (key) {
+            const fullFileName = key.split('/').pop();
+            const cleanFileName = fullFileName.replace(/^[0-9]+_/, '');
+            tpl.template_file_name = fullFileName;
+            tpl.original_file_name = cleanFileName;
+        }
+        return tpl;
+    };
+
+    if (Array.isArray(template)) {
+        return template.map(processSingle);
+    }
+    return processSingle(template);
+};
+
 export const createTemplate = async (data) => {
     const template = await CertificateTemplate.create({
         template_name: data.template_name,
@@ -13,7 +34,8 @@ export const createTemplate = async (data) => {
         variables: data.variables || [],
         is_active: data.is_active !== false
     });
-    return await fileAccessService.resolveEntity(template);
+    const resolved = await fileAccessService.resolveEntity(template);
+    return addFilenameToTemplate(resolved);
 };
 
 /**
@@ -39,7 +61,8 @@ export const getTemplates = async (filters = {}) => {
         where,
         include: ['CertificateType']
     });
-    return await fileAccessService.resolveEntity(templates);
+    const resolved = await fileAccessService.resolveEntity(templates);
+    return addFilenameToTemplate(resolved);
 };
 
 export const getTemplateById = async (id) => {
@@ -47,7 +70,8 @@ export const getTemplateById = async (id) => {
         include: ['CertificateType']
     });
     if (!template) throw { statusCode: 404, message: 'Template not found' };
-    return await fileAccessService.resolveEntity(template);
+    const resolved = await fileAccessService.resolveEntity(template);
+    return addFilenameToTemplate(resolved);
 };
 
 export const updateTemplate = async (id, data) => {
@@ -55,7 +79,8 @@ export const updateTemplate = async (id, data) => {
     if (!template) throw { statusCode: 404, message: 'Template not found' };
 
     const updated = await template.update(data);
-    return await fileAccessService.resolveEntity(updated);
+    const resolved = await fileAccessService.resolveEntity(updated);
+    return addFilenameToTemplate(resolved);
 };
 
 export const deleteTemplate = async (id) => {
