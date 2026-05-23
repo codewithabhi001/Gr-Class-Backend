@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+const { Op } = db.Sequelize;
 import { resolveEntity } from '../../services/fileAccess.service.js';
 
 const FlagAdministration = db.FlagAdministration;
@@ -44,6 +45,25 @@ export const updateFlag = async (id, data) => {
 export const deleteFlag = async (id) => {
     const flag = await FlagAdministration.findByPk(id);
     if (!flag) throw { statusCode: 404, message: 'Flag not found' };
+
+    // Check if this flag is associated with any vessel
+    const vesselCount = await db.Vessel.count({ where: { flag_id: id } });
+    if (vesselCount > 0) {
+        throw {
+            statusCode: 409,
+            message: `Cannot delete this flag: it is currently assigned to ${vesselCount} vessel${vesselCount > 1 ? 's' : ''}. Please reassign or remove the flag from those vessels first.`
+        };
+    }
+
+    // Check if this flag is associated with any certificate
+    const certCount = await db.Certificate.count({ where: { flag_administration_id: id } });
+    if (certCount > 0) {
+        throw {
+            statusCode: 409,
+            message: `Cannot delete this flag: it is referenced in ${certCount} certificate${certCount > 1 ? 's' : ''}. Please update those certificates first.`
+        };
+    }
+
     await flag.destroy();
     return { message: 'Flag deleted successfully' };
 };

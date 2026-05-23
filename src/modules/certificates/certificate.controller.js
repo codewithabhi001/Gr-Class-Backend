@@ -282,6 +282,14 @@ export const updateCertificateType = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+export const deactivateCertificateType = async (req, res, next) => {
+    try {
+        const result = await certService.deactivateCertificateType(req.params.id);
+        res.json({ success: true, message: result.message, data: result });
+    } catch (e) { next(e); }
+};
+
+
 export const getCertificateTypeRequiredDocuments = async (req, res, next) => {
     try {
         const docs = await certService.getCertificateTypeRequiredDocuments(req.params.id);

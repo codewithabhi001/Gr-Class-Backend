@@ -9,25 +9,50 @@ export const errorMiddleware = (err, req, res, next) => {
     let errors = err.errors || undefined;
     const traceId = req.traceId || uuidv4();
 
-    // Specific handling for Sequelize Errors
+    // ── Sequelize Validation / Unique Constraint ──────────────────────────────
     if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
         statusCode = 400;
         errorCode = 'VALIDATION_ERROR';
         message = 'Validation failed. Please correct the highlighted fields.';
         errors = {};
-        err.errors.forEach(e => {
+        (err.errors || []).forEach(e => {
             errors[e.path] = e.message;
         });
     }
 
-    // Specific handling for body-parser limit errors (Payload Too Large)
+    // ── Sequelize Foreign Key Constraint ─────────────────────────────────────
+    // Happens when trying to delete a record that is referenced by another table.
+    if (err.name === 'SequelizeForeignKeyConstraintError') {
+        statusCode = 409;
+        errorCode = 'FOREIGN_KEY_CONSTRAINT';
+        message = 'This record cannot be deleted or modified because it is referenced by other records in the system. Please remove or reassign those records first.';
+        errors = undefined;
+    }
+
+    // ── Generic Sequelize DB Error (e.g. bad query, column not found) ─────────
+    if (err.name === 'SequelizeDatabaseError') {
+        statusCode = 500;
+        errorCode = 'DATABASE_ERROR';
+        message = 'A database error occurred. Please try again or contact support.';
+        errors = undefined;
+    }
+
+    // ── Sequelize Connection Error ────────────────────────────────────────────
+    if (err.name === 'SequelizeConnectionError' || err.name === 'SequelizeConnectionRefusedError' || err.name === 'SequelizeConnectionTimedOutError') {
+        statusCode = 503;
+        errorCode = 'DATABASE_UNAVAILABLE';
+        message = 'Unable to connect to the database. Please try again shortly.';
+        errors = undefined;
+    }
+
+    // ── Body-parser payload limit ─────────────────────────────────────────────
     if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
         statusCode = 413;
         errorCode = 'PAYLOAD_TOO_LARGE';
         message = 'Payload size exceeds the limit of 25MB.';
     }
 
-    // Friendly messages for common status codes if message is generic
+    // ── Friendly fallbacks for generic HTTP codes ─────────────────────────────
     if (statusCode === 401 && message === 'Internal Server Error') message = 'Authentication required. Please login again.';
     if (statusCode === 403 && message === 'Internal Server Error') message = 'You do not have permission to perform this action.';
     if (statusCode === 404 && message === 'Internal Server Error') message = 'The requested resource was not found.';
@@ -42,6 +67,8 @@ export const errorMiddleware = (err, req, res, next) => {
         ip: req.ip,
         traceId,
         errors,
+        // Only log raw DB error for server errors (never expose to client)
+        db_error: statusCode >= 500 && err.original ? err.original.message : undefined,
         stack: statusCode >= 500 ? err.stack : undefined
     });
 

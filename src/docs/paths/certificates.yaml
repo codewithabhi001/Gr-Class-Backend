@@ -534,6 +534,85 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+  delete:
+    tags: [Certificates]
+    summary: Deactivate certificate type
+    description: |
+      **Soft-deactivates** a certificate type by setting its status to `INACTIVE`.
+      This is a safe alternative to hard-delete — the type remains in the database
+      for historical reference but can no longer be assigned to new jobs.
+
+      **Guards before deactivation:**
+      - Cannot deactivate if any certificate using this type is still active (not REVOKED/EXPIRED)
+      - Cannot deactivate if any job linked to this type is still pending (not CERTIFIED/REJECTED/CANCELLED)
+
+      **Role:** ADMIN only
+    security: [{ bearerAuth: [] }]
+    operationId: deactivateCertificateType
+    x-roles: [ADMIN]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Certificate type UUID to deactivate
+        schema:
+          type: string
+          format: uuid
+          example: "019c79a4-55ba-773c-9454-f6bee169ab03"
+    responses:
+      "200":
+        description: Certificate type successfully deactivated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Certificate type deactivated successfully." }
+                data:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string, example: "Safety Construction" }
+                    status: { type: string, enum: [INACTIVE], example: "INACTIVE" }
+                    message: { type: string, example: "Certificate type deactivated successfully." }
+            example:
+              success: true
+              message: "Certificate type deactivated successfully."
+              data:
+                id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                name: "Safety Construction"
+                status: "INACTIVE"
+                message: "Certificate type deactivated successfully."
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden — ADMIN role required
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Certificate type not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "409":
+        description: |
+          Conflict — cannot deactivate because:
+          - Certificate type is already inactive
+          - Active certificates still reference this type
+          - Active jobs still reference this type
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+            example:
+              success: false
+              error_code: "API_ERROR"
+              message: "Cannot deactivate: 3 active certificates are still using this type. Revoke or expire them first."
+
 /api/v1/certificates/types/{id}/required-documents:
   get:
     tags: [Certificates]

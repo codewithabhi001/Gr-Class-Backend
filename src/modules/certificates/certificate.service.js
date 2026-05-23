@@ -142,6 +142,49 @@ export const updateCertificateType = async (id, data) => {
     }
 };
 
+/** Deactivate (soft-delete) a certificate type. Sets status to INACTIVE.
+ *  Cannot deactivate if there are active/valid certificates using this type. */
+export const deactivateCertificateType = async (id) => {
+    const type = await CertificateType.findByPk(id);
+    if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
+
+    if (type.status === 'INACTIVE') {
+        throw { statusCode: 409, message: 'Certificate type is already inactive.' };
+    }
+
+    // Guard: check for active/valid certificates using this type
+    const activeCertCount = await db.Certificate.count({
+        where: {
+            certificate_type_id: id,
+            status: { [Op.notIn]: ['REVOKED', 'EXPIRED'] }
+        }
+    });
+    if (activeCertCount > 0) {
+        throw {
+            statusCode: 409,
+            message: `Cannot deactivate: ${activeCertCount} active certificate${activeCertCount > 1 ? 's are' : ' is'} still using this type. Revoke or expire them first.`
+        };
+    }
+
+    // Guard: check for pending/active jobs using this type
+    const activeJobCount = await db.JobRequest.count({
+        where: {
+            certificate_type_id: id,
+            job_status: { [Op.notIn]: ['CERTIFIED', 'REJECTED', 'CANCELLED'] }
+        }
+    });
+    if (activeJobCount > 0) {
+        throw {
+            statusCode: 409,
+            message: `Cannot deactivate: ${activeJobCount} active job${activeJobCount > 1 ? 's are' : ' is'} still linked to this certificate type. Complete or cancel them first.`
+        };
+    }
+
+    await type.update({ status: 'INACTIVE' });
+    return { id: type.id, name: type.name, status: 'INACTIVE', message: 'Certificate type deactivated successfully.' };
+};
+
+
 /** List required documents for a certificate type. */
 export const getCertificateTypeRequiredDocuments = async (certificateTypeId) => {
     const type = await CertificateType.findByPk(certificateTypeId, {
