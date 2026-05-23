@@ -1,10 +1,11 @@
 import db from '../../models/index.js';
 import * as s3Service from '../../services/s3.service.js';
+import * as fileAccessService from '../../services/fileAccess.service.js';
 
 const { CertificateTemplate } = db;
 
 export const createTemplate = async (data) => {
-    return await CertificateTemplate.create({
+    const template = await CertificateTemplate.create({
         template_name: data.template_name,
         certificate_type_id: data.certificate_type_id,
         certificate_term: data.certificate_term ?? null,
@@ -12,6 +13,7 @@ export const createTemplate = async (data) => {
         variables: data.variables || [],
         is_active: data.is_active !== false
     });
+    return await fileAccessService.resolveEntity(template);
 };
 
 /**
@@ -33,10 +35,11 @@ export const getTemplates = async (filters = {}) => {
     if (filters.certificate_type_id) where.certificate_type_id = filters.certificate_type_id;
     if (filters.certificate_term) where.certificate_term = filters.certificate_term;
 
-    return await CertificateTemplate.findAll({
+    const templates = await CertificateTemplate.findAll({
         where,
         include: ['CertificateType']
     });
+    return await fileAccessService.resolveEntity(templates);
 };
 
 export const getTemplateById = async (id) => {
@@ -44,14 +47,15 @@ export const getTemplateById = async (id) => {
         include: ['CertificateType']
     });
     if (!template) throw { statusCode: 404, message: 'Template not found' };
-    return template;
+    return await fileAccessService.resolveEntity(template);
 };
 
 export const updateTemplate = async (id, data) => {
     const template = await CertificateTemplate.findByPk(id);
     if (!template) throw { statusCode: 404, message: 'Template not found' };
 
-    return await template.update(data);
+    const updated = await template.update(data);
+    return await fileAccessService.resolveEntity(updated);
 };
 
 export const deleteTemplate = async (id) => {
