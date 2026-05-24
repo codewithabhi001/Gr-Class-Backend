@@ -37,7 +37,7 @@ export const subscribe = async (email, source = 'website') => {
     const trimmedEmail = String(email || '').trim().toLowerCase();
     
     // Check if already subscribed
-    const existing = await NewsletterSubscriber.findOne({ where: { email: trimmedEmail } });
+    const existing = await NewsletterSubscriber.findOne({ where: { email: trimmedEmail }, useMaster: true });
     
     if (existing) {
         if (existing.is_active) {

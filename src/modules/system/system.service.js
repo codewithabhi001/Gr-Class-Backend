@@ -108,7 +108,7 @@ export const getFailedJobs = async () => {
 };
 
 export const retryJob = async (id, userId) => {
-    const job = await db.JobRequest.findByPk(id);
+    const job = await db.JobRequest.findByPk(id, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
 
     const oldStatus = job.job_status;

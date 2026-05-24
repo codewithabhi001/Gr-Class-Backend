@@ -9,7 +9,7 @@ export const createToca = async (data, userId) => {
 };
 
 export const updateStatus = async (id, status, userId) => {
-    const toca = await Toca.findByPk(id);
+    const toca = await Toca.findByPk(id, { useMaster: true });
     if (!toca) throw { statusCode: 404, message: 'TOCA not found' };
 
     await toca.update({ status, decision_date: new Date(), decided_by: userId });

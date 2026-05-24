@@ -94,14 +94,17 @@ export const createInvoice = async (data, userId = null) => {
     const { job_id, amount, currency } = data;
 
     // Invoice can be created at any active job stage — only block terminal states
-    const job = await JobRequest.findByPk(job_id);
+    const job = await JobRequest.findByPk(job_id, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
     if (job.job_status === 'REJECTED') {
         throw { statusCode: 400, message: `Cannot create invoice: Job is in a rejected state (${job.job_status}).` };
     }
 
     // Prevent double-invoice for the same job
-    const existing = await Payment.findOne({ where: { job_id, payment_status: ['UNPAID', 'PARTIALLY_PAID', 'PAID'] } });
+    const existing = await Payment.findOne({
+        where: { job_id, payment_status: ['UNPAID', 'PARTIALLY_PAID', 'PAID'] },
+        useMaster: true
+    });
     if (existing) {
         throw { statusCode: 409, message: 'An invoice already exists for this job.' };
     }
@@ -143,12 +146,12 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             throw { statusCode: 409, message: 'Payment has already been marked as paid.' };
         }
 
-        // ── Guard 2: Only block terminal job states ──
+        // ── Guard 2: Only allow payment processing for FINALIZED jobs ──
         const job = await JobRequest.findByPk(payment.job_id, { transaction: txn, lock: txn.LOCK.UPDATE });
         if (!job) throw { statusCode: 404, message: 'Job not found for this payment' };
 
-        if (job.job_status === 'REJECTED') {
-            throw { statusCode: 400, message: `Cannot process payment: Job is in a rejected state (${job.job_status}).` };
+        if (job.job_status !== 'FINALIZED') {
+            throw { statusCode: 400, message: `Cannot process payment: Job is not in a payable state (${job.job_status}).` };
         }
 
         // ── Upload receipt (optional) ──

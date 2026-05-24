@@ -82,7 +82,7 @@ export const getTicketById = async (id, user) => {
 };
 
 export const updateTicketStatus = async (id, status, internalNote, user) => {
-    const ticket = await SupportTicket.findByPk(id);
+    const ticket = await SupportTicket.findByPk(id, { useMaster: true });
     if (!ticket) throw { statusCode: 404, message: 'Ticket not found' };
     const oldValues = {
         status: ticket.status,

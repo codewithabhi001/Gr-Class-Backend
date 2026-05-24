@@ -17,7 +17,7 @@ export const exportUserData = async (userId) => {
 };
 
 export const anonymizeUser = async (userId) => {
-    const user = await db.User.findByPk(userId);
+    const user = await db.User.findByPk(userId, { useMaster: true });
     if (!user) throw { statusCode: 404, message: 'User not found' };
 
     await user.update({

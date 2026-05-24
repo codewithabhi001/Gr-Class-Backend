@@ -33,7 +33,7 @@ const generateRefreshToken = (user) => {
 };
 
 export const login = async (email, password) => {
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email }, useMaster: true });
 
     if (!user) {
         throw { statusCode: 401, message: 'Invalid credentials' };
@@ -98,7 +98,7 @@ export const register = async (userData, options = {}) => {
     const { transaction } = options;
     const existingUser = await User.findOne({
         where: { email: userData.email },
-        ...(transaction && { transaction }),
+        ...(transaction ? { transaction } : { useMaster: true }),
     });
     if (existingUser) {
         throw { statusCode: 400, message: 'Email already exists' };
@@ -235,7 +235,7 @@ export const resetPassword = async (token, newPassword) => {
     if (decoded.purpose !== PASSWORD_RESET_PURPOSE || !decoded.userId) {
         throw { statusCode: 400, message: 'Invalid reset token.' };
     }
-    const user = await User.findByPk(decoded.userId);
+    const user = await User.findByPk(decoded.userId, { useMaster: true });
     if (!user) {
         throw { statusCode: 400, message: 'User not found. Please request a new password reset.' };
     }
@@ -245,7 +245,7 @@ export const resetPassword = async (token, newPassword) => {
 };
 
 export const changePassword = async (userId, oldPassword, newPassword) => {
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(userId, { useMaster: true });
     if (!user) {
         throw { statusCode: 404, message: 'User not found' };
     }

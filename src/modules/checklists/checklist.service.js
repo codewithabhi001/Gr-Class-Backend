@@ -120,7 +120,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
     // Normalise: caller may pass a full req.user object OR just the user id (string).
     const userObj = (typeof user === 'object' && user !== null) ? user : (user ? { id: user } : null);
     const userId = userObj?.id;
-    const job = await JobRequest.findByPk(jobId);
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
     // ── Guard 1: Terminal state ──
@@ -259,7 +259,7 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
     const userObj = (typeof user === 'object' && user !== null) ? user : (user ? { id: user } : null);
     const userId = userObj?.id;
 
-    const job = await JobRequest.findByPk(jobId);
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
@@ -386,7 +386,7 @@ const resolveKeyArray = async (items, user = null) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getSignedUploadUrl = async (jobId, fileName, contentType, userId) => {
-    const job = await JobRequest.findByPk(jobId);
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
     // Guard: Only assigned surveyor can upload proof for checklist
@@ -418,7 +418,7 @@ export const getSignedUploadUrl = async (jobId, fileName, contentType, userId) =
  * PUT /checklists/jobs/:jobId submission.
  */
 export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId) => {
-    const job = await JobRequest.findByPk(jobId);
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
 
     if (job.assigned_surveyor_id !== userId) {
@@ -454,7 +454,7 @@ export const reviewChecklistItem = async (jobId, itemId, { status, rejection_rea
         throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins can review checklist items.' };
     }
 
-    const item = await ActivityPlanning.findOne({ where: { id: itemId, job_id: jobId } });
+    const item = await ActivityPlanning.findOne({ where: { id: itemId, job_id: jobId }, useMaster: true });
     if (!item) throw { statusCode: 404, message: 'Checklist item not found.' };
 
     await item.update({ 
@@ -474,7 +474,7 @@ export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection
         throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins can review documents.' };
     }
 
-    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
 
     const files = survey.signed_checklist_files || [];

@@ -70,7 +70,7 @@ export const getIncidentById = async (id, scopeFilters = {}) => {
 };
 
 export const updateIncidentStatus = async (id, status, remarks) => {
-    const incident = await Incident.findByPk(id);
+    const incident = await Incident.findByPk(id, { useMaster: true });
     if (!incident) throw { statusCode: 404, message: 'Incident not found' };
     return await incident.update({ status, remarks });
 };

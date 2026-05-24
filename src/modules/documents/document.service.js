@@ -24,8 +24,8 @@ export const getEntityDocuments = async (entityType, entityId) => {
     return await fileAccessService.resolveEntity(documents);
 };
 
-export const getDocumentById = async (id) => {
-    const document = await Document.findByPk(id);
+export const getDocumentById = async (id, options = {}) => {
+    const document = await Document.findByPk(id, options);
     if (!document) throw { statusCode: 404, message: 'Document not found' };
     return await fileAccessService.resolveEntity(document);
 };
@@ -72,8 +72,7 @@ export const registerDocument = async (entityType, entityId, fileData, userId, d
 };
 
 export const deleteDocument = async (id) => {
-    const doc = await Document.findByPk(id);
-    if (!doc) throw { statusCode: 404, message: 'Document not found' };
+    const doc = await getDocumentById(id, { useMaster: true });
     return await doc.destroy();
 };
 

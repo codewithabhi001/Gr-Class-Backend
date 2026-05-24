@@ -246,7 +246,7 @@ export const getUploadUrl = async (fileName, contentType, userId) => {
  * documents are attached, not the actual checklist questions.
  */
 export const updateChecklistTemplate = async (id, data, userId) => {
-    const template = await ChecklistTemplate.findByPk(id);
+    const template = await ChecklistTemplate.findByPk(id, { useMaster: true });
 
     if (!template) {
         throw { statusCode: 404, message: 'Checklist template not found' };
@@ -294,7 +294,7 @@ export const updateChecklistTemplate = async (id, data, userId) => {
  * Delete a checklist template (soft delete by setting status to INACTIVE)
  */
 export const deleteChecklistTemplate = async (id) => {
-    const template = await ChecklistTemplate.findByPk(id);
+    const template = await ChecklistTemplate.findByPk(id, { useMaster: true });
 
     if (!template) {
         throw { statusCode: 404, message: 'Checklist template not found' };
@@ -377,7 +377,7 @@ export const activateChecklistTemplate = async (id, userId) => {
  *   • starts in DRAFT — admin must explicitly `PUT /:id/activate` it
  */
 export const cloneChecklistTemplate = async (id, userId) => {
-    const originalTemplate = await ChecklistTemplate.findByPk(id);
+    const originalTemplate = await ChecklistTemplate.findByPk(id, { useMaster: true });
 
     if (!originalTemplate) {
         throw { statusCode: 404, message: 'Checklist template not found' };

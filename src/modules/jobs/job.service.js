@@ -140,11 +140,12 @@ export const createJob = async (data, userId, options = {}) => {
     } = options;
     let isSurveyRequired = true;
     const [certType, requiredDocs, vessel] = await Promise.all([
-        data.certificate_type_id ? CertificateType.findByPk(data.certificate_type_id) : Promise.resolve(null),
+        data.certificate_type_id ? CertificateType.findByPk(data.certificate_type_id, { useMaster: true }) : Promise.resolve(null),
         data.certificate_type_id ? CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: data.certificate_type_id, is_mandatory: true }
+            where: { certificate_type_id: data.certificate_type_id, is_mandatory: true },
+            useMaster: true
         }) : Promise.resolve([]),
-        data.vessel_id ? Vessel.findByPk(data.vessel_id, { include: [{ model: db.Client, as: 'Client' }] }) : Promise.resolve(null)
+        data.vessel_id ? Vessel.findByPk(data.vessel_id, { include: [{ model: db.Client, as: 'Client' }], useMaster: true }) : Promise.resolve(null)
     ]);
 
     if (data.certificate_type_id) {
@@ -221,7 +222,7 @@ export const createJob = async (data, userId, options = {}) => {
             await txn.commit();
 
             if (!skipNotifications) {
-                const jobWithVessel = await JobRequest.findByPk(job.id, { include: ['Vessel'] });
+                const jobWithVessel = await JobRequest.findByPk(job.id, { include: ['Vessel'], useMaster: true });
                 notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_CREATED', {
                     vesselName: jobWithVessel.Vessel.vessel_name,
                     port: jobWithVessel.target_port

@@ -40,11 +40,12 @@ const uploadBase64ToS3 = async (base64Str, defaultFilename, folder) => {
 };
 
 export const applySurveyor = async (data, files) => {
-    const existingUser = await User.findOne({ where: { email: data.email } });
+    const existingUser = await User.findOne({ where: { email: data.email }, useMaster: true });
     if (existingUser) throw { statusCode: 400, message: 'A user with this email already exists.' };
 
     const existingApp = await SurveyorApplication.findOne({
-        where: { email: data.email, status: ['PENDING', 'DOCUMENTS_REQUIRED'] }
+        where: { email: data.email, status: ['PENDING', 'DOCUMENTS_REQUIRED'] },
+        useMaster: true
     });
     if (existingApp) throw { statusCode: 400, message: 'An application is already under review.' };
 
@@ -159,7 +160,7 @@ export const getApplications = async (query, user = null) => {
 };
 
 export const reviewApplication = async (id, status, remarks, reviewerUserId) => {
-    const app = await SurveyorApplication.findByPk(id);
+    const app = await SurveyorApplication.findByPk(id, { useMaster: true });
     if (!app) throw { statusCode: 404, message: 'Application not found' };
 
     if (status === 'APPROVED') {
@@ -229,7 +230,7 @@ export const createSurveyor = async (data) => {
     return await fileAccessService.resolveEntity({ user, profile });
 };
 
-export const getProfile = async (id, user = null) => {
+export const getProfile = async (id, user = null, options = {}) => {
     const profile = await SurveyorProfile.findOne({
         where: { [db.Sequelize.Op.or]: [{ id: id }, { user_id: id }] },
         include: [
@@ -240,7 +241,8 @@ export const getProfile = async (id, user = null) => {
                 required: false,
                 attributes: ['id', 'full_name', 'email', 'phone', 'nationality', 'qualification', 'years_of_experience', 'cv_file_url', 'id_proof_url', 'certificate_files_url', 'status', 'reviewer_remarks']
             }
-        ]
+        ],
+        ...options
     });
     if (!profile) throw { statusCode: 404, message: 'Profile not found' };
     return await fileAccessService.resolveEntity(profile, user);
@@ -249,7 +251,8 @@ export const getProfile = async (id, user = null) => {
 export const updateProfile = async (id, data) => {
     const profile = await SurveyorProfile.findOne({
         where: { [db.Sequelize.Op.or]: [{ id: id }, { user_id: id }] },
-        include: [{ model: User }]
+        include: [{ model: User }],
+        useMaster: true
     });
     if (!profile) throw { statusCode: 404, message: 'Profile not found' };
 
@@ -287,7 +290,7 @@ export const updateProfile = async (id, data) => {
 };
 
 export const updateAvailability = async (userId, isAvailable) => {
-    const profile = await SurveyorProfile.findOne({ where: { user_id: userId } });
+    const profile = await SurveyorProfile.findOne({ where: { user_id: userId }, useMaster: true });
     if (!profile) throw { statusCode: 404, message: 'Surveyor profile not found' };
     return await fileAccessService.resolveEntity(await profile.update({ is_available: isAvailable }));
 };
@@ -320,12 +323,12 @@ export const getGPSHistory = async (userId) => {
 
 export const updateStatus = async (id, status) => {
     // Search user by provided id (might be userId or profileId)
-    let user = await User.findByPk(id);
+    let user = await User.findByPk(id, { useMaster: true });
     if (!user) {
         // If not found by PK, check if it's a profile ID
-        const profile = await SurveyorProfile.findByPk(id);
+        const profile = await SurveyorProfile.findByPk(id, { useMaster: true });
         if (profile) {
-            user = await User.findByPk(profile.user_id);
+            user = await User.findByPk(profile.user_id, { useMaster: true });
         }
     }
 
@@ -334,7 +337,7 @@ export const updateStatus = async (id, status) => {
     await user.update({ status });
 
     // Also update profile status if it exists
-    const profile = await SurveyorProfile.findOne({ where: { user_id: user.id } });
+    const profile = await SurveyorProfile.findOne({ where: { user_id: user.id }, useMaster: true });
     if (profile) {
         // Sync profile status (ACTIVE, INACTIVE, SUSPENDED)
         const profileStatusMap = { 'ACTIVE': 'ACTIVE', 'INACTIVE': 'INACTIVE', 'SUSPENDED': 'SUSPENDED' };

@@ -36,14 +36,14 @@ export const getFlag = async (id) => {
 };  
 
 export const updateFlag = async (id, data) => {
-    const flag = await FlagAdministration.findByPk(id);
+    const flag = await FlagAdministration.findByPk(id, { useMaster: true });
     if (!flag) throw { statusCode: 404, message: 'Flag not found' };
     const updated = await flag.update(data);
     return await resolveEntity(updated);
 };
 
 export const deleteFlag = async (id) => {
-    const flag = await FlagAdministration.findByPk(id);
+    const flag = await FlagAdministration.findByPk(id, { useMaster: true });
     if (!flag) throw { statusCode: 404, message: 'Flag not found' };
 
     // Check if this flag is associated with any vessel

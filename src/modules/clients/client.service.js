@@ -67,19 +67,19 @@ export const getClients = async (query) => {
     return result;
 };
 
-export const getClientById = async (id) => {
-    const client = await Client.findByPk(id);
+export const getClientById = async (id, options = {}) => {
+    const client = await Client.findByPk(id, options);
     if (!client) throw { statusCode: 404, message: 'Client not found' };
     return client;
 };
 
 export const updateClient = async (id, data) => {
-    const client = await getClientById(id);
+    const client = await getClientById(id, { useMaster: true });
     return await client.update(data);
 };
 
 export const deleteClient = async (id) => {
-    const client = await getClientById(id);
+    const client = await getClientById(id, { useMaster: true });
     return await client.update({ status: 'INACTIVE' });
 };
 

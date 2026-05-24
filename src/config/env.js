@@ -13,6 +13,9 @@ export default {
         name: process.env.DB_NAME || 'gr_class_db',
         dialect: process.env.DB_DIALECT || 'mysql',
         sslCa: process.env.DB_SSL_CA,
+        replicaHost: process.env.DB_REPLICA_HOST || null,
+        replicaUsername: process.env.DB_REPLICA_USER || process.env.DB_USER || 'root',
+        replicaPassword: process.env.DB_REPLICA_PASS || process.env.DB_PASS || '',
     },
     jwt: {
         get accessSecret() {

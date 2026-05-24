@@ -153,7 +153,7 @@ export const getEnquiryById = async (id) => {
 // ADMIN / GM – Update status / add internal note
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateEnquiryStatus = async (id, { status, internal_note }, user) => {
-    const enquiry = await WebsiteContact.findByPk(id);
+    const enquiry = await WebsiteContact.findByPk(id, { useMaster: true });
     if (!enquiry) throw { statusCode: 404, message: 'Enquiry not found' };
 
     const updates = { status };
@@ -173,7 +173,7 @@ export const updateEnquiryStatus = async (id, { status, internal_note }, user) =
 // ADMIN / GM – Delete an enquiry (hard delete – use with caution)
 // ─────────────────────────────────────────────────────────────────────────────
 export const deleteEnquiry = async (id) => {
-    const enquiry = await WebsiteContact.findByPk(id);
+    const enquiry = await WebsiteContact.findByPk(id, { useMaster: true });
     if (!enquiry) throw { statusCode: 404, message: 'Enquiry not found' };
     await enquiry.destroy();
     logger.info(`Enquiry ${id} deleted`);

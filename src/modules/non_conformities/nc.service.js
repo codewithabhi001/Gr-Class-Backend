@@ -25,7 +25,7 @@ export const createNC = async (data, user) => {
 };
 
 export const closeNC = async (id, remarks) => {
-    const nc = await NonConformity.findByPk(id);
+    const nc = await NonConformity.findByPk(id, { useMaster: true });
     if (!nc) throw { statusCode: 404, message: 'NC not found' };
 
     await nc.update({ status: 'CLOSED', closure_remarks: remarks, closed_at: new Date() });

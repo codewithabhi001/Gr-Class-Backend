@@ -145,7 +145,7 @@ export const updateCertificateType = async (id, data) => {
 /** Deactivate (soft-delete) a certificate type. Sets status to INACTIVE.
  *  Cannot deactivate if there are active/valid certificates using this type. */
 export const deactivateCertificateType = async (id) => {
-    const type = await CertificateType.findByPk(id);
+    const type = await CertificateType.findByPk(id, { useMaster: true });
     if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
 
     if (type.status === 'INACTIVE') {
@@ -219,7 +219,7 @@ export const addCertificateTypeRequiredDocument = async (certificateTypeId, data
 
 /** Update one required document for a certificate type. */
 export const updateCertificateTypeRequiredDocument = async (certificateTypeId, requiredDocumentId, data) => {
-    const doc = await db.CertificateRequiredDocument.findByPk(requiredDocumentId);
+    const doc = await db.CertificateRequiredDocument.findByPk(requiredDocumentId, { useMaster: true });
     if (!doc) throw { statusCode: 404, message: 'Required document not found' };
     if (doc.certificate_type_id !== certificateTypeId) {
         throw { statusCode: 400, message: 'Required document does not belong to this certificate type' };
@@ -246,7 +246,7 @@ export const updateCertificateTypeRequiredDocument = async (certificateTypeId, r
 
 /** Delete one required document for a certificate type. */
 export const deleteCertificateTypeRequiredDocument = async (certificateTypeId, requiredDocumentId) => {
-    const doc = await db.CertificateRequiredDocument.findByPk(requiredDocumentId);
+    const doc = await db.CertificateRequiredDocument.findByPk(requiredDocumentId, { useMaster: true });
     if (!doc) throw { statusCode: 404, message: 'Required document not found' };
     if (doc.certificate_type_id !== certificateTypeId) {
         throw { statusCode: 400, message: 'Required document does not belong to this certificate type' };
@@ -481,6 +481,7 @@ export const generateCertificate = async (data, user) => {
         try {
             // Generate PDF outside transaction (non-critical, best-effort)
             const freshCert = await Certificate.findByPk(cert.id, {
+                useMaster: true,
                 include: [
                     { model: db.Vessel },
                     { model: db.CertificateType },
@@ -490,6 +491,7 @@ export const generateCertificate = async (data, user) => {
             await _generateCertificateFile(freshCert, user);
             
             const finalCert = await Certificate.findByPk(cert.id, {
+                useMaster: true,
                 include: [
                     { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] },
                     { model: db.CertificateType, attributes: ['name'] }
@@ -561,7 +563,7 @@ export const generateCertificate = async (data, user) => {
         } catch (postCommitErr) {
             logger.error('Error in post-commit certificate generation logic', { jobId: job_id, err: postCommitErr.message });
             // Return what we have
-            return await Certificate.findByPk(cert.id, { include: [db.Vessel, db.CertificateType] });
+            return await Certificate.findByPk(cert.id, { include: [db.Vessel, db.CertificateType], useMaster: true });
         }
     } catch (error) {
         await transaction.rollback();
@@ -715,7 +717,7 @@ const CERT_TRANSITIONS = {
 };
 
 export const updateStatus = async (id, status, reason, userId) => {
-    const cert = await Certificate.findByPk(id);
+    const cert = await Certificate.findByPk(id, { useMaster: true });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
     if (!CERT_TRANSITIONS[cert.status]?.includes(status)) {
@@ -737,7 +739,7 @@ export const updateStatus = async (id, status, reason, userId) => {
 };
 
 export const renewCertificate = async (id, validityYears, reason, userId) => {
-    const oldCert = await Certificate.findByPk(id, { include: [db.CertificateType] });
+    const oldCert = await Certificate.findByPk(id, { include: [db.CertificateType], useMaster: true });
     if (!oldCert) throw { statusCode: 404, message: 'Certificate not found' };
 
     await oldCert.update({ status: 'EXPIRED' });
@@ -770,7 +772,7 @@ export const renewCertificate = async (id, validityYears, reason, userId) => {
 };
 
 export const updateDraft = async (id, data, user) => {
-    const cert = await Certificate.findByPk(id);
+    const cert = await Certificate.findByPk(id, { useMaster: true });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
     if (cert.status !== 'DRAFT') throw { statusCode: 400, message: 'Only draft certificates can be updated' };
 
@@ -931,7 +933,7 @@ export const getHistory = async (id, user) => {
 };
 
 export const transferCertificate = async (id, newOwnerId, reason, userId) => {
-    const cert = await Certificate.findByPk(id, { include: [db.CertificateType] });
+    const cert = await Certificate.findByPk(id, { include: [db.CertificateType], useMaster: true });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
     await cert.update({ status: 'TRANSFERRED' });
@@ -958,7 +960,7 @@ export const transferCertificate = async (id, newOwnerId, reason, userId) => {
 };
 
 export const extendCertificate = async (id, extensionMonths, reason, userId) => {
-    const cert = await Certificate.findByPk(id);
+    const cert = await Certificate.findByPk(id, { useMaster: true });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
     const newExpiry = new Date(cert.expiry_date);
@@ -978,8 +980,8 @@ export const extendCertificate = async (id, extensionMonths, reason, userId) => 
 };
 
 export const downgradeCertificate = async (id, newTypeId, reason, userId) => {
-    const cert = await Certificate.findByPk(id);
-    const newType = await db.CertificateType.findByPk(newTypeId);
+    const cert = await Certificate.findByPk(id, { useMaster: true });
+    const newType = await db.CertificateType.findByPk(newTypeId, { useMaster: true });
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
 
     await cert.update({ status: 'DOWNGRADED' });

@@ -14,24 +14,59 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbConfig = env.database;
 
-const sequelize = new Sequelize(dbConfig.name, dbConfig.username, dbConfig.password, {
-    host: dbConfig.host,
-    port: dbConfig.port,
+const sslOptions = dbConfig.sslCa ? {
+    ssl: {
+        ca: fs.readFileSync(path.resolve(dbConfig.sslCa))
+    }
+} : {};
+
+const commonConfig = {
     dialect: dbConfig.dialect,
-    dialectOptions: dbConfig.sslCa ? {
-        ssl: {
-            ca: fs.readFileSync(path.resolve(dbConfig.sslCa))
-        }
-    } : {},
+    dialectOptions: sslOptions,
     logging: process.env.DB_LOGGING === 'true' ? console.log : false,
-    // Add connection pool settings to avoid frequent handshakes with remote RDS
-    pool: {
-        max: 20,
-        min: 2,
-        idle: 300000,   // Wait 5 minutes before closing idle connections (default 10s)
-        acquire: 60000,
-    },
-});
+};
+
+let sequelize;
+
+if (dbConfig.replicaHost) {
+    sequelize = new Sequelize(dbConfig.name, null, null, {
+        ...commonConfig,
+        replication: {
+            write: {
+                host: dbConfig.host,
+                port: dbConfig.port,
+                username: dbConfig.username,
+                password: dbConfig.password,
+            },
+            read: [
+                {
+                    host: dbConfig.replicaHost,
+                    port: dbConfig.port,
+                    username: dbConfig.replicaUsername,
+                    password: dbConfig.replicaPassword,
+                }
+            ]
+        },
+        pool: {
+            max: 20,
+            min: 2,
+            idle: 300000,   // Wait 5 minutes before closing idle connections
+            acquire: 60000,
+        },
+    });
+} else {
+    sequelize = new Sequelize(dbConfig.name, dbConfig.username, dbConfig.password, {
+        ...commonConfig,
+        host: dbConfig.host,
+        port: dbConfig.port,
+        pool: {
+            max: 20,
+            min: 2,
+            idle: 300000,   // Wait 5 minutes before closing idle connections
+            acquire: 60000,
+        },
+    });
+}
 
 const db = {};
 

@@ -39,7 +39,7 @@ export const getUsers = async (query, excludeId) => {
     return await fileAccessService.resolveEntity(users);
 };
 
-export const getProfile = async (id, role) => {
+export const getProfile = async (id, role, options = {}) => {
     const include = [];
     if (role === 'CLIENT') {
         include.push({ model: db.Client });
@@ -48,7 +48,8 @@ export const getProfile = async (id, role) => {
     }
     const user = await User.findByPk(id, {
         include,
-        attributes: { exclude: ['password_hash'] }
+        attributes: { exclude: ['password_hash'] },
+        ...options
     });
 
     if (!user) return null;
@@ -158,7 +159,7 @@ export const updateSelfProfile = async (id, role, data) => {
         }
     }
 
-    return await getProfile(id, role);
+    return await getProfile(id, role, { useMaster: true });
 };
 
 const formatWithNa = (obj) => {

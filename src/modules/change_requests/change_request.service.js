@@ -67,7 +67,7 @@ export const getChangeRequestById = async (id, scopeFilters = {}) => {
  * Approve a change request
  */
 export const approveChangeRequest = async (id, approvedBy, remarks) => {
-    const changeRequest = await ChangeRequest.findByPk(id);
+    const changeRequest = await ChangeRequest.findByPk(id, { useMaster: true });
 
     if (!changeRequest) {
         throw { statusCode: 404, message: 'Change request not found' };
@@ -94,7 +94,7 @@ export const approveChangeRequest = async (id, approvedBy, remarks) => {
  * Reject a change request
  */
 export const rejectChangeRequest = async (id, rejectedBy, remarks) => {
-    const changeRequest = await ChangeRequest.findByPk(id);
+    const changeRequest = await ChangeRequest.findByPk(id, { useMaster: true });
 
     if (!changeRequest) {
         throw { statusCode: 404, message: 'Change request not found' };

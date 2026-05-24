@@ -6,7 +6,7 @@ export const createApproval = async (data) => {
 };
 
 export const updateStep = async (id, status, user) => {
-    const approval = await Approval.findByPk(id);
+    const approval = await Approval.findByPk(id, { useMaster: true });
     if (!approval) throw { statusCode: 404, message: 'Approval not found' };
 
     await approval.update({ status, approved_by: user.id, approved_at: new Date() });

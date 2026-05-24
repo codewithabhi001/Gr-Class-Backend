@@ -29,7 +29,7 @@ const assertSurveyNotFinalized = (survey) => {
  * the caller is the assigned surveyor.
  */
 const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowedStatuses = null } = {}) => {
-    const job = await JobRequest.findByPk(jobId);
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
 
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
@@ -55,7 +55,7 @@ const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowe
  * Returns the survey for a job, or throws if not found.
  */
 const requireSurvey = async (jobId) => {
-    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     if (!survey) throw { statusCode: 404, message: 'Survey report not found. Please start the survey inspection first.' };
     return survey;
 };
@@ -112,8 +112,8 @@ export const startSurvey = async (data, userId) => {
     // ── Post-commit notifications (non-transactional, fire-and-forget) ──
     logger.info({ entity: 'SURVEY', event: 'CHECKIN', jobId: job_id, surveyId: surveyResult.survey_id, triggeredBy: userId });
     try {
-        const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'] });
-        const actor = await User.findByPk(userId);
+        const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'], useMaster: true });
+        const actor = await User.findByPk(userId, { useMaster: true });
         notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_STARTED', {
             jobId: job_id, vesselName: jobWithVessel?.Vessel?.vessel_name, surveyorName: actor?.name
         }).catch(() => { });
@@ -171,7 +171,7 @@ export const uploadProof = async (jobId, file, data, userId) => {
         await txn.commit();
 
         // Notify ADMIN/TM/TO
-        const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
+        const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'], useMaster: true });
         notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_PROOF_UPLOADED', {
             jobId, vesselName: jobWithVessel.Vessel.vessel_name
         }).catch(() => { });
@@ -212,7 +212,7 @@ export const submitSurveyReport = async (data, files, userId) => {
     }
 
     // Guard: checklist required
-    const checklistCount = await ActivityPlanning.count({ where: { job_id } });
+    const checklistCount = await ActivityPlanning.count({ where: { job_id }, useMaster: true });
     if (checklistCount === 0) {
         throw { statusCode: 400, message: 'Please complete the inspection checklist before submitting the final report.' };
     }
@@ -223,7 +223,7 @@ export const submitSurveyReport = async (data, files, userId) => {
     }
 
     // Guard: Ensure no items are in REJECTED state
-    const rejectedItems = await ActivityPlanning.count({ where: { job_id, status: 'REJECTED' } });
+    const rejectedItems = await ActivityPlanning.count({ where: { job_id, status: 'REJECTED' }, useMaster: true });
     if (rejectedItems > 0) {
         throw { statusCode: 400, message: `Cannot submit report: ${rejectedItems} checklist items are still marked as REJECTED. Please correct them first.` };
     }
@@ -309,7 +309,7 @@ export const submitSurveyReport = async (data, files, userId) => {
         logger.info({ entity: 'SURVEY', event: 'SUBMITTED', jobId: job_id, surveyId: survey.id, triggeredBy: userId });
 
         // Notify ADMIN/TM/TO
-        const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'] });
+        const jobWithVessel = await JobRequest.findByPk(job_id, { include: ['Vessel'], useMaster: true });
         notificationService.notifyRoles(['ADMIN', 'TM', 'TO'], 'SURVEY_SUBMITTED', {
             jobId: job_id, vesselName: jobWithVessel.Vessel.vessel_name
         }).catch(() => { });
@@ -346,7 +346,7 @@ export const finalizeSurvey = async (jobId, user) => {
     // lifecycle service handles TM role check, NC check, and job sync
     await lifecycleService.updateSurveyStatus(survey.id, 'FINALIZED', userId, `Final approval granted by ${user.role}`);
 
-    const job = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
+    const job = await JobRequest.findByPk(jobId, { include: ['Vessel'], useMaster: true });
     if (job?.assigned_surveyor_id) {
         notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_FINALIZED', {
             vesselName: job.Vessel?.vessel_name
@@ -378,7 +378,7 @@ export const requestRework = async (jobId, reason, userId) => {
     }
 
     // Check if any granular rejections exist to provide a better reason
-    const rejectedItems = await ActivityPlanning.count({ where: { job_id: jobId, status: 'REJECTED' } });
+    const rejectedItems = await ActivityPlanning.count({ where: { job_id: jobId, status: 'REJECTED' }, useMaster: true });
     const rejectedFiles = (survey.signed_checklist_files || []).filter(f => f.status === 'REJECTED').length;
     
     let finalReason = reason;
@@ -389,7 +389,7 @@ export const requestRework = async (jobId, reason, userId) => {
     await lifecycleService.updateSurveyStatus(survey.id, 'REWORK_REQUIRED', userId, finalReason);
 
     // Notify Surveyor
-    const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'] });
+    const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'], useMaster: true });
     if (job.assigned_surveyor_id) {
         notificationService.sendNotification(job.assigned_surveyor_id, 'SURVEY_REWORK_REQUESTED', {
             jobId, vesselName: jobWithVessel.Vessel.vessel_name, reason
@@ -417,13 +417,15 @@ const generateSurveyReportPdf = async (survey, user) => {
                 include: [{ model: db.FlagAdministration, as: 'FlagAdministration' }] 
             },
             { model: db.User, as: 'requester', attributes: ['name', 'email'] }
-        ]
+        ],
+        useMaster: true
     });
     
-    const surveyor = await User.findByPk(survey.surveyor_id, { attributes: ['name'] });
+    const surveyor = await User.findByPk(survey.surveyor_id, { attributes: ['name'], useMaster: true });
     const checklist = await ActivityPlanning.findAll({
         where: { job_id: survey.job_id },
-        attributes: ['question_text', 'answer', 'remarks', 'file_url']
+        attributes: ['question_text', 'answer', 'remarks', 'file_url'],
+        useMaster: true
     });
 
     // 2. Build HTML (QR removed as per user request for SOF)

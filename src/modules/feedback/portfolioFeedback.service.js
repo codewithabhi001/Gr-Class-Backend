@@ -11,7 +11,6 @@ const User = db.User;
 export const upsertFeedback = async (clientId, data) => {
     const { comment, designation, company, rating } = data;
 
-    // Use upsert or findOne then update/create
     const [feedback, created] = await PortfolioFeedback.findOrCreate({
         where: { client_id: clientId },
         defaults: {
@@ -21,7 +20,8 @@ export const upsertFeedback = async (clientId, data) => {
             company,
             rating,
             is_visible: false 
-        }
+        },
+        useMaster: true
     });
 
     if (!created) {
@@ -121,7 +121,7 @@ export const getClientFeedback = async (clientId) => {
  * Toggle visibility of feedback (Admin action)
  */
 export const updateVisibility = async (id, isVisible) => {
-    const feedback = await PortfolioFeedback.findByPk(id);
+    const feedback = await PortfolioFeedback.findByPk(id, { useMaster: true });
     if (!feedback) {
         throw new Error('Feedback not found');
     }

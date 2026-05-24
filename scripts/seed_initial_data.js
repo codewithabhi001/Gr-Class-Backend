@@ -12,7 +12,7 @@ async function seed() {
         const surveyorPassword = await bcrypt.hash('Surveyor@123', saltRounds);
 
         const [admin, adminCreated] = await db.User.findOrCreate({
-            where: { email: 'admin@grclass.com' },
+            where: { email: 'info@grclass.com' },
             defaults: {
                 name: 'GR-Class Admin',
                 password_hash: adminPassword,
@@ -22,42 +22,7 @@ async function seed() {
         });
         if (adminCreated) console.log('✅ Created Admin user');
 
-        // 2. Client Company (Pacific Shipping)
-        const [clientCompany, clientCreated] = await db.Client.findOrCreate({
-            where: { company_name: 'Pacific Shipping Ltd' },
-            defaults: {
-                company_code: 'PACIFIC',
-                address: '123 Maritime St, Singapore',
-                country: 'Singapore',
-                email: 'ops@pacific.com',
-                status: 'ACTIVE'
-            }
-        });
-        if (clientCreated) console.log('✅ Created Client Company: Pacific Shipping Ltd');
-
-        // 3. Surveyor (Specified Email)
-        const [surveyor, surveyorCreated] = await db.User.findOrCreate({
-            where: { email: 'abhivishwkarmaa52@gmail.com' },
-            defaults: {
-                name: 'Abhinav Vishwakarma',
-                password_hash: surveyorPassword,
-                role: 'SURVEYOR',
-                status: 'ACTIVE'
-            }
-        });
-        if (surveyorCreated) {
-            console.log('✅ Created Surveyor user');
-            // Create surveyor profile
-            await db.SurveyorProfile.findOrCreate({
-                where: { user_id: surveyor.id },
-                defaults: {
-                    qualification: 'General Hull & Machinery',
-                    status: 'ACTIVE',
-                    years_of_experience: 10
-                }
-            });
-            console.log('✅ Created Surveyor Profile');
-        }
+        // Note: Client and Surveyor creation removed as only the admin user should be seeded.
 
         // 4. Certificate Types & Required Documents & Checklist Templates
         const certTypes = [

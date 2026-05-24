@@ -62,7 +62,7 @@ export const createVessel = async (data, userId) => {
     }
 
     // Duplicate check
-    const existing = await Vessel.findOne({ where: { imo_number: data.imo_number } });
+    const existing = await Vessel.findOne({ where: { imo_number: data.imo_number }, useMaster: true });
     if (existing) {
         throw { statusCode: 400, message: 'Vessel with this IMO number already exists' };
     }
@@ -203,7 +203,8 @@ export const updateVessel = async (id, data, scopeFilters = {}, userId = null) =
     if (!id) throw { statusCode: 400, message: 'Vessel ID is required for update' };
     // We use Vessel.findOne to get the Sequelize instance for .update()
     const vesselQuery = await Vessel.findOne({
-        where: { id, ...scopeFilters }
+        where: { id, ...scopeFilters },
+        useMaster: true
     });
 
     if (!vesselQuery) {
@@ -211,7 +212,7 @@ export const updateVessel = async (id, data, scopeFilters = {}, userId = null) =
     }
 
     if (data.imo_number && data.imo_number !== vesselQuery.imo_number) {
-        const existing = await Vessel.findOne({ where: { imo_number: data.imo_number } });
+        const existing = await Vessel.findOne({ where: { imo_number: data.imo_number }, useMaster: true });
         if (existing) {
             throw { statusCode: 400, message: 'Another vessel with this IMO number already exists' };
         }

@@ -51,7 +51,7 @@ export const getTemplateById = async (id) => {
 };
 
 export const updateTemplate = async (id, data) => {
-    const template = await CertificateTemplate.findByPk(id);
+    const template = await CertificateTemplate.findByPk(id, { useMaster: true });
     if (!template) throw { statusCode: 404, message: 'Template not found' };
 
     const updated = await template.update(data);
@@ -59,7 +59,7 @@ export const updateTemplate = async (id, data) => {
 };
 
 export const deleteTemplate = async (id) => {
-    const template = await CertificateTemplate.findByPk(id);
+    const template = await CertificateTemplate.findByPk(id, { useMaster: true });
     if (!template) throw { statusCode: 404, message: 'Template not found' };
 
     await template.destroy();

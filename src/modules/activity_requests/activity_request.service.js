@@ -40,7 +40,7 @@ export const createActivityRequest = async (data, userId, user = null) => {
         status: 'PENDING',
     });
 
-    return getActivityRequestById(created.id, {}, user);
+    return getActivityRequestById(created.id, {}, user, { useMaster: true });
 };
 
 export const getActivityRequests = async (query, scopeFilters = {}) => {
@@ -70,7 +70,7 @@ export const getActivityRequests = async (query, scopeFilters = {}) => {
     };
 };
 
-export const getActivityRequestById = async (id, scopeFilters = {}, user = null) => {
+export const getActivityRequestById = async (id, scopeFilters = {}, user = null, options = {}) => {
     const request = await ActivityRequest.findOne({
         where: { id, ...scopeFilters },
         include: [
@@ -81,7 +81,8 @@ export const getActivityRequestById = async (id, scopeFilters = {}, user = null)
                 as: 'LinkedJob',
                 attributes: ['id', 'job_status', 'reason', 'job_request_number']
             }
-        ]
+        ],
+        ...options
     });
     if (!request) throw { statusCode: 404, message: 'Activity request not found' };
 
@@ -97,7 +98,7 @@ export const updateActivityStatus = async (id, status, remarks, user = null) => 
             message: 'Use POST /api/v1/activity-requests/:id/convert-to-job to create a linked job.',
         };
     }
-    const request = await ActivityRequest.findByPk(id);
+    const request = await ActivityRequest.findByPk(id, { useMaster: true });
     if (!request) throw { statusCode: 404, message: 'Activity request not found' };
     if (request.status === 'CONVERTED_TO_JOB') {
         throw { statusCode: 400, message: 'Cannot change status of an activity request already converted to a job.' };
@@ -106,7 +107,7 @@ export const updateActivityStatus = async (id, status, remarks, user = null) => 
         status,
         rejection_reason: status === 'REJECTED' ? remarks : request.rejection_reason,
     });
-    return getActivityRequestById(id, {}, user);
+    return getActivityRequestById(id, {}, user, { useMaster: true });
 };
 
 /** Prefer non-empty override; otherwise use fallback (ignores blank strings). */
@@ -221,13 +222,14 @@ export const convertActivityRequestToJob = async (id, body, userId, scopeFilters
     }
 
     try {
-        const jobWithVessel = await db.JobRequest.findByPk(job.id, { include: ['Vessel'] });
+        const jobWithVessel = await db.JobRequest.findByPk(job.id, { include: ['Vessel'], useMaster: true });
         notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_CREATED', {
             vesselName: jobWithVessel.Vessel?.vessel_name,
             port: jobWithVessel.target_port,
         });
         const clientUser = await db.User.findOne({
             where: { client_id: jobWithVessel.Vessel?.client_id, role: 'CLIENT' },
+            useMaster: true
         });
         if (clientUser) {
             notificationService.sendNotification(clientUser.id, 'JOB_CREATED', {
@@ -239,7 +241,7 @@ export const convertActivityRequestToJob = async (id, body, userId, scopeFilters
         // Notifications are best-effort after successful conversion
     }
 
-    const activityRequest = await getActivityRequestById(id, scopeFilters, user);
+    const activityRequest = await getActivityRequestById(id, scopeFilters, user, { useMaster: true });
 
     return {
         activity_request: activityRequest,

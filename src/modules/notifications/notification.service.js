@@ -93,7 +93,7 @@ export const getNotifications = async (userId) => {
 };
 
 export const markRead = async (id, userId) => {
-    const notif = await Notification.findOne({ where: { id, user_id: userId } });
+    const notif = await Notification.findOne({ where: { id, user_id: userId }, useMaster: true });
     if (notif) {
         await notif.update({ is_read: true });
     }
