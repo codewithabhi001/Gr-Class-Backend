@@ -60,6 +60,7 @@ export const getClients = async (query) => {
         distinct: true,
         limit: parseInt(limit),
         offset: (page - 1) * limit,
+        useReplica: true
     });
 
     result.rows = result.rows.map(flatClientListRow);
@@ -87,13 +88,14 @@ export const deleteClient = async (id) => {
 export const getClientDocuments = async (clientId, user) => {
     if (!clientId) throw { statusCode: 404, message: 'Client not found' };
 
-    const vessels = await Vessel.findAll({ where: { client_id: clientId }, attributes: ['id', 'vessel_name'] });
+    const vessels = await Vessel.findAll({ where: { client_id: clientId }, attributes: ['id', 'vessel_name'], useReplica: true });
     const vesselIds = vessels.map(v => v.id);
 
     const jobs = await JobRequest.findAll({
         where: { vessel_id: vesselIds },
         attributes: ['id'],
-        include: [{ model: db.CertificateType, attributes: ['name'] }]
+        include: [{ model: db.CertificateType, attributes: ['name'] }],
+        useReplica: true
     });
     const jobIds = jobs.map(j => j.id);
 
@@ -112,7 +114,8 @@ export const getClientDocuments = async (clientId, user) => {
                 'created_at',
                 'updated_at'
             ],
-            order: [['created_at', 'DESC']]
+            order: [['created_at', 'DESC']],
+            useReplica: true
         });
         allDocs = allDocs.concat(vesselDocs.map(d => ({
             ...d.toJSON(),
@@ -134,7 +137,8 @@ export const getClientDocuments = async (clientId, user) => {
                 'created_at',
                 'updated_at'
             ],
-            order: [['created_at', 'DESC']]
+            order: [['created_at', 'DESC']],
+            useReplica: true
         });
         allDocs = allDocs.concat(jobDocs.map(d => ({
             ...d.toJSON(),

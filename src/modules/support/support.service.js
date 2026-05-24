@@ -61,7 +61,8 @@ export const getTickets = async (query, user) => {
         limit: Math.max(1, parseInt(limit, 10)),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * Math.max(1, parseInt(limit, 10)),
         include: [{ model: User, as: 'Creator', attributes: ['name', 'email'] }],
-        order: [['createdAt', 'DESC']]
+        order: [['createdAt', 'DESC']],
+        useReplica: true
     });
 
     return {

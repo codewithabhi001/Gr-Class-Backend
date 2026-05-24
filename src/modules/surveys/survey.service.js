@@ -590,7 +590,8 @@ export const getSurveyReports = async (query, user) => {
             { model: JobRequest, attributes: ['id', 'job_status'], include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }] },
             { model: db.User, attributes: ['name', 'email'] }
         ],
-        order: [['submitted_at', 'DESC']]
+        order: [['submitted_at', 'DESC']],
+        useReplica: true
     });
     const statusCountWhere = { ...allowedFilters };
     delete statusCountWhere.survey_status;
@@ -601,7 +602,8 @@ export const getSurveyReports = async (query, user) => {
             [db.sequelize.fn('COUNT', db.sequelize.col('survey_status')), 'count']
         ],
         group: ['survey_status'],
-        raw: true
+        raw: true,
+        useReplica: true
     });
 
     return {
@@ -644,7 +646,7 @@ export const getSurveyDetails = async (jobId, user) => {
  * Can be called repeatedly throughout the inspection.
  */
 export const streamLocation = async (jobId, { latitude, longitude }, userId) => {
-    const job = await JobRequest.findByPk(jobId);
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
     if (job.assigned_surveyor_id !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
@@ -654,7 +656,7 @@ export const streamLocation = async (jobId, { latitude, longitude }, userId) => 
         throw { statusCode: 400, message: "Survey not required for this job." };
     }
 
-    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     const activeStatuses = ['STARTED', 'CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];
 
     if (!survey || !activeStatuses.includes(survey.survey_status)) {

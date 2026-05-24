@@ -49,6 +49,7 @@ export const getVesselTypes = async (search = null) => {
         attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('ship_type')), 'ship_type']],
         raw: true,
         order: [['ship_type', 'ASC']],
+        useReplica: true,
     });
 
     return rows.map((r) => r.ship_type).filter(Boolean);
@@ -56,7 +57,7 @@ export const getVesselTypes = async (search = null) => {
 
 export const createVessel = async (data, userId) => {
     // Check if client exists
-    const client = await Client.findByPk(data.client_id || data.vessel_owner_id);
+    const client = await Client.findByPk(data.client_id || data.vessel_owner_id, { useMaster: true });
     if (!client) {
         throw { statusCode: 400, message: 'Client not found' };
     }
@@ -109,7 +110,8 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
             { model: Client, as: 'Client', attributes: ['id', 'company_name', 'company_code', 'status'] },
             { model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }
         ],
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
+        useReplica: true
     });
 
     // Calculate status counts
@@ -122,7 +124,8 @@ export const getVessels = async (query, scopeFilters = {}, userRole = null) => {
             [db.sequelize.fn('COUNT', db.sequelize.col('class_status')), 'count']
         ],
         group: ['class_status'],
-        raw: true
+        raw: true,
+        useReplica: true
     });
 
     return {
@@ -184,7 +187,8 @@ export const getVesselsByClientId = async (clientId) => {
                 attributes: ['flag_state_name']
             }
         ],
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
+        useReplica: true
     });
 
     return {

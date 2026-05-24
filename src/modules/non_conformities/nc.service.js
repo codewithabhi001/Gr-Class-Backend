@@ -47,7 +47,8 @@ export const getNCs = async (query) => {
         include: NC_JOB_INCLUDE,
         limit: parseInt(limit, 10),
         offset: (parseInt(page, 10) - 1) * parseInt(limit, 10),
-        order: [['createdAt', 'DESC']]
+        order: [['createdAt', 'DESC']],
+        useReplica: true
     });
 
     // Calculate status counts
@@ -60,7 +61,8 @@ export const getNCs = async (query) => {
             [db.sequelize.fn('COUNT', db.sequelize.col('status')), 'count']
         ],
         group: ['status'],
-        raw: true
+        raw: true,
+        useReplica: true
     });
 
     const pageLimit = parseInt(limit, 10) || 10;
@@ -86,6 +88,7 @@ export const getByJob = async (jobId) => {
         attributes: NC_LIST_ATTRIBUTES,
         include: NC_JOB_INCLUDE,
         order: [['createdAt', 'DESC']],
+        useReplica: true
     });
     return rows.map(flatNcListRow);
 };

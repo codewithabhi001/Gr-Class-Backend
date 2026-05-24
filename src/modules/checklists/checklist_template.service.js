@@ -136,7 +136,8 @@ export const downloadChecklistTemplateForJob = async (jobId, user, { force = fal
             { model: db.Vessel, include: [{ model: db.Client, as: 'Client' }] },
             { model: db.User, as: 'surveyor' },
             { model: db.CertificateType },
-        ]
+        ],
+        useMaster: true
     });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
 

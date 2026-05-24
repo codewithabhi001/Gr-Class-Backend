@@ -150,7 +150,8 @@ export const getApplications = async (query, user = null) => {
             'created_at'
         ],
         limit: parseInt(limit),
-        offset: (page - 1) * limit
+        offset: (page - 1) * limit,
+        useReplica: true
     });
 
     return {
@@ -317,7 +318,8 @@ export const getGPSHistory = async (userId) => {
         where: { surveyor_id: userId },
         attributes: ['id', 'job_id', 'surveyor_id', 'vessel_id', 'latitude', 'longitude', 'timestamp'],
         order: [['timestamp', 'DESC']],
-        limit: 100
+        limit: 100,
+        useReplica: true
     });
 };
 
@@ -362,7 +364,8 @@ export const getSurveyors = async (query = {}, user = null) => {
                 attributes: ['id', 'name', 'email', 'phone', 'role', 'status', 'profile_pic_url']
             }
         ],
-        order: [[User, 'name', 'ASC']]
+        order: [[User, 'name', 'ASC']],
+        useReplica: true
     });
 
     return await fileAccessService.resolveEntity(surveyors, user);
@@ -457,6 +460,7 @@ export const getSurveyorAuthorizationChecklist = async (surveyorId) => {
         attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('ship_type')), 'ship_type']],
         raw: true,
         order: [['ship_type', 'ASC']],
+        useReplica: true
     });
     const allShipTypes = vesselTypeRows.map((r) => r.ship_type).filter(Boolean);
 
@@ -465,6 +469,7 @@ export const getSurveyorAuthorizationChecklist = async (surveyorId) => {
         where: { status: 'ACTIVE' },
         attributes: ['id', 'name', 'issuing_authority'],
         order: [['name', 'ASC']],
+        useReplica: true
     });
 
     // 4. Build checklists

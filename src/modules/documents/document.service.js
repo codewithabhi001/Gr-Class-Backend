@@ -19,7 +19,8 @@ export const getEntityDocuments = async (entityType, entityId) => {
             'uploaded_by',
             'uploaded_at'
         ],
-        order: [['uploaded_at', 'DESC']]
+        order: [['uploaded_at', 'DESC']],
+        useReplica: true
     });
     return await fileAccessService.resolveEntity(documents);
 };

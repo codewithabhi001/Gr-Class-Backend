@@ -22,7 +22,8 @@ export const getUsers = async (query, excludeId) => {
 
     const users = await User.findAll({
         where,
-        attributes: ['id', 'name', 'email', 'role', 'status', 'created_at', 'profile_pic_url', 'phone', 'last_login_at']
+        attributes: ['id', 'name', 'email', 'role', 'status', 'created_at', 'profile_pic_url', 'phone', 'last_login_at'],
+        useReplica: true
     });
     users.map(user => {
         if (!user.profile_pic_url) {

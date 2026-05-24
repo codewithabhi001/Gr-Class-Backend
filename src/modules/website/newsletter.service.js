@@ -113,7 +113,8 @@ export const unsubscribeByToken = async (token) => {
 export const listSubscribers = async () => {
     return await NewsletterSubscriber.findAll({
         attributes: ['email', 'is_active', 'subscribed_at', 'source'],
-        order: [['subscribed_at', 'DESC']]
+        order: [['subscribed_at', 'DESC']],
+        useReplica: true
     });
 };
 

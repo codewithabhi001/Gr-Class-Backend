@@ -7,7 +7,8 @@ const JobRequest = db.JobRequest;
 
 export const submitFeedback = async (data, userId, clientId) => {
     const job = await JobRequest.findByPk(data.job_id, {
-        include: [{ model: db.Vessel, attributes: ['client_id'] }]
+        include: [{ model: db.Vessel, attributes: ['client_id'] }],
+        useMaster: true
     });
 
     if (!job) throw { statusCode: 404, message: 'Job not found' };
@@ -21,7 +22,7 @@ export const submitFeedback = async (data, userId, clientId) => {
         throw { statusCode: 400, message: 'Feedback allowed only for CERTIFIED jobs' };
     }
 
-    const existing = await CustomerFeedback.findOne({ where: { job_id: data.job_id } });
+    const existing = await CustomerFeedback.findOne({ where: { job_id: data.job_id }, useMaster: true });
     if (existing) {
         throw { statusCode: 400, message: 'Feedback already submitted for this job' };
     }
@@ -94,7 +95,8 @@ export const getAllFeedback = async (query) => {
                     }
                 ]
             }
-        ]
+        ],
+        useReplica: true
     });
     return {
         total: result.count,

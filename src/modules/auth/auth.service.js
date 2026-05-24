@@ -179,7 +179,7 @@ export const refreshToken = async (refreshTokenPayload) => {
         if (decoded.type !== JWT_TYPE_REFRESH) {
             throw { statusCode: 401, message: 'Invalid token type. Use refresh token.' };
         }
-        const user = await User.findByPk(decoded.id);
+        const user = await User.findByPk(decoded.id, { useMaster: true });
         if (!user || user.status !== 'ACTIVE') throw new Error('User not found or inactive');
 
         const resolvedUser = await fileAccessService.resolveEntity(user);
@@ -211,7 +211,7 @@ const generatePasswordResetToken = (user) => {
 };
 
 export const forgotPassword = async (email) => {
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email }, useMaster: true });
     if (!user) {
         // Always return same message to avoid revealing whether email exists
         return;

@@ -55,6 +55,8 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.21.0",
+    "pg-hstore": "^2.3.4",
     "puppeteer": "^23.0.0",
     "qrcode": "^1.5.4",
     "redis": "^4.7.1",

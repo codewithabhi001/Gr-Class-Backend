@@ -52,6 +52,7 @@ export const getCertificateTypes = async (options = {}) => {
         where,
         attributes: ['id', 'name', 'issuing_authority', 'validity_years', 'status', 'requires_survey'],
         order: [['name', 'ASC']],
+        useReplica: true
     });
     return types.map(flatCertificateTypeListRow);
 };
@@ -108,7 +109,7 @@ export const createCertificateType = async (data) => {
 
 /** Update certificate type and required documents (ADMIN/TM). */
 export const updateCertificateType = async (id, data) => {
-    const type = await CertificateType.findByPk(id);
+    const type = await CertificateType.findByPk(id, { useMaster: true });
     if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
 
     if (data.name && data.name !== type.name) {
@@ -157,7 +158,8 @@ export const deactivateCertificateType = async (id) => {
         where: {
             certificate_type_id: id,
             status: { [Op.notIn]: ['REVOKED', 'EXPIRED'] }
-        }
+        },
+        useMaster: true
     });
     if (activeCertCount > 0) {
         throw {
@@ -171,7 +173,8 @@ export const deactivateCertificateType = async (id) => {
         where: {
             certificate_type_id: id,
             job_status: { [Op.notIn]: ['CERTIFIED', 'REJECTED', 'CANCELLED'] }
-        }
+        },
+        useMaster: true
     });
     if (activeJobCount > 0) {
         throw {
@@ -196,17 +199,19 @@ export const getCertificateTypeRequiredDocuments = async (certificateTypeId) => 
         where: { certificate_type_id: certificateTypeId },
         attributes: ['id', 'certificate_type_id', 'document_name', 'is_mandatory', 'createdAt', 'updatedAt'],
         order: [['document_name', 'ASC']],
+        useReplica: true
     });
 };
 
 /** Add one required document for a certificate type. */
 export const addCertificateTypeRequiredDocument = async (certificateTypeId, data) => {
-    const type = await CertificateType.findByPk(certificateTypeId, { attributes: ['id'] });
+    const type = await CertificateType.findByPk(certificateTypeId, { attributes: ['id'], useMaster: true });
     if (!type) throw { statusCode: 404, message: 'Certificate type not found' };
 
     const name = (data.document_name ?? '').trim();
     const existing = await db.CertificateRequiredDocument.findOne({
-        where: { certificate_type_id: certificateTypeId, document_name: name }
+        where: { certificate_type_id: certificateTypeId, document_name: name },
+        useMaster: true
     });
     if (existing) throw { statusCode: 409, message: 'Required document already exists for this certificate type' };
 
@@ -232,7 +237,8 @@ export const updateCertificateTypeRequiredDocument = async (certificateTypeId, r
                 certificate_type_id: certificateTypeId,
                 document_name: name,
                 id: { [Op.ne]: requiredDocumentId }
-            }
+            },
+            useMaster: true
         });
         if (dup) throw { statusCode: 409, message: 'Another required document with this name already exists' };
     }
@@ -252,7 +258,7 @@ export const deleteCertificateTypeRequiredDocument = async (certificateTypeId, r
         throw { statusCode: 400, message: 'Required document does not belong to this certificate type' };
     }
 
-    const usedCount = await db.JobDocument.count({ where: { required_document_id: requiredDocumentId } });
+    const usedCount = await db.JobDocument.count({ where: { required_document_id: requiredDocumentId }, useMaster: true });
     if (usedCount > 0) {
         throw { statusCode: 409, message: 'Cannot delete: required document is already used in jobs' };
     }
@@ -275,7 +281,7 @@ const generateUniqueCertificateNumber = async (typeCode = null) => {
             certNumber = `GR/${year}/${randomStr}`;
         }
         
-        const existing = await Certificate.findOne({ where: { certificate_number: certNumber } });
+        const existing = await Certificate.findOne({ where: { certificate_number: certNumber }, useMaster: true });
         if (!existing) {
             isUnique = true;
         }
@@ -611,7 +617,8 @@ export const getCertificates = async (query, user) => {
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
         include: [vesselInclude, { model: db.CertificateType, attributes: ['id', 'name'] }],
         order: [['createdAt', 'DESC']],
-        subQuery: false
+        subQuery: false,
+        useReplica: true
     });
 
     // Calculate status counts
@@ -626,7 +633,8 @@ export const getCertificates = async (query, user) => {
         ],
         include: [vesselInclude],
         group: [db.sequelize.col('Certificate.status')],
-        raw: true
+        raw: true,
+        useReplica: true
     });
 
     const pageLimit = parseInt(limit, 10) || 10;
@@ -660,7 +668,8 @@ export const getCertificatesByVessel = async (vesselId, user) => {
         where,
         attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
         include: [{ model: db.CertificateType, attributes: ['name'] }],
-        order: [['expiry_date', 'ASC']]
+        order: [['expiry_date', 'ASC']],
+        useReplica: true
     });
     return certs.map(flatCertificateListRow);
 };

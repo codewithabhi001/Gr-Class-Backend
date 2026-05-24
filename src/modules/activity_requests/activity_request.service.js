@@ -30,7 +30,7 @@ const enrichAttachments = async (attachments, user = null) => {
 };
 
 export const createActivityRequest = async (data, userId, user = null) => {
-    const count = await ActivityRequest.count({ paranoid: false });
+    const count = await ActivityRequest.count({ paranoid: false, useMaster: true });
     const requestNumber = `AR-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
     const created = await ActivityRequest.create({
@@ -60,6 +60,7 @@ export const getActivityRequests = async (query, scopeFilters = {}) => {
         order: [['created_at', 'DESC']],
         limit: pageLimit,
         offset: (pageNum - 1) * pageLimit,
+        useReplica: true
     });
     return {
         total: count,

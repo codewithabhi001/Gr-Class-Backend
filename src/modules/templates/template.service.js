@@ -37,7 +37,8 @@ export const getTemplates = async (filters = {}) => {
 
     const templates = await CertificateTemplate.findAll({
         where,
-        include: ['CertificateType']
+        include: ['CertificateType'],
+        useReplica: true
     });
     return await fileAccessService.resolveEntity(templates);
 };

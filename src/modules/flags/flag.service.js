@@ -25,7 +25,8 @@ export const getFlags = async (search) => {
             'contact_email',
             'logo_url',
             'status'
-        ]
+        ],
+        useReplica: true
     });
     return await resolveEntity(list);
 };
@@ -47,7 +48,7 @@ export const deleteFlag = async (id) => {
     if (!flag) throw { statusCode: 404, message: 'Flag not found' };
 
     // Check if this flag is associated with any vessel
-    const vesselCount = await db.Vessel.count({ where: { flag_id: id } });
+    const vesselCount = await db.Vessel.count({ where: { flag_id: id }, useMaster: true });
     if (vesselCount > 0) {
         throw {
             statusCode: 409,
@@ -56,7 +57,7 @@ export const deleteFlag = async (id) => {
     }
 
     // Check if this flag is associated with any certificate
-    const certCount = await db.Certificate.count({ where: { flag_administration_id: id } });
+    const certCount = await db.Certificate.count({ where: { flag_administration_id: id }, useMaster: true });
     if (certCount > 0) {
         throw {
             statusCode: 409,

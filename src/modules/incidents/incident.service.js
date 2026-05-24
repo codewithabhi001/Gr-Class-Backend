@@ -10,7 +10,7 @@ export const reportIncident = async (data, userId, clientId) => {
     // If clientId is provided (from CLIENT role), ensure vessel belongs to them
     if (clientId) {
         if (!data.vessel_id) throw { statusCode: 400, message: 'Vessel ID is required for reporting an incident' };
-        const vessel = await Vessel.findOne({ where: { id: data.vessel_id, client_id: clientId } });
+        const vessel = await Vessel.findOne({ where: { id: data.vessel_id, client_id: clientId }, useMaster: true });
         if (!vessel) throw { statusCode: 403, message: 'Unauthorized vessel selection' };
     }
 

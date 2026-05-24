@@ -10,10 +10,10 @@ const __dirname = path.dirname(__filename);
 
 export const getSystemMetrics = async () => {
     const [userCount, jobCount, activeSurveys, rejectedJobs] = await Promise.all([
-        db.User.count(),
-        db.JobRequest.count(),
-        db.JobRequest.count({ where: { job_status: 'IN_PROGRESS' } }),
-        db.JobRequest.count({ where: { job_status: 'REJECTED' } })
+        db.User.count({ useReplica: true }),
+        db.JobRequest.count({ useReplica: true }),
+        db.JobRequest.count({ where: { job_status: 'IN_PROGRESS' }, useReplica: true }),
+        db.JobRequest.count({ where: { job_status: 'REJECTED' }, useReplica: true })
     ]);
 
     let dbStatus = 'CONNECTED';
@@ -72,7 +72,8 @@ export const getAuditLogs = async (query) => {
         limit: parseInt(limit),
         offset: (parseInt(page) - 1) * parseInt(limit),
         order: [['created_at', 'DESC']],
-        include: [{ model: db.User, attributes: ['id', 'name', 'email', 'role'] }]
+        include: [{ model: db.User, attributes: ['id', 'name', 'email', 'role'] }],
+        useReplica: true
     });
 
     return {
@@ -95,7 +96,8 @@ export const getFailedJobs = async () => {
         limit: 10,
         order: [['updatedAt', 'DESC']],
         attributes: ['id', 'job_status', 'remarks', 'updatedAt'],
-        include: [{ model: db.Vessel, attributes: ['vessel_name'] }]
+        include: [{ model: db.Vessel, attributes: ['vessel_name'] }],
+        useReplica: true
     });
     
     return rejected.map(r => ({
@@ -192,7 +194,7 @@ export const getMigrations = async () => {
 
 export const getLocales = async () => {
     // Return supported flag administrations as locales
-    const flags = await db.FlagAdministration.findAll({ attributes: ['flag_state_name', 'country'] });
+    const flags = await db.FlagAdministration.findAll({ attributes: ['flag_state_name', 'country'], useReplica: true });
     return { 
         available: flags.map(f => ({ code: f.country, name: f.flag_state_name })),
         default: 'INT'

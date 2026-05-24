@@ -23,7 +23,8 @@ const fetchCertificates = async (filters = {}) => {
             { model: db.Vessel, attributes: ['vessel_name', 'imo_number'] },
             { model: db.CertificateType, attributes: ['name'] },
             { model: db.User, as: 'issuer', attributes: ['name', 'email'] }
-        ]
+        ],
+        useReplica: true
     });
     return certificates;
 };
@@ -60,7 +61,8 @@ const fetchSurveys = async (filters = {}) => {
         include: [
             { model: db.User, attributes: ['id', 'name', 'email'] },
             { model: JobRequest, attributes: ['id', 'job_status'] }
-        ]
+        ],
+        useReplica: true
     });
     return surveys;
 };
@@ -91,7 +93,8 @@ const fetchNonConformities = async (filters = {}) => {
 
     const ncs = await NonConformity.findAll({
         where,
-        include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'] }]
+        include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'] }],
+        useReplica: true
     });
 
     const stats = {
@@ -126,7 +129,8 @@ export const getFinancialReport = async (filters = {}) => {
 
     const payments = await Payment.findAll({
         where,
-        include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'] }]
+        include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'] }],
+        useReplica: true
     });
 
     const stats = {

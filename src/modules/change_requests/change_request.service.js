@@ -38,7 +38,8 @@ export const getChangeRequests = async (filters = {}) => {
             { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
             { model: User, as: 'approver', attributes: ['id', 'name', 'email'] }
         ],
-        order: [['createdAt', 'DESC']]
+        order: [['createdAt', 'DESC']],
+        useReplica: true
     });
 
     return changeRequests.map(flatChangeRequestListRow);

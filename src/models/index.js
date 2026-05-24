@@ -68,6 +68,26 @@ if (dbConfig.replicaHost) {
     });
 }
 
+// Patch connectionManager to use Master database by default for all SELECT queries,
+// unless useReplica: true or useSlave: true is explicitly specified.
+if (sequelize.connectionManager && typeof sequelize.connectionManager.getConnection === 'function') {
+    const originalGetConnection = sequelize.connectionManager.getConnection;
+    sequelize.connectionManager.getConnection = function (options) {
+        options = options || {};
+        if (options.type === 'SELECT') {
+            const useReplica = options.useReplica === true || options.useSlave === true || options.useReplica === 'true' || options.useSlave === 'true';
+            if (useReplica) {
+                options.useMaster = false;
+                console.log('🚀 [DB ROUTING] SELECT query routed to READ REPLICA');
+            } else {
+                options.useMaster = true;
+                console.log('🗄️ [DB ROUTING] SELECT query routed to PRIMARY DB');
+            }
+        }
+        return originalGetConnection.call(this, options);
+    };
+}
+
 const db = {};
 
 const loadModels = async () => {

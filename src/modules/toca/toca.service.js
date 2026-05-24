@@ -22,6 +22,7 @@ export const updateStatus = async (id, status, userId) => {
 export const getTocas = async (query) => {
     return await Toca.findAll({
         limit: 10,
-        attributes: ['id', 'vessel_id', 'losing_class_society', 'gaining_class_society', 'request_date', 'status', 'decision_date']
+        attributes: ['id', 'vessel_id', 'losing_class_society', 'gaining_class_society', 'request_date', 'status', 'decision_date'],
+        useReplica: true
     });
 };

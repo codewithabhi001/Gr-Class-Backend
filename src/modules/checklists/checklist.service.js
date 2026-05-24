@@ -142,7 +142,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
         throw { statusCode: 400, message: "Survey not required for this job." };
     }
 
-    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet. Please check-in first.' };
 
     // ── Guard 4: Survey must be in an active state (not before, not after) ──
@@ -231,7 +231,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
         await ensureFullFileUrls(resolvedItems);
 
         const persistedFiles = Array.isArray(signedChecklistFiles)
-            ? (await Survey.findOne({ where: { job_id: jobId }, attributes: ['signed_checklist_files'] })).signed_checklist_files
+            ? (await Survey.findOne({ where: { job_id: jobId }, attributes: ['signed_checklist_files'], useMaster: true })).signed_checklist_files
             : (survey.signed_checklist_files || []);
         const signedFilesResolved = await resolveKeyArray(persistedFiles, userObj);
 
@@ -278,7 +278,7 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
         throw { statusCode: 400, message: 'signed_checklist_files must be an array of S3 keys.' };
     }
 
-    const survey = await Survey.findOne({ where: { job_id: jobId } });
+    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet. Please check-in first.' };
 
     const activeStatuses = ['STARTED', 'CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];

@@ -48,7 +48,8 @@ export const globalSearch = async (query, user) => {
         const clientVessels = await db.Vessel.findAll({
             where: { client_id: user.client_id },
             attributes: ['id'],
-            raw: true
+            raw: true,
+            useReplica: true
         });
         clientVesselIds = clientVessels.map(v => v.id);
 
@@ -99,14 +100,16 @@ export const globalSearch = async (query, user) => {
         where: vesselWhere,
         include: vesselInclude,
         attributes: ['id', 'vessel_name', 'imo_number', 'client_id'],
-        limit: 10
+        limit: 10,
+        useReplica: true
     });
 
     const jobs = await db.JobRequest.findAll({
         where: jobWhere,
         attributes: ['id', 'job_status', 'vessel_id', 'created_at'],
         include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }],
-        limit: 10
+        limit: 10,
+        useReplica: true
     });
 
     const certificates = await db.Certificate.findAll({
@@ -114,7 +117,8 @@ export const globalSearch = async (query, user) => {
         include: certInclude,
         attributes: ['id', 'certificate_number', 'vessel_id', 'status', 'expiry_date'],
         limit: 10,
-        subQuery: false
+        subQuery: false,
+        useReplica: true
     });
 
     return {

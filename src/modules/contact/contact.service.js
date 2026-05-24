@@ -120,6 +120,7 @@ export const getAllEnquiries = async (query) => {
         order: [['created_at', 'DESC']],
         limit: limitNum,
         offset: (pageNum - 1) * limitNum,
+        useReplica: true
     });
 
     return {
@@ -188,7 +189,8 @@ export const getEnquiryStats = async () => {
             'status',
             [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count']
         ],
-        group: ['status']
+        group: ['status'],
+        useReplica: true
     });
 
     const results = {

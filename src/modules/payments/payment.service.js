@@ -254,11 +254,12 @@ export const getPayments = async (query, scopeFilters = {}, user = null) => {
         limit: parseInt(limit),
         offset: (page - 1) * limit,
         include,
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
+        useReplica: true
     });
 
     const paymentIds = result.rows.map(r => r.id);
-    const ledgers = paymentIds.length > 0 ? await FinancialLedger.findAll({ where: { invoice_id: paymentIds } }) : [];
+    const ledgers = paymentIds.length > 0 ? await FinancialLedger.findAll({ where: { invoice_id: paymentIds }, useReplica: true }) : [];
 
     const enrichedRows = result.rows.map(row => {
         const plain = row.get({ plain: true });
@@ -297,11 +298,11 @@ export const getPaymentById = async (id, scopeFilters = {}, user = null) => {
 
 
 export const getFinancialSummary = async (scopeFilters = {}) => {
-    const payments = await Payment.findAll({ where: scopeFilters });
+    const payments = await Payment.findAll({ where: scopeFilters, useReplica: true });
     const paymentIds = payments.map(p => p.id);
 
     // Use ledger as source of truth for actual collections
-    const ledgers = paymentIds.length > 0 ? await FinancialLedger.findAll({ where: { invoice_id: paymentIds } }) : [];
+    const ledgers = paymentIds.length > 0 ? await FinancialLedger.findAll({ where: { invoice_id: paymentIds }, useReplica: true }) : [];
 
     const totalInvoiced = payments.reduce((s, p) => s + parseFloat(p.amount), 0);
     const totalCollected = ledgers
@@ -322,7 +323,7 @@ export const getFinancialSummary = async (scopeFilters = {}) => {
 };
 
 export const getLedger = async (paymentId) => {
-    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']] });
+    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: paymentId }, order: [['createdAt', 'ASC']], useReplica: true });
     return formatLedgerRows(ledgers);
 };
 

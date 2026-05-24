@@ -63,9 +63,9 @@ const enrichUploadedDocuments = async (jobId, user = null) => {
  * @param {string} id
  * @param {{ includeVessel?: boolean }} options
  */
-const requireJob = async (id, { includeVessel = false } = {}) => {
+const requireJob = async (id, { includeVessel = false, useMaster = false } = {}) => {
     const include = includeVessel ? ['Vessel'] : [];
-    const job = await JobRequest.findByPk(id, { include });
+    const job = await JobRequest.findByPk(id, { include, ...(useMaster ? { useMaster: true } : {}) });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
     return job;
 };
@@ -75,7 +75,7 @@ const requireJob = async (id, { includeVessel = false } = {}) => {
  * for the vessel type and certificate type of the job.
  */
 const validateSurveyorAuthority = async (job, surveyorId) => {
-    const profile = await SurveyorProfile.findOne({ where: { user_id: surveyorId } });
+    const profile = await SurveyorProfile.findOne({ where: { user_id: surveyorId }, useMaster: true });
     if (!profile) {
         throw { statusCode: 400, message: 'Surveyor profile not found. Cannot verify authorizations.' };
     }
@@ -93,8 +93,8 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
     let certName = null;
 
     const [vessel, certType] = await Promise.all([
-        job.vessel_id ? Vessel.findByPk(job.vessel_id) : Promise.resolve(null),
-        job.certificate_type_id ? CertificateType.findByPk(job.certificate_type_id) : Promise.resolve(null)
+        job.vessel_id ? Vessel.findByPk(job.vessel_id, { useMaster: true }) : Promise.resolve(null),
+        job.certificate_type_id ? CertificateType.findByPk(job.certificate_type_id, { useMaster: true }) : Promise.resolve(null)
     ]);
 
     vesselType = vessel?.ship_type;
@@ -321,7 +321,8 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     const { count, rows } = await JobRequest.findAndCountAll({
         where: whereClause, attributes: jobAttributes,
         limit: pageLimit, offset: (pageNum - 1) * pageLimit,
-        order: [['updatedAt', 'DESC']], include
+        order: [['updatedAt', 'DESC']], include,
+        useReplica: true
     });
 
     // Calculate status counts
@@ -334,7 +335,8 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
             [db.sequelize.fn('COUNT', db.sequelize.col('job_status')), 'count']
         ],
         group: ['job_status'],
-        raw: true
+        raw: true,
+        useReplica: true
     });
 
     const jobs = (await fileAccessService.resolveEntity(rows)).map(j => {
@@ -485,7 +487,8 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             model: User,
             where: userWhere,
             attributes: ['id', 'name', 'email', 'phone', 'profile_pic_url']
-        }]
+        }],
+        useReplica: true
     });
 
     const surveyors = [];
@@ -562,19 +565,21 @@ export const verifyJobDocuments = async (id, body, user) => {
         throw { statusCode: 403, message: 'Only Technical Officers (TO), General Managers (GM) or Admins have permission to verify documents.' };
     }
     const userId = user.id;
-    const job = await requireJob(id, { includeVessel: true });
+    const job = await requireJob(id, { includeVessel: true, useMaster: true });
     if (job.job_status !== 'CREATED') {
         throw { statusCode: 400, message: `Documents can only be verified when the job is in CREATED status.` };
     }
 
     // Check if certificate type has mandatory documents
     const requiredDocs = await CertificateRequiredDocument.findAll({
-        where: { certificate_type_id: job.certificate_type_id, is_mandatory: true }
+        where: { certificate_type_id: job.certificate_type_id, is_mandatory: true },
+        useMaster: true
     });
 
     if (requiredDocs.length > 0) {
         const uploadedDocs = await JobDocument.findAll({
-            where: { job_id: id }
+            where: { job_id: id },
+            useMaster: true
         });
         const uploadedDocIds = uploadedDocs.map(d => d.required_document_id);
         const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
@@ -629,7 +634,7 @@ export const verifyJobDocuments = async (id, body, user) => {
         });
 
         // Notify client to re-upload
-        const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' } });
+        const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
         if (clientUser) {
             notificationService.sendNotification(clientUser.id, 'JOB_DOCUMENTS_REJECTED', {
                 jobId: id,
@@ -711,7 +716,7 @@ export const approveRequest = async (id, remarks, user) => {
     if (!['GM', 'ADMIN'].includes(user.role)) {
         throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to approve job requests.' };
     }
-    const job = await requireJob(id, { includeVessel: true });
+    const job = await requireJob(id, { includeVessel: true, useMaster: true });
     if (job.job_status !== 'DOCUMENT_VERIFIED') {
         throw { statusCode: 400, message: `Jobs can only be approved after documents have been verified.` };
     }
@@ -719,7 +724,7 @@ export const approveRequest = async (id, remarks, user) => {
     await updated.update({ approved_by_user_id: user.id });
 
     // Notify Client (vessel already loaded)
-    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' } });
+    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
     if (clientUser) {
         notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
             jobId: id, vesselName: job.Vessel.vessel_name
@@ -734,7 +739,7 @@ export const approveRequest = async (id, remarks, user) => {
  * Roles: ADMIN, GM, TM
  */
 export const finalizeJob = async (id, remarks, user) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { useMaster: true });
     if (job.is_survey_required) {
         if (!['REVIEWED', 'SURVEY_DONE'].includes(job.job_status)) {
             throw { statusCode: 400, message: 'This job requires a survey report. It must be Reviewed before finalization.' };
@@ -757,11 +762,11 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
         throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to assign surveyors.' };
     }
     const userId = user.id;
-    const job = await requireJob(jobId, { includeVessel: true });
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
     if (job.job_status !== 'APPROVED') {
         throw { statusCode: 400, message: 'A surveyor can only be assigned after the job has been approved.' };
     }
-    const surveyor = await User.findByPk(surveyorId);
+    const surveyor = await User.findByPk(surveyorId, { useMaster: true });
     if (!surveyor || surveyor.role !== 'SURVEYOR') {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
     }
@@ -789,7 +794,7 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
         throw { statusCode: 403, message: 'You do not have permission to reassign surveyors.' };
     }
     const userId = user.id;
-    const job = await requireJob(jobId, { includeVessel: true });
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
     // Validate new surveyor authority
     await validateSurveyorAuthority(job, surveyorId);
@@ -809,7 +814,7 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
 
     // Explicitly sync survey in reassignment case since it doesn't change job status
     if (job.is_survey_required) {
-        const survey = await Survey.findOne({ where: { job_id: jobId } });
+        const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
         if (survey) await survey.update({ surveyor_id: surveyorId });
     }
     return job;
@@ -823,7 +828,7 @@ export const authorizeSurvey = async (id, remarks, user) => {
     if (!isRoleAllowed(RBAC.AUTHORIZE_SURVEY, user.role)) {
         throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to authorize surveys.' };
     }
-    const job = await requireJob(id, { includeVessel: true });
+    const job = await requireJob(id, { includeVessel: true, useMaster: true });
     if (job.job_status !== 'ASSIGNED') {
         throw { statusCode: 400, message: `Survey authorization is possible only after a surveyor has been assigned.` };
     }
@@ -839,7 +844,7 @@ export const authorizeSurvey = async (id, remarks, user) => {
     notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
         jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel.vessel_name
     });
-    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' } });
+    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
     if (clientUser) {
         notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
             jobId: id, vesselName: job.Vessel.vessel_name
@@ -856,7 +861,7 @@ export const reviewJob = async (id, remarks, user) => {
     if (user.role !== 'TO') {
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to mark a job as reviewed.' };
     }
-    const job = await requireJob(id, { includeVessel: true });
+    const job = await requireJob(id, { includeVessel: true, useMaster: true });
     if (job.job_status !== 'SURVEY_DONE') {
         throw { statusCode: 400, message: `Jobs can only be reviewed after the survey has been completed.` };
     }
@@ -931,7 +936,7 @@ export const rescheduleJob = async (id, data, userId) => {
 
         // Notify surveyor if assigned
         if (job.assigned_surveyor_id) {
-            const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'] });
+            const jobWithVessel = await JobRequest.findByPk(id, { include: ['Vessel'], useMaster: true });
             notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_RESCHEDULED', {
                 jobId: id,
                 vesselName: jobWithVessel.Vessel.vessel_name,
@@ -955,7 +960,7 @@ export const rescheduleJob = async (id, data, userId) => {
  * ADMIN: any non-terminal | GM: CREATED only | TM: ASSIGNED, SURVEY_DONE, REVIEWED
  */
 export const rejectJob = async (id, remarks, user) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { useMaster: true });
     const { role } = user;
     const current = job.job_status;
 
@@ -985,7 +990,7 @@ export const rejectJob = async (id, remarks, user) => {
  * → REJECTED (cancel path — ADMIN / GM can cancel any non-terminal job)
  */
 export const cancelJob = async (id, reason, userId) => {
-    const job = await requireJob(id);
+    const job = await requireJob(id, { useMaster: true });
     const current = job.job_status;
 
     if (lifecycleService.JOB_TERMINAL_STATES.includes(current)) {
@@ -1005,7 +1010,7 @@ export const cancelJob = async (id, reason, userId) => {
  * Once the job progresses beyond CREATED (e.g. DOCUMENT_VERIFIED), only ADMIN/GM can cancel.
  */
 export const cancelJobForClient = async (id, reason, clientId, userId) => {
-    const job = await JobRequest.findByPk(id, { include: ['Vessel'] });
+    const job = await JobRequest.findByPk(id, { include: ['Vessel'], useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
     if (job.Vessel.client_id !== clientId) {
         throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
@@ -1043,7 +1048,8 @@ export const getJobDocuments = async (jobId, user) => {
             model: CertificateRequiredDocument,
             attributes: ['id', 'document_name', 'is_mandatory']
         }],
-        order: [['createdAt', 'ASC']]
+        order: [['createdAt', 'ASC']],
+        useReplica: true
     });
 
     const resolvedDocs = await fileAccessService.resolveEntity(docs, user);
@@ -1051,13 +1057,15 @@ export const getJobDocuments = async (jobId, user) => {
     // Also get required docs to show what's still needed
     const requiredDocs = job.certificate_type_id
         ? await CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: job.certificate_type_id }
+            where: { certificate_type_id: job.certificate_type_id },
+            useReplica: true
         })
         : [];
 
     const certificateType = job.certificate_type_id
         ? await db.CertificateType.findByPk(job.certificate_type_id, {
-            attributes: ['id', 'name', 'issuing_authority', 'requires_survey']
+            attributes: ['id', 'name', 'issuing_authority', 'requires_survey'],
+            useReplica: true
         })
         : null;
 
@@ -1113,7 +1121,7 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
         throw { statusCode: 400, message: 'Please provide at least one document to upload.' };
     }
 
-    const job = await requireJob(jobId, { includeVessel: true });
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
     if (job.job_status !== 'CREATED') {
         throw { statusCode: 400, message: 'Documents can only be uploaded while the job is in CREATED status.' };
@@ -1121,7 +1129,7 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
 
     // Client ownership check
     if (user.role === 'CLIENT') {
-        const vessel = await Vessel.findByPk(job.vessel_id);
+        const vessel = await Vessel.findByPk(job.vessel_id, { useMaster: true });
         if (!vessel || vessel.client_id !== user.client_id) {
             throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
         }
@@ -1142,7 +1150,8 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
                 job_id: jobId,
                 verification_status: 'PENDING',
                 ...(doc.required_document_id ? { required_document_id: doc.required_document_id } : { custom_document_name: doc.custom_document_name })
-            }
+            },
+            useMaster: true
         });
 
         if (existingPending) {
@@ -1186,7 +1195,7 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
         throw { statusCode: 400, message: 'Please provide the new file_url for the document.' };
     }
 
-    const job = await requireJob(jobId, { includeVessel: true });
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
     if (job.job_status !== 'CREATED') {
         throw { statusCode: 400, message: 'Documents can only be re-uploaded while the job is in CREATED status.' };
@@ -1194,14 +1203,15 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
 
     // Client ownership check
     if (user.role === 'CLIENT') {
-        const vessel = await Vessel.findByPk(job.vessel_id);
+        const vessel = await Vessel.findByPk(job.vessel_id, { useMaster: true });
         if (!vessel || vessel.client_id !== user.client_id) {
             throw { statusCode: 403, message: 'Access denied: this job does not belong to your account.' };
         }
     }
 
     const doc = await JobDocument.findOne({
-        where: { id: documentId, job_id: jobId }
+        where: { id: documentId, job_id: jobId },
+        useMaster: true
     });
     if (!doc) {
         throw { statusCode: 404, message: 'Document not found for this job.' };
@@ -1217,7 +1227,8 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
             job_id: jobId,
             verification_status: 'PENDING',
             ...(doc.required_document_id ? { required_document_id: doc.required_document_id } : { custom_document_name: doc.custom_document_name })
-        }
+        },
+        useMaster: true
     });
 
     let resultDoc;
@@ -1256,7 +1267,7 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
 // ─────────────────────────────────────────────
 
 export const updatePriority = async (jobId, priority, reason, userId) => {
-    const job = await requireJob(jobId);
+    const job = await requireJob(jobId, { useMaster: true });
     const oldPriority = job.priority;
     await job.update({ priority });
     await AuditLog.create({
@@ -1278,15 +1289,17 @@ export const getJobHistory = async (id, scopeFilters = {}) => {
         where: { job_id: id },
         order: [['created_at', 'ASC']],
         attributes: ['id', 'job_id', 'previous_status', 'new_status', 'changed_by', 'reason', 'created_at'],
-        include: [{ model: User, attributes: ['name', 'email', 'role'] }]
+        include: [{ model: User, attributes: ['name', 'email', 'role'] }],
+        useReplica: true
     });
 
-    const survey = await Survey.findOne({ where: { job_id: id } });
+    const survey = await Survey.findOne({ where: { job_id: id }, useReplica: true });
     const surveyHistory = survey ? await db.SurveyStatusHistory.findAll({
         where: { survey_id: survey.id },
         order: [['created_at', 'ASC']],
         attributes: ['id', 'survey_id', 'previous_status', 'new_status', 'changed_by', 'reason', 'submission_iteration', 'createdAt'],
-        include: [{ model: User, as: 'User', attributes: ['name', 'email', 'role'] }]
+        include: [{ model: User, as: 'User', attributes: ['name', 'email', 'role'] }],
+        useReplica: true
     }) : [];
 
     return {

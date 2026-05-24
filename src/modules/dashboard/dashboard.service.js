@@ -10,7 +10,8 @@ export const getAdminDashboard = async () => {
     const roleCountsRaw = await User.findAll({
         attributes: ['role', [db.sequelize.fn('COUNT', 'role'), 'count']],
         group: ['role'],
-        raw: true
+        raw: true,
+        useReplica: true
     });
 
     const roleCounts = roleCountsRaw.reduce((acc, r) => {
@@ -73,30 +74,35 @@ const getOperationalStats = async () => {
                 attributes: vesselAttrs,
                 include: [{ model: FlagAdministration, as: 'FlagAdministration', attributes: ['flag_state_name'] }]
             }],
+            useReplica: true
         }),
-        Vessel.count(),
-        JobRequest.count(),
-        Certificate.count(),
-        SurveyorProfile.count({ where: { status: 'ACTIVE' } }),
+        Vessel.count({ useReplica: true }),
+        JobRequest.count({ useReplica: true }),
+        Certificate.count({ useReplica: true }),
+        SurveyorProfile.count({ where: { status: 'ACTIVE' }, useReplica: true }),
         JobRequest.findAll({
             attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
             group: ['job_status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         Certificate.findAll({
             attributes: ['status', [db.sequelize.fn('COUNT', 'status'), 'count']],
             group: ['status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         Survey.findAll({
             attributes: ['survey_status', [db.sequelize.fn('COUNT', 'survey_status'), 'count']],
             group: ['survey_status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         NonConformity.findAll({
             attributes: ['status', [db.sequelize.fn('COUNT', 'status'), 'count']],
             group: ['status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         Certificate.count({
             where: {
@@ -104,7 +110,8 @@ const getOperationalStats = async () => {
                 expiry_date: {
                     [Op.between]: [today, target]
                 }
-            }
+            },
+            useReplica: true
         }),
         JobRequest.findAll({
             limit: 5,
@@ -112,17 +119,20 @@ const getOperationalStats = async () => {
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
                 { model: CertificateType, attributes: ['name'] }
-            ]
+            ],
+            useReplica: true
         }),
         Certificate.findAll({
             limit: 5,
             order: [['createdAt', 'DESC']],
-            include: [{ model: Vessel, attributes: ['vessel_name'] }]
+            include: [{ model: Vessel, attributes: ['vessel_name'] }],
+            useReplica: true
         }),
         SurveyorApplication.findAll({
             limit: 5,
             attributes: ['id', 'full_name', 'email', 'phone', 'status', 'created_at'],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            useReplica: true
         }),
         Survey.findAll({
             limit: 5,
@@ -131,18 +141,21 @@ const getOperationalStats = async () => {
             include: [
                 { model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'], include: [{ model: Vessel, attributes: ['vessel_name'] }] },
                 { model: User, attributes: ['name', 'email'] }
-            ]
+            ],
+            useReplica: true
         }),
         NonConformity.findAll({
             limit: 5,
             order: [['createdAt', 'DESC']],
             attributes: ['id', 'job_id', 'description', 'severity', 'status', 'created_at'],
-            include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'], include: [{ model: Vessel, attributes: ['vessel_name'] }] }]
+            include: [{ model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'], include: [{ model: Vessel, attributes: ['vessel_name'] }] }],
+            useReplica: true
         }),
         WebsiteContact.findAll({
             limit: 5,
             attributes: ['id', 'full_name', 'company', 'corporate_email', 'status', 'created_at'],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            useReplica: true
         }),
         JobRequest.findAll({
             where: {
@@ -154,7 +167,8 @@ const getOperationalStats = async () => {
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
                 { model: CertificateType, attributes: ['name'] }
-            ]
+            ],
+            useReplica: true
         })
     ]);
 
@@ -287,7 +301,8 @@ export const getGMDashboard = async () => {
             { model: CertificateType, attributes: ['name'] }
         ],
         order: [['updatedAt', 'DESC']],
-        limit: 10
+        limit: 10,
+        useReplica: true
     });
 
     return {
@@ -324,25 +339,29 @@ export const getTMDashboard = async (user) => {
             where: { job_status: 'DOCUMENT_VERIFIED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         JobRequest.findAll({
             where: { job_status: 'ASSIGNED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         JobRequest.findAll({
             where: { job_status: { [Op.in]: ['REVIEWED', 'PAYMENT_DONE'] } },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         JobRequest.findAll({
             attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
             where: { job_status: ['DOCUMENT_VERIFIED', 'ASSIGNED', 'REVIEWED', 'PAYMENT_DONE'] },
             group: ['job_status'],
-            raw: true
+            raw: true,
+            useReplica: true
         })
     ]);
 
@@ -395,34 +414,40 @@ export const getTODashboard = async (user) => {
             where: { job_status: 'CREATED' },
             include: jobIncludes,
             order: [['createdAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         JobRequest.findAll({
             where: { job_status: 'SURVEY_DONE' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         JobRequest.findAll({
             where: { job_status: 'REWORK_REQUESTED' },
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         NonConformity.findAll({
             where: { status: 'OPEN' },
             include: [{ model: JobRequest, attributes: ['id', 'job_status'], include: [{ model: Vessel, attributes: ['vessel_name'] }] }],
             order: [['createdAt', 'DESC']],
-            limit: 5
+            limit: 5,
+            useReplica: true
         }),
         JobRequest.findAll({
             attributes: ['job_status', [db.sequelize.fn('COUNT', 'job_status'), 'count']],
             where: { job_status: ['CREATED', 'SURVEY_DONE', 'REWORK_REQUESTED'] },
             group: ['job_status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         NonConformity.count({
-            where: { status: 'OPEN' }
+            where: { status: 'OPEN' },
+            useReplica: true
         })
     ]);
 
@@ -483,6 +508,7 @@ export const getSurveyorDashboard = async (user) => {
             include: jobIncludes,
             order: [['target_date', 'ASC']],
             limit: 5,
+            useReplica: true
         }),
         // Authorized — surveyor can start these
         JobRequest.findAll({
@@ -490,6 +516,7 @@ export const getSurveyorDashboard = async (user) => {
             include: jobIncludes,
             order: [['target_date', 'ASC']],
             limit: 5,
+            useReplica: true
         }),
         // In Progress — actively being surveyed
         JobRequest.findAll({
@@ -497,6 +524,7 @@ export const getSurveyorDashboard = async (user) => {
             include: jobIncludes,
             order: [['target_date', 'ASC']],
             limit: 5,
+            useReplica: true
         }),
         // Action Required — rework requested, needs surveyor's attention
         JobRequest.findAll({
@@ -504,6 +532,7 @@ export const getSurveyorDashboard = async (user) => {
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
             limit: 5,
+            useReplica: true
         }),
         // Recently Completed — finished jobs
         JobRequest.findAll({
@@ -511,17 +540,20 @@ export const getSurveyorDashboard = async (user) => {
             include: jobIncludes,
             order: [['updatedAt', 'DESC']],
             limit: 5,
+            useReplica: true
         }),
         // Summary counts (lightweight)
         JobRequest.findAll({
             where: surveyorFilter,
             attributes: ['job_status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         Survey.findAll({
             where: { surveyor_id: user.id },
             attributes: ['survey_status'],
-            raw: true
+            raw: true,
+            useReplica: true
         }),
         NonConformity.count({
             include: [{
@@ -529,9 +561,10 @@ export const getSurveyorDashboard = async (user) => {
                 where: surveyorFilter,
                 required: true
             }],
-            where: { status: 'OPEN' }
+            where: { status: 'OPEN' },
+            useReplica: true
         }),
-        SurveyorProfile.findOne({ where: { user_id: user.id }, raw: true }),
+        SurveyorProfile.findOne({ where: { user_id: user.id }, raw: true, useReplica: true }),
     ]);
 
     const jobsByStatus = allJobsRaw.reduce((acc, j) => {
@@ -585,7 +618,8 @@ export const getClientDashboard = async (clientId) => {
     const vessels = await Vessel.findAll({ 
         where: { client_id: clientId }, 
         attributes: ['id', 'vessel_name', 'imo_number', 'createdAt'],
-        order: [['createdAt', 'DESC']]
+        order: [['createdAt', 'DESC']],
+        useReplica: true
     });
     const vesselIds = vessels.map(v => v.id);
 
@@ -610,12 +644,14 @@ export const getClientDashboard = async (clientId) => {
                 { model: CertificateType, attributes: ['name'] },
                 { model: User, as: 'surveyor', attributes: ['name', 'email'] }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            useReplica: true
         }),
         Certificate.findAll({
             where: { vessel_id: vesselIds },
             include: [{ model: Vessel, attributes: ['vessel_name'] }],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            useReplica: true
         }),
         Payment.findAll({
             include: [{
@@ -624,7 +660,8 @@ export const getClientDashboard = async (clientId) => {
                 required: true,
                 include: [{ model: Vessel, attributes: ['vessel_name'] }]
             }],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            useReplica: true
         }),
         Survey.findAll({
             include: [{
@@ -635,7 +672,8 @@ export const getClientDashboard = async (clientId) => {
             }, {
                 model: User, attributes: ['name', 'email']
             }],
-            order: [['updatedAt', 'DESC']]
+            order: [['updatedAt', 'DESC']],
+            useReplica: true
         }),
         NonConformity.findAll({
             include: [{
@@ -644,7 +682,8 @@ export const getClientDashboard = async (clientId) => {
                 required: true,
                 include: [{ model: Vessel, attributes: ['vessel_name'] }]
             }],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            useReplica: true
         })
     ]);
 

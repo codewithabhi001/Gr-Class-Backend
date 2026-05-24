@@ -180,29 +180,28 @@ async function run() {
     // ─── 5. Finalize by non-TM ───────────────────────────────────────────────
     console.log('\n── Section 5: Finalization Role Guard ───────────────────────────────');
     {
-        const jobId = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'IN_PROGRESS');
+        const jobId = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'SURVEY_DONE');
         const surveyId = await makeSurvey(jobId, surveyorId, 'SUBMITTED');
 
-        await expectError('ADMIN cannot finalize survey (only TM)', 403, async () => {
-            // requesterId is GM role
-            await lifecycle.updateSurveyStatus(surveyId, 'FINALIZED', requesterId, 'GM tries to finalize');
+        await expectError('SURVEYOR cannot finalize survey', 403, async () => {
+            await lifecycle.updateSurveyStatus(surveyId, 'FINALIZED', surveyorId, 'Surveyor tries to finalize');
         });
     }
 
-    // ─── 6. Certificate before Payment ───────────────────────────────────────
+    // ─── 6. Certificate before Survey Statement ISSUED ───────────────────────
     console.log('\n── Section 6: Certificate Guards ────────────────────────────────────');
     {
         const jobId = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'FINALIZED');
         await makeSurvey(jobId, surveyorId, 'FINALIZED');
 
-        await expectError('Certificate blocked: job not PAYMENT_DONE', 400, async () => {
+        await expectError('Certificate blocked: survey statement not issued', 400, async () => {
             await certService.generateCertificate({ job_id: jobId }, tmUser);
         });
     }
 
     // ─── 7. Certificate before Survey FINALIZED ──────────────────────────────
     {
-        const jobId = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'PAYMENT_DONE');
+        const jobId = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'FINALIZED');
         await makeSurvey(jobId, surveyorId, 'SUBMITTED'); // Not finalized
 
         await expectError('Certificate blocked: survey not FINALIZED', 400, async () => {
@@ -212,8 +211,15 @@ async function run() {
 
     // ─── 8. Duplicate Certificate ─────────────────────────────────────────────
     {
-        const jobId2 = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'PAYMENT_DONE');
+        const jobId2 = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'FINALIZED');
         await makeSurvey(jobId2, surveyorId, 'FINALIZED');
+        await db.Survey.update({
+            survey_statement_status: 'ISSUED',
+            attendance_photo_url: 'https://test.com/photo.jpg',
+            submit_latitude: 1.0,
+            submit_longitude: 1.0
+        }, { where: { job_id: jobId2 } });
+        
         // Create a real certificate row so FK is satisfied
         const fakeCert = await db.Certificate.create({
             vessel_id: vesselId,

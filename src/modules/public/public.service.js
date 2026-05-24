@@ -10,7 +10,8 @@ export const verifyCertificate = async (certificateNumber) => {
         where: { certificate_number: certificateNumber },
         include: [
             { model: Vessel, attributes: ['vessel_name', 'imo_number'] }
-        ]
+        ],
+        useReplica: true
     });
     console.log(cert)
     if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
@@ -40,7 +41,7 @@ export const verifyCertificate = async (certificateNumber) => {
 
 export const verifyVessel = async (imoNumber) => {
     if (!imoNumber) throw { statusCode: 400, message: 'IMO number is required' };
-    const vessel = await Vessel.findOne({ where: { imo_number: imoNumber } });
+    const vessel = await Vessel.findOne({ where: { imo_number: imoNumber }, useReplica: true });
     if (!vessel) throw { statusCode: 404, message: 'Vessel not found' };
 
     // Public details only
@@ -62,7 +63,8 @@ export const getFlagsPublic = async () => {
             'country',
             'authority_name',
             'logo_url'
-        ]
+        ],
+        useReplica: true
     });
     return await fileAccessService.resolveEntity(list);
 };

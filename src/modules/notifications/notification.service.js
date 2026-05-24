@@ -8,10 +8,10 @@ const User = db.User;
 
 export const sendNotification = async (userId, eventType, data) => {
     try {
-        const user = await User.findByPk(userId);
+        const user = await User.findByPk(userId, { useMaster: true });
         if (!user) return;
 
-        const pref = await NotificationPreference.findOne({ where: { user_id: userId } });
+        const pref = await NotificationPreference.findOne({ where: { user_id: userId }, useMaster: true });
         const matchesType = !pref || pref.alert_types.length === 0 || pref.alert_types.includes(eventType);
 
         const emailAllowed = !pref || (pref.email_enabled && matchesType);
@@ -88,7 +88,8 @@ export const getNotifications = async (userId) => {
         where: { user_id: userId },
         attributes: ['id', 'title', 'message', 'type', 'is_read', 'created_at'],
         order: [['created_at', 'DESC']],
-        limit: 50
+        limit: 50,
+        useReplica: true
     });
 };
 
