@@ -29,8 +29,7 @@ export const submitFeedback = async (data, userId, clientId) => {
 
     const feedback = await CustomerFeedback.create({
         ...data,
-        client_id: clientId,
-        user_id: userId
+        client_id: userId,
     });
 
     if (feedback.rating < 3) {
