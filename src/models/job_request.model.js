@@ -25,6 +25,74 @@ export default (sequelize, DataTypes) => {
                 return (raw === null || raw === '') ? 'CREATED' : raw;
             },
         },
+        pending_action: {
+            type: DataTypes.VIRTUAL,
+            get() {
+                const status = this.getDataValue('job_status');
+                switch (status) {
+                    case 'CREATED':
+                    case 'REQUESTED':
+                    case 'PENDING':
+                        return {
+                            role: 'ADMIN',
+                            fallbackRoles: ['TM', 'GM'],
+                            message: 'Waiting for Surveyor Assignment'
+                        };
+                    case 'ASSIGNED':
+                    case 'SURVEY_AUTHORIZED':
+                        return {
+                            role: 'SURVEYOR',
+                            fallbackRoles: [],
+                            message: 'Waiting for Surveyor to begin / authorize survey'
+                        };
+                    case 'IN_PROGRESS':
+                        return {
+                            role: 'SURVEYOR',
+                            fallbackRoles: [],
+                            message: 'Waiting for survey completion and document upload'
+                        };
+                    case 'SURVEY_DONE':
+                        return {
+                            role: 'TECH_TEAM',
+                            fallbackRoles: ['ADMIN', 'TM', 'TO'],
+                            message: 'Waiting for Document Review (Technical Team)'
+                        };
+                    case 'DOCUMENT_VERIFIED':
+                    case 'REVIEWED':
+                        return {
+                            role: 'GM',
+                            fallbackRoles: ['ADMIN'],
+                            message: 'Waiting for Final Approval'
+                        };
+                    case 'APPROVED':
+                        return {
+                            role: 'ADMIN',
+                            fallbackRoles: ['TM', 'GM'],
+                            message: 'Waiting for Finalization / Certification'
+                        };
+                    case 'FINALIZED':
+                        return {
+                            role: 'GM',
+                            fallbackRoles: ['ADMIN'],
+                            message: 'Waiting for Certificate Issuance'
+                        };
+                    case 'REWORK_REQUESTED':
+                        return {
+                            role: 'SURVEYOR',
+                            fallbackRoles: [],
+                            message: 'Waiting for Surveyor to upload corrected documents'
+                        };
+                    case 'PAYMENT_DONE':
+                        return {
+                            role: 'ADMIN',
+                            fallbackRoles: ['GM'],
+                            message: 'Payment received. Waiting for further action.'
+                        };
+                    default:
+                        return null;
+                }
+            }
+        },
         assigned_surveyor_id: DataTypes.UUID,
         assigned_by_user_id: DataTypes.UUID,
         generated_certificate_id: DataTypes.UUID,

@@ -95,13 +95,27 @@ This guide defines the end-to-end certification lifecycle, role-based permission
 `PUT /api/v1/certificates/:id/revoke` | `PUT /api/v1/certificates/:id/suspend`
 *   **Payload**: `{ "reason": "Non-compliance or vessel withdrawal" }`
 
-#### **Reissue (Correction)**
+#### **Reissue (Correction & Update)**
 `POST /api/v1/certificates/:id/reissue`
 *   **Action**: Revokes old version and creates a new `DRAFT` (Version +1).
+*   **Important**: This is the **ONLY** way to update a certificate's details once it is `VALID`. Direct updates to issued certificates are blocked to maintain legal immutability. You must reissue to create a draft, update the draft, and then issue the new version.
 
 #### **Renew (Expiry)**
 `PUT /api/v1/certificates/:id/renew`
 *   **Action**: Marks old cert as `EXPIRED` and creates a new `DRAFT`.
+
+#### **Extend Certificate**
+`POST /api/v1/certificates/:id/extend`
+*   **Action**: Extends the validity of a `VALID` certificate by a specified number of months.
+*   **Payload**: `{ "extensionMonths": 3, "reason": "Awaiting drydock" }`
+
+#### **Transfer Certificate**
+`POST /api/v1/certificates/:id/transfer`
+*   **Action**: Transfers certificate ownership/assignment.
+
+#### **Downgrade Certificate**
+`PUT /api/v1/certificates/:id/downgrade`
+*   **Action**: Downgrades the certificate type (e.g. Full Term to Short Term).
 
 ---
 
