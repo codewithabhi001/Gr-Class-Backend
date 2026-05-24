@@ -482,7 +482,7 @@ export const getSurveyorAuthorizationChecklist = async (surveyorId) => {
         id: ct.id,
         name: ct.name,
         issuing_authority: ct.issuing_authority,
-        is_authorized: authorizedCertIds.includes(ct.id),
+        is_authorized: authorizedCertIds.includes(ct.id) || authorizedCertIds.includes(ct.name),
     }));
 
     return {

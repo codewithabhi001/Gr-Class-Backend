@@ -557,6 +557,10 @@ export const schemas = {
         expiry_date: Joi.date().iso().required(),
         s3_key: Joi.string().required(),
     }),
+    overrideCertificate: Joi.object({
+        s3_key: Joi.string().required(),
+        reason: Joi.string().optional().allow('', null)
+    }),
     createActivityRequest: Joi.object({
         vessel_id: Joi.string().guid().optional().allow(null, ''),
         activity_type: Joi.string()

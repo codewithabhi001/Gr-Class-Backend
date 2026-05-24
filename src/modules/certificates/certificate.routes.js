@@ -50,6 +50,9 @@ router.put('/:id', authorizeRoles('TM', 'GM'), validate(schemas.updateCertificat
 // Issue certificate (Status -> ISSUED, Generate PDF)
 router.post('/:id/issue', authorizeRoles('GM'), validate(schemas.updateCertificateDraft), certController.issueCertificate);
 
+// Override certificate (Manual upload)
+router.post('/:id/override', authorizeRoles('GM'), validate(schemas.overrideCertificate), certController.overrideCertificate);
+
 // Get specific certificate details
 router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), certController.getCertificateById);
 

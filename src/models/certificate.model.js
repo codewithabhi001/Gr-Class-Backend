@@ -32,6 +32,15 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             comment: 'S3 key for external certificates'
         },
+        is_manually_overridden: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            comment: 'Flag indicating if the system generated certificate was manually replaced'
+        },
+        manually_overridden_file_url: {
+            type: DataTypes.STRING,
+            comment: 'S3 key for the manually uploaded overridden certificate'
+        },
         generated_pdf_url: {
             type: DataTypes.STRING,
             comment: 'S3 key for system generated certificates'

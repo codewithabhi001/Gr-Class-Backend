@@ -144,6 +144,17 @@ export const issueCertificate = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const overrideCertificate = async (req, res, next) => {
+    try {
+        const result = await certService.overrideCertificate(req.params.id, req.body, req.user);
+        res.json({
+            success: true,
+            message: 'Certificate overridden successfully',
+            data: result
+        });
+    } catch (error) { next(error); }
+};
+
 export const reissueCertificate = async (req, res, next) => {
     try {
         const result = await certService.reissueCertificate(req.params.id, req.body.reason, req.user.id);

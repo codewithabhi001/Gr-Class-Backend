@@ -705,6 +705,16 @@ export const getCertificateById = async (id, user) => {
             }
             cert.setDataValue('pdf_url', pdfUrl);
         }
+        
+        if (cert.generated_pdf_url) {
+            const key2 = fileAccessService.getKeyFromUrl(cert.generated_pdf_url);
+            let genPdfUrl = fileAccessService.generatePublicCdnUrl(key2);
+            if (!genPdfUrl) {
+                genPdfUrl = await fileAccessService.generateSignedUrl(key2, 3600, user);
+            }
+            cert.setDataValue('generated_pdf_signed_url', genPdfUrl);
+        }
+
         return cert;
     }
     const exists = await Certificate.findByPk(id);
@@ -843,6 +853,40 @@ export const issueCertificate = async (id, user) => {
             changed_by_user_id: user.id,
             change_reason: 'Certificate officially issued and PDF generated',
             changed_at: issuedAt
+        }, { transaction });
+
+        await transaction.commit();
+        return cert;
+    } catch (err) {
+        await transaction.rollback();
+        throw err;
+    }
+};
+
+export const overrideCertificate = async (id, data, user) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const cert = await Certificate.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
+        if (!cert) throw { statusCode: 404, message: 'Certificate not found' };
+
+        if (!['VALID', 'ISSUED'].includes(cert.status)) {
+            throw { statusCode: 400, message: 'Only issued or valid certificates can be manually overridden.' };
+        }
+
+        const { s3_key, reason } = data;
+
+        await cert.update({
+            is_manually_overridden: true,
+            manually_overridden_file_url: s3_key,
+            pdf_file_url: s3_key
+        }, { transaction });
+
+        await db.CertificateHistory.create({
+            certificate_id: cert.id,
+            status: cert.status,
+            changed_by_user_id: user.id,
+            change_reason: reason || 'Certificate manually overridden with an uploaded file',
+            changed_at: new Date()
         }, { transaction });
 
         await transaction.commit();
