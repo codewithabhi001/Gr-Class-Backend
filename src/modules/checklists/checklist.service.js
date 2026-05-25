@@ -447,11 +447,11 @@ export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, 
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * TM action to approve/reject a specific checklist item.
+ * TM/TO action to approve/reject a specific checklist item.
  */
 export const reviewChecklistItem = async (jobId, itemId, { status, rejection_reason }, user) => {
-    if (!['TM', 'ADMIN'].includes(user.role)) {
-        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins can review checklist items.' };
+    if (!['TM', 'ADMIN', 'TO'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO), Technical Managers (TM) or Admins can review checklist items.' };
     }
 
     const item = await ActivityPlanning.findOne({ where: { id: itemId, job_id: jobId }, useMaster: true });
@@ -466,12 +466,12 @@ export const reviewChecklistItem = async (jobId, itemId, { status, rejection_rea
 };
 
 /**
- * TM action to approve/reject a specific signed checklist document.
+ * TM/TO action to approve/reject a specific signed checklist document.
  * Matches by index in the signed_checklist_files array.
  */
 export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection_reason }, user) => {
-    if (!['TM', 'ADMIN'].includes(user.role)) {
-        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins can review documents.' };
+    if (!['TM', 'ADMIN', 'TO'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO), Technical Managers (TM) or Admins can review documents.' };
     }
 
     const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });

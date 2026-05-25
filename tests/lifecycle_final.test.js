@@ -170,6 +170,7 @@ async function run() {
     {
         const jobId = await makeJob(fx, 'PAYMENT_DONE');
         await makeSurvey(jobId, fx.surveyorId, 'FINALIZED');
+        await db.Survey.update({ survey_statement_status: 'ISSUED' }, { where: { job_id: jobId } });
         const certId = await makeFakeCert(fx);
         await db.JobRequest.update({ generated_certificate_id: certId }, { where: { id: jobId } });
 
@@ -385,6 +386,126 @@ async function run() {
         await test('SurveyStatusHistory created for every transition', () => {
             if (history.length === 0) throw new Error('No survey history records');
             if (history[0].new_status !== 'STARTED') throw new Error(`First history: ${history[0].new_status}`);
+        });
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SECTION 11: Checklist & Document Review Gate
+    // ══════════════════════════════════════════════════════════
+    console.log('\n── 11. Checklist & Document Review Gate ────────────────────────────────');
+    {
+        const toId = await seedUser('TO');
+        const toUser = { id: toId, role: 'TO' };
+        const chkSvc = await import('../src/modules/checklists/checklist.service.js');
+        const jobSvc = await import('../src/modules/jobs/job.service.js');
+
+        const jobId = await makeJob(fx, 'SURVEY_DONE');
+        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId } });
+
+        const surveyId = await makeSurvey(jobId, fx.surveyorId, 'SUBMITTED');
+
+        // Test 11a: TO can review checklist item
+        const item = await db.ActivityPlanning.create({
+            job_id: jobId,
+            question_code: 'Q1',
+            question_text: 'Is hull clean?',
+            answer: 'YES',
+            status: 'PENDING'
+        });
+
+        await test('TO can review and approve a checklist item', async () => {
+            await chkSvc.reviewChecklistItem(jobId, item.id, { status: 'APPROVED' }, toUser);
+            const updatedItem = await db.ActivityPlanning.findByPk(item.id);
+            if (updatedItem.status !== 'APPROVED') throw new Error(`Expected APPROVED, got ${updatedItem.status}`);
+        });
+
+        // Test 11b: TO can review signed document
+        await db.Survey.update({
+            signed_checklist_files: [
+                { url: 'surveys/signed-checklists/123_sc.pdf', status: 'PENDING' }
+            ]
+        }, { where: { id: surveyId } });
+
+        await test('TO can review and approve a signed checklist document', async () => {
+            await chkSvc.reviewSignedDocument(jobId, 0, { status: 'APPROVED' }, toUser);
+            const updatedSurvey = await db.Survey.findByPk(surveyId);
+            const files = updatedSurvey.signed_checklist_files;
+            if (!files || files[0].status !== 'APPROVED') {
+                throw new Error(`Expected APPROVED, got ${JSON.stringify(files)}`);
+            }
+        });
+
+        // Test 11c: Job review blocked when checklist items are pending
+        const jobId2 = await makeJob(fx, 'SURVEY_DONE');
+        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId2 } });
+        const surveyId2 = await makeSurvey(jobId2, fx.surveyorId, 'SUBMITTED');
+
+        const item2 = await db.ActivityPlanning.create({
+            job_id: jobId2,
+            question_code: 'Q2',
+            question_text: 'Is machinery working?',
+            answer: 'YES',
+            status: 'PENDING'
+        });
+
+        await db.Survey.update({
+            signed_checklist_files: [
+                { url: 'surveys/signed-checklists/123_sc2.pdf', status: 'APPROVED' }
+            ]
+        }, { where: { id: surveyId2 } });
+
+        await expectStatus('Job review blocked when checklist items are PENDING → 400', 400, async () => {
+            await jobSvc.reviewJob(jobId2, 'Checklist items pending', toUser);
+        });
+
+        // Test 11d: Job review blocked when signed checklist files are pending
+        const jobId3 = await makeJob(fx, 'SURVEY_DONE');
+        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId3 } });
+        const surveyId3 = await makeSurvey(jobId3, fx.surveyorId, 'SUBMITTED');
+
+        const item3 = await db.ActivityPlanning.create({
+            job_id: jobId3,
+            question_code: 'Q3',
+            question_text: 'Is cargo secure?',
+            answer: 'YES',
+            status: 'APPROVED'
+        });
+
+        await db.Survey.update({
+            signed_checklist_files: [
+                { url: 'surveys/signed-checklists/123_sc3.pdf', status: 'PENDING' }
+            ]
+        }, { where: { id: surveyId3 } });
+
+        await expectStatus('Job review blocked when signed checklist files are PENDING → 400', 400, async () => {
+            await jobSvc.reviewJob(jobId3, 'Signed files pending', toUser);
+        });
+
+        // Test 11e: Job review succeeds when all approved
+        const jobId4 = await makeJob(fx, 'SURVEY_DONE');
+        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId4 } });
+        const surveyId4 = await makeSurvey(jobId4, fx.surveyorId, 'SUBMITTED');
+
+        const item4 = await db.ActivityPlanning.create({
+            job_id: jobId4,
+            question_code: 'Q4',
+            question_text: 'Is safety gear ready?',
+            answer: 'YES',
+            status: 'APPROVED'
+        });
+
+        await db.Survey.update({
+            signed_checklist_files: [
+                { url: 'surveys/signed-checklists/123_sc4.pdf', status: 'APPROVED' }
+            ]
+        }, { where: { id: surveyId4 } });
+
+        await test('Job review succeeds when all items and documents are APPROVED', async () => {
+            await jobSvc.reviewJob(jobId4, 'All approved', toUser);
+            const updatedJob = await db.JobRequest.findByPk(jobId4);
+            if (updatedJob.job_status !== 'REVIEWED') {
+                throw new Error(`Expected REVIEWED, got ${updatedJob.job_status}`);
+            }
         });
     }
 

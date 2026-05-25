@@ -865,6 +865,42 @@ export const reviewJob = async (id, remarks, user) => {
     if (job.job_status !== 'SURVEY_DONE') {
         throw { statusCode: 400, message: `Jobs can only be reviewed after the survey has been completed.` };
     }
+
+    if (job.is_survey_required) {
+        // 1. All checklist items (ActivityPlanning) must be APPROVED
+        const checklistItems = await db.ActivityPlanning.findAll({
+            where: { job_id: id },
+            useMaster: true
+        });
+        if (checklistItems.length === 0) {
+            throw { statusCode: 400, message: 'Cannot review job: all survey checklist items must be approved first.' };
+        }
+        const allItemsApproved = checklistItems.every(item => item.status === 'APPROVED');
+        if (!allItemsApproved) {
+            throw { statusCode: 400, message: 'Cannot review job: all survey checklist items must be approved first.' };
+        }
+
+        // 2. All signed checklist documents (Survey.signed_checklist_files) must be APPROVED
+        const survey = await db.Survey.findOne({
+            where: { job_id: id },
+            attributes: ['signed_checklist_files'],
+            useMaster: true
+        });
+        if (!survey) {
+            throw { statusCode: 400, message: 'Cannot review job: survey report is missing.' };
+        }
+        const signedFiles = survey.signed_checklist_files;
+        if (!Array.isArray(signedFiles) || signedFiles.length === 0) {
+            throw { statusCode: 400, message: 'Cannot review job: all signed checklist documents must be approved first.' };
+        }
+        const allDocsApproved = signedFiles.every(file => {
+            return typeof file === 'object' && file !== null && file.status === 'APPROVED';
+        });
+        if (!allDocsApproved) {
+            throw { statusCode: 400, message: 'Cannot review job: all signed checklist documents must be approved first.' };
+        }
+    }
+
     const updated = await lifecycleService.updateJobStatus(id, 'REVIEWED', user.id, remarks || 'TO technical review passed.');
 
     // Notify ADMIN/TM (vessel already loaded)

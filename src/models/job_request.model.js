@@ -29,6 +29,8 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.VIRTUAL,
             get() {
                 const status = this.getDataValue('job_status');
+                const isSurveyRequired = this.getDataValue('is_survey_required') !== false;
+
                 switch (status) {
                     case 'CREATED':
                     case 'REQUESTED':
@@ -38,55 +40,88 @@ export default (sequelize, DataTypes) => {
                             fallbackRoles: [],
                             message: 'Waiting for Document Verification'
                         };
+                    case 'DOCUMENT_VERIFIED':
+                        return {
+                            role: 'GM',
+                            fallbackRoles: ['ADMIN'],
+                            message: 'Waiting for GM to Approve Job Request'
+                        };
+                    case 'APPROVED':
+                        if (isSurveyRequired) {
+                            return {
+                                role: 'GM',
+                                fallbackRoles: ['ADMIN'],
+                                message: 'Waiting for GM to Assign Surveyor'
+                            };
+                        } else {
+                            return {
+                                role: 'ADMIN',
+                                fallbackRoles: ['TM', 'GM'],
+                                message: 'Waiting for Finalization'
+                            };
+                        }
                     case 'ASSIGNED':
+                        return {
+                            role: 'TM',
+                            fallbackRoles: ['ADMIN'],
+                            message: 'Waiting for TM to Authorize Survey'
+                        };
                     case 'SURVEY_AUTHORIZED':
                         return {
                             role: 'SURVEYOR',
                             fallbackRoles: [],
-                            message: 'Waiting for Surveyor to begin / authorize survey'
+                            message: 'Waiting for Surveyor to Start Survey'
                         };
                     case 'IN_PROGRESS':
                         return {
                             role: 'SURVEYOR',
                             fallbackRoles: [],
-                            message: 'Waiting for survey completion and document upload'
+                            message: 'Waiting for Survey Report Submission'
                         };
                     case 'SURVEY_DONE':
                         return {
-                            role: 'TECH_TEAM',
-                            fallbackRoles: ['ADMIN', 'TM', 'TO'],
-                            message: 'Waiting for Document Review (Technical Team)'
+                            role: 'TO',
+                            fallbackRoles: ['ADMIN', 'TM'],
+                            message: 'Waiting for Document Review'
                         };
-                    case 'DOCUMENT_VERIFIED':
-                    case 'REVIEWED':
-                        return {
-                            role: 'GM',
-                            fallbackRoles: ['ADMIN'],
-                            message: 'Waiting for Final Approval'
-                        };
-                    case 'APPROVED':
-                        return {
-                            role: 'ADMIN',
-                            fallbackRoles: ['TM', 'GM'],
-                            message: 'Waiting for Finalization / Certification'
-                        };
+                    case 'REVIEWED': {
+                        const survey = this.survey;
+                        const statementStatus = survey?.survey_statement_status;
+                        if (statementStatus !== 'ISSUED') {
+                            return {
+                                role: 'TM',
+                                fallbackRoles: ['ADMIN'],
+                                message: 'Waiting for TM to Issue Survey Statement'
+                            };
+                        } else {
+                            return {
+                                role: 'TM',
+                                fallbackRoles: ['ADMIN', 'GM'],
+                                message: 'Waiting for TM to Finalize Survey'
+                            };
+                        }
+                    }
                     case 'FINALIZED':
-                        return {
-                            role: 'GM',
-                            fallbackRoles: ['ADMIN'],
-                            message: 'Waiting for Certificate Issuance'
-                        };
+                    case 'PAYMENT_DONE': {
+                        if (!this.getDataValue('generated_certificate_id')) {
+                            return {
+                                role: 'TM',
+                                fallbackRoles: ['GM', 'ADMIN'],
+                                message: 'Waiting for TM to Generate Draft Certificate'
+                            };
+                        } else {
+                            return {
+                                role: 'GM',
+                                fallbackRoles: ['ADMIN'],
+                                message: 'Waiting for GM to Issue Certificate'
+                            };
+                        }
+                    }
                     case 'REWORK_REQUESTED':
                         return {
                             role: 'SURVEYOR',
                             fallbackRoles: [],
                             message: 'Waiting for Surveyor to upload corrected documents'
-                        };
-                    case 'PAYMENT_DONE':
-                        return {
-                            role: 'ADMIN',
-                            fallbackRoles: ['GM'],
-                            message: 'Payment received. Waiting for further action.'
                         };
                     default:
                         return null;
