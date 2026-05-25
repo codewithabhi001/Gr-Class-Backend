@@ -383,6 +383,7 @@ export const recordPartialPayment = async (paymentId, amount, userId, data = {})
             jobId: payment.job_id, paymentId,
             amount: payingNow, totalCollected: totalAfterThis,
             remaining: remainingAfterThis,
+            receipt: data.receiptKey ? 'attached' : 'none',
             triggeredBy: userId
         });
 

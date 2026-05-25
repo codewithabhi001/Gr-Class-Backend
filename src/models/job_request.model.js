@@ -34,9 +34,9 @@ export default (sequelize, DataTypes) => {
                     case 'REQUESTED':
                     case 'PENDING':
                         return {
-                            role: 'ADMIN',
-                            fallbackRoles: ['TM', 'GM'],
-                            message: 'Waiting for Surveyor Assignment'
+                            role: 'TO',
+                            fallbackRoles: [],
+                            message: 'Waiting for Document Verification'
                         };
                     case 'ASSIGNED':
                     case 'SURVEY_AUTHORIZED':
