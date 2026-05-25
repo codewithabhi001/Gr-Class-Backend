@@ -555,7 +555,7 @@ export const schemas = {
         certificate_number: Joi.string().required(),
         issue_date: Joi.date().iso().required(),
         expiry_date: Joi.date().iso().required(),
-        file_key: Joi.string().required(),
+        s3_key: Joi.string().required(),
     }),
     overrideCertificate: Joi.object({
         s3_key: Joi.string().required(),
