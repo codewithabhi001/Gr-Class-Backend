@@ -42,6 +42,26 @@ export default (sequelize, DataTypes) => {
         tableName: 'vessels',
         underscored: true,
         timestamps: true,
+        hooks: {
+            beforeValidate: (vessel) => {
+                const fieldsToLower = [
+                    'vessel_name',
+                    'imo_number',
+                    'call_sign',
+                    'mmsi_number',
+                    'port_of_registry',
+                    'ship_type',
+                    'current_class_society',
+                    'engine_type',
+                    'builder_name'
+                ];
+                for (const field of fieldsToLower) {
+                    if (typeof vessel[field] === 'string') {
+                        vessel[field] = vessel[field].toLowerCase().trim();
+                    }
+                }
+            }
+        }
     });
 
     Vessel.associate = (models) => {
