@@ -44,9 +44,20 @@ export const createClient = async (data) => {
 };
 
 export const getClients = async (query) => {
-    const { page = 1, limit = 10, ...filters } = query;
+    const { page = 1, limit = 10, search, ...filters } = query;
+    const { Op } = db.Sequelize;
+    const where = { ...filters };
+
+    if (search) {
+        where[Op.or] = [
+            { company_name: { [Op.like]: `%${search}%` } },
+            { company_code: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } }
+        ];
+    }
+
     const result = await Client.findAndCountAll({
-        where: filters,
+        where,
         attributes: [
             'id',
             'company_name',
