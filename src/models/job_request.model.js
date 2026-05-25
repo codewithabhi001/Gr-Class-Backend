@@ -84,12 +84,23 @@ export default (sequelize, DataTypes) => {
                             fallbackRoles: ['ADMIN', 'TM'],
                             message: 'Waiting for Document Review'
                         };
-                    case 'REVIEWED':
-                        return {
-                            role: 'TM',
-                            fallbackRoles: ['ADMIN', 'GM'],
-                            message: 'Waiting for TM to Finalize Survey'
-                        };
+                    case 'REVIEWED': {
+                        const survey = this.survey;
+                        const statementStatus = survey?.survey_statement_status;
+                        if (statementStatus !== 'ISSUED') {
+                            return {
+                                role: 'TM',
+                                fallbackRoles: ['ADMIN'],
+                                message: 'Waiting for TM to Issue Survey Statement'
+                            };
+                        } else {
+                            return {
+                                role: 'TM',
+                                fallbackRoles: ['ADMIN', 'GM'],
+                                message: 'Waiting for TM to Finalize Survey'
+                            };
+                        }
+                    }
                     case 'FINALIZED':
                     case 'PAYMENT_DONE': {
                         if (!this.getDataValue('generated_certificate_id')) {
