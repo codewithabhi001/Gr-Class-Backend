@@ -46,6 +46,9 @@ export const submitEnquiry = async (req, res, next) => {
             });
             
             if (!turnstileRes.data.success) {
+                console.error('[Turnstile] Verification failed!', turnstileRes.data);
+                console.error('[Turnstile] Secret key starts with:', secretKey.substring(0, 5));
+                console.error('[Turnstile] Token received:', captcha_token.substring(0, 15) + '...');
                 return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
             }
         }
