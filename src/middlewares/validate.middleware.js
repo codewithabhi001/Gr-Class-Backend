@@ -516,6 +516,8 @@ export const schemas = {
         phone: Joi.string().max(30).optional().allow('', null),
         subject: Joi.string().max(200).optional().allow('', null),
         source_page: Joi.string().max(50).optional().allow('', null),
+        website: Joi.string().max(200).optional().allow('', null), // Honeypot
+        captcha_token: Joi.string().optional().allow('', null), // Cloudflare Turnstile token
     }),
     updateContactEnquiryStatus: Joi.object({
         status: Joi.string().valid('NEW', 'READ', 'REPLIED', 'ARCHIVED').required(),

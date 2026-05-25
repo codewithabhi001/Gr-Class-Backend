@@ -1,3 +1,4 @@
+import axios from 'axios';
 import * as contactService from './contact.service.js';
 
 // ─── PUBLIC ────────────────────────────────────────────────────────────────
@@ -8,8 +9,48 @@ import * as contactService from './contact.service.js';
  */
 export const submitEnquiry = async (req, res, next) => {
     try {
+        const { website, captcha_token, ...restBody } = req.body;
         const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
-        const enquiry = await contactService.submitEnquiry(req.body, ipAddress);
+
+        // 1. Honeypot check: If 'website' field is populated, it's a bot.
+        if (website) {
+            return res.status(201).json({
+                success: true,
+                message: 'Your message has been received. We will get back to you shortly.',
+                data: {
+                    id: 'bot-discarded',
+                    full_name: restBody.full_name || 'Visitor',
+                    created_at: new Date().toISOString(),
+                },
+            });
+        }
+
+        // 2. Cloudflare Turnstile CAPTCHA verification
+        // Test key that always passes: 1x0000000000000000000000000000000AA
+        const secretKey = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA';
+        
+        // Enforce CAPTCHA token check in production
+        if (!captcha_token && process.env.NODE_ENV === 'production') {
+            return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+        }
+        
+        if (captcha_token) {
+            const verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+            const formData = new URLSearchParams();
+            formData.append('secret', secretKey);
+            formData.append('response', captcha_token);
+            if (ipAddress) formData.append('remoteip', ipAddress);
+            
+            const turnstileRes = await axios.post(verifyUrl, formData, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            
+            if (!turnstileRes.data.success) {
+                return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+            }
+        }
+
+        const enquiry = await contactService.submitEnquiry(restBody, ipAddress);
         res.status(201).json({
             success: true,
             message: 'Your message has been received. We will get back to you shortly.',
