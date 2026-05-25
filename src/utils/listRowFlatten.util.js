@@ -40,7 +40,7 @@ export const shapeCertificateTypeDetail = (row) => {
 
 export const flatCertificateListRow = (row) => {
     const c = toPlain(row);
-    return {
+    const result = {
         id: c.id,
         vessel_id: c.vessel_id,
         certificate_type_id: c.certificate_type_id,
@@ -49,12 +49,20 @@ export const flatCertificateListRow = (row) => {
         expiry_date: na(c.expiry_date),
         status: na(c.status),
         createdAt: na(c.createdAt),
-        vessel_name: na(c.Vessel?.vessel_name),
-        imo_number: na(c.Vessel?.imo_number),
-        client_id: na(c.Vessel?.client_id),
-        company_name: na(c.Vessel?.Client?.company_name),
         certificate_type: na(c.CertificateType?.name),
     };
+    const activePdfUrl = c.pdf_file_url || c.uploaded_file_url || c.generated_pdf_url || c.manually_overridden_file_url || c.pdf_url;
+    if (activePdfUrl && activePdfUrl !== 'N/A' && activePdfUrl !== '') {
+        result.pdf_file_url = activePdfUrl;
+        result.pdf_url = activePdfUrl;
+    }
+    if (c.Vessel !== undefined) {
+        result.vessel_name = na(c.Vessel?.vessel_name);
+        result.imo_number = na(c.Vessel?.imo_number);
+        result.client_id = na(c.Vessel?.client_id);
+        result.company_name = na(c.Vessel?.Client?.company_name);
+    }
+    return result;
 };
 
 export const flatIncidentListRow = (row) => {

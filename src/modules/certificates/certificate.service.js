@@ -612,7 +612,7 @@ export const getCertificates = async (query, user) => {
 
     const { count, rows } = await Certificate.findAndCountAll({
         where,
-        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt', 'pdf_file_url', 'uploaded_file_url', 'generated_pdf_url', 'manually_overridden_file_url'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
         include: [vesselInclude, { model: db.CertificateType, attributes: ['id', 'name'] }],
@@ -637,6 +637,8 @@ export const getCertificates = async (query, user) => {
         useReplica: true
     });
 
+    const resolvedRows = await fileAccessService.resolveEntity(rows, user);
+
     const pageLimit = parseInt(limit, 10) || 10;
     return {
         total: count,
@@ -644,7 +646,7 @@ export const getCertificates = async (query, user) => {
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
         status_counts: buildFullStatusCounts(statusCounts, CERTIFICATE_STATUSES),
-        rows: rows.map(flatCertificateListRow),
+        rows: resolvedRows.map(flatCertificateListRow),
     };
 };
 
@@ -666,12 +668,13 @@ export const getCertificatesByVessel = async (vesselId, user) => {
 
     const certs = await Certificate.findAll({
         where,
-        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt'],
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt', 'pdf_file_url', 'uploaded_file_url', 'generated_pdf_url', 'manually_overridden_file_url'],
         include: [{ model: db.CertificateType, attributes: ['name'] }],
         order: [['expiry_date', 'ASC']],
         useReplica: true
     });
-    return certs.map(flatCertificateListRow);
+    const resolvedCerts = await fileAccessService.resolveEntity(certs, user);
+    return resolvedCerts.map(flatCertificateListRow);
 };
 
 /** Get certificate generated for a specific job. */
