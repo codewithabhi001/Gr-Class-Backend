@@ -146,13 +146,9 @@ export const markPaid = async (paymentId, userId, receiptFile = null, data = {})
             throw { statusCode: 409, message: 'Payment has already been marked as paid.' };
         }
 
-        // ── Guard 2: Only allow payment processing for FINALIZED jobs ──
+        // ── Guard 2: Verify job exists (bypassed state check for record-keeping) ──
         const job = await JobRequest.findByPk(payment.job_id, { transaction: txn, lock: txn.LOCK.UPDATE });
         if (!job) throw { statusCode: 404, message: 'Job not found for this payment' };
-
-        if (job.job_status !== 'FINALIZED') {
-            throw { statusCode: 400, message: `Cannot process payment: Job is not in a payable state (${job.job_status}).` };
-        }
 
         // ── Upload receipt (optional) ──
         const oldPaymentStatus = payment.payment_status;
