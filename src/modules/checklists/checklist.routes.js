@@ -48,7 +48,7 @@ router.get(
 // TM/TO Review: Approve/Reject a specific checklist question
 router.put(
     '/jobs/:jobId/items/:itemId/review',
-    authorizeRoles('TM', 'ADMIN', 'TO'),
+    authorizeRoles('TO'),
     validate(schemas.reviewItem),
     checklistController.reviewChecklistItem
 );
@@ -56,7 +56,7 @@ router.put(
 // TM/TO Review: Approve/Reject a specific signed document scan (by index)
 router.put(
     '/jobs/:jobId/signed-files/:fileIndex/review',
-    authorizeRoles('TM', 'ADMIN', 'TO'),
+    authorizeRoles('TO'),
     validate(schemas.reviewItem), // Reuse reviewItem schema (status, reason)
     checklistController.reviewSignedDocument
 );
