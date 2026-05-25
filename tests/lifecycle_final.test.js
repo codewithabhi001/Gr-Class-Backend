@@ -284,8 +284,8 @@ async function run() {
     {
         const jobId = await makeJob(fx, 'SURVEY_DONE');
         const surveyId = await makeSurvey(jobId, fx.surveyorId, 'SUBMITTED');
-        await expectStatus('GM cannot finalize survey → 403', 403, async () =>
-            lifecycle.updateSurveyStatus(surveyId, 'FINALIZED', fx.requesterId));
+        await expectStatus('Surveyor cannot finalize survey → 403', 403, async () =>
+            lifecycle.updateSurveyStatus(surveyId, 'FINALIZED', fx.surveyorId));
     }
 
     // 6b. Direct job FINALIZED without _internal flag
@@ -367,7 +367,7 @@ async function run() {
     console.log('\n── 10. Audit Trail ─────────────────────────────────────────────────────');
 
     {
-        const jobId = await makeJob(fx, 'CREATED');
+        const jobId = await makeJob(fx, 'DOCUMENT_VERIFIED');
         await lifecycle.updateJobStatus(jobId, 'APPROVED', fx.requesterId, 'GM approved');
         const history = await db.JobStatusHistory.findAll({ where: { job_id: jobId }, order: [['created_at', 'ASC']] });
         await test('JobStatusHistory created for every transition', () => {

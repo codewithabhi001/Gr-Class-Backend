@@ -389,8 +389,8 @@ export const generateCertificate = async (data, user) => {
         if (!job) throw { statusCode: 404, message: 'Job not found' };
 
         // ── Guard 1: Job status ──
-        if (job.job_status !== 'FINALIZED') {
-            throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED. Current: ${job.job_status}` };
+        if (job.job_status !== 'FINALIZED' && job.job_status !== 'PAYMENT_DONE') {
+            throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED or PAYMENT_DONE. Current: ${job.job_status}` };
         }
 
         // Note: Payment check removed per user request (Certificates can be issued before payment)
