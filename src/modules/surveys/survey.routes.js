@@ -66,17 +66,17 @@ router.post(
 // MANAGEMENT ACTIONS (TM / GM)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Finalize survey — TM / GM / ADMIN
+// Finalize survey — TM ONLY
 router.put(
     '/jobs/:jobId/finalize',
-    authorizeRoles('TM', 'GM', 'ADMIN'),
+    authorizeRoles('TM'),
     surveyController.finalizeSurvey
 );
 
 // Request rework — GM / TM / TO / ADMIN (survey must be SUBMITTED)
 router.put(
     '/jobs/:jobId/rework',
-    authorizeRoles('GM', 'TM', 'TO', 'ADMIN'),
+    authorizeRoles('TM'),
     surveyController.requestRework
 );
 

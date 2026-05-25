@@ -91,7 +91,7 @@ export default (sequelize, DataTypes) => {
                             return {
                                 role: 'TM',
                                 fallbackRoles: ['ADMIN'],
-                                message: 'Waiting for TM to Issue Survey Statement'
+                                message: 'Waiting for TM to Issue Survey Statement or Request Rework (Go to Survey Details tab: draft statement if not created, or issue it if drafted)'
                             };
                         } else {
                             return {

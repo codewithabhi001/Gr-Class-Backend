@@ -30,7 +30,7 @@ router.put('/:id/verify-documents', authorizeRoles('TO'), jobController.verifyJo
 router.put('/:id/approve-request', authorizeRoles('GM'), jobController.approveRequest);
 
 // APPROVED → FINALIZED (for non-survey jobs)
-router.put('/:id/finalize', authorizeRoles('GM', 'TM'), jobController.finalizeJob);
+router.put('/:id/finalize', authorizeRoles('TM'), jobController.finalizeJob);
 
 // APPROVED → ASSIGNED  (ADMIN / GM — requires surveyorId in body)
 router.put('/:id/assign', authorizeRoles(...RBAC.ASSIGN_JOB), validate(schemas.assignJob), jobController.assignSurveyor);

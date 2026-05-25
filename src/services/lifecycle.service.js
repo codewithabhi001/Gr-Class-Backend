@@ -216,11 +216,11 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
         // ── 3. Transition map validation ──
         validateTransition(previousStatus, newStatus, SURVEY_TRANSITIONS);
 
-        // ── 4. FINALIZED: ALLOW TM / GM / ADMIN ONLY; must be SUBMITTED ──
+        // ── 4. FINALIZED: ALLOW TM ONLY; must be SUBMITTED ──
         if (newStatus === 'FINALIZED') {
             const actor = await User.findByPk(userId, { transaction: txn });
-            if (!actor || !['ADMIN', 'TM', 'GM'].includes(actor.role)) {
-                throw { statusCode: 403, message: 'Only Technical Managers (TM), General Managers (GM) or Admins have permission to finalize surveys.' };
+            if (!actor || !['TM'].includes(actor.role)) {
+                throw { statusCode: 403, message: 'Only Technical Managers (TM) have permission to finalize surveys.' };
             }
             if (previousStatus !== 'SUBMITTED') {
                 throw { statusCode: 400, message: 'Only submitted surveys can be finalized.' };

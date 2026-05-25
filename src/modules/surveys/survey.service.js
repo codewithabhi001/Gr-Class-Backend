@@ -331,8 +331,8 @@ export const submitSurveyReport = async (data, files, userId) => {
  * No open Non-Conformities (checked inside lifecycle.service).
  */
 export const finalizeSurvey = async (jobId, user) => {
-    if (!['TM', 'GM', 'ADMIN'].includes(user.role)) {
-        throw { statusCode: 403, message: 'Only Technical Managers (TM), General Managers (GM) or Admins have permission to finalize surveys.' };
+    if (!['TM'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) have permission to finalize surveys.' };
     }
     const userId = user.id;
     await assertJobAccessible(jobId, userId, { checkSurveyor: false });

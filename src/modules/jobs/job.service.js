@@ -745,7 +745,7 @@ export const finalizeJob = async (id, remarks, user) => {
             throw { statusCode: 400, message: 'This job requires a survey report. It must be Reviewed before finalization.' };
         }
         // Redirect to survey finalization logic
-        return await finalizeSurvey(id, user.id);
+        return await finalizeSurvey(id, user);
     }
     if (job.job_status !== 'APPROVED') {
         throw { statusCode: 400, message: `Only approved jobs can be finalized.` };
