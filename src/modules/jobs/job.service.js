@@ -867,37 +867,39 @@ export const reviewJob = async (id, remarks, user) => {
     }
 
     if (job.is_survey_required) {
-        // 1. All checklist items (ActivityPlanning) must be APPROVED
-        const checklistItems = await db.ActivityPlanning.findAll({
-            where: { job_id: id },
-            useMaster: true
-        });
-        if (checklistItems.length === 0) {
-            throw { statusCode: 400, message: 'Cannot review job: all survey checklist items must be approved first.' };
-        }
-        const allItemsApproved = checklistItems.every(item => item.status === 'APPROVED');
-        if (!allItemsApproved) {
-            throw { statusCode: 400, message: 'Cannot review job: all survey checklist items must be approved first.' };
-        }
+        const txn = await db.sequelize.transaction();
+        try {
+            // 1. Automatically approve all checklist items (ActivityPlanning) for the job
+            await db.ActivityPlanning.update(
+                { status: 'APPROVED' },
+                { where: { job_id: id }, transaction: txn }
+            );
 
-        // 2. All signed checklist documents (Survey.signed_checklist_files) must be APPROVED
-        const survey = await db.Survey.findOne({
-            where: { job_id: id },
-            attributes: ['signed_checklist_files'],
-            useMaster: true
-        });
-        if (!survey) {
-            throw { statusCode: 400, message: 'Cannot review job: survey report is missing.' };
-        }
-        const signedFiles = survey.signed_checklist_files;
-        if (!Array.isArray(signedFiles) || signedFiles.length === 0) {
-            throw { statusCode: 400, message: 'Cannot review job: all signed checklist documents must be approved first.' };
-        }
-        const allDocsApproved = signedFiles.every(file => {
-            return typeof file === 'object' && file !== null && file.status === 'APPROVED';
-        });
-        if (!allDocsApproved) {
-            throw { statusCode: 400, message: 'Cannot review job: all signed checklist documents must be approved first.' };
+            // 2. Automatically approve all signed checklist files in the Survey model
+            const survey = await db.Survey.findOne({
+                where: { job_id: id },
+                transaction: txn,
+                lock: txn.LOCK.UPDATE
+            });
+            if (!survey) {
+                throw { statusCode: 400, message: 'Cannot review job: survey report is missing.' };
+            }
+
+            let signedFiles = survey.signed_checklist_files;
+            if (Array.isArray(signedFiles) && signedFiles.length > 0) {
+                const updatedFiles = signedFiles.map(file => {
+                    if (typeof file === 'object' && file !== null) {
+                        return { ...file, status: 'APPROVED' };
+                    }
+                    return file;
+                });
+                await survey.update({ signed_checklist_files: updatedFiles }, { transaction: txn });
+            }
+
+            await txn.commit();
+        } catch (error) {
+            await txn.rollback();
+            throw error;
         }
     }
 

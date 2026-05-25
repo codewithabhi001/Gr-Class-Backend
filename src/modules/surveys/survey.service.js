@@ -366,6 +366,11 @@ export const finalizeSurvey = async (jobId, user) => {
 export const requestRework = async (jobId, reason, userId) => {
     const job = await assertJobAccessible(jobId, userId, { checkSurveyor: false });
 
+    // Guard: once document review is complete, the status is REVIEWED. Before that, rework cannot be requested.
+    if (job.job_status !== 'REVIEWED') {
+        throw { statusCode: 400, message: 'Rework can only be requested after the Technical Officer has reviewed all documents.' };
+    }
+
     // Guard: no rework once job is at or past FINALIZED
     if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `Rework cannot be requested when job is ${job.job_status}.` };

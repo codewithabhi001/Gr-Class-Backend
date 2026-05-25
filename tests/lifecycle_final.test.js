@@ -435,7 +435,7 @@ async function run() {
             }
         });
 
-        // Test 11c: Job review blocked when checklist items are pending
+        // Test 11c: Job review automatically approves pending checklist items and documents
         const jobId2 = await makeJob(fx, 'SURVEY_DONE');
         await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId2 } });
         const surveyId2 = await makeSurvey(jobId2, fx.surveyorId, 'SUBMITTED');
@@ -450,62 +450,20 @@ async function run() {
 
         await db.Survey.update({
             signed_checklist_files: [
-                { url: 'surveys/signed-checklists/123_sc2.pdf', status: 'APPROVED' }
+                { url: 'surveys/signed-checklists/123_sc2.pdf', status: 'PENDING' }
             ]
         }, { where: { id: surveyId2 } });
 
-        await expectStatus('Job review blocked when checklist items are PENDING → 400', 400, async () => {
-            await jobSvc.reviewJob(jobId2, 'Checklist items pending', toUser);
-        });
-
-        // Test 11d: Job review blocked when signed checklist files are pending
-        const jobId3 = await makeJob(fx, 'SURVEY_DONE');
-        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId3 } });
-        const surveyId3 = await makeSurvey(jobId3, fx.surveyorId, 'SUBMITTED');
-
-        const item3 = await db.ActivityPlanning.create({
-            job_id: jobId3,
-            question_code: 'Q3',
-            question_text: 'Is cargo secure?',
-            answer: 'YES',
-            status: 'APPROVED'
-        });
-
-        await db.Survey.update({
-            signed_checklist_files: [
-                { url: 'surveys/signed-checklists/123_sc3.pdf', status: 'PENDING' }
-            ]
-        }, { where: { id: surveyId3 } });
-
-        await expectStatus('Job review blocked when signed checklist files are PENDING → 400', 400, async () => {
-            await jobSvc.reviewJob(jobId3, 'Signed files pending', toUser);
-        });
-
-        // Test 11e: Job review succeeds when all approved
-        const jobId4 = await makeJob(fx, 'SURVEY_DONE');
-        await db.JobRequest.update({ is_survey_required: true }, { where: { id: jobId4 } });
-        const surveyId4 = await makeSurvey(jobId4, fx.surveyorId, 'SUBMITTED');
-
-        const item4 = await db.ActivityPlanning.create({
-            job_id: jobId4,
-            question_code: 'Q4',
-            question_text: 'Is safety gear ready?',
-            answer: 'YES',
-            status: 'APPROVED'
-        });
-
-        await db.Survey.update({
-            signed_checklist_files: [
-                { url: 'surveys/signed-checklists/123_sc4.pdf', status: 'APPROVED' }
-            ]
-        }, { where: { id: surveyId4 } });
-
-        await test('Job review succeeds when all items and documents are APPROVED', async () => {
-            await jobSvc.reviewJob(jobId4, 'All approved', toUser);
-            const updatedJob = await db.JobRequest.findByPk(jobId4);
-            if (updatedJob.job_status !== 'REVIEWED') {
-                throw new Error(`Expected REVIEWED, got ${updatedJob.job_status}`);
-            }
+        await test('Job review automatically approves pending checklist items and signed files', async () => {
+            await jobSvc.reviewJob(jobId2, 'Auto approve checklist', toUser);
+            const [updatedJob, updatedItem, updatedSurvey] = await Promise.all([
+                db.JobRequest.findByPk(jobId2),
+                db.ActivityPlanning.findByPk(item2.id),
+                db.Survey.findByPk(surveyId2)
+            ]);
+            if (updatedJob.job_status !== 'REVIEWED') throw new Error(`Job: ${updatedJob.job_status}`);
+            if (updatedItem.status !== 'APPROVED') throw new Error(`Item: ${updatedItem.status}`);
+            if (updatedSurvey.signed_checklist_files?.[0]?.status !== 'APPROVED') throw new Error(`File: ${JSON.stringify(updatedSurvey.signed_checklist_files)}`);
         });
     }
 
