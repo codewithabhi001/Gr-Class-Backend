@@ -27,7 +27,22 @@ export default (sequelize, DataTypes) => {
         timestamps: true,
         indexes: [
             { fields: ['status'] }
-        ]
+        ],
+        hooks: {
+            beforeValidate: (flag) => {
+                const fieldsToLower = [
+                    'flag_state_name',
+                    'country',
+                    'authority_name',
+                    'contact_email'
+                ];
+                for (const field of fieldsToLower) {
+                    if (typeof flag[field] === 'string') {
+                        flag[field] = flag[field].toLowerCase().trim();
+                    }
+                }
+            }
+        }
     });
 
     FlagAdministration.associate = (models) => {

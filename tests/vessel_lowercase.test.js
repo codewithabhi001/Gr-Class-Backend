@@ -135,4 +135,69 @@ describe('Vessel Model Hooks - Lowercase & Trim', () => {
             await db.Client.destroy({ where: { id: clientId } });
         }
     });
+
+    it('should lowercase and trim string fields when creating a User, Client, and FlagAdministration', async () => {
+        const clientId = uuidv7();
+        const flagId = uuidv7();
+        const userId = uuidv7();
+
+        try {
+            // 1. Create client with mixed casing
+            await db.Client.create({
+                id: clientId,
+                company_name: '  GIRIK Maritime Services  ',
+                company_code: '  GMS-101  ',
+                email: '  INFO@GIRIKMARITIME.COM  ',
+                contact_person_name: '  JOHN doe  ',
+                contact_person_email: '  JOHN.DOE@GIRIK.COM  ',
+                country: '  SINGAPORE  ',
+                status: 'ACTIVE'
+            });
+
+            // Verify Client
+            const client = await db.Client.findByPk(clientId);
+            assert.strictEqual(client.company_name, 'girik maritime services');
+            assert.strictEqual(client.company_code, 'gms-101');
+            assert.strictEqual(client.email, 'info@girikmaritime.com');
+            assert.strictEqual(client.contact_person_name, 'john doe');
+            assert.strictEqual(client.contact_person_email, 'john.doe@girik.com');
+            assert.strictEqual(client.country, 'singapore');
+
+            // 2. Create flag with mixed casing
+            await db.FlagAdministration.create({
+                id: flagId,
+                flag_state_name: '  Panama STATE  ',
+                country: '  PANAMA  ',
+                authority_name: '  Panama MARITIME Authority  ',
+                contact_email: '  CONTACT@PANAMAFLAG.COM  ',
+                status: 'ACTIVE'
+            });
+
+            // Verify Flag
+            const flag = await db.FlagAdministration.findByPk(flagId);
+            assert.strictEqual(flag.flag_state_name, 'panama state');
+            assert.strictEqual(flag.country, 'panama');
+            assert.strictEqual(flag.authority_name, 'panama maritime authority');
+            assert.strictEqual(flag.contact_email, 'contact@panamaflag.com');
+
+            // 3. Create User with mixed casing
+            await db.User.create({
+                id: userId,
+                name: 'Jane Smith',
+                email: '  JANE.SMITH@TEST.COM  ',
+                role: 'ADMIN',
+                password_hash: 'x'
+            });
+
+            // Verify User
+            const user = await db.User.findByPk(userId);
+            assert.strictEqual(user.email, 'jane.smith@test.com');
+
+        } finally {
+            // Clean up
+            await db.User.destroy({ where: { id: userId } });
+            await db.FlagAdministration.destroy({ where: { id: flagId } });
+            await db.Client.destroy({ where: { id: clientId } });
+        }
+    });
 });

@@ -15,6 +15,23 @@ export default (sequelize, DataTypes) => {
         underscored: true,
         timestamps: true,
         updatedAt: false,
+        hooks: {
+            beforeValidate: (client) => {
+                const fieldsToLower = [
+                    'company_name',
+                    'company_code',
+                    'country',
+                    'email',
+                    'contact_person_name',
+                    'contact_person_email'
+                ];
+                for (const field of fieldsToLower) {
+                    if (typeof client[field] === 'string') {
+                        client[field] = client[field].toLowerCase().trim();
+                    }
+                }
+            }
+        }
     });
 
     Client.associate = (models) => {

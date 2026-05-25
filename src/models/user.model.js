@@ -49,6 +49,13 @@ export default (sequelize, DataTypes) => {
         tableName: 'users',
         underscored: true,
         timestamps: true,
+        hooks: {
+            beforeValidate: (user) => {
+                if (typeof user.email === 'string') {
+                    user.email = user.email.toLowerCase().trim();
+                }
+            }
+        }
     });
 
     User.associate = (models) => {

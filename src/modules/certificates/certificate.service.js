@@ -955,8 +955,8 @@ export const uploadExternalCertificate = async (vesselId, data, userId) => {
         expiry_date,
         source_type: 'EXTERNAL',
         status: 'ISSUED', // External certs are issued by default
-        uploaded_file_url: s3_key,
-        pdf_file_url: s3_key,
+        uploaded_file_url: file_key,
+        pdf_file_url: file_key,
         issued_by_user_id: userId,
         version: 1
     });
