@@ -18,7 +18,7 @@ export const startMonitoring = () => {
                 { status: 'EXPIRED' },
                 { 
                     where: { 
-                        status: 'ISSUED', // Only issued ones can expire
+                        status: { [db.Sequelize.Op.in]: ['ISSUED', 'VALID'] }, // Both ISSUED and VALID ones can expire
                         expiry_date: { [db.Sequelize.Op.lt]: now } 
                     } 
                 }
@@ -38,7 +38,7 @@ export const startMonitoring = () => {
 
                 const certificates = await db.Certificate.findAll({
                     where: {
-                        status: 'ISSUED',
+                        status: { [db.Sequelize.Op.in]: ['ISSUED', 'VALID'] }, // Both ISSUED and VALID ones can expire
                         expiry_date: {
                             [db.Sequelize.Op.gte]: `${dateString} 00:00:00`,
                             [db.Sequelize.Op.lte]: `${dateString} 23:59:59`
