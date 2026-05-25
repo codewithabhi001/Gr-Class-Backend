@@ -957,7 +957,7 @@ export const uploadExternalCertificate = async (vesselId, data, userId) => {
         issue_date,
         expiry_date,
         source_type: 'EXTERNAL',
-        status: 'ISSUED', // External certs are issued by default
+        status: 'VALID', // External certs are valid by default
         uploaded_file_url: s3_key,
         pdf_file_url: s3_key,
         issued_by_user_id: userId,
@@ -966,7 +966,7 @@ export const uploadExternalCertificate = async (vesselId, data, userId) => {
 
     await db.CertificateHistory.create({
         certificate_id: cert.id,
-        status: 'ISSUED',
+        status: 'VALID',
         changed_by_user_id: userId,
         change_reason: 'External certificate uploaded manually',
         changed_at: new Date()
