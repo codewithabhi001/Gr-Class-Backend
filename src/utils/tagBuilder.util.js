@@ -12,7 +12,6 @@ export const buildTagValuesForJob = async (jobId) => {
                 ] 
             },
             { model: db.User, as: 'surveyor' },
-            { model: db.CertificateType },
         ]
     });
 
@@ -21,7 +20,12 @@ export const buildTagValuesForJob = async (jobId) => {
     const vessel = job.Vessel;
     const client = vessel?.Client;
     const surveyor = job.surveyor;
-    const certType = job.CertificateType;
+
+    const jobCerts = await db.JobCertificate.findAll({
+        where: { job_request_id: jobId },
+        include: [{ model: db.CertificateType }]
+    });
+    const certType = jobCerts[0]?.CertificateType;
 
     const formatDate = (v) => {
         if (!v) return '';
@@ -61,7 +65,6 @@ export const buildTagValuesForJob = async (jobId) => {
     };
 
     // 2. Checklist tags (Activity Planning)
-    const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId } });
     const checklistItems = await db.ActivityPlanning.findAll({
         where: jobCerts.length > 0
             ? { [db.Sequelize.Op.or]: [{ job_id: jobId }, { job_certificate_id: jobCerts.map(jc => jc.id) }] }

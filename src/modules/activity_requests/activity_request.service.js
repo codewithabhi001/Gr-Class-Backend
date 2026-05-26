@@ -129,12 +129,12 @@ const buildDefaultJobReason = (activity) => {
     return `Converted from activity request ${activity.request_number}`;
 };
 
-const flatConvertedJobSummary = (job) => ({
+const flatConvertedJobSummary = (job, bodyCertTypeId = null) => ({
     id: job.id,
     job_request_number: job.job_request_number,
     job_status: job.job_status,
     vessel_id: job.vessel_id,
-    certificate_type_id: job.certificate_type_id,
+    certificate_type_id: bodyCertTypeId,
     target_port: job.target_port,
     target_date: job.target_date,
     priority: job.priority,
@@ -149,6 +149,7 @@ const flatConvertedJobSummary = (job) => ({
 export const convertActivityRequestToJob = async (id, body, userId, scopeFilters = {}, user = null) => {
     const txn = await db.sequelize.transaction();
     let job;
+    let certificateTypeId;
     try {
         const activity = await ActivityRequest.findOne({
             where: { id, ...scopeFilters },
@@ -191,9 +192,10 @@ export const convertActivityRequestToJob = async (id, body, userId, scopeFilters
             };
         }
 
+        certificateTypeId = body.certificate_type_id;
         const jobData = {
             vessel_id: vesselId,
-            certificate_type_id: body.certificate_type_id,
+            certificate_type_id: certificateTypeId,
             source_activity_request_id: activity.id,
             reason: pickNonEmpty(body.reason, null) || buildDefaultJobReason(activity),
             target_port: targetPort,
@@ -246,6 +248,6 @@ export const convertActivityRequestToJob = async (id, body, userId, scopeFilters
 
     return {
         activity_request: activityRequest,
-        job: flatConvertedJobSummary(job),
+        job: flatConvertedJobSummary(job, certificateTypeId),
     };
 };

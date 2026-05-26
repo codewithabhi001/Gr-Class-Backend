@@ -94,17 +94,24 @@ export const getChecklistTemplateById = async (id) => {
  * This is what surveyors will use to know what questions to answer
  */
 export const getChecklistTemplateForJob = async (jobId) => {
-    const job = await JobRequest.findByPk(jobId, {
-        include: ['CertificateType']
-    });
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) {
         throw { statusCode: 404, message: 'Job not found' };
+    }
+
+    const jobCert = await db.JobCertificate.findOne({
+        where: { job_request_id: jobId },
+        useMaster: true
+    });
+    const certTypeId = jobCert?.certificate_type_id;
+    if (!certTypeId) {
+        throw { statusCode: 400, message: 'No certificate linked to this job request.' };
     }
 
     // Find active checklist template for this certificate type
     const template = await ChecklistTemplate.findOne({
         where: {
-            certificate_type_id: job.certificate_type_id,
+            certificate_type_id: certTypeId,
             status: 'ACTIVE'
         },
         include: [
@@ -117,9 +124,10 @@ export const getChecklistTemplateForJob = async (jobId) => {
     });
 
     if (!template) {
+        const certType = await CertificateType.findByPk(certTypeId);
         throw {
             statusCode: 404,
-            message: `No active checklist template found for certificate type: ${job.CertificateType?.name || 'Unknown'}`
+            message: `No active checklist template found for certificate type: ${certType?.name || 'Unknown'}`
         };
     }
 
@@ -135,15 +143,23 @@ export const downloadChecklistTemplateForJob = async (jobId, user, { force = fal
         include: [
             { model: db.Vessel, include: [{ model: db.Client, as: 'Client' }] },
             { model: db.User, as: 'surveyor' },
-            { model: db.CertificateType },
         ],
         useMaster: true
     });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
 
+    const jobCert = await db.JobCertificate.findOne({
+        where: { job_request_id: jobId },
+        useMaster: true
+    });
+    const certTypeId = jobCert?.certificate_type_id;
+    if (!certTypeId) {
+        throw { statusCode: 400, message: 'No certificate linked to this job' };
+    }
+
     // Find active template (raw keys, no resolveEntity here)
     const template = await ChecklistTemplate.findOne({
-        where: { certificate_type_id: job.certificate_type_id, status: 'ACTIVE' },
+        where: { certificate_type_id: certTypeId, status: 'ACTIVE' },
     });
     if (!template) {
         throw { statusCode: 404, message: 'No active checklist template found for this job' };

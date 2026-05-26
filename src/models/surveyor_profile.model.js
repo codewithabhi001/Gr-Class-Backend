@@ -4,8 +4,60 @@ export default (sequelize, DataTypes) => {
         user_id: DataTypes.UUID,
         surveyor_application_id: { type: DataTypes.UUID, allowNull: true },
         license_number: DataTypes.STRING,
-        authorized_ship_types: DataTypes.JSON,
-        authorized_certificates: DataTypes.JSON,
+        authorized_ship_types: {
+            type: DataTypes.JSON,
+            get() {
+                const val = this.getDataValue('authorized_ship_types');
+                if (typeof val === 'string') {
+                    try {
+                        const parsed = JSON.parse(val);
+                        return Array.isArray(parsed) ? parsed : [parsed];
+                    } catch (e) {
+                        return val ? [val] : [];
+                    }
+                }
+                return val || [];
+            },
+            set(val) {
+                if (typeof val === 'string') {
+                    try {
+                        const parsed = JSON.parse(val);
+                        this.setDataValue('authorized_ship_types', Array.isArray(parsed) ? parsed : [parsed]);
+                    } catch (e) {
+                        this.setDataValue('authorized_ship_types', val ? [val] : []);
+                    }
+                } else {
+                    this.setDataValue('authorized_ship_types', val || []);
+                }
+            }
+        },
+        authorized_certificates: {
+            type: DataTypes.JSON,
+            get() {
+                const val = this.getDataValue('authorized_certificates');
+                if (typeof val === 'string') {
+                    try {
+                        const parsed = JSON.parse(val);
+                        return Array.isArray(parsed) ? parsed : [parsed];
+                    } catch (e) {
+                        return val ? [val] : [];
+                    }
+                }
+                return val || [];
+            },
+            set(val) {
+                if (typeof val === 'string') {
+                    try {
+                        const parsed = JSON.parse(val);
+                        this.setDataValue('authorized_certificates', Array.isArray(parsed) ? parsed : [parsed]);
+                    } catch (e) {
+                        this.setDataValue('authorized_certificates', val ? [val] : []);
+                    }
+                } else {
+                    this.setDataValue('authorized_certificates', val || []);
+                }
+            }
+        },
         valid_from: DataTypes.DATEONLY,
         valid_to: DataTypes.DATEONLY,
         status: { type: DataTypes.ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED'), defaultValue: 'ACTIVE' },

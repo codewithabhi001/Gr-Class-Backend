@@ -68,8 +68,13 @@ async function makeJob(vesselId, requesterId, surveyorId, certTypeId, startStatu
     const id = uuidv7();
     await db.JobRequest.create({
         id, vessel_id: vesselId, requested_by_user_id: requesterId,
-        assigned_surveyor_id: surveyorId, certificate_type_id: certTypeId,
+        assigned_surveyor_id: surveyorId,
         job_status: startStatus, reason: 'Annual', target_port: 'Singapore', target_date: '2026-12-31'
+    });
+    await db.JobCertificate.create({
+        job_request_id: id,
+        certificate_type_id: certTypeId,
+        status: 'PENDING'
     });
     await db.JobStatusHistory.create({ job_id: id, old_status: null, new_status: startStatus, changed_by: requesterId });
     return id;
@@ -222,12 +227,13 @@ async function run() {
     {
         const jobId2 = await makeJob(vesselId, requesterId, surveyorId, certTypeId, 'FINALIZED');
         await makeSurvey(jobId2, surveyorId, 'FINALIZED');
+        const testJobCert = await db.JobCertificate.findOne({ where: { job_request_id: jobId2 } });
         await db.Survey.update({
             survey_statement_status: 'ISSUED',
             attendance_photo_url: 'https://test.com/photo.jpg',
             submit_latitude: 1.0,
             submit_longitude: 1.0
-        }, { where: { job_id: jobId2 } });
+        }, { where: { job_certificate_id: testJobCert.id } });
         
         // Create a real certificate row so FK is satisfied
         const fakeCert = await db.Certificate.create({
@@ -239,7 +245,7 @@ async function run() {
             status: 'VALID',
             issued_by_user_id: tmId
         });
-        await db.JobRequest.update({ generated_certificate_id: fakeCert.id }, { where: { id: jobId2 } });
+        await db.JobCertificate.update({ generated_certificate_id: fakeCert.id }, { where: { job_request_id: jobId2 } });
 
         await expectError('Duplicate certificate blocked (409)', 409, async () => {
             await certService.generateCertificate({ job_id: jobId2 }, tmUser);

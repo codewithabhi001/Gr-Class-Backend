@@ -96,7 +96,7 @@ export const getChecklist = async (jobId, filters = {}, user = null) => {
     let templateFiles = [];
     let templateSections = [];
     try {
-        const certTypeId = jobCert?.certificate_type_id || job.certificate_type_id;
+        const certTypeId = jobCert?.certificate_type_id;
         if (certTypeId) {
             const template = await ChecklistTemplate.findOne({
                 where: { certificate_type_id: certTypeId, status: 'ACTIVE' },

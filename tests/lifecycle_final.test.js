@@ -60,11 +60,15 @@ async function makeJob(fx, status) {
         vessel_id: fx.vesselId,
         requested_by_user_id: fx.requesterId,
         assigned_surveyor_id: fx.surveyorId,
-        certificate_type_id: fx.certTypeId,
         job_status: status,
         reason: 'Annual',
         target_port: 'Singapore',
         target_date: '2026-12-31'
+    });
+    await db.JobCertificate.create({
+        job_request_id: id,
+        certificate_type_id: fx.certTypeId,
+        status: 'PENDING'
     });
     await db.JobStatusHistory.create({ job_id: id, old_status: null, new_status: status, changed_by: fx.requesterId });
     return id;
@@ -179,9 +183,10 @@ async function run() {
     {
         const jobId = await makeJob(fx, 'PAYMENT_DONE');
         await makeSurvey(jobId, fx.surveyorId, 'FINALIZED');
-        await db.Survey.update({ survey_statement_status: 'ISSUED' }, { where: { job_id: jobId } });
+        const testJobCert = await db.JobCertificate.findOne({ where: { job_request_id: jobId } });
+        await db.Survey.update({ survey_statement_status: 'ISSUED' }, { where: { job_certificate_id: testJobCert.id } });
         const certId = await makeFakeCert(fx);
-        await db.JobRequest.update({ generated_certificate_id: certId }, { where: { id: jobId } });
+        await db.JobCertificate.update({ generated_certificate_id: certId }, { where: { job_request_id: jobId } });
 
         await expectStatus('Double certificate → 409', 409, async () => {
             await certSvc.generateCertificate({ job_id: jobId }, tmUser);

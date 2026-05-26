@@ -170,8 +170,13 @@ export const deactivateCertificateType = async (id) => {
 
     // Guard: check for pending/active jobs using this type
     const activeJobCount = await db.JobRequest.count({
+        include: [{
+            model: db.JobCertificate,
+            as: 'certificates',
+            where: { certificate_type_id: id },
+            required: true
+        }],
         where: {
-            certificate_type_id: id,
             job_status: { [Op.notIn]: ['CERTIFIED', 'REJECTED', 'CANCELLED'] }
         },
         useMaster: true
@@ -401,23 +406,32 @@ export const generateCertificate = async (data, user) => {
             throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED or PAYMENT_DONE. Current: ${job.job_status}` };
         }
 
-        // ── Resolve certificate type from JobCertificate or legacy job field ──
-        let certTypeId;
-        if (jobCert) {
-            certTypeId = jobCert.certificate_type_id;
-        } else {
-            // Legacy: single certificate per job
-            certTypeId = job.certificate_type_id;
+        if (!jobCert) {
+            jobCert = await db.JobCertificate.findOne({
+                where: { job_request_id: resolvedJobId },
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            });
         }
+
+        // ── Resolve certificate type from JobCertificate ──
+        const certTypeId = jobCert?.certificate_type_id;
         if (!certTypeId) throw { statusCode: 400, message: 'Certificate type not found for this job/certificate' };
 
         const certType = await db.CertificateType.findByPk(certTypeId, { attributes: ['id', 'name', 'issuing_authority', 'short_code'], transaction });
 
         // ── Guard 2: Survey Compliance (if required, skippable) ──
         if (!skip_validation && job.is_survey_required) {
-            let surveyQuery = jobCert
-                ? { job_certificate_id: jobCert.id }
-                : { job_id: resolvedJobId };
+            let surveyQuery;
+            if (jobCert) {
+                surveyQuery = { job_certificate_id: jobCert.id };
+            } else {
+                const fallbackCerts = await db.JobCertificate.findAll({
+                    where: { job_request_id: resolvedJobId },
+                    transaction
+                });
+                surveyQuery = { job_certificate_id: { [Op.in]: fallbackCerts.map(jc => jc.id) } };
+            }
             const survey = await db.Survey.findOne({ where: surveyQuery, transaction, lock: transaction.LOCK.UPDATE });
             if (!survey) throw { statusCode: 400, message: 'Cannot generate certificate: Survey not found.' };
             if (survey.survey_status !== 'FINALIZED') {
@@ -429,10 +443,8 @@ export const generateCertificate = async (data, user) => {
         }
 
         // ── Guard 3: No certificate already linked to this job/cert ──
-        if (jobCert && jobCert.generated_certificate_id) {
-            throw { statusCode: 409, message: 'A draft or certificate already exists for this job certificate.' };
-        } else if (!jobCert && job.generated_certificate_id) {
-            throw { statusCode: 409, message: 'A draft or certificate already exists for this job.' };
+        if ((jobCert && jobCert.generated_certificate_id) || job.generated_certificate_id) {
+            throw { statusCode: 409, message: 'A draft or certificate already exists for this job/certificate.' };
         }
         const existingCert = await Certificate.findOne({ where: { vessel_id: job.vessel_id, certificate_type_id: certTypeId, status: 'VALID' }, transaction });
         if (existingCert) {
@@ -535,8 +547,8 @@ export const generateCertificate = async (data, user) => {
                     
                     const commonData = {
                         certificateNumber,
-                        vesselName: vessel?.vessel_name,
-                        certificateType: job.CertificateType?.name,
+                        vesselName: job.Vessel?.vessel_name,
+                        certificateType: certType?.name,
                         expiryDate: expiryDate.toLocaleDateString(),
                         jobId: job.id,
                         status: 'ISSUED'

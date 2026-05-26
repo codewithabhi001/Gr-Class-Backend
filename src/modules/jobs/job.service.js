@@ -142,6 +142,12 @@ export const createJob = async (data, userId, options = {}) => {
     
     // Expecting data.certificates to be an array: [{ certificate_type_id: 'uuid', uploaded_documents: [...] }]
     const certificates = data.certificates || [];
+    if (certificates.length === 0 && data.certificate_type_id) {
+        certificates.push({
+            certificate_type_id: data.certificate_type_id,
+            uploaded_documents: data.uploaded_documents || []
+        });
+    }
     if (certificates.length === 0) {
         throw { statusCode: 400, message: 'At least one certificate is required to create a job.' };
     }
@@ -332,8 +338,13 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     ALLOWED_JOB_FILTERS.forEach(k => {
         if (rest[k] == null || String(rest[k]).trim() === '') return;
         const values = parseCsvOrSingle(rest[k]);
-        if (values.length === 1) whereClause[k] = values[0];
-        else if (values.length > 1) whereClause[k] = { [Op.in]: values };
+        if (k === 'certificate_type_id') {
+            if (values.length === 1) whereClause['$certificates.certificate_type_id$'] = values[0];
+            else if (values.length > 1) whereClause['$certificates.certificate_type_id$'] = { [Op.in]: values };
+        } else {
+            if (values.length === 1) whereClause[k] = values[0];
+            else if (values.length > 1) whereClause[k] = { [Op.in]: values };
+        }
     });
 
     if (created_from || created_to) {
@@ -380,12 +391,21 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     // Calculate status counts
     const statusWhere = { ...whereClause };
     delete statusWhere.job_status;
+    const statusInclude = [];
+    if (statusWhere['$certificates.certificate_type_id$']) {
+        statusInclude.push({
+            model: JobCertificate,
+            as: 'certificates',
+            attributes: []
+        });
+    }
     const statusCounts = await JobRequest.findAll({
         where: statusWhere,
         attributes: [
             ['job_status', 'status'],
             [db.sequelize.fn('COUNT', db.sequelize.col('job_status')), 'count']
         ],
+        include: statusInclude,
         group: ['job_status'],
         raw: true,
         useReplica: true
@@ -1184,16 +1204,23 @@ export const getJobDocuments = async (jobId, user) => {
 
     const resolvedDocs = await fileAccessService.resolveEntity(docs, user);
 
+    // Fetch all certificates associated with the job
+    const jobCerts = await JobCertificate.findAll({
+        where: { job_request_id: jobId },
+        useReplica: true
+    });
+    const certTypeIds = jobCerts.map(jc => jc.certificate_type_id).filter(Boolean);
+
     // Also get required docs to show what's still needed
-    const requiredDocs = job.certificate_type_id
+    const requiredDocs = certTypeIds.length > 0
         ? await CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: job.certificate_type_id },
+            where: { certificate_type_id: { [Op.in]: certTypeIds } },
             useReplica: true
         })
         : [];
 
-    const certificateType = job.certificate_type_id
-        ? await db.CertificateType.findByPk(job.certificate_type_id, {
+    const certificateType = certTypeIds.length > 0
+        ? await db.CertificateType.findByPk(certTypeIds[0], {
             attributes: ['id', 'name', 'issuing_authority', 'requires_survey'],
             useReplica: true
         })

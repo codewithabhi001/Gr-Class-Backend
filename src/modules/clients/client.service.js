@@ -105,7 +105,12 @@ export const getClientDocuments = async (clientId, user) => {
     const jobs = await JobRequest.findAll({
         where: { vessel_id: vesselIds },
         attributes: ['id'],
-        include: [{ model: db.CertificateType, attributes: ['name'] }],
+        include: [{
+            model: db.JobCertificate,
+            as: 'certificates',
+            attributes: ['id'],
+            include: [{ model: db.CertificateType, attributes: ['name'] }]
+        }],
         useReplica: true
     });
     const jobIds = jobs.map(j => j.id);
@@ -178,7 +183,8 @@ export const getClientDocuments = async (clientId, user) => {
             if (v) entityName = `Vessel (${v.vessel_name})`;
         } else if (docJson.entity_type === 'JOB') {
             const j = jobs.find(j => j.id === docJson.entity_id);
-            if (j && j.CertificateType) entityName = `Job (${j.CertificateType.name})`;
+            const firstCertType = j?.certificates?.[0]?.CertificateType;
+            if (firstCertType) entityName = `Job (${firstCertType.name})`;
         }
 
         return {
