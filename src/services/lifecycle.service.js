@@ -136,36 +136,47 @@ export const updateJobStatus = async (jobId, newStatus, userId, reason = null, o
             triggeredBy: userId, reason: reason ?? undefined,
         });
 
-        // ── 8. Automatic Survey sync & Provisioning ──
+        // ── 8. Automatic Survey sync & Provisioning (per JobCertificate) ──
         if (job.is_survey_required) {
-            const survey = await Survey.findOne({ where: { job_id: jobId }, transaction: txn });
+            const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, transaction: txn });
 
-            // Provisioning: Create survey if assigned and missing
-            if (['ASSIGNED', 'SURVEY_AUTHORIZED', 'IN_PROGRESS'].includes(newStatus)) {
-                if (!survey && job.assigned_surveyor_id) {
-                    await Survey.create({
-                        job_id: jobId,
-                        surveyor_id: job.assigned_surveyor_id,
-                        survey_status: 'NOT_STARTED',
-                    }, { transaction: txn });
-                } else if (survey && survey.surveyor_id !== job.assigned_surveyor_id) {
-                    // Sync surveyor if job was reassigned
-                    await survey.update({ surveyor_id: job.assigned_surveyor_id }, { transaction: txn });
+            if (['ASSIGNED', 'SURVEY_AUTHORIZED', 'IN_PROGRESS'].includes(newStatus) && job.assigned_surveyor_id) {
+                // Provision/sync one Survey per JobCertificate
+                for (const jc of jobCerts) {
+                    const existingSurvey = await Survey.findOne({ where: { job_certificate_id: jc.id }, transaction: txn });
+                    if (!existingSurvey) {
+                        await Survey.create({
+                            job_certificate_id: jc.id,
+                            surveyor_id: job.assigned_surveyor_id,
+                            survey_status: 'NOT_STARTED',
+                        }, { transaction: txn });
+                    } else if (existingSurvey.surveyor_id !== job.assigned_surveyor_id) {
+                        await existingSurvey.update({ surveyor_id: job.assigned_surveyor_id }, { transaction: txn });
+                    }
+                    // Also update JobCertificate status to SURVEY_AUTHORIZED if applicable
+                    if (newStatus === 'SURVEY_AUTHORIZED' && jc.status === 'DOCUMENT_VERIFIED') {
+                        await jc.update({ status: 'SURVEY_AUTHORIZED' }, { transaction: txn });
+                    }
                 }
             }
 
-            // Sync Status: If Job moves to REWORK, Survey must follow
-            if (newStatus === 'REWORK_REQUESTED' && survey && survey.survey_status !== 'REWORK_REQUIRED') {
-                const prevSurveyStatus = survey.survey_status;
-                await survey.update({ survey_status: 'REWORK_REQUIRED' }, { transaction: txn });
-                await SurveyStatusHistory.create({
-                    survey_id: survey.id,
-                    previous_status: prevSurveyStatus,
-                    new_status: 'REWORK_REQUIRED',
-                    changed_by: userId,
-                    reason: `Auto-sync: Job → ${newStatus} (Reason: ${reason || 'N/A'})`,
-                    submission_iteration: survey.submission_count
-                }, { transaction: txn });
+            // Sync Status: If Job moves to REWORK, all non-finalized Surveys must follow
+            if (newStatus === 'REWORK_REQUESTED') {
+                const surveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map(jc => jc.id) }, transaction: txn });
+                for (const survey of surveys) {
+                    if (!['FINALIZED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
+                        const prevSurveyStatus = survey.survey_status;
+                        await survey.update({ survey_status: 'REWORK_REQUIRED' }, { transaction: txn });
+                        await SurveyStatusHistory.create({
+                            survey_id: survey.id,
+                            previous_status: prevSurveyStatus,
+                            new_status: 'REWORK_REQUIRED',
+                            changed_by: userId,
+                            reason: `Auto-sync: Job → ${newStatus} (Reason: ${reason || 'N/A'})`,
+                            submission_iteration: survey.submission_count
+                        }, { transaction: txn });
+                    }
+                }
             }
         }
 
@@ -228,12 +239,15 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
 
             // ── 4a. NC guard: no open Non-Conformities ──
             if (db.NonConformity) {
-                const openNCs = await db.NonConformity.count({
-                    where: { job_id: survey.job_id, status: { [db.Sequelize.Op.notIn]: ['CLOSED', 'RESOLVED'] } },
-                    transaction: txn
-                });
-                if (openNCs > 0) {
-                    throw { statusCode: 400, message: `Cannot finalize survey: please resolve the ${openNCs} open Non-Conformity report${openNCs > 1 ? 's' : ''} first.` };
+                const jc = await db.JobCertificate.findByPk(survey.job_certificate_id, { transaction: txn });
+                if (jc) {
+                    const openNCs = await db.NonConformity.count({
+                        where: { job_id: jc.job_request_id, status: { [db.Sequelize.Op.notIn]: ['CLOSED', 'RESOLVED'] } },
+                        transaction: txn
+                    });
+                    if (openNCs > 0) {
+                        throw { statusCode: 400, message: `Cannot finalize survey: please resolve the ${openNCs} open Non-Conformity report${openNCs > 1 ? 's' : ''} first.` };
+                    }
                 }
             }
         }
@@ -253,9 +267,12 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
 
         // ── 6. REWORK_REQUIRED guard: job must not be past FINALIZED ──
         if (newStatus === 'REWORK_REQUIRED') {
-            const job = await JobRequest.findByPk(survey.job_id, { transaction: txn });
-            if (job && JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
-                throw { statusCode: 400, message: `Rework cannot be requested when job is ${job.job_status}.` };
+            const jc = await db.JobCertificate.findByPk(survey.job_certificate_id, { transaction: txn });
+            if (jc) {
+                const job = await JobRequest.findByPk(jc.job_request_id, { transaction: txn });
+                if (job && JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
+                    throw { statusCode: 400, message: `Rework cannot be requested when job is ${job.job_status}.` };
+                }
             }
         }
 
@@ -283,27 +300,55 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
         }, { transaction: txn });
 
         // ── 9. Structured log ──
+        const jcForLog = await db.JobCertificate.findByPk(survey.job_certificate_id, { transaction: txn });
         logger.info({
             entity: 'SURVEY', event: 'STATUS_CHANGE',
-            surveyId, jobId: survey.job_id,
+            surveyId, jobCertificateId: survey.job_certificate_id,
+            jobId: jcForLog?.job_request_id,
             from: previousStatus, to: newStatus,
             triggeredBy: userId, reason: reason ?? undefined,
         });
 
-        // ── 10. Automatic Job sync (exclusive paths) ──
-        // Job → FINALIZED is EXCLUSIVELY triggered here. _internal flag ensures
-        // no external caller can reach that branch via updateJobStatus directly.
+        // ── 10. Automatic Job sync ──
+        // For multi-certificate jobs: only advance the job status when ALL surveys
+        // for the job have reached the equivalent survey state.
+        // e.g. Job only becomes SURVEY_DONE when every survey is SUBMITTED.
         const jobSyncMap = {
-            STARTED: 'IN_PROGRESS',
-            SUBMITTED: 'SURVEY_DONE',
+            STARTED:        'IN_PROGRESS',
+            SUBMITTED:      'SURVEY_DONE',
             REWORK_REQUIRED: 'REWORK_REQUESTED',
-            FINALIZED: 'FINALIZED',
+            FINALIZED:      'FINALIZED',
         };
         const jobTarget = jobSyncMap[newStatus];
-        if (jobTarget) {
-            await updateJobStatus(survey.job_id, jobTarget, userId,
-                `Auto-sync: Survey → ${newStatus}`,
-                { transaction: txn, _internal: true });
+        if (jobTarget && jcForLog) {
+            const jobId = jcForLog.job_request_id;
+
+            // Fetch all certs and their surveys for this job
+            const allCerts   = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, transaction: txn });
+            const allSurveys = await Survey.findAll({ where: { job_certificate_id: allCerts.map(c => c.id) }, transaction: txn });
+
+            // Check if surveys have reached the target
+            let statusReached = false;
+            if (newStatus === 'STARTED') {
+                // For IN_PROGRESS, trigger when the FIRST survey starts
+                statusReached = true; 
+            } else {
+                // For other states (SUBMITTED, FINALIZED), trigger when ALL surveys reach the state
+                statusReached = allSurveys.every(s =>
+                    s.id === surveyId ? true : s.survey_status === newStatus
+                );
+            }
+
+            if (statusReached) {
+                // Silently skip if job is already at or past this status (idempotent)
+                const currentJob = await db.JobRequest.findByPk(jobId, { transaction: txn });
+                const alreadyAdvanced = currentJob && JOB_TERMINAL_STATES.includes(currentJob.job_status);
+                if (!alreadyAdvanced && currentJob?.job_status !== jobTarget) {
+                    await updateJobStatus(jobId, jobTarget, userId,
+                        `Auto-sync: All surveys → ${newStatus}`,
+                        { transaction: txn, _internal: true });
+                }
+            }
         }
 
         if (!externalTxn) await txn.commit();

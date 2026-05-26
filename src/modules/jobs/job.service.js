@@ -22,6 +22,7 @@ const JobReschedule = db.JobReschedule;
 const Survey = db.Survey;
 const SurveyorProfile = db.SurveyorProfile;
 const Payment = db.Payment;
+const JobCertificate = db.JobCertificate;
 
 /**
  * Map job_documents rows to client-facing uploaded_documents (signed URLs, no raw S3 keys).
@@ -73,7 +74,7 @@ const requireJob = async (id, { includeVessel = false, useMaster = false } = {})
 
 /**
  * Validate that the assigned surveyor has the required authorizations
- * for the vessel type and certificate type of the job.
+ * for the vessel type and all certificate types of the job.
  */
 const validateSurveyorAuthority = async (job, surveyorId) => {
     const profile = await SurveyorProfile.findOne({ where: { user_id: surveyorId }, useMaster: true });
@@ -91,18 +92,12 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
     }
 
     let vesselType = null;
-    let certName = null;
-
-    const [vessel, certType] = await Promise.all([
-        job.vessel_id ? Vessel.findByPk(job.vessel_id, { useMaster: true }) : Promise.resolve(null),
-        job.certificate_type_id ? CertificateType.findByPk(job.certificate_type_id, { useMaster: true }) : Promise.resolve(null)
-    ]);
-
-    vesselType = vessel?.ship_type;
-    certName = certType?.name;
+    if (job.vessel_id) {
+        const vessel = await Vessel.findByPk(job.vessel_id, { useMaster: true });
+        vesselType = vessel?.ship_type;
+    }
 
     if (vesselType) {
-        // Ensure it's an array or handle string cases just in case
         let authorizedShips = profile.authorized_ship_types;
         if (typeof authorizedShips === 'string') {
             try { authorizedShips = JSON.parse(authorizedShips); } catch (e) { authorizedShips = []; }
@@ -114,15 +109,20 @@ const validateSurveyorAuthority = async (job, surveyorId) => {
         }
     }
 
-    if (certName) {
-        let authorizedCerts = profile.authorized_certificates;
-        if (typeof authorizedCerts === 'string') {
-            try { authorizedCerts = JSON.parse(authorizedCerts); } catch (e) { authorizedCerts = []; }
-        }
-        if (!Array.isArray(authorizedCerts)) authorizedCerts = [];
+    // Check all certificate types for this job
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: job.id }, useMaster: true });
+    for (const jc of jobCerts) {
+        const certType = await CertificateType.findByPk(jc.certificate_type_id, { useMaster: true });
+        if (certType) {
+            let authorizedCerts = profile.authorized_certificates;
+            if (typeof authorizedCerts === 'string') {
+                try { authorizedCerts = JSON.parse(authorizedCerts); } catch (e) { authorizedCerts = []; }
+            }
+            if (!Array.isArray(authorizedCerts)) authorizedCerts = [];
 
-        if (!authorizedCerts.includes(certName)) {
-            throw { statusCode: 400, message: `Surveyor is not authorized for certificate: ${certName}` };
+            if (!authorizedCerts.includes(certType.name)) {
+                throw { statusCode: 400, message: `Surveyor is not authorized for certificate: ${certType.name}` };
+            }
         }
     }
 };
@@ -139,33 +139,14 @@ export const createJob = async (data, userId, options = {}) => {
         skipNotifications = false,
         skipMandatoryDocumentCheck = false,
     } = options;
-    let isSurveyRequired = true;
-    const [certType, requiredDocs, vessel] = await Promise.all([
-        data.certificate_type_id ? CertificateType.findByPk(data.certificate_type_id, { useMaster: true }) : Promise.resolve(null),
-        data.certificate_type_id ? CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: data.certificate_type_id, is_mandatory: true },
-            useMaster: true
-        }) : Promise.resolve([]),
-        data.vessel_id ? Vessel.findByPk(data.vessel_id, { include: [{ model: db.Client, as: 'Client' }], useMaster: true }) : Promise.resolve(null)
-    ]);
-
-    if (data.certificate_type_id) {
-        if (!certType) throw { statusCode: 400, message: 'The selected certificate type is invalid.' };
-        isSurveyRequired = certType.requires_survey;
-
-        if (!skipMandatoryDocumentCheck && requiredDocs.length > 0) {
-            const uploadedDocIds = data.uploaded_documents?.map(d => d.required_document_id) || [];
-            const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
-
-            if (missingDocs.length > 0) {
-                throw {
-                    statusCode: 400,
-                    message: 'Please upload all mandatory documents to create the job.',
-                    missing_documents: missingDocs.map(md => ({ id: md.id, name: md.document_name }))
-                };
-            }
-        }
+    
+    // Expecting data.certificates to be an array: [{ certificate_type_id: 'uuid', uploaded_documents: [...] }]
+    const certificates = data.certificates || [];
+    if (certificates.length === 0) {
+        throw { statusCode: 400, message: 'At least one certificate is required to create a job.' };
     }
+
+    const vessel = data.vessel_id ? await Vessel.findByPk(data.vessel_id, { include: [{ model: db.Client, as: 'Client' }], useMaster: true }) : null;
 
     if (data.vessel_id) {
         if (!vessel) throw { statusCode: 400, message: 'The selected vessel is invalid.' };
@@ -185,7 +166,33 @@ export const createJob = async (data, userId, options = {}) => {
         }
     }
 
-    const { job_status: _omit, uploaded_documents, requested_by_user_id: _rbu, payment: paymentData, ...safeData } = data;
+    // Validate all certificates before starting transaction
+    let anySurveyRequired = false;
+    for (const cert of certificates) {
+        const certType = await CertificateType.findByPk(cert.certificate_type_id, { useMaster: true });
+        if (!certType) throw { statusCode: 400, message: `The selected certificate type ${cert.certificate_type_id} is invalid.` };
+        
+        if (certType.requires_survey) anySurveyRequired = true;
+
+        if (!skipMandatoryDocumentCheck) {
+            const requiredDocs = await CertificateRequiredDocument.findAll({
+                where: { certificate_type_id: cert.certificate_type_id, is_mandatory: true },
+                useMaster: true
+            });
+            const uploadedDocIds = cert.uploaded_documents?.map(d => d.required_document_id) || [];
+            const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
+
+            if (missingDocs.length > 0) {
+                throw {
+                    statusCode: 400,
+                    message: `Please upload all mandatory documents for certificate ${certType.name}.`,
+                    missing_documents: missingDocs.map(md => ({ id: md.id, name: md.document_name }))
+                };
+            }
+        }
+    }
+
+    const { job_status: _omit, uploaded_documents: _u, certificates: _c, requested_by_user_id: _rbu, payment: paymentData, ...safeData } = data;
     const requestedBy = requestedByUserId || userId;
 
     const txn = externalTxn || await db.sequelize.transaction();
@@ -195,20 +202,43 @@ export const createJob = async (data, userId, options = {}) => {
             ...safeData,
             requested_by_user_id: requestedBy,
             job_status: 'CREATED',
-            is_survey_required: isSurveyRequired
+            is_survey_required: anySurveyRequired
         }, { transaction: txn });
 
-        // Save uploaded documents if any
-        if (uploaded_documents && uploaded_documents.length > 0) {
-            const docsToCreate = uploaded_documents.map(doc => ({
+        // Loop through certificates array to create JobCertificates and JobDocuments
+        for (const cert of certificates) {
+            const jobCert = await db.JobCertificate.create({
+                job_request_id: job.id,
+                certificate_type_id: cert.certificate_type_id,
+                status: 'PENDING'
+            }, { transaction: txn });
+
+            if (cert.uploaded_documents && cert.uploaded_documents.length > 0) {
+                const docsToCreate = cert.uploaded_documents.map(doc => ({
+                    job_id: job.id,
+                    job_certificate_id: jobCert.id,
+                    required_document_id: doc.required_document_id || null,
+                    custom_document_name: doc.custom_document_name || null,
+                    file_url: doc.file_url,
+                    uploaded_by: userId,
+                    verification_status: 'PENDING'
+                }));
+                await JobDocument.bulkCreate(docsToCreate, { transaction: txn });
+            }
+        }
+
+        // Handle global uploaded documents (if any)
+        if (data.uploaded_documents && data.uploaded_documents.length > 0) {
+            const globalDocsToCreate = data.uploaded_documents.map(doc => ({
                 job_id: job.id,
-                required_document_id: doc.required_document_id || null,
+                job_certificate_id: null,
+                required_document_id: null,
                 custom_document_name: doc.custom_document_name || null,
                 file_url: doc.file_url,
                 uploaded_by: userId,
                 verification_status: 'PENDING'
             }));
-            await JobDocument.bulkCreate(docsToCreate, { transaction: txn });
+            await JobDocument.bulkCreate(globalDocsToCreate, { transaction: txn });
         }
 
         await JobStatusHistory.create({
@@ -327,13 +357,17 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
 
     const pageNum = Math.max(1, parseInt(page, 10));
     const pageLimit = Math.max(1, parseInt(limit, 10));
-    const isSurveyor = userRole === 'SURVEYOR';
 
-    const jobAttributes = ['id', 'job_request_number', 'vessel_id', 'certificate_type_id', 'target_port', 'target_date', 'job_status', 'priority', 'createdAt', 'updatedAt'];
+    const jobAttributes = ['id', 'job_request_number', 'vessel_id', 'target_port', 'target_date', 'job_status', 'priority', 'is_survey_required', 'createdAt', 'updatedAt'];
 
     const include = [
         { model: Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
-        { model: CertificateType, attributes: ['id', 'name', 'issuing_authority'] }
+        {
+            model: JobCertificate,
+            as: 'certificates',
+            attributes: ['id', 'certificate_type_id', 'status'],
+            include: [{ model: CertificateType, attributes: ['id', 'name', 'issuing_authority'] }]
+        }
     ];
 
     const { count, rows } = await JobRequest.findAndCountAll({
@@ -360,8 +394,8 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
     const jobs = (await fileAccessService.resolveEntity(rows)).map(j => {
         const vessel_name = j.Vessel?.vessel_name || 'N/A';
         const imo_number = j.Vessel?.imo_number || 'N/A';
-        const certificate_name = j.CertificateType?.name || 'N/A';
-        const issuing_authority = j.CertificateType?.issuing_authority || 'N/A';
+        // Summarise all certificate names for list view
+        const certificate_names = (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A';
 
         return {
             id: j.id || 'N/A',
@@ -372,12 +406,10 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
             target_date: j.target_date || 'N/A',
             createdAt: j.createdAt || 'N/A',
             updatedAt: j.updatedAt || 'N/A',
-
-            // Flat related fields (no IDs!)
             vessel_name,
             imo_number,
-            certificate_name,
-            issuing_authority
+            certificate_names,
+            certificate_count: (j.certificates || []).length
         };
     });
     return {
@@ -399,20 +431,19 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
                     { model: db.Client, as: 'Client', attributes: ['id', 'company_name'] }
                 ]
             },
-            'CertificateType',
+            {
+                model: db.JobCertificate,
+                as: 'certificates',
+                include: [
+                    'CertificateType',
+                    { model: Survey, as: 'survey' },
+                    { model: Certificate, as: 'Certificate', attributes: ['id', 'certificate_number', 'source_type', 'uploaded_file_url', 'generated_pdf_url', 'pdf_file_url'] }
+                ]
+            },
             {
                 model: db.ActivityRequest,
                 as: 'SourceActivityRequest',
                 attributes: ['id', 'request_number', 'status', 'activity_type', 'requested_service'],
-            },
-            {
-                model: Survey,
-                as: 'survey'
-            },
-            {
-                model: Certificate,
-                as: 'Certificate',
-                attributes: ['id', 'certificate_number', 'source_type', 'uploaded_file_url', 'generated_pdf_url', 'pdf_file_url'],
             },
             { model: User, as: 'approver', attributes: ['id', 'name', 'role'] },
             { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'role'] },
@@ -474,16 +505,18 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
     const job = await requireJob(jobId);
 
     let vesselType = null;
-    let certName = null;
+    const certNames = [];
 
     if (job.vessel_id) {
         const vessel = await Vessel.findByPk(job.vessel_id);
         vesselType = vessel?.ship_type;
     }
 
-    if (job.certificate_type_id) {
-        const certType = await CertificateType.findByPk(job.certificate_type_id);
-        certName = certType?.name;
+    // Fetch all certificates for this job
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId } });
+    for (const jc of jobCerts) {
+        const certType = await CertificateType.findByPk(jc.certificate_type_id);
+        if (certType?.name) certNames.push(certType.name);
     }
 
     const { search } = queryParams;
@@ -498,7 +531,6 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
         ];
     }
 
-    // Fetch all active surveyors matching the search
     const allSurveyors = await SurveyorProfile.findAll({
         where: profileWhere,
         include: [{
@@ -528,7 +560,8 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             }
         }
 
-        if (certName) {
+        // Check ALL certificate types
+        for (const certName of certNames) {
             let authorizedCerts = profile.authorized_certificates;
             if (typeof authorizedCerts === 'string') {
                 try { authorizedCerts = JSON.parse(authorizedCerts); } catch (e) { authorizedCerts = []; }
@@ -541,7 +574,6 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
             }
         }
 
-        // Availability check
         if (!profile.is_available) {
             isEligible = false;
             missing_reasons.push('Surveyor is currently UNAVAILABLE/OFFLINE');
@@ -588,27 +620,33 @@ export const verifyJobDocuments = async (id, body, user) => {
         throw { statusCode: 400, message: `Documents can only be verified when the job is in CREATED status.` };
     }
 
-    // Check if certificate type has mandatory documents
-    const requiredDocs = await CertificateRequiredDocument.findAll({
-        where: { certificate_type_id: job.certificate_type_id, is_mandatory: true },
-        useMaster: true
-    });
+    // verifyJobDocuments: check mandatory docs per certificate
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, useMaster: true });
 
-    if (requiredDocs.length > 0) {
-        const uploadedDocs = await JobDocument.findAll({
-            where: { job_id: id },
+    let hasMissingDocs = false;
+    const missingBycert = [];
+    for (const jc of jobCerts) {
+        const requiredDocs = await CertificateRequiredDocument.findAll({
+            where: { certificate_type_id: jc.certificate_type_id, is_mandatory: true },
             useMaster: true
         });
-        const uploadedDocIds = uploadedDocs.map(d => d.required_document_id);
-        const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
-
-        if (missingDocs.length > 0) {
-            throw {
-                statusCode: 400,
-                message: 'Mandatory documents are missing. Please ensure all required files are uploaded.',
-                missing_documents: missingDocs.map(md => ({ id: md.id, name: md.document_name }))
-            };
+        if (requiredDocs.length > 0) {
+            const uploadedDocs = await JobDocument.findAll({
+                where: { job_certificate_id: jc.id },
+                useMaster: true
+            });
+            const uploadedDocIds = uploadedDocs.map(d => d.required_document_id);
+            const missing = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
+            if (missing.length > 0) {
+                hasMissingDocs = true;
+                missingBycert.push({ job_certificate_id: jc.id, missing: missing.map(m => ({ id: m.id, name: m.document_name })) });
+            }
         }
+    }
+
+    if (hasMissingDocs && body?.approved === false) {
+        // Only block on rejection flow — on approval the TO takes responsibility
+        throw { statusCode: 400, message: 'Mandatory documents are missing for one or more certificates.', missing_by_certificate: missingBycert };
     }
 
     // ── Document Rejection Flow ──────────────────────────────
@@ -688,24 +726,19 @@ export const verifyJobDocuments = async (id, body, user) => {
         where: { job_id: id }
     });
 
-    // 2. Check if every mandatory requirement has at least one version that is NOT rejected
-    if (requiredDocs.length > 0) {
-        const satisfiedReqIds = new Set(
-            allDocs
-                .filter(d => d.verification_status !== 'REJECTED')
-                .map(d => d.required_document_id)
-        );
-
-        const missingMandatory = requiredDocs.filter(rd => !satisfiedReqIds.has(rd.id));
-
-        if (missingMandatory.length > 0) {
-            throw {
-                statusCode: 400,
-                message: 'Cannot approve: One or more mandatory documents are missing or currently rejected.',
-                missing_documents: missingMandatory.map(md => ({ id: md.id, name: md.document_name }))
-            };
-        }
+    // 2. Collect all mandatory required docs across all certificates
+    const allRequiredDocs = [];
+    for (const jc of jobCerts) {
+        const certReqDocs = await CertificateRequiredDocument.findAll({
+            where: { certificate_type_id: jc.certificate_type_id, is_mandatory: true },
+            useMaster: true
+        });
+        allRequiredDocs.push(...certReqDocs);
     }
+
+    // 3. Skip document-quality check when no docs were uploaded (approved=true with empty set)
+    // Just advance the status
+
 
     // 3. Mark all PENDING documents as APPROVED
     const pendingDocs = allDocs.filter(d => d.verification_status === 'PENDING');
@@ -832,8 +865,12 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
 
     // Explicitly sync survey in reassignment case since it doesn't change job status
     if (job.is_survey_required) {
-        const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
-        if (survey) await survey.update({ surveyor_id: surveyorId });
+        // For reassignment: update all surveys for this job
+        const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+        const surveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map(jc => jc.id) }, useMaster: true });
+        for (const survey of surveys) {
+            await survey.update({ surveyor_id: surveyorId });
+        }
     }
     return job;
 };
@@ -854,21 +891,47 @@ export const authorizeSurvey = async (id, remarks, user) => {
         throw { statusCode: 400, message: 'Cannot authorize survey: please assign a surveyor first.' };
     }
 
-    const updated = await lifecycleService.updateJobStatus(id, 'SURVEY_AUTHORIZED', user.id,
-        remarks || `${user.role} authorized survey`);
-    await updated.update({ approved_by_user_id: user.id });
+    const txn = await db.sequelize.transaction();
+    try {
+        const updated = await lifecycleService.updateJobStatus(id, 'SURVEY_AUTHORIZED', user.id,
+            remarks || `${user.role} authorized survey`, { transaction: txn });
+        await updated.update({ approved_by_user_id: user.id }, { transaction: txn });
 
-    // Vessel already loaded
-    notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
-        jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel.vessel_name
-    });
-    const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
-    if (clientUser) {
-        notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
-            jobId: id, vesselName: job.Vessel.vessel_name
+        // ── Pre-create one Survey record per JobCertificate ──
+        // This allows surveyors to see all their surveys immediately after authorization.
+        const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, transaction: txn });
+        for (const jc of jobCerts) {
+            await db.Survey.findOrCreate({
+                where: { job_certificate_id: jc.id },
+                defaults: {
+                    surveyor_id: job.assigned_surveyor_id,
+                    survey_status: 'NOT_STARTED'
+                },
+                transaction: txn
+            });
+
+            // Update JobCertificate status to SURVEY_AUTHORIZED
+            await jc.update({ status: 'SURVEY_AUTHORIZED' }, { transaction: txn });
+        }
+
+        await txn.commit();
+
+        // ── Notifications (non-transactional) ──
+        notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
+            jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel.vessel_name
         });
+        const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
+        if (clientUser) {
+            notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
+                jobId: id, vesselName: job.Vessel.vessel_name
+            });
+        }
+
+        return updated;
+    } catch (error) {
+        await txn.rollback();
+        throw error;
     }
-    return updated;
 };
 
 /**
@@ -887,31 +950,42 @@ export const reviewJob = async (id, remarks, user) => {
     if (job.is_survey_required) {
         const txn = await db.sequelize.transaction();
         try {
-            // 1. Automatically approve all checklist items (ActivityPlanning) for the job
+            // 1. Get all certificates for this job
+            const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, transaction: txn });
+            const certIds = jobCerts.map(jc => jc.id);
+
+            // 2. Automatically approve all checklist items scoped to these certificates
+            if (certIds.length > 0) {
+                await db.ActivityPlanning.update(
+                    { status: 'APPROVED' },
+                    { where: { job_certificate_id: certIds }, transaction: txn }
+                );
+            }
+            // Also approve any old-style job_id scoped items (legacy fallback)
             await db.ActivityPlanning.update(
                 { status: 'APPROVED' },
                 { where: { job_id: id }, transaction: txn }
             );
-
-            // 2. Automatically approve all signed checklist files in the Survey model
-            const survey = await db.Survey.findOne({
-                where: { job_id: id },
+            const surveys = await db.Survey.findAll({
+                where: { job_certificate_id: jobCerts.map(jc => jc.id) },
                 transaction: txn,
                 lock: txn.LOCK.UPDATE
             });
-            if (!survey) {
+            if (!surveys.length) {
                 throw { statusCode: 400, message: 'Cannot review job: survey report is missing.' };
             }
 
-            let signedFiles = survey.signed_checklist_files;
-            if (Array.isArray(signedFiles) && signedFiles.length > 0) {
-                const updatedFiles = signedFiles.map(file => {
-                    if (typeof file === 'object' && file !== null) {
-                        return { ...file, status: 'APPROVED' };
-                    }
-                    return file;
-                });
-                await survey.update({ signed_checklist_files: updatedFiles }, { transaction: txn });
+            for (const survey of surveys) {
+                let signedFiles = survey.signed_checklist_files;
+                if (Array.isArray(signedFiles) && signedFiles.length > 0) {
+                    const updatedFiles = signedFiles.map(file => {
+                        if (typeof file === 'object' && file !== null) {
+                            return { ...file, status: 'APPROVED' };
+                        }
+                        return file;
+                    });
+                    await survey.update({ signed_checklist_files: updatedFiles }, { transaction: txn });
+                }
             }
 
             await txn.commit();

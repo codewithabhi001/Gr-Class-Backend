@@ -55,7 +55,8 @@ export const createJob = async (req, res, next) => {
             if (req.body.payment && !['ADMIN', 'GM'].includes(req.user.role)) {
                 delete req.body.payment;
             }
-            job = await jobService.createJob(req.body, req.user.id);
+            const skipMandatoryDocumentCheck = req.body.skip_mandatory_check === true && ['ADMIN', 'GM'].includes(req.user.role);
+            job = await jobService.createJob(req.body, req.user.id, { skipMandatoryDocumentCheck });
         }
         res.status(201).json({ success: true, data: job });
     } catch (error) { next(error); }

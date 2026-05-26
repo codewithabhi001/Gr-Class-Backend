@@ -1,58 +1,68 @@
 import * as checklistService from './checklist.service.js';
 
+// GET /checklists/jobs/:jobId?job_certificate_id=<uuid>
 export const getChecklist = async (req, res, next) => {
     try {
-        const list = await checklistService.getChecklist(req.params.jobId, req.query, req.user);
-        res.json({ success: true, data: list });
-    } catch (error) { next(error); }
-};
-
-export const submitChecklist = async (req, res, next) => {
-    try {
-        const list = await checklistService.submitChecklist(
+        const list = await checklistService.getChecklist(
             req.params.jobId,
-            req.body.items,
-            req.user,
-            req.body.signed_checklist_files
-        );
-        res.json({ success: true, data: list });
-    } catch (error) { next(error); }
-};
-
-export const updateSignedChecklistFiles = async (req, res, next) => {
-    try {
-        const list = await checklistService.updateSignedChecklistFiles(
-            req.params.jobId,
-            req.body.signed_checklist_files,
+            req.query,   // includes job_certificate_id if provided
             req.user
         );
         res.json({ success: true, data: list });
     } catch (error) { next(error); }
 };
 
-// GET /checklists/jobs/:jobId/get-upload-url
-// Per checklist-item evidence photo (one photo per question).
+// PUT /checklists/jobs/:jobId
+// Body: { items, job_certificate_id?, signed_checklist_files? }
+export const submitChecklist = async (req, res, next) => {
+    try {
+        const list = await checklistService.submitChecklist(
+            req.params.jobId,
+            req.body.items,
+            req.user,
+            req.body.signed_checklist_files,
+            req.body.job_certificate_id || req.query.job_certificate_id
+        );
+        res.json({ success: true, data: list });
+    } catch (error) { next(error); }
+};
+
+// PUT /checklists/jobs/:jobId/signed-checklist-files
+export const updateSignedChecklistFiles = async (req, res, next) => {
+    try {
+        const list = await checklistService.updateSignedChecklistFiles(
+            req.params.jobId,
+            req.body.signed_checklist_files,
+            req.user,
+            req.body.job_certificate_id || req.query.job_certificate_id
+        );
+        res.json({ success: true, data: list });
+    } catch (error) { next(error); }
+};
+
+// GET /checklists/jobs/:jobId/get-upload-url?job_certificate_id=<uuid>
 export const getUploadUrl = async (req, res, next) => {
     try {
-        const { fileName, contentType } = req.query;
+        const { fileName, contentType, job_certificate_id } = req.query;
         if (!fileName || !contentType) {
             return res.status(400).json({ success: false, message: 'fileName and contentType are required query parameters.' });
         }
-        const result = await checklistService.getSignedUploadUrl(req.params.jobId, fileName, contentType, req.user.id);
+        const result = await checklistService.getSignedUploadUrl(
+            req.params.jobId, fileName, contentType, req.user.id, job_certificate_id
+        );
         res.json({ success: true, data: result });
     } catch (error) { next(error); }
 };
 
-// GET /checklists/jobs/:jobId/signed-checklist-upload-url
-// Full signed-checklist document scan (the whole filled & signed sheet).
+// GET /checklists/jobs/:jobId/signed-checklist-upload-url?job_certificate_id=<uuid>
 export const getSignedChecklistUploadUrl = async (req, res, next) => {
     try {
-        const { fileName, contentType } = req.query;
+        const { fileName, contentType, job_certificate_id } = req.query;
         if (!fileName || !contentType) {
             return res.status(400).json({ success: false, message: 'fileName and contentType are required query parameters.' });
         }
         const result = await checklistService.getSignedChecklistUploadUrl(
-            req.params.jobId, fileName, contentType, req.user.id
+            req.params.jobId, fileName, contentType, req.user.id, job_certificate_id
         );
         res.json({ success: true, data: result });
     } catch (error) { next(error); }

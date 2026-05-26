@@ -3,32 +3,68 @@ import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as lifecycleService from '../../services/lifecycle.service.js';
 import * as s3Service from '../../services/s3.service.js';
 
-const { ActivityPlanning, ChecklistTemplate, JobRequest, Survey } = db;
+const { ActivityPlanning, ChecklistTemplate, JobRequest, JobCertificate, Survey } = db;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET CHECKLIST
+// HELPER: Resolve job_certificate_id from either jobId param or query
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Returns checklist items for a job, plus the signed-checklist scan files
- * attached on the survey row.
+ * Given a jobId (job_request_id) + optional job_certificate_id query param,
+ * resolves the survey, job, and certId to work on.
+ * If job_certificate_id is provided, uses that specific certificate.
+ * Otherwise falls back to the first certificate for the job.
+ */
+const resolveJobAndCert = async (jobId, jobCertificateId = null) => {
+    const job = await JobRequest.findByPk(jobId, { useMaster: true });
+    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
+
+    let certId = jobCertificateId;
+    let jobCert = null;
+
+    if (certId) {
+        jobCert = await JobCertificate.findOne({
+            where: { id: certId, job_request_id: jobId },
+            useMaster: true
+        });
+        if (!jobCert) throw { statusCode: 404, message: 'Job certificate not found for this job.' };
+    } else {
+        // Fallback: pick the first certificate
+        jobCert = await JobCertificate.findOne({
+            where: { job_request_id: jobId },
+            useMaster: true
+        });
+        if (jobCert) certId = jobCert.id;
+    }
+
+    // Find survey for this specific certificate
+    const survey = certId
+        ? await Survey.findOne({ where: { job_certificate_id: certId }, useMaster: true })
+        : await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
+
+    return { job, jobCert, certId, survey };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET CHECKLIST — per certificate
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns checklist items for a specific JobCertificate, plus the signed-checklist
+ * scan files attached on the survey row.
  *
- * Response shape:
- *   {
- *     items: [{ id, job_id, question_code, ..., file_url }],
- *     signed_checklist_files: [<full https url>, ...]   // resolved
- *     template_files: [<full https url>, ...]           // resolved
- *     template: { id, name, code }                     // minimal template metadata (or null)
- *   }
- *
- * All file_url / signed_checklist_files entries are guaranteed to be either
- * fully-qualified HTTPS URLs or null — raw S3 keys are never leaked.
+ * Supports:
+ *   GET /checklists/jobs/:jobId?job_certificate_id=<uuid>
+ *   GET /checklists/jobs/:jobId  (picks first certificate)
  */
 export const getChecklist = async (jobId, filters = {}, user = null) => {
-    const { answer, question_code, search } = filters;
-    const job = await JobRequest.findByPk(jobId);
-    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
-    const where = { job_id: jobId };
+    const { answer, question_code, search, job_certificate_id } = filters;
+    const { job, jobCert, certId, survey } = await resolveJobAndCert(jobId, job_certificate_id);
+
+    // Build where clause — use job_certificate_id if available, else fall back to job_id
+    const where = certId
+        ? { job_certificate_id: certId }
+        : { job_id: jobId };
 
     if (answer) where.answer = answer;
     if (question_code) where.question_code = question_code;
@@ -42,93 +78,77 @@ export const getChecklist = async (jobId, filters = {}, user = null) => {
     const items = await ActivityPlanning.findAll({
         where,
         attributes: [
-            'id',
-            'job_id',
-            'question_code',
-            'question_text',
-            'answer',
-            'remarks',
-            'file_url',
-            'status',
-            'rejection_reason',
-            'created_at',
-            'updated_at'
+            'id', 'job_id', 'job_certificate_id',
+            'question_code', 'question_text',
+            'answer', 'remarks', 'file_url', 'status', 'rejection_reason',
+            'created_at', 'updated_at'
         ]
     });
 
     const resolvedItems = await fileAccessService.resolveEntity(items, user);
     await ensureFullFileUrls(resolvedItems);
 
-    // Pull the signed-checklist scan keys from the survey row (if any) and
-    // resolve them to full HTTPS URLs.
-    const survey = await Survey.findOne({
-        where: { job_id: jobId },
-        attributes: ['signed_checklist_files']
-    });
+    // Signed checklist files from the certificate's survey
     const signedFiles = await resolveKeyArray(survey?.signed_checklist_files, user);
 
-    // Pull active checklist template reference docs (blank DOCX/PDF) for this job's
-    // certificate type. These are read-only and help the surveyor download/print.
+    // Checklist template for this certificate type
     let templateMeta = null;
     let templateFiles = [];
     let templateSections = [];
     try {
-        const template = await ChecklistTemplate.findOne({
-            where: { certificate_type_id: job.certificate_type_id, status: 'ACTIVE' },
-            attributes: ['id', 'name', 'code', 'template_files', 'sections'],
-        });
-        if (template) {
-            templateMeta = { id: template.id, name: template.name, code: template.code };
-            templateSections = template.sections || [];
-            const resolvedTemplate = await fileAccessService.resolveEntity(template, user);
-            templateFiles = Array.isArray(resolvedTemplate?.template_files) ? resolvedTemplate.template_files : [];
+        const certTypeId = jobCert?.certificate_type_id || job.certificate_type_id;
+        if (certTypeId) {
+            const template = await ChecklistTemplate.findOne({
+                where: { certificate_type_id: certTypeId, status: 'ACTIVE' },
+                attributes: ['id', 'name', 'code', 'template_files', 'sections'],
+            });
+            if (template) {
+                templateMeta = { id: template.id, name: template.name, code: template.code };
+                templateSections = template.sections || [];
+                const resolvedTemplate = await fileAccessService.resolveEntity(template, user);
+                templateFiles = Array.isArray(resolvedTemplate?.template_files) ? resolvedTemplate.template_files : [];
+            }
         }
     } catch (err) {
-        // Non-blocking: checklist answers should still be viewable even if template lookup fails.
         templateMeta = null;
         templateFiles = [];
         templateSections = [];
     }
 
     return {
+        job_certificate_id: certId,
+        certificate_type_id: jobCert?.certificate_type_id,
         items: resolvedItems,
         signed_checklist_files: signedFiles,
         template_files: templateFiles,
         template: templateMeta,
-        sections: templateSections // Added full sections for UI initialization
+        sections: templateSections
     };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUBMIT CHECKLIST
+// SUBMIT CHECKLIST — per certificate
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Persists checklist answers and (optionally) the S3 keys of the full
- * signed-checklist scan document(s) on the same call.
+ * Persists checklist answers for a specific JobCertificate.
+ * Body must include job_certificate_id to scope to the right certificate.
  *
- * Returns:
- *   {
- *     items: [...],                         // saved rows, file_url fully resolved
- *     signed_checklist_files: [https, ...]  // resolved URLs (or [])
- *   }
- *
- * Accepts the full `req.user` (or a raw user id string for legacy callers
- * such as test_full_flow.js) so audit log entries are attributed correctly.
+ * PUT /checklists/jobs/:jobId
+ * Body: { items: [...], job_certificate_id: uuid, signed_checklist_files: [...] }
  */
-export const submitChecklist = async (jobId, items, user, signedChecklistFiles = null) => {
-    // Normalise: caller may pass a full req.user object OR just the user id (string).
+export const submitChecklist = async (jobId, items, user, signedChecklistFiles = null, jobCertificateId = null) => {
     const userObj = (typeof user === 'object' && user !== null) ? user : (user ? { id: user } : null);
     const userId = userObj?.id;
-    const job = await JobRequest.findByPk(jobId, { useMaster: true });
-    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
+
+    const { job, jobCert, certId, survey } = await resolveJobAndCert(jobId, jobCertificateId);
 
     // ── Guard 1: Terminal state ──
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
     }
 
-    // ── Guard 2: Post-finalization (payment / certified) ──
+    // ── Guard 2: Post-finalization ──
     if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `The checklist cannot be updated as the job has already moved to ${job.job_status} status.` };
     }
@@ -139,13 +159,12 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
     }
 
     if (job.is_survey_required === false) {
-        throw { statusCode: 400, message: "Survey not required for this job." };
+        throw { statusCode: 400, message: 'Survey not required for this job.' };
     }
 
-    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
-    if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet. Please check-in first.' };
+    if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet for this certificate. Please check-in first.' };
 
-    // ── Guard 4: Survey must be in an active state (not before, not after) ──
+    // ── Guard 4: Survey must be in an active state ──
     const activeStatuses = ['STARTED', 'CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];
     if (!activeStatuses.includes(survey.survey_status)) {
         throw { statusCode: 400, message: `The checklist cannot be modified as the survey is in ${survey.survey_status} status.` };
@@ -157,13 +176,15 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
 
     const txn = await db.sequelize.transaction();
     try {
-        // Targeted Update: We find existing items by (job_id, question_code) or create new ones.
-        // If an item is modified, we reset its status to 'PENDING'.
         const results = [];
         for (const item of items) {
-            let record = await ActivityPlanning.findOne({ 
-                where: { job_id: jobId, question_code: item.question_code },
-                transaction: txn 
+            // Find by (job_certificate_id, question_code) — unique per certificate
+            let record = await ActivityPlanning.findOne({
+                where: {
+                    job_certificate_id: certId,
+                    question_code: item.question_code
+                },
+                transaction: txn
             });
 
             if (record) {
@@ -175,6 +196,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
             } else {
                 record = await ActivityPlanning.create({
                     job_id: jobId,
+                    job_certificate_id: certId,  // ← scoped to this certificate
                     ...item,
                     status: 'PENDING',
                     rejection_reason: null
@@ -183,6 +205,7 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
             results.push(record);
         }
 
+        // Update signed checklist files on the survey for this certificate
         if (Array.isArray(signedChecklistFiles)) {
             const existingFiles = survey.signed_checklist_files || [];
             const existingUrlMap = new Map();
@@ -197,28 +220,17 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
                 if (existingUrlMap.has(url)) {
                     updatedFiles.push(existingUrlMap.get(url));
                 } else {
-                    updatedFiles.push({
-                        url,
-                        status: 'PENDING',
-                        rejection_reason: null
-                    });
+                    updatedFiles.push({ url, status: 'PENDING', rejection_reason: null });
                 }
             }
-
             survey.set('signed_checklist_files', updatedFiles);
             survey.changed('signed_checklist_files', true);
             await survey.save({ transaction: txn });
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // 4. Update Survey Status
-        // If we were in STARTED or REWORK_REQUIRED, move forward.
-        // If proof already exists, we can jump straight to PROOF_UPLOADED.
-        // ─────────────────────────────────────────────────────────────
+        // Advance survey status
         if (['STARTED', 'REWORK_REQUIRED', 'CHECKLIST_SUBMITTED'].includes(survey.survey_status)) {
             const nextStatus = survey.evidence_proof_url ? 'PROOF_UPLOADED' : 'CHECKLIST_SUBMITTED';
-            
-            // Avoid redundant status updates (idempotency)
             if (survey.survey_status !== nextStatus) {
                 await lifecycleService.updateSurveyStatus(survey.id, nextStatus, userId,
                     'Checklist items submitted/corrected', { transaction: txn });
@@ -231,11 +243,12 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
         await ensureFullFileUrls(resolvedItems);
 
         const persistedFiles = Array.isArray(signedChecklistFiles)
-            ? (await Survey.findOne({ where: { job_id: jobId }, attributes: ['signed_checklist_files'], useMaster: true })).signed_checklist_files
+            ? (await Survey.findOne({ where: { id: survey.id }, attributes: ['signed_checklist_files'], useMaster: true })).signed_checklist_files
             : (survey.signed_checklist_files || []);
         const signedFilesResolved = await resolveKeyArray(persistedFiles, userObj);
 
         return {
+            job_certificate_id: certId,
             items: resolvedItems,
             signed_checklist_files: signedFilesResolved
         };
@@ -246,21 +259,13 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
 };
 
 /**
- * Update ONLY the signed checklist scan S3 keys on the survey.
- *
- * This supports a clean frontend flow:
- *   1) Save checklist answers (PUT /checklists/jobs/:jobId)
- *   2) Upload signed checklist scans on a dedicated screen (this endpoint)
- *
- * Returns:
- *   { signed_checklist_files: [https, ...] }
+ * Update ONLY the signed checklist scan S3 keys on the survey for a certificate.
  */
-export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, user) => {
+export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, user, jobCertificateId = null) => {
     const userObj = (typeof user === 'object' && user !== null) ? user : (user ? { id: user } : null);
     const userId = userObj?.id;
 
-    const job = await JobRequest.findByPk(jobId, { useMaster: true });
-    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
+    const { job, certId, survey } = await resolveJobAndCert(jobId, jobCertificateId);
 
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
@@ -271,14 +276,9 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
     if (job.assigned_surveyor_id !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
-    if (job.is_survey_required === false) {
-        throw { statusCode: 400, message: "Survey not required for this job." };
-    }
     if (!Array.isArray(signedChecklistFiles)) {
         throw { statusCode: 400, message: 'signed_checklist_files must be an array of S3 keys.' };
     }
-
-    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     if (!survey) throw { statusCode: 400, message: 'The survey has not been started yet. Please check-in first.' };
 
     const activeStatuses = ['STARTED', 'CHECKLIST_SUBMITTED', 'PROOF_UPLOADED', 'REWORK_REQUIRED'];
@@ -286,7 +286,6 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
         throw { statusCode: 400, message: `The signed checklist files cannot be modified as the survey is in ${survey.survey_status} status.` };
     }
 
-    // Normalized: Ensure they are objects with PENDING status if they are being updated/added
     const existingFiles = survey.signed_checklist_files || [];
     const existingUrlMap = new Map();
     existingFiles.forEach(f => {
@@ -300,11 +299,7 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
         if (existingUrlMap.has(url)) {
             updatedFiles.push(existingUrlMap.get(url));
         } else {
-            updatedFiles.push({
-                url,
-                status: 'PENDING',
-                rejection_reason: null
-            });
+            updatedFiles.push({ url, status: 'PENDING', rejection_reason: null });
         }
     }
 
@@ -313,174 +308,111 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
     await survey.save();
 
     const signedFilesResolved = await resolveKeyArray(updatedFiles, userObj);
-    return { signed_checklist_files: signedFilesResolved };
+    return { job_certificate_id: certId, signed_checklist_files: signedFilesResolved };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
+// UPLOAD URLS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Defence-in-depth: walks an array of checklist rows and guarantees that
- * `file_url` is either a fully-qualified HTTPS URL or null.
- */
-const ensureFullFileUrls = async (rows) => {
-    if (!rows) return rows;
-    const list = Array.isArray(rows) ? rows : [rows];
-
-    await Promise.all(list.map(async (row) => {
-        if (!row || typeof row !== 'object') return;
-        const value = row.file_url;
-        if (!value) {
-            row.file_url = null;
-            return;
-        }
-        if (typeof value === 'string' && !value.startsWith('http')) {
-            row.file_url = await fileAccessService.resolveUrl(value, null, true);
-        }
-    }));
-
-    return rows;
-};
-
-/**
- * Resolve an array of S3 keys (or objects containing keys) into full HTTPS URLs.
- * Returns [] for null/empty input.
- */
-const resolveKeyArray = async (items, user = null) => {
-    if (!Array.isArray(items) || items.length === 0) return [];
-    
-    return Promise.all(
-        items.map(async (item) => {
-            if (!item) return null;
-            
-            // Handle both legacy string format and new object format
-            const isObject = typeof item === 'object' && item !== null;
-            const rawKey = isObject ? item.url : item;
-            
-            if (typeof rawKey !== 'string' || rawKey.length === 0) return null;
-            
-            const fullUrl = rawKey.startsWith('http')
-                ? rawKey
-                : await fileAccessService.resolveUrl(rawKey, user, true);
-                
-            if (isObject) {
-                // Extract file name from rawKey (e.g., path/to/file.jpg -> file.jpg)
-                let fileName = rawKey.split('/').pop() || rawKey;
-                // Cleanup timestamps if possible, e.g., '123123123_signed_checklist_456.jpg' -> 'signed_checklist_456.jpg'
-                if (fileName.includes('_')) {
-                    const parts = fileName.split('_');
-                    if (!isNaN(parts[0])) {
-                        fileName = parts.slice(1).join('_');
-                    }
-                }
-                return { ...item, url: fullUrl, file_name: fileName };
-            }
-            return fullUrl;
-        })
-    ).then(results => results.filter(r => r !== null));
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UPLOAD URL — per checklist-item evidence (one photo per question)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const getSignedUploadUrl = async (jobId, fileName, contentType, userId) => {
+export const getSignedUploadUrl = async (jobId, fileName, contentType, userId, jobCertificateId = null) => {
     const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
-
-    // Guard: Only assigned surveyor can upload proof for checklist
     if (job.assigned_surveyor_id !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
-
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
     }
 
-    const key = `surveys/checklist-evidence/${jobId}/${Date.now()}_${fileName}`;
+    const certIdPart = jobCertificateId || jobId;
+    const key = `surveys/checklist-evidence/${certIdPart}/${Date.now()}_${fileName}`;
     const signedUrl = await s3Service.getUploadSignedUrl(key, contentType);
-
-    return {
-        uploadUrl: signedUrl,
-        fileKey: key,
-    };
+    return { uploadUrl: signedUrl, fileKey: key };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPLOAD URL — full signed-checklist scan (the whole filled & signed sheet)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Generates a pre-signed S3 URL for the surveyor to upload the full signed
- * checklist scan (PDF/image). The returned `fileKey` should then be sent
- * back as part of `signed_checklist_files` on the next
- * PUT /checklists/jobs/:jobId submission.
- */
-export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId) => {
+export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId, jobCertificateId = null) => {
     const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
-
     if (job.assigned_surveyor_id !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
-
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
     }
-
     if (job.is_survey_required === false) {
-        throw { statusCode: 400, message: "Survey not required for this job." };
+        throw { statusCode: 400, message: 'Survey not required for this job.' };
     }
 
-    const key = `surveys/signed-checklists/${jobId}/${Date.now()}_${fileName}`;
+    const certIdPart = jobCertificateId || jobId;
+    const key = `surveys/signed-checklists/${certIdPart}/${Date.now()}_${fileName}`;
     const signedUrl = await s3Service.getUploadSignedUrl(key, contentType);
-
-    return {
-        uploadUrl: signedUrl,
-        fileKey: key,
-    };
+    return { uploadUrl: signedUrl, fileKey: key };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TM REVIEW ACTIONS
+// TM/TO REVIEW ACTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * TM/TO action to approve/reject a specific checklist item.
+ * TO action to approve/reject a specific checklist item (scoped to a certificate).
  */
 export const reviewChecklistItem = async (jobId, itemId, { status, rejection_reason }, user) => {
     if (user.role !== 'TO') {
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to review checklist items.' };
     }
 
-    const item = await ActivityPlanning.findOne({ where: { id: itemId, job_id: jobId }, useMaster: true });
+    // Find item — scoped to job (via job_id OR job_certificate_id path)
+    const item = await ActivityPlanning.findOne({
+        where: {
+            id: itemId,
+            [db.Sequelize.Op.or]: [
+                { job_id: jobId },
+                { '$JobCertificate.job_request_id$': jobId }
+            ]
+        },
+        include: [{ model: db.JobCertificate, required: false }],
+        useMaster: true
+    }).catch(() =>
+        // fallback simple query
+        ActivityPlanning.findOne({ where: { id: itemId, job_id: jobId }, useMaster: true })
+    );
+
     if (!item) throw { statusCode: 404, message: 'Checklist item not found.' };
 
-    await item.update({ 
-        status, 
-        rejection_reason: status === 'REJECTED' ? rejection_reason : null 
+    await item.update({
+        status,
+        rejection_reason: status === 'REJECTED' ? rejection_reason : null
     });
 
     return item;
 };
 
 /**
- * TO action to approve/reject a specific signed checklist document.
- * Matches by index in the signed_checklist_files array.
+ * TO action to approve/reject a signed checklist document (by index on the certificate's survey).
  */
 export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection_reason }, user) => {
     if (user.role !== 'TO') {
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to review documents.' };
     }
 
-    const survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
+    // Find the survey — try per-certificate first, then per-job
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+    let survey = null;
+    if (jobCerts.length > 0) {
+        survey = await Survey.findOne({
+            where: { job_certificate_id: jobCerts.map(jc => jc.id) },
+            useMaster: true
+        });
+    }
+    if (!survey) {
+        survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
+    }
     if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
 
     const files = survey.signed_checklist_files || [];
     if (!files[fileIndex]) throw { statusCode: 400, message: 'Document not found at specified index.' };
 
-    // Update the specific file object at the index
     const updatedFiles = [...files];
     updatedFiles[fileIndex] = {
         ...(typeof updatedFiles[fileIndex] === 'string' ? { url: updatedFiles[fileIndex] } : updatedFiles[fileIndex]),
@@ -488,13 +420,54 @@ export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection
         rejection_reason: status === 'REJECTED' ? rejection_reason : null
     };
 
-    // Use survey.changed to ensure Sequelize detects the internal JSON change
     survey.set('signed_checklist_files', updatedFiles);
     survey.changed('signed_checklist_files', true);
     await survey.save();
 
-    return { 
-        index: fileIndex, 
-        file: await resolveKeyArray([updatedFiles[fileIndex]], user).then(res => res[0]) 
+    return {
+        index: fileIndex,
+        file: await resolveKeyArray([updatedFiles[fileIndex]], user).then(res => res[0])
     };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ensureFullFileUrls = async (rows) => {
+    if (!rows) return rows;
+    const list = Array.isArray(rows) ? rows : [rows];
+    await Promise.all(list.map(async (row) => {
+        if (!row || typeof row !== 'object') return;
+        const value = row.file_url;
+        if (!value) { row.file_url = null; return; }
+        if (typeof value === 'string' && !value.startsWith('http')) {
+            row.file_url = await fileAccessService.resolveUrl(value, null, true);
+        }
+    }));
+    return rows;
+};
+
+const resolveKeyArray = async (items, user = null) => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    return Promise.all(
+        items.map(async (item) => {
+            if (!item) return null;
+            const isObject = typeof item === 'object' && item !== null;
+            const rawKey = isObject ? item.url : item;
+            if (typeof rawKey !== 'string' || rawKey.length === 0) return null;
+            const fullUrl = rawKey.startsWith('http')
+                ? rawKey
+                : await fileAccessService.resolveUrl(rawKey, user, true);
+            if (isObject) {
+                let fileName = rawKey.split('/').pop() || rawKey;
+                if (fileName.includes('_')) {
+                    const parts = fileName.split('_');
+                    if (!isNaN(parts[0])) fileName = parts.slice(1).join('_');
+                }
+                return { ...item, url: fullUrl, file_name: fileName };
+            }
+            return fullUrl;
+        })
+    ).then(results => results.filter(r => r !== null));
 };

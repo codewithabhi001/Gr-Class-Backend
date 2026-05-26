@@ -3,7 +3,8 @@ export default (sequelize, DataTypes) => {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV7, primaryKey: true },
         surveyor_id: DataTypes.UUID,
         vessel_id: DataTypes.UUID,
-        job_id: DataTypes.UUID,
+        job_id: { type: DataTypes.UUID, allowNull: true },             // kept for legacy compat
+        job_certificate_id: { type: DataTypes.UUID, allowNull: true }, // per-certificate tracking
         latitude: DataTypes.DECIMAL(10, 8),
         longitude: DataTypes.DECIMAL(11, 8),
         timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
@@ -17,6 +18,7 @@ export default (sequelize, DataTypes) => {
         GpsTracking.belongsTo(models.User, { foreignKey: 'surveyor_id' });
         GpsTracking.belongsTo(models.Vessel, { foreignKey: 'vessel_id' });
         GpsTracking.belongsTo(models.JobRequest, { foreignKey: 'job_id' });
+        GpsTracking.belongsTo(models.JobCertificate, { foreignKey: 'job_certificate_id' });
     };
 
     return GpsTracking;

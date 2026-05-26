@@ -5,6 +5,11 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.UUID,
             allowNull: false
         },
+        job_certificate_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            comment: 'If the document is specific to a certificate within a TOCA job'
+        },
         required_document_id: {
             type: DataTypes.UUID,
             allowNull: true
@@ -45,6 +50,7 @@ export default (sequelize, DataTypes) => {
 
     JobDocument.associate = (models) => {
         JobDocument.belongsTo(models.JobRequest, { foreignKey: 'job_id' });
+        JobDocument.belongsTo(models.JobCertificate, { foreignKey: 'job_certificate_id' });
         JobDocument.belongsTo(models.CertificateRequiredDocument, { foreignKey: 'required_document_id' });
         JobDocument.belongsTo(models.User, { foreignKey: 'uploaded_by', as: 'Uploader' });
     };

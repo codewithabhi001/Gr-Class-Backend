@@ -68,37 +68,46 @@ export const schemas = {
     }).unknown(true),
     createJob: Joi.object({
         vessel_id: Joi.string().guid().required(),
-        certificate_type_id: Joi.string().guid().required(),
-        reason: Joi.string().required(),
         target_port: Joi.string().required(),
         target_date: Joi.date().iso().required(),
-        uploaded_documents: Joi.array().items(Joi.object({
-            required_document_id: Joi.string().guid().optional().allow(null, ''),
-            custom_document_name: Joi.string().optional().allow(null, ''),
-            file_url: Joi.string().required()
-        })).optional(),
+        priority: Joi.string().valid('LOW', 'NORMAL', 'HIGH', 'URGENT').optional().default('NORMAL'),
+        reason: Joi.string().optional().allow('', null),
+        certificates: Joi.array().items(Joi.object({
+            certificate_type_id: Joi.string().guid().required(),
+            uploaded_documents: Joi.array().items(Joi.object({
+                required_document_id: Joi.string().guid().optional().allow(null, ''),
+                custom_document_name: Joi.string().optional().allow(null, ''),
+                file_url: Joi.string().required()
+            })).optional().default([])
+        })).min(1).required(),
         payment: Joi.object({
             amount: Joi.number().positive().required(),
             currency: Joi.string().optional().default('USD')
-        }).optional()
+        }).optional(),
+        skip_mandatory_check: Joi.boolean().optional().default(false)
     }),
     submitSurvey: Joi.object({
-        job_id: Joi.string().guid().required(),
-        submit_latitude: Joi.number().required(),
-        submit_longitude: Joi.number().required(),
+        job_id: Joi.string().guid().optional(),
+        job_certificate_id: Joi.string().guid().optional(),
+        submit_latitude: Joi.number().optional(),
+        submit_longitude: Joi.number().optional(),
         survey_statement: Joi.string().allow('').optional(),
-        photoKey: Joi.string().required(),
-        signatureKey: Joi.string().required(),
-    }),
+        photoKey: Joi.string().optional(),        // optional when skip_validation=true
+        signatureKey: Joi.string().optional(),    // optional when skip_validation=true
+        skip_validation: Joi.boolean().optional().default(false), // ADMIN-only bypass for E2E testing
+    }).or('job_id', 'job_certificate_id'),
     draftSurveyStatement: Joi.object({
         survey_statement: Joi.string().optional(),
     }),
     generateCertificate: Joi.object({
-        job_id: Joi.string().guid().required(),
-         validity_years: Joi.number().integer().min(1).max(5).optional(),
+        job_id: Joi.string().guid().optional(),
+        job_certificate_id: Joi.string().guid().optional(), // new: per-certificate generation
+        validity_years: Joi.number().integer().min(1).max(5).optional(),
+        expiry_date: Joi.date().iso().optional(),
         flag_administration_id: Joi.string().guid().optional().allow(null),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
-    }),
+        skip_validation: Joi.boolean().optional().default(false), // ADMIN-only bypass for E2E
+    }).or('job_id', 'job_certificate_id'),
     applySurveyor: Joi.object({
         full_name: Joi.string().required(),
         email: Joi.string().email().required(),
@@ -335,10 +344,11 @@ export const schemas = {
         description: Joi.string().optional(),
     }),
     startSurvey: Joi.object({
-        job_id: Joi.string().guid().required(),
+        job_id: Joi.string().guid().optional(),
+        job_certificate_id: Joi.string().guid().optional(),
         latitude: Joi.number().required(),
         longitude: Joi.number().required(),
-    }),
+    }).or('job_id', 'job_certificate_id'),
     rejectJob: Joi.object({
         reason: Joi.string().required(),
     }),

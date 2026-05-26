@@ -373,63 +373,76 @@ export const generateCertificate = async (data, user) => {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
     }
     const userId = user.id;
-    const { job_id, validity_years, expiry_date, certificate_authority_id, flag_administration_id, certificate_term } = data;
+    const { job_id, job_certificate_id, validity_years, expiry_date, certificate_authority_id, flag_administration_id, certificate_term, skip_validation } = data;
+
+    // Support both job_certificate_id (new) and job_id (legacy)
+    let resolvedJobId = job_id;
+    let jobCert = null;
+    if (job_certificate_id) {
+        jobCert = await db.JobCertificate.findByPk(job_certificate_id, { useMaster: true });
+        if (!jobCert) throw { statusCode: 404, message: 'Job certificate not found' };
+        resolvedJobId = jobCert.job_request_id;
+    }
 
     const transaction = await db.sequelize.transaction();
     try {
         // Lock Job row for the entire operation
-        const job = await JobRequest.findByPk(job_id, {
+        const job = await JobRequest.findByPk(resolvedJobId, {
             transaction,
             lock: transaction.LOCK.UPDATE,
             include: [
                 { model: db.Vessel, attributes: ['id', 'vessel_name', 'imo_number'] },
-                { model: db.CertificateType, attributes: ['id', 'name', 'issuing_authority', 'short_code'] },
             ],
         });
         if (!job) throw { statusCode: 404, message: 'Job not found' };
 
         // ── Guard 1: Job status ──
-        if (job.job_status !== 'FINALIZED' && job.job_status !== 'PAYMENT_DONE') {
+        if (!skip_validation && job.job_status !== 'FINALIZED' && job.job_status !== 'PAYMENT_DONE') {
             throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED or PAYMENT_DONE. Current: ${job.job_status}` };
         }
 
-        // Note: Payment check removed per user request (Certificates can be issued before payment)
+        // ── Resolve certificate type from JobCertificate or legacy job field ──
+        let certTypeId;
+        if (jobCert) {
+            certTypeId = jobCert.certificate_type_id;
+        } else {
+            // Legacy: single certificate per job
+            certTypeId = job.certificate_type_id;
+        }
+        if (!certTypeId) throw { statusCode: 400, message: 'Certificate type not found for this job/certificate' };
 
-        // ── Guard 2: Survey Compliance (if required) ──
-        if (job.is_survey_required) {
-            const survey = await db.Survey.findOne({ where: { job_id }, transaction, lock: transaction.LOCK.UPDATE });
+        const certType = await db.CertificateType.findByPk(certTypeId, { attributes: ['id', 'name', 'issuing_authority', 'short_code'], transaction });
+
+        // ── Guard 2: Survey Compliance (if required, skippable) ──
+        if (!skip_validation && job.is_survey_required) {
+            let surveyQuery = jobCert
+                ? { job_certificate_id: jobCert.id }
+                : { job_id: resolvedJobId };
+            const survey = await db.Survey.findOne({ where: surveyQuery, transaction, lock: transaction.LOCK.UPDATE });
             if (!survey) throw { statusCode: 400, message: 'Cannot generate certificate: Survey not found.' };
-
             if (survey.survey_status !== 'FINALIZED') {
                 throw { statusCode: 400, message: 'Cannot generate certificate: Survey must be FINALIZED first.' };
             }
-
             if (survey.survey_statement_status !== 'ISSUED') {
                 throw { statusCode: 400, message: 'Certificate cannot be generated before Survey Statement is issued.' };
             }
-
-            if (!survey.attendance_photo_url) {
-                throw { statusCode: 400, message: 'Compliance Violation: Attendance photo missing in survey records.' };
-            }
-
-            if (!survey.submit_latitude || !survey.submit_longitude) {
-                throw { statusCode: 400, message: 'Compliance Violation: GPS coordinates missing in survey records.' };
-            }
         }
 
-        // ── Guard 3: No certificate already linked to this job ──
-        if (job.generated_certificate_id) {
+        // ── Guard 3: No certificate already linked to this job/cert ──
+        if (jobCert && jobCert.generated_certificate_id) {
+            throw { statusCode: 409, message: 'A draft or certificate already exists for this job certificate.' };
+        } else if (!jobCert && job.generated_certificate_id) {
             throw { statusCode: 409, message: 'A draft or certificate already exists for this job.' };
         }
-        const existingCert = await Certificate.findOne({ where: { vessel_id: job.vessel_id, certificate_type_id: job.certificate_type_id, status: 'VALID' }, transaction });
+        const existingCert = await Certificate.findOne({ where: { vessel_id: job.vessel_id, certificate_type_id: certTypeId, status: 'VALID' }, transaction });
         if (existingCert) {
-            logger?.warn('Possible duplicate certificate attempt', { job_id, existing_cert_id: existingCert.id });
+            logger?.warn('Possible duplicate certificate attempt', { job_id: resolvedJobId, existing_cert_id: existingCert.id });
         }
 
         // ── Guard 4: No open Non-Conformities ──
         if (db.NonConformity) {
             const openNCs = await db.NonConformity.count({
-                where: { job_id, status: { [Op.notIn]: ['CLOSED', 'RESOLVED'] } },
+                where: { job_id: resolvedJobId, status: { [Op.notIn]: ['CLOSED', 'RESOLVED'] } },
                 transaction
             });
             if (openNCs > 0) {
@@ -447,12 +460,12 @@ export const generateCertificate = async (data, user) => {
             // In maritime, certificates usually expire the day before their anniversary
             expiryDate.setDate(expiryDate.getDate() - 1);
         }
-        const certificateNumber = await generateUniqueCertificateNumber(job.CertificateType?.short_code);
+        const certificateNumber = await generateUniqueCertificateNumber(certType?.short_code);
 
         const cert = await Certificate.create({
             vessel_id: job.vessel_id,
             job_id: job.id,
-            certificate_type_id: job.certificate_type_id,
+            certificate_type_id: certTypeId,
             certificate_number: certificateNumber,
             issue_date: issueDate,
             expiry_date: expiryDate,
@@ -473,13 +486,18 @@ export const generateCertificate = async (data, user) => {
             changed_at: new Date()
         }, { transaction });
 
-        await job.update({ generated_certificate_id: cert.id }, { transaction });
+        // Link generated certificate back to the JobCertificate (new) or JobRequest (legacy)
+        if (jobCert) {
+            await jobCert.update({ generated_certificate_id: cert.id, status: 'ISSUED' }, { transaction });
+        } else {
+            await job.update({ generated_certificate_id: cert.id }, { transaction });
+        }
 
         await AuditLog.create({
             user_id: userId, action: 'GENERATE_CERTIFICATE',
             entity_name: 'Certificate', entity_id: cert.id,
             old_values: null,
-            new_values: { job_id, certificate_number: certificateNumber, certificate_type_id: cert.certificate_type_id, vessel_id: cert.vessel_id }
+            new_values: { job_id: resolvedJobId, certificate_number: certificateNumber, certificate_type_id: certTypeId, vessel_id: cert.vessel_id }
         }, { transaction });
 
         await transaction.commit();

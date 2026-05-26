@@ -194,13 +194,14 @@
           schema: { $ref: '#/components/schemas/JobCreateRequest' }
           example:
             vessel_id: "019c574f-0991-7758-b696-03bb416c7433"
-            certificate_type_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+            certificates:
+              - certificate_type_id: "019c79a4-55ba-773c-9454-f6bee169ab03"
+                uploaded_documents:
+                  - required_document_id: "019c4001-0002-7000-a000-000000000001"
+                    file_url: "https://cdn.example.com/docs/reg-cert.pdf"
             reason: "Annual survey due"
             target_port: "Singapore"
             target_date: "2026-04-15"
-            uploaded_documents:
-              - required_document_id: "019c4001-0002-7000-a000-000000000001"
-                file_url: "https://cdn.example.com/docs/reg-cert.pdf"
     responses:
       "201":
         description: Job created successfully (status = CREATED)

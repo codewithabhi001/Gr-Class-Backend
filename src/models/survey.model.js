@@ -5,7 +5,7 @@ export default (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV7,
             primaryKey: true
         },
-        job_id: {
+        job_certificate_id: {
             type: DataTypes.UUID,
             allowNull: false,
             unique: true
@@ -109,7 +109,7 @@ export default (sequelize, DataTypes) => {
     });
 
     Survey.associate = (models) => {
-        Survey.belongsTo(models.JobRequest, { foreignKey: 'job_id' });
+        Survey.belongsTo(models.JobCertificate, { foreignKey: 'job_certificate_id' });
         Survey.belongsTo(models.User, { foreignKey: 'surveyor_id' });
         Survey.belongsTo(models.User, { foreignKey: 'declared_by', as: 'Declarer' });
         Survey.hasMany(models.SurveyStatusHistory, { foreignKey: 'survey_id' });

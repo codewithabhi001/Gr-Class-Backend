@@ -24,6 +24,13 @@
         required: true
         description: Unique identifier of the job
       - in: query
+        name: job_certificate_id
+        schema:
+          type: string
+          format: uuid
+        required: false
+        description: Target a specific certificate (recommended for multi-cert jobs)
+      - in: query
         name: answer
         schema:
           type: string
@@ -98,6 +105,7 @@
           schema:
             $ref: '#/components/schemas/ChecklistSubmission'
           example:
+            job_certificate_id: "019e640c-0000-0000-0000-000000000001"
             items:
               - question_code: "LSE001"
                 question_text: "Are life jackets available?"
@@ -309,10 +317,15 @@
             type: object
             required: [signed_checklist_files]
             properties:
+              job_certificate_id:
+                type: string
+                format: uuid
+                description: Target certificate survey
               signed_checklist_files:
                 type: array
                 items: { type: string }
           example:
+            job_certificate_id: "019e640c-0000-0000-0000-000000000001"
             signed_checklist_files:
               - "surveys/signed-checklists/<jobId>/1714000000000_signed.pdf"
     responses:
