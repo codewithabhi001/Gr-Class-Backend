@@ -495,7 +495,7 @@ export const getTODashboard = async (user) => {
 export const getSurveyorDashboard = async (user) => {
     const jobIncludes = [
         'Vessel',
-        'CertificateType',
+        { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType }] },
         { model: Survey, as: 'survey', attributes: ['survey_status'] }
     ];
 
@@ -716,7 +716,7 @@ export const getClientDashboard = async (clientId) => {
         recent_jobs: jobs.slice(0, 5).map(j => ({
             id: j.id,
             vessel_name: j.Vessel?.vessel_name,
-            type: j.CertificateType?.name,
+            type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
             status: j.job_status,
             surveyor: j.surveyor?.name,
             date: j.createdAt
