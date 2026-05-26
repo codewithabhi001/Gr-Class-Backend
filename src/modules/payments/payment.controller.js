@@ -30,6 +30,14 @@ export const getPaymentById = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+export const getPaymentByJobId = async (req, res, next) => {
+    try {
+        const scopeFilters = await getScopeFilters(req.user);
+        const payment = await paymentService.getPaymentByJobId(req.params.jobId, scopeFilters, req.user);
+        res.json({ success: true, data: payment });
+    } catch (e) { next(e); }
+};
+
 export const getFinancialSummary = async (req, res, next) => {
     try {
         const scopeFilters = await getScopeFilters(req.user);

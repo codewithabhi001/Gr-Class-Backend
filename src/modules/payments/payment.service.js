@@ -292,6 +292,32 @@ export const getPaymentById = async (id, scopeFilters = {}, user = null) => {
     return await fileAccessService.resolveEntity(enriched, user);
 };
 
+export const getPaymentByJobId = async (jobId, scopeFilters = {}, user = null) => {
+    const payment = await Payment.findOne({
+        where: { job_id: jobId, ...scopeFilters },
+        include: [{
+            model: JobRequest,
+            attributes: ['id', 'job_request_number', 'job_status'],
+            include: [{ model: Vessel, attributes: ['vessel_name', 'imo_number'] }],
+        }],
+    });
+    if (!payment) throw { statusCode: 404, message: 'Payment record not found for this job.' };
+
+    const plain = payment.get({ plain: true });
+    const ledgers = await FinancialLedger.findAll({ where: { invoice_id: plain.id }, order: [['createdAt', 'ASC']] });
+
+    const enriched = enrichPaymentWithLedger(plain, ledgers);
+    enriched.job_request_number = plain.JobRequest?.job_request_number ?? null;
+    enriched.vessel_name = plain.JobRequest?.Vessel?.vessel_name ?? null;
+    enriched.imo_number = plain.JobRequest?.Vessel?.imo_number ?? null;
+    enriched.job_status = plain.JobRequest?.job_status ?? null;
+    delete enriched.JobRequest;
+    enriched.ledgers = formatLedgerRows(ledgers);
+
+    return await fileAccessService.resolveEntity(enriched, user);
+};
+
+
 
 export const getFinancialSummary = async (scopeFilters = {}) => {
     const payments = await Payment.findAll({ where: scopeFilters, useReplica: true });

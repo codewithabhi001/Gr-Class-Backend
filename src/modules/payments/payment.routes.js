@@ -15,6 +15,9 @@ router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentCont
 // Financial Summary
 router.get('/summary', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getFinancialSummary);
 
+// Get specific payment details by job ID
+router.get('/job/:jobId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getPaymentByJobId);
+
 // Get specific payment details
 router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), paymentController.getPaymentById);
 
