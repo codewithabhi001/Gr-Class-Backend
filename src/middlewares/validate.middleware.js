@@ -103,6 +103,7 @@ export const schemas = {
     }).or('job_id', 'job_certificate_id'),
     draftSurveyStatement: Joi.object({
         survey_statement: Joi.string().optional(),
+        job_certificate_id: Joi.string().guid().allow('', null).optional()
     }),
     generateCertificate: Joi.object({
         job_id: Joi.string().guid().optional(),
@@ -191,6 +192,7 @@ export const schemas = {
     updateGps: Joi.object({
         latitude: Joi.number().required(),
         longitude: Joi.number().required(),
+        job_certificate_id: Joi.string().guid().allow('', null).optional()
     }),
     setGeoFence: Joi.object({
         vessel_id: Joi.string().guid().required(),
@@ -214,10 +216,12 @@ export const schemas = {
         })).required(),
         // Optional: S3 keys (returned earlier from /checklists/jobs/:jobId/signed-checklist-upload-url)
         // for the full scanned + signed checklist document(s).
-        signed_checklist_files: Joi.array().items(Joi.string()).optional()
+        signed_checklist_files: Joi.array().items(Joi.string()).optional(),
+        job_certificate_id: Joi.string().guid().allow('', null).optional()
     }),
     updateSignedChecklistFiles: Joi.object({
-        signed_checklist_files: Joi.array().items(Joi.string()).required()
+        signed_checklist_files: Joi.array().items(Joi.string()).required(),
+        job_certificate_id: Joi.string().guid().allow('', null).optional()
     }),
     createToca: Joi.object({
         vessel_id: Joi.string().guid().required(),
