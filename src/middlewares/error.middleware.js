@@ -78,6 +78,7 @@ export const errorMiddleware = (err, req, res, next) => {
         message,
         errors,
         trace_id: traceId,
+        sql_error: err.original ? err.original.message : err.message, // TEMPORARILY EXPOSED FOR DEBUGGING
         stack: (process.env.NODE_ENV === 'production' || statusCode < 500) ? undefined : err.stack,
     });
 };
