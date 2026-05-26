@@ -80,6 +80,11 @@ export const schemas = {
                 file_url: Joi.string().required()
             })).optional().default([])
         })).min(1).required(),
+        uploaded_documents: Joi.array().items(Joi.object({
+            required_document_id: Joi.string().guid().optional().allow(null, ''),
+            custom_document_name: Joi.string().optional().allow(null, ''),
+            file_url: Joi.string().required()
+        })).optional().default([]),
         payment: Joi.object({
             amount: Joi.number().positive().required(),
             currency: Joi.string().optional().default('USD')

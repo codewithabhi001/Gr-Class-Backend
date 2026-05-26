@@ -330,6 +330,7 @@ export const getGMDashboard = async () => {
         ],
         order: [['updatedAt', 'DESC']],
         limit: 10,
+        subQuery: false,
         useReplica: true
     });
 
@@ -525,8 +526,14 @@ export const getTODashboard = async (user) => {
 export const getSurveyorDashboard = async (user) => {
     const jobIncludes = [
         'Vessel',
-        { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType }] },
-        { model: Survey, as: 'survey', attributes: ['survey_status'] }
+        {
+            model: JobCertificate,
+            as: 'certificates',
+            include: [
+                { model: CertificateType },
+                { model: Survey, as: 'survey', attributes: ['survey_status'] }
+            ]
+        }
     ];
 
     const surveyorFilter = { assigned_surveyor_id: user.id };
@@ -609,14 +616,37 @@ export const getSurveyorDashboard = async (user) => {
         return acc;
     }, {});
 
-    const formatJob = (j) => ({
-        id: j.id,
-        job_status: j.job_status,
-        survey_status: j.survey?.survey_status || 'NOT_STARTED',
-        target_date: j.target_date,
-        vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
-        certificate_type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A'
-    });
+    const formatJob = (j) => {
+        const surveys = (j.certificates || []).map(c => c.survey).filter(Boolean);
+        let overallSurveyStatus = 'NOT_STARTED';
+        if (surveys.length > 0) {
+            const statuses = surveys.map(s => s.survey_status);
+            if (statuses.includes('REWORK_REQUIRED')) {
+                overallSurveyStatus = 'REWORK_REQUIRED';
+            } else if (statuses.includes('STARTED')) {
+                overallSurveyStatus = 'STARTED';
+            } else if (statuses.includes('CHECKLIST_SUBMITTED')) {
+                overallSurveyStatus = 'CHECKLIST_SUBMITTED';
+            } else if (statuses.includes('PROOF_UPLOADED')) {
+                overallSurveyStatus = 'PROOF_UPLOADED';
+            } else if (statuses.includes('SUBMITTED')) {
+                overallSurveyStatus = 'SUBMITTED';
+            } else if (statuses.every(status => status === 'FINALIZED')) {
+                overallSurveyStatus = 'FINALIZED';
+            } else {
+                overallSurveyStatus = statuses.find(s => s !== 'FINALIZED') || 'NOT_STARTED';
+            }
+        }
+
+        return {
+            id: j.id,
+            job_status: j.job_status,
+            survey_status: overallSurveyStatus,
+            target_date: j.target_date,
+            vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
+            certificate_type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A'
+        };
+    };
 
     return {
         role: 'SURVEYOR',
