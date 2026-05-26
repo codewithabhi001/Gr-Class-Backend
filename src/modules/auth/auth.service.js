@@ -213,8 +213,7 @@ const generatePasswordResetToken = (user) => {
 export const forgotPassword = async (email) => {
     const user = await User.findOne({ where: { email }, useMaster: true });
     if (!user) {
-        // Always return same message to avoid revealing whether email exists
-        return;
+        throw { statusCode: 404, message: 'User not found' };
     }
     const resetToken = generatePasswordResetToken(user);
     const baseUrl = (env.frontendUrl || '').replace(/\/$/, '');

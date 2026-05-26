@@ -6,9 +6,10 @@ import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
 import rateLimit from 'express-rate-limit';
 
+
 const applyLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 8005,
+    max: 5,
     message: { success: false, message: 'Too many applications, please try again later.' }
 });
 
