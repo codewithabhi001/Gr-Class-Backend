@@ -12,6 +12,10 @@ export const validate = (schema) => {
                 formattedErrors[key] = detail.message.replace(/"/g, '');
             });
 
+            const firstErrorMessage = error.details.length > 0 
+                ? error.details[0].message.replace(/"/g, '') 
+                : 'Invalid input data. Please check the fields.';
+
             logger.warn(`Validation Failed: ${req.method} ${req.originalUrl}`, {
                 event: 'validation_error',
                 path: req.originalUrl,
@@ -24,7 +28,7 @@ export const validate = (schema) => {
             return res.status(400).json({
                 success: false,
                 error_code: 'VALIDATION_ERROR',
-                message: 'Invalid input data. Please check the fields.',
+                message: firstErrorMessage,
                 errors: formattedErrors
             });
         }
