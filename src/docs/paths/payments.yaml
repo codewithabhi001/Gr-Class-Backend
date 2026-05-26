@@ -106,6 +106,40 @@
             schema:
               $ref: '#/components/schemas/ErrorResponse'
 
+/api/v1/payments/job/{jobId}:
+  get:
+    tags: [Payments]
+    summary: Get payment by job ID
+    description: Get payment details by job ID.
+    operationId: getPaymentByJobId
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
+    parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      "200":
+        description: Payment details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '#/components/schemas/PaymentResponse'
+      "404":
+        description: Payment not found for this job
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
 /api/v1/payments/{id}:
   get:
     tags: [Payments]

@@ -78,6 +78,17 @@ JobCreateRequest:
             $ref: '#/components/schemas/UUID'
           file_url:
             type: string
+    payment:
+      type: object
+      description: "Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice."
+      properties:
+        amount:
+          type: number
+          example: 1000
+        currency:
+          type: string
+          default: "USD"
+          example: "USD"
 
 JobResponse:
   type: object
