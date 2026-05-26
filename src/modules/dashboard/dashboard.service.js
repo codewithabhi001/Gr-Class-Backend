@@ -1,7 +1,7 @@
 import db from '../../models/index.js';
 import { Op } from 'sequelize';
 
-const { User, Client, Vessel, JobRequest, SurveyorProfile, Certificate, FlagAdministration, Survey, CertificateType, Payment, NonConformity, SurveyorApplication, WebsiteContact } = db;
+const { User, Client, Vessel, JobRequest, SurveyorProfile, Certificate, FlagAdministration, Survey, CertificateType, Payment, NonConformity, SurveyorApplication, WebsiteContact, JobCertificate } = db;
 
 const vesselAttrs = ['id', 'vessel_name', 'imo_number', 'flag_administration_id', 'class_status'];
 
@@ -118,7 +118,7 @@ const getOperationalStats = async () => {
             order: [['createdAt', 'DESC']],
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
-                { model: CertificateType, attributes: ['name'] }
+                { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] }
             ],
             useReplica: true
         }),
@@ -166,7 +166,7 @@ const getOperationalStats = async () => {
             order: [['updatedAt', 'DESC']],
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
-                { model: CertificateType, attributes: ['name'] }
+                { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] }
             ],
             useReplica: true
         })
@@ -235,7 +235,7 @@ const getOperationalStats = async () => {
             drafting_needed: draftingNeededJobs.map(j => ({
                 id: j.id,
                 vessel: j.Vessel?.vessel_name,
-                type: j.CertificateType?.name,
+                type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
                 finalized_at: j.updatedAt
             }))
         },
@@ -243,7 +243,7 @@ const getOperationalStats = async () => {
             jobs: recentJobs.map(j => ({
                 id: j.id,
                 vessel: j.Vessel?.vessel_name,
-                type: j.CertificateType?.name,
+                type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
                 status: j.job_status,
                 created_at: j.createdAt
             })),
@@ -298,7 +298,7 @@ export const getGMDashboard = async () => {
         },
         include: [
             { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
-            { model: CertificateType, attributes: ['name'] }
+            { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] }
         ],
         order: [['updatedAt', 'DESC']],
         limit: 10,
@@ -313,7 +313,7 @@ export const getGMDashboard = async () => {
                 id: j.id,
                 certificate_id: j.generated_certificate_id,
                 vessel: j.Vessel?.vessel_name,
-                type: j.CertificateType?.name,
+                type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
                 finalized_at: j.updatedAt
             }))
         },
@@ -325,7 +325,7 @@ export const getGMDashboard = async () => {
 export const getTMDashboard = async (user) => {
     const jobIncludes = [
         { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
-        { model: CertificateType, attributes: ['name'] },
+        { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] },
         { model: User, as: 'requester', attributes: ['name', 'email'] }
     ];
 
@@ -374,7 +374,7 @@ export const getTMDashboard = async (user) => {
         id: j.id,
         job_status: j.job_status,
         vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
-        certificate_type: j.CertificateType?.name,
+        certificate_type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
         created_at: j.createdAt,
         updated_at: j.updatedAt,
         requester: j.requester?.name
@@ -398,7 +398,7 @@ export const getTMDashboard = async (user) => {
 export const getTODashboard = async (user) => {
     const jobIncludes = [
         { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
-        { model: CertificateType, attributes: ['name'] },
+        { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] },
         { model: User, as: 'requester', attributes: ['name', 'email'] }
     ];
 
@@ -460,7 +460,7 @@ export const getTODashboard = async (user) => {
         id: j.id,
         job_status: j.job_status,
         vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
-        certificate_type: j.CertificateType?.name,
+        certificate_type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
         created_at: j.createdAt,
         updated_at: j.updatedAt,
         requester: j.requester?.name
@@ -585,7 +585,7 @@ export const getSurveyorDashboard = async (user) => {
         survey_status: j.survey?.survey_status || 'NOT_STARTED',
         target_date: j.target_date,
         vessel: j.Vessel ? { vessel_name: j.Vessel.vessel_name, imo_number: j.Vessel.imo_number } : null,
-        certificate_type: j.CertificateType?.name
+        certificate_type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A'
     });
 
     return {
@@ -641,7 +641,7 @@ export const getClientDashboard = async (clientId) => {
             where: { vessel_id: vesselIds },
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
-                { model: CertificateType, attributes: ['name'] },
+                { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] },
                 { model: User, as: 'surveyor', attributes: ['name', 'email'] }
             ],
             order: [['createdAt', 'DESC']],
