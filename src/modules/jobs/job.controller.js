@@ -47,8 +47,14 @@ export const createJob = async (req, res, next) => {
     try {
         let job;
         if (req.user.role === 'CLIENT') {
+            if (req.body.payment) {
+                delete req.body.payment;
+            }
             job = await jobService.createJobForClient(req.body, req.user.client_id, req.user.id);
         } else {
+            if (req.body.payment && !['ADMIN', 'GM'].includes(req.user.role)) {
+                delete req.body.payment;
+            }
             job = await jobService.createJob(req.body, req.user.id);
         }
         res.status(201).json({ success: true, data: job });

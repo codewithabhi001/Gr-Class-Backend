@@ -1,4 +1,5 @@
 import db from '../../models/index.js';
+import { v4 as uuidv4 } from 'uuid';
 import { RBAC, isRoleAllowed } from '../../config/rbac.config.js';
 import * as notificationService from '../../services/notification.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
@@ -184,7 +185,7 @@ export const createJob = async (data, userId, options = {}) => {
         }
     }
 
-    const { job_status: _omit, uploaded_documents, requested_by_user_id: _rbu, ...safeData } = data;
+    const { job_status: _omit, uploaded_documents, requested_by_user_id: _rbu, payment: paymentData, ...safeData } = data;
     const requestedBy = requestedByUserId || userId;
 
     const txn = externalTxn || await db.sequelize.transaction();
@@ -217,6 +218,23 @@ export const createJob = async (data, userId, options = {}) => {
             changed_by: userId,
             reason: statusHistoryReason
         }, { transaction: txn });
+
+        if (paymentData) {
+            const payment = await db.Payment.create({
+                job_id: job.id,
+                invoice_number: `INV-${uuidv4().substring(0, 8).toUpperCase()}`,
+                amount: paymentData.amount,
+                currency: paymentData.currency || 'USD',
+                payment_status: 'UNPAID'
+            }, { transaction: txn });
+
+            await db.AuditLog.create({
+                user_id: userId, action: 'CREATE_INVOICE',
+                entity_name: 'Payment', entity_id: payment.id,
+                old_values: null,
+                new_values: { job_id: job.id, amount: paymentData.amount, currency: payment.currency, payment_status: 'UNPAID' }
+            }, { transaction: txn });
+        }
 
         if (ownsTransaction) {
             await txn.commit();

@@ -76,7 +76,11 @@ export const schemas = {
             required_document_id: Joi.string().guid().optional().allow(null, ''),
             custom_document_name: Joi.string().optional().allow(null, ''),
             file_url: Joi.string().required()
-        })).optional()
+        })).optional(),
+        payment: Joi.object({
+            amount: Joi.number().positive().required(),
+            currency: Joi.string().optional().default('USD')
+        }).optional()
     }),
     submitSurvey: Joi.object({
         job_id: Joi.string().guid().required(),
