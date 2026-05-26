@@ -40,7 +40,7 @@ const resolveJobAndCert = async (jobId, jobCertificateId = null) => {
     // Find survey for this specific certificate
     const survey = certId
         ? await Survey.findOne({ where: { job_certificate_id: certId }, useMaster: true })
-        : await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
+        : null;
 
     return { job, jobCert, certId, survey };
 };
@@ -396,7 +396,7 @@ export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to review documents.' };
     }
 
-    // Find the survey — try per-certificate first, then per-job
+    // Find the survey — try per-certificate first
     const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
     let survey = null;
     if (jobCerts.length > 0) {
@@ -404,9 +404,6 @@ export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection
             where: { job_certificate_id: jobCerts.map(jc => jc.id) },
             useMaster: true
         });
-    }
-    if (!survey) {
-        survey = await Survey.findOne({ where: { job_id: jobId }, useMaster: true });
     }
     if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
 

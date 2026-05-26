@@ -60,7 +60,11 @@ const fetchSurveys = async (filters = {}) => {
         where,
         include: [
             { model: db.User, attributes: ['id', 'name', 'email'] },
-            { model: JobRequest, attributes: ['id', 'job_status'] }
+            {
+                model: db.JobCertificate,
+                required: true,
+                include: [{ model: JobRequest, attributes: ['id', 'job_status'] }]
+            }
         ],
         useReplica: true
     });

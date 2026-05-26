@@ -83,7 +83,7 @@ export const flatSurveyReportListRow = (row) => {
     const s = toPlain(row);
     return {
         id: s.id,
-        job_id: s.job_id,
+        job_id: s.JobCertificate?.JobRequest?.id ?? s.job_id,
         surveyor_id: s.surveyor_id,
         survey_status: na(s.survey_status),
         submission_count: na(s.submission_count),
@@ -92,9 +92,9 @@ export const flatSurveyReportListRow = (row) => {
         finalized_at: na(s.finalized_at),
         survey_statement_status: na(s.survey_statement_status),
         survey_statement_pdf_url: na(s.survey_statement_pdf_url),
-        job_status: na(s.JobRequest?.job_status),
-        vessel_name: na(s.JobRequest?.Vessel?.vessel_name),
-        imo_number: na(s.JobRequest?.Vessel?.imo_number),
+        job_status: na(s.JobCertificate?.JobRequest?.job_status ?? s.JobRequest?.job_status),
+        vessel_name: na(s.JobCertificate?.JobRequest?.Vessel?.vessel_name ?? s.JobRequest?.Vessel?.vessel_name),
+        imo_number: na(s.JobCertificate?.JobRequest?.Vessel?.imo_number ?? s.JobRequest?.Vessel?.imo_number),
         surveyor_name: na(s.User?.name),
         surveyor_email: na(s.User?.email),
     };

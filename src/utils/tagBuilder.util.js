@@ -61,8 +61,11 @@ export const buildTagValuesForJob = async (jobId) => {
     };
 
     // 2. Checklist tags (Activity Planning)
+    const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId } });
     const checklistItems = await db.ActivityPlanning.findAll({
-        where: { job_id: jobId }
+        where: jobCerts.length > 0
+            ? { [db.Sequelize.Op.or]: [{ job_id: jobId }, { job_certificate_id: jobCerts.map(jc => jc.id) }] }
+            : { job_id: jobId }
     });
 
     checklistItems.forEach(item => {
@@ -73,7 +76,9 @@ export const buildTagValuesForJob = async (jobId) => {
     });
 
     // 3. Survey tags
-    const survey = await db.Survey.findOne({ where: { job_id: jobId } });
+    const survey = jobCerts.length > 0
+        ? await db.Survey.findOne({ where: { job_certificate_id: jobCerts.map(jc => jc.id) } })
+        : null;
     if (survey) {
         tags.survey_statement = survey.survey_statement || '';
         tags.submitted_at = formatDate(survey.submitted_at);

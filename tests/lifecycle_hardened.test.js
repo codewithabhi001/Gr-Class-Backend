@@ -76,7 +76,16 @@ async function makeJob(vesselId, requesterId, surveyorId, certTypeId, startStatu
 }
 
 async function makeSurvey(jobId, surveyorId, status = 'NOT_STARTED') {
-    const survey = await db.Survey.create({ job_id: jobId, surveyor_id: surveyorId, survey_status: status, submission_count: 0 });
+    const job = await db.JobRequest.findByPk(jobId);
+    let jobCert = await db.JobCertificate.findOne({ where: { job_request_id: jobId } });
+    if (!jobCert) {
+        jobCert = await db.JobCertificate.create({
+            job_request_id: jobId,
+            certificate_type_id: job.certificate_type_id || uuidv7(),
+            status: 'PENDING'
+        });
+    }
+    const survey = await db.Survey.create({ job_certificate_id: jobCert.id, surveyor_id: surveyorId, survey_status: status, submission_count: 0 });
     return survey.id;
 }
 

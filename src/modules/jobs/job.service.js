@@ -1423,9 +1423,12 @@ export const getJobHistory = async (id, scopeFilters = {}) => {
         useReplica: true
     });
 
-    const survey = await Survey.findOne({ where: { job_id: id }, useReplica: true });
-    const surveyHistory = survey ? await db.SurveyStatusHistory.findAll({
-        where: { survey_id: survey.id },
+    const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: id } });
+    const certIds = jobCerts.map(jc => jc.id);
+    const surveys = certIds.length > 0 ? await Survey.findAll({ where: { job_certificate_id: certIds }, useReplica: true }) : [];
+    const surveyIds = surveys.map(s => s.id);
+    const surveyHistory = surveyIds.length > 0 ? await db.SurveyStatusHistory.findAll({
+        where: { survey_id: surveyIds },
         order: [['created_at', 'ASC']],
         attributes: ['id', 'survey_id', 'previous_status', 'new_status', 'changed_by', 'reason', 'submission_iteration', 'createdAt'],
         include: [{ model: User, as: 'User', attributes: ['name', 'email', 'role'] }],

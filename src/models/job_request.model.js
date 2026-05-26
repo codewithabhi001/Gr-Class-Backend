@@ -102,7 +102,9 @@ export default (sequelize, DataTypes) => {
                     }
                     case 'FINALIZED':
                     case 'PAYMENT_DONE': {
-                        if (!this.getDataValue('generated_certificate_id')) {
+                        const certs = this.certificates || [];
+                        const hasPendingDraft = certs.length === 0 || certs.some(c => !c.generated_certificate_id);
+                        if (hasPendingDraft) {
                             return {
                                 role: 'TM',
                                 fallbackRoles: ['GM', 'ADMIN'],

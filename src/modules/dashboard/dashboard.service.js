@@ -137,9 +137,18 @@ const getOperationalStats = async () => {
         Survey.findAll({
             limit: 5,
             order: [['createdAt', 'DESC']],
-            attributes: ['id', 'job_id', 'survey_status', 'submitted_at', 'created_at'],
+            attributes: ['id', 'job_certificate_id', 'survey_status', 'submitted_at', 'created_at'],
             include: [
-                { model: JobRequest, attributes: ['id', 'job_status', 'vessel_id'], include: [{ model: Vessel, attributes: ['vessel_name'] }] },
+                {
+                    model: JobCertificate,
+                    include: [
+                        {
+                            model: JobRequest,
+                            attributes: ['id', 'job_status', 'vessel_id'],
+                            include: [{ model: Vessel, attributes: ['vessel_name'] }]
+                        }
+                    ]
+                },
                 { model: User, attributes: ['name', 'email'] }
             ],
             useReplica: true
@@ -159,14 +168,21 @@ const getOperationalStats = async () => {
         }),
         JobRequest.findAll({
             where: {
-                job_status: 'FINALIZED',
-                generated_certificate_id: null
+                job_status: 'FINALIZED'
             },
             limit: 5,
             order: [['updatedAt', 'DESC']],
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
-                { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] }
+                {
+                    model: JobCertificate,
+                    as: 'certificates',
+                    required: true,
+                    where: {
+                        generated_certificate_id: null
+                    },
+                    include: [{ model: CertificateType, attributes: ['name'] }]
+                }
             ],
             useReplica: true
         })
@@ -264,7 +280,7 @@ const getOperationalStats = async () => {
             })),
             surveys: recentSurveys.map(s => ({
                 id: s.id,
-                vessel: s.JobRequest?.Vessel?.vessel_name,
+                vessel: s.JobCertificate?.JobRequest?.Vessel?.vessel_name ?? s.JobRequest?.Vessel?.vessel_name,
                 surveyor: s.User?.name,
                 status: s.survey_status,
                 updated_at: s.updatedAt
@@ -293,12 +309,24 @@ export const getGMDashboard = async () => {
     // ACTIONABLE: Jobs that are FINALIZED and have a DRAFT certificate ready for GM issuance
     const pendingIssuanceJobs = await JobRequest.findAll({
         where: { 
-            job_status: 'FINALIZED',
-            generated_certificate_id: { [Op.ne]: null }
+            job_status: 'FINALIZED'
         },
         include: [
             { model: Vessel, attributes: ['vessel_name', 'imo_number'] },
-            { model: JobCertificate, as: 'certificates', include: [{ model: CertificateType, attributes: ['name'] }] }
+            {
+                model: JobCertificate,
+                as: 'certificates',
+                required: true,
+                include: [
+                    { model: CertificateType, attributes: ['name'] },
+                    {
+                        model: db.Certificate,
+                        as: 'Certificate',
+                        required: true,
+                        where: { status: 'DRAFT' }
+                    }
+                ]
+            }
         ],
         order: [['updatedAt', 'DESC']],
         limit: 10,
@@ -309,13 +337,15 @@ export const getGMDashboard = async () => {
         role: 'GM',
         summary: stats.summary,
         actionable_items: {
-            pending_issuance: pendingIssuanceJobs.map(j => ({
-                id: j.id,
-                certificate_id: j.generated_certificate_id,
-                vessel: j.Vessel?.vessel_name,
-                type: (j.certificates || []).map(c => c.CertificateType?.name).filter(Boolean).join(', ') || 'N/A',
-                finalized_at: j.updatedAt
-            }))
+            pending_issuance: pendingIssuanceJobs.flatMap(j => 
+                (j.certificates || []).map(c => ({
+                    id: j.id,
+                    certificate_id: c.generated_certificate_id,
+                    vessel: j.Vessel?.vessel_name,
+                    type: c.CertificateType?.name || 'N/A',
+                    finalized_at: j.updatedAt
+                }))
+            )
         },
         client_with_vessels: stats.client_with_vessels,
         recent_activities: stats.recent_activities
@@ -665,10 +695,14 @@ export const getClientDashboard = async (clientId) => {
         }),
         Survey.findAll({
             include: [{
-                model: JobRequest,
-                where: { vessel_id: vesselIds },
+                model: JobCertificate,
                 required: true,
-                include: [{ model: Vessel, attributes: ['vessel_name'] }]
+                include: [{
+                    model: JobRequest,
+                    where: { vessel_id: vesselIds },
+                    required: true,
+                    include: [{ model: Vessel, attributes: ['vessel_name'] }]
+                }]
             }, {
                 model: User, attributes: ['name', 'email']
             }],
@@ -736,7 +770,7 @@ export const getClientDashboard = async (clientId) => {
         })),
         recent_surveys: surveys.slice(0, 5).map(s => ({
             id: s.id,
-            vessel: s.JobRequest?.Vessel?.vessel_name,
+            vessel: s.JobCertificate?.JobRequest?.Vessel?.vessel_name ?? s.JobRequest?.Vessel?.vessel_name,
             surveyor: s.User?.name,
             status: s.survey_status,
             date: s.submitted_at || s.updatedAt

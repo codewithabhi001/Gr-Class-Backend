@@ -692,18 +692,32 @@ export const getSurveyReports = async (query, user) => {
     const allowedFilters = {};
     if (filters.survey_status) allowedFilters.survey_status = filters.survey_status;
     if (filters.surveyor_id) allowedFilters.surveyor_id = filters.surveyor_id;
-    if (filters.job_id) allowedFilters.job_id = filters.job_id;
+
+    const jobRequestWhere = {};
+    if (filters.job_id) {
+        jobRequestWhere.id = filters.job_id;
+    }
 
     const { count, rows } = await Survey.findAndCountAll({
         where: allowedFilters,
         limit: parseInt(limit),
         offset: (page - 1) * limit,
         attributes: [
-            'id', 'job_id', 'surveyor_id', 'survey_status', 'submission_count',
+            'id', 'job_certificate_id', 'surveyor_id', 'survey_status', 'submission_count',
             'started_at', 'submitted_at', 'finalized_at', 'survey_statement_status', 'survey_statement_pdf_url'
         ],
         include: [
-            { model: JobRequest, attributes: ['id', 'job_status'], include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }] },
+            {
+                model: db.JobCertificate,
+                required: true,
+                include: [{
+                    model: JobRequest,
+                    where: jobRequestWhere,
+                    required: true,
+                    attributes: ['id', 'job_status'],
+                    include: [{ model: db.Vessel, attributes: ['vessel_name', 'imo_number'] }]
+                }]
+            },
             { model: db.User, attributes: ['name', 'email'] }
         ],
         order: [['submitted_at', 'DESC']],
@@ -713,6 +727,15 @@ export const getSurveyReports = async (query, user) => {
     delete statusCountWhere.survey_status;
     const statusCounts = await Survey.findAll({
         where: statusCountWhere,
+        include: filters.job_id ? [{
+            model: db.JobCertificate,
+            required: true,
+            include: [{
+                model: JobRequest,
+                where: { id: filters.job_id },
+                required: true
+            }]
+        }] : [],
         attributes: [
             ['survey_status', 'status'],
             [db.sequelize.fn('COUNT', db.sequelize.col('survey_status')), 'count']

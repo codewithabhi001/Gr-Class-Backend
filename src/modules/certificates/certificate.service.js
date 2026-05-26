@@ -697,16 +697,16 @@ export const getCertificatesByVessel = async (vesselId, user) => {
 
 /** Get certificate generated for a specific job. */
 export const getCertificateByJobId = async (jobId, user) => {
-    const job = await JobRequest.findByPk(jobId, {
-        attributes: ['id', 'generated_certificate_id']
+    const jobCert = await db.JobCertificate.findOne({
+        where: { job_request_id: jobId, generated_certificate_id: { [Op.ne]: null } },
+        attributes: ['generated_certificate_id']
     });
 
-    if (!job) throw { statusCode: 404, message: 'Job not found' };
-    if (!job.generated_certificate_id) {
+    if (!jobCert) {
         throw { statusCode: 404, message: 'Certificate not yet generated for this job' };
     }
 
-    return await getCertificateById(job.generated_certificate_id, user);
+    return await getCertificateById(jobCert.generated_certificate_id, user);
 };
 
 /** Returns certificate by id. Throws 403 if certificate exists but user has no access (ownership scope). */

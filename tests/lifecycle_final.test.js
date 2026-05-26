@@ -71,7 +71,16 @@ async function makeJob(fx, status) {
 }
 
 async function makeSurvey(jobId, surveyorId, status, submissions = 0) {
-    const s = await db.Survey.create({ job_id: jobId, surveyor_id: surveyorId, survey_status: status, submission_count: submissions });
+    const job = await db.JobRequest.findByPk(jobId);
+    let jobCert = await db.JobCertificate.findOne({ where: { job_request_id: jobId } });
+    if (!jobCert) {
+        jobCert = await db.JobCertificate.create({
+            job_request_id: jobId,
+            certificate_type_id: job.certificate_type_id || uuidv7(),
+            status: 'PENDING'
+        });
+    }
+    const s = await db.Survey.create({ job_certificate_id: jobCert.id, surveyor_id: surveyorId, survey_status: status, submission_count: submissions });
     return s.id;
 }
 
