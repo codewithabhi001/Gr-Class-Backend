@@ -56,8 +56,8 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/documents/document.routes.js:16`
-- Controller: `src/modules/documents/document.controller.js:115`
-- Service: `src/modules/documents/document.service.js:33` (`documentService.uploadStandaloneFile`)
+- Controller: `src/modules/documents/document.controller.js:121`
+- Service: `src/modules/documents/document.service.js:34` (`documentService.uploadStandaloneFile`)
 - Models touched: N/A
 - Service returns (detected): { file_url: url }
 
@@ -139,13 +139,13 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/documents/document.routes.js:20`
 - Controller: `src/modules/documents/document.controller.js:8`
-- Service: `src/services/fileAccess.service.js:213` (`fileAccessService.validateUserEntityAccess`)
+- Service: `src/services/fileAccess.service.js:269` (`fileAccessService.validateUserEntityAccess`)
 - Models touched: Vessel.findOne, JobRequest.findByPk, Certificate.findByPk, JobRequest.findOne
 - Service returns (detected): false | true | !!vessel | job && job.Vessel.client_id === user.client_id | cert && cert.Vessel.client_id === user.client_id | !!job
 - Service: `src/modules/documents/document.service.js:8` (`documentService.getEntityDocuments`)
 - Models touched: Document.findAll
 - Service returns (detected): await fileAccessService.resolveEntity(documents)
-- Service: `src/services/fileAccess.service.js:247` (`fileAccessService.processFileAccess`)
+- Service: `src/services/fileAccess.service.js:308` (`fileAccessService.processFileAccess`)
 - Models touched: N/A
 - Service returns (detected): {
         fileName: key.split('/').pop(), // Simple filename extraction
@@ -181,17 +181,17 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/documents/document.routes.js:21`
-- Controller: `src/modules/documents/document.controller.js:56`
-- Service: `src/services/fileAccess.service.js:213` (`fileAccessService.validateUserEntityAccess`)
+- Controller: `src/modules/documents/document.controller.js:59`
+- Service: `src/services/fileAccess.service.js:269` (`fileAccessService.validateUserEntityAccess`)
 - Models touched: Vessel.findOne, JobRequest.findByPk, Certificate.findByPk, JobRequest.findOne
 - Service returns (detected): false | true | !!vessel | job && job.Vessel.client_id === user.client_id | cert && cert.Vessel.client_id === user.client_id | !!job
-- Service: `src/modules/documents/document.service.js:41` (`documentService.uploadEntityDocument`)
+- Service: `src/modules/documents/document.service.js:42` (`documentService.uploadEntityDocument`)
 - Models touched: Document.create
 - Service returns (detected): await fileAccessService.resolveEntity(doc, { id: userId })
-- Service: `src/modules/documents/document.service.js:60` (`documentService.registerDocument`)
+- Service: `src/modules/documents/document.service.js:61` (`documentService.registerDocument`)
 - Models touched: Document.create
 - Service returns (detected): await fileAccessService.resolveEntity(doc, { id: userId })
-- Service: `src/services/fileAccess.service.js:247` (`fileAccessService.processFileAccess`)
+- Service: `src/services/fileAccess.service.js:308` (`fileAccessService.processFileAccess`)
 - Models touched: N/A
 - Service returns (detected): {
         fileName: key.split('/').pop(), // Simple filename extraction
@@ -226,14 +226,14 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/documents/document.routes.js:19`
-- Controller: `src/modules/documents/document.controller.js:35`
-- Service: `src/modules/documents/document.service.js:27` (`documentService.getDocumentById`)
-- Models touched: Document.findByPk
-- Service returns (detected): await fileAccessService.resolveEntity(document)
-- Service: `src/services/fileAccess.service.js:213` (`fileAccessService.validateUserEntityAccess`)
+- Controller: `src/modules/documents/document.controller.js:38`
+- Service: `src/modules/documents/document.service.js:28` (`documentService.getDocumentById`)
+- Models touched: N/A
+- Service returns (detected): N/A
+- Service: `src/services/fileAccess.service.js:269` (`fileAccessService.validateUserEntityAccess`)
 - Models touched: Vessel.findOne, JobRequest.findByPk, Certificate.findByPk, JobRequest.findOne
 - Service returns (detected): false | true | !!vessel | job && job.Vessel.client_id === user.client_id | cert && cert.Vessel.client_id === user.client_id | !!job
-- Service: `src/services/fileAccess.service.js:247` (`fileAccessService.processFileAccess`)
+- Service: `src/services/fileAccess.service.js:308` (`fileAccessService.processFileAccess`)
 - Models touched: N/A
 - Service returns (detected): {
         fileName: key.split('/').pop(), // Simple filename extraction
@@ -273,16 +273,16 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/documents/document.routes.js:23`
-- Controller: `src/modules/documents/document.controller.js:105`
-- Service: `src/modules/documents/document.service.js:74` (`documentService.deleteDocument`)
-- Models touched: Document.findByPk
+- Controller: `src/modules/documents/document.controller.js:111`
+- Service: `src/modules/documents/document.service.js:75` (`documentService.deleteDocument`)
+- Models touched: N/A
 - Service returns (detected): await doc.destroy()
-- Service: `src/modules/documents/document.service.js:33` (`documentService.uploadStandaloneFile`)
+- Service: `src/modules/documents/document.service.js:34` (`documentService.uploadStandaloneFile`)
 - Models touched: N/A
 - Service returns (detected): { file_url: url }
 - Service: `src/modules/documents/document.service.js:80` (`documentService.generatePresignedUrl`)
 - Models touched: N/A
 - Service returns (detected): { uploadUrl, fileKey: key }
-- Service: `src/modules/documents/document.service.js:60` (`documentService.registerDocument`)
+- Service: `src/modules/documents/document.service.js:61` (`documentService.registerDocument`)
 - Models touched: Document.create
 - Service returns (detected): await fileAccessService.resolveEntity(doc, { id: userId })

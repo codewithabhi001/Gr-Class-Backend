@@ -33,7 +33,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/non_conformities/nc.routes.js:11`
 - Controller: `src/modules/non_conformities/nc.controller.js:22`
-- Service: `src/modules/non_conformities/nc.service.js:29` (`ncService.getNCs`)
+- Service: `src/modules/non_conformities/nc.service.js:38` (`ncService.getNCs`)
 - Models touched: NonConformity.findAndCountAll, NonConformity.findAll
 - Service returns (detected): {
         total: count,
@@ -57,7 +57,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createNC`
-- Joi schema source: `src/middlewares/validate.middleware.js:176`
+- Joi schema source: `src/middlewares/validate.middleware.js:185`
 ```js
 Joi.object({
         job_id: Joi.string().guid().required(),
@@ -78,7 +78,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/non_conformities/nc.routes.js:10`
 - Controller: `src/modules/non_conformities/nc.controller.js:3`
-- Service: `src/modules/non_conformities/nc.service.js:9` (`ncService.createNC`)
+- Service: `src/modules/non_conformities/nc.service.js:18` (`ncService.createNC`)
 - Models touched: NonConformity.create
 - Service returns (detected): nc
 
@@ -108,9 +108,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/non_conformities/nc.routes.js:12`
 - Controller: `src/modules/non_conformities/nc.controller.js:31`
-- Service: `src/modules/non_conformities/nc.service.js:67` (`ncService.getNCById`)
+- Service: `src/modules/non_conformities/nc.service.js:79` (`ncService.getNCById`)
 - Models touched: NonConformity.findByPk
-- Service returns (detected): nc
+- Service returns (detected): flatNcDetailRow(nc)
 
 ### 4. PUT /api/v1/non-conformities/{id}/close
 - Summary: Close NC
@@ -125,7 +125,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[id], query=[], body=[closure_remarks], user=[], files=[]
 - Validation schema key: `closeNC`
-- Joi schema source: `src/middlewares/validate.middleware.js:181`
+- Joi schema source: `src/middlewares/validate.middleware.js:190`
 ```js
 Joi.object({
         closure_remarks: Joi.string().required(),
@@ -144,7 +144,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/non_conformities/nc.routes.js:13`
 - Controller: `src/modules/non_conformities/nc.controller.js:12`
-- Service: `src/modules/non_conformities/nc.service.js:18` (`ncService.closeNC`)
+- Service: `src/modules/non_conformities/nc.service.js:27` (`ncService.closeNC`)
 - Models touched: NonConformity.findByPk
 - Service returns (detected): nc
 

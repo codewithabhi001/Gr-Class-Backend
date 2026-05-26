@@ -17,7 +17,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/LoginRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `login`
-- Joi schema source: `src/middlewares/validate.middleware.js:37`
+- Joi schema source: `src/middlewares/validate.middleware.js:41`
 ```js
 Joi.object({
         email: Joi.string().email().required(),
@@ -85,7 +85,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/RefreshTokenRequest
 - Req usage in controller: params=[], query=[], body=[refreshToken, token], user=[], files=[]
 - Validation schema key: `refreshToken`
-- Joi schema source: `src/middlewares/validate.middleware.js:41`
+- Joi schema source: `src/middlewares/validate.middleware.js:45`
 ```js
 Joi.object({
         refreshToken: Joi.string(),
@@ -130,7 +130,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ForgotPasswordRequest
 - Req usage in controller: params=[], query=[], body=[email], user=[], files=[]
 - Validation schema key: `forgotPassword`
-- Joi schema source: `src/middlewares/validate.middleware.js:45`
+- Joi schema source: `src/middlewares/validate.middleware.js:49`
 ```js
 Joi.object({
         email: Joi.string().email().required(),
@@ -151,8 +151,7 @@ Implementation Trace
 - Controller: `src/modules/auth/auth.controller.js:75`
 - Service: `src/modules/auth/auth.service.js:213` (`authService.forgotPassword`)
 - Models touched: User.findOne
-- Service returns (detected): same message to avoid revealing whether email exists
-        return
+- Service returns (detected): N/A
 
 ### 5. POST /api/v1/auth/reset-password
 - Summary: Reset password
@@ -167,7 +166,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ResetPasswordRequest
 - Req usage in controller: params=[], query=[], body=[token, newPassword], user=[], files=[]
 - Validation schema key: `resetPassword`
-- Joi schema source: `src/middlewares/validate.middleware.js:48`
+- Joi schema source: `src/middlewares/validate.middleware.js:52`
 ```js
 Joi.object({
         token: Joi.string().required(),
@@ -187,7 +186,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/auth/auth.routes.js:49`
 - Controller: `src/modules/auth/auth.controller.js:84`
-- Service: `src/modules/auth/auth.service.js:228` (`authService.resetPassword`)
+- Service: `src/modules/auth/auth.service.js:227` (`authService.resetPassword`)
 - Models touched: User.findByPk
 - Service returns (detected): N/A
 
@@ -204,7 +203,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ChangePasswordRequest
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `changePassword`
-- Joi schema source: `src/middlewares/validate.middleware.js:52`
+- Joi schema source: `src/middlewares/validate.middleware.js:56`
 ```js
 Joi.object({
         oldPassword: Joi.string().required(),
@@ -225,6 +224,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/auth/auth.routes.js:53`
 - Controller: `src/modules/auth/auth.controller.js:93`
-- Service: `src/modules/auth/auth.service.js:247` (`authService.changePassword`)
+- Service: `src/modules/auth/auth.service.js:246` (`authService.changePassword`)
 - Models touched: User.findByPk
 - Service returns (detected): N/A

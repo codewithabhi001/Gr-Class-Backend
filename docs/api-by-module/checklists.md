@@ -52,7 +52,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ChecklistSubmission
 - Req usage in controller: params=[jobId], query=[], body=[items, signed_checklist_files], user=[], files=[]
 - Validation schema key: `submitChecklist`
-- Joi schema source: `src/middlewares/validate.middleware.js:184`
+- Joi schema source: `src/middlewares/validate.middleware.js:193`
 ```js
 Joi.object({
         items: Joi.array().items(Joi.object({
@@ -85,11 +85,7 @@ Implementation Trace
 - Controller: `src/modules/checklists/checklist.controller.js:10`
 - Service: `src/modules/checklists/checklist.service.js:119` (`checklistService.submitChecklist`)
 - Models touched: JobRequest.findByPk, Survey.findOne, ActivityPlanning.findOne, ActivityPlanning.create
-- Service returns (detected): { url: file, status: 'PENDING', rejection_reason: null } | { 
-                    ...file, 
-                    status: 'PENDING', 
-                    rejection_reason: null 
-                } | {
+- Service returns (detected): {
             items: resolvedItems,
             signed_checklist_files: signedFilesResolved
         }
@@ -156,7 +152,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist.routes.js:42`
 - Controller: `src/modules/checklists/checklist.controller.js:48`
-- Service: `src/modules/checklists/checklist.service.js:389` (`checklistService.getSignedChecklistUploadUrl`)
+- Service: `src/modules/checklists/checklist.service.js:420` (`checklistService.getSignedChecklistUploadUrl`)
 - Models touched: JobRequest.findByPk
 - Service returns (detected): {
         uploadUrl: signedUrl,
@@ -176,7 +172,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[jobId], query=[], body=[signed_checklist_files], user=[], files=[]
 - Validation schema key: `updateSignedChecklistFiles`
-- Joi schema source: `src/middlewares/validate.middleware.js:196`
+- Joi schema source: `src/middlewares/validate.middleware.js:205`
 ```js
 Joi.object({
         signed_checklist_files: Joi.array().items(Joi.string()).required()
@@ -198,6 +194,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist.routes.js:27`
 - Controller: `src/modules/checklists/checklist.controller.js:22`
-- Service: `src/modules/checklists/checklist.service.js:249` (`checklistService.updateSignedChecklistFiles`)
+- Service: `src/modules/checklists/checklist.service.js:258` (`checklistService.updateSignedChecklistFiles`)
 - Models touched: JobRequest.findByPk, Survey.findOne
-- Service returns (detected): { url: file, status: 'PENDING', rejection_reason: null } | { ...file, status: 'PENDING', rejection_reason: null } | { signed_checklist_files: signedFilesResolved }
+- Service returns (detected): { signed_checklist_files: signedFilesResolved }

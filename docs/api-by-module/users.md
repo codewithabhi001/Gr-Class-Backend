@@ -51,7 +51,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UserCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createUser`
-- Joi schema source: `src/middlewares/validate.middleware.js:244`
+- Joi schema source: `src/middlewares/validate.middleware.js:253`
 ```js
 Joi.object({
         name: Joi.string().required(),
@@ -83,7 +83,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/users/user.routes.js:26`
 - Controller: `src/modules/users/user.controller.js:28`
-- Service: `src/modules/users/user.service.js:58` (`userService.createUser`)
+- Service: `src/modules/users/user.service.js:60` (`userService.createUser`)
 - Models touched: N/A
 - Service returns (detected): await authService.register(data)
 
@@ -169,7 +169,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/users/user.routes.js:29`
 - Controller: `src/modules/users/user.controller.js:94`
-- Service: `src/modules/users/user.service.js:185` (`userService.getUserById`)
+- Service: `src/modules/users/user.service.js:187` (`userService.getUserById`)
 - Models touched: User.findByPk
 - Service returns (detected): formatWithNa(resolved)
 
@@ -186,7 +186,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UserUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateUser`
-- Joi schema source: `src/middlewares/validate.middleware.js:500`
+- Joi schema source: `src/middlewares/validate.middleware.js:509`
 ```js
 Joi.object({
         name: Joi.string().optional(),
@@ -214,7 +214,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/users/user.routes.js:32`
 - Controller: `src/modules/users/user.controller.js:39`
-- Service: `src/modules/users/user.service.js:62` (`userService.updateUser`)
+- Service: `src/modules/users/user.service.js:64` (`userService.updateUser`)
 - Models touched: User.findByPk, User.findOne
 - Service returns (detected): user
 
@@ -248,7 +248,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/users/user.routes.js:38`
 - Controller: `src/modules/users/user.controller.js:61`
-- Service: `src/modules/users/user.service.js:84` (`userService.deleteUser`)
+- Service: `src/modules/users/user.service.js:86` (`userService.deleteUser`)
 - Models touched: User.findByPk
 - Service returns (detected): { message: 'User deleted' }
 
@@ -290,7 +290,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UpdateFcmTokenRequest
 - Req usage in controller: params=[], query=[], body=[fcmToken], user=[id], files=[]
 - Validation schema key: `updateFcmToken`
-- Joi schema source: `src/middlewares/validate.middleware.js:525`
+- Joi schema source: `src/middlewares/validate.middleware.js:536`
 ```js
 Joi.object({
         fcmToken: Joi.string().required(),
@@ -314,7 +314,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/users/user.routes.js:20`
 - Controller: `src/modules/users/user.controller.js:72`
-- Service: `src/modules/users/user.service.js:91` (`userService.updateFcmToken`)
+- Service: `src/modules/users/user.service.js:93` (`userService.updateFcmToken`)
 - Models touched: User.findByPk
 - Service returns (detected): { success: true }
 
@@ -349,6 +349,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/users/user.routes.js:17`
 - Controller: `src/modules/users/user.controller.js:83`
-- Service: `src/modules/users/user.service.js:98` (`userService.updateProfilePic`)
+- Service: `src/modules/users/user.service.js:100` (`userService.updateProfilePic`)
 - Models touched: N/A
 - Service returns (detected): N/A

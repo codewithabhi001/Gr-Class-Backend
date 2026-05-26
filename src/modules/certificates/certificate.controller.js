@@ -179,11 +179,26 @@ export const getCertificateUploadUrl = async (req, res, next) => {
 
 export const uploadExternalCertificate = async (req, res, next) => {
     try {
-        const result = await certService.uploadExternalCertificate(req.params.vesselId, req.body, req.user.id);
+        let certificatesData;
+        let isArrayInput = false;
+        if (Array.isArray(req.body)) {
+            certificatesData = req.body;
+            isArrayInput = true;
+        } else if (req.body && Array.isArray(req.body.certificates)) {
+            certificatesData = req.body.certificates;
+            isArrayInput = true;
+        } else {
+            certificatesData = [req.body];
+        }
+
+        const result = await certService.uploadExternalCertificate(req.params.vesselId, certificatesData, req.user.id);
+        
+        const responseData = isArrayInput ? result : (Array.isArray(result) ? result[0] : result);
+
         res.status(201).json({
             success: true,
-            message: 'External certificate uploaded successfully',
-            data: result
+            message: 'External certificate(s) uploaded successfully',
+            data: responseData
         });
     } catch (error) { next(error); }
 };

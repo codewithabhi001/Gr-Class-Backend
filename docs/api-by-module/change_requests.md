@@ -102,7 +102,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/change_requests/change_request.routes.js:11`
 - Controller: `src/modules/change_requests/change_request.controller.js:63`
-- Service: `src/modules/change_requests/change_request.service.js:50` (`changeRequestService.getChangeRequestById`)
+- Service: `src/modules/change_requests/change_request.service.js:51` (`changeRequestService.getChangeRequestById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -135,7 +135,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/change_requests/change_request.routes.js:12`
 - Controller: `src/modules/change_requests/change_request.controller.js:81`
-- Service: `src/modules/change_requests/change_request.service.js:69` (`changeRequestService.approveChangeRequest`)
+- Service: `src/modules/change_requests/change_request.service.js:70` (`changeRequestService.approveChangeRequest`)
 - Models touched: ChangeRequest.findByPk
 - Service returns (detected): changeRequest
 
@@ -168,6 +168,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/change_requests/change_request.routes.js:13`
 - Controller: `src/modules/change_requests/change_request.controller.js:105`
-- Service: `src/modules/change_requests/change_request.service.js:96` (`changeRequestService.rejectChangeRequest`)
+- Service: `src/modules/change_requests/change_request.service.js:97` (`changeRequestService.rejectChangeRequest`)
 - Models touched: ChangeRequest.findByPk
 - Service returns (detected): changeRequest

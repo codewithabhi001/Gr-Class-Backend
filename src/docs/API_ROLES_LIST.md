@@ -48,6 +48,7 @@ These endpoints do not have specific role restrictions but require a valid login
 
 ## 👤 Role: ADMIN
 - `DELETE /api/certificate-templates/:id`
+- `DELETE /api/certificates/types/:id`
 - `DELETE /api/certificates/types/:id/required-documents/:docId`
 - `DELETE /api/checklist-templates/:id`
 - `DELETE /api/clients/:id`
@@ -66,6 +67,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
 - `GET /api/certificates/job/:jobId`
+- `GET /api/certificates/type-names`
 - `GET /api/certificates/types`
 - `GET /api/certificates/types/:id`
 - `GET /api/certificates/types/:id/required-documents`
@@ -113,6 +115,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `GET /api/payments/:id/ledger`
+- `GET /api/payments/job/:jobId`
 - `GET /api/payments/summary`
 - `GET /api/portfolio-feedback`
 - `GET /api/portfolio-feedback/public`
@@ -124,6 +127,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/support`
 - `GET /api/support/:id`
 - `GET /api/surveyors`
+- `GET /api/surveyors/:id/authorization-checklist`
 - `GET /api/surveyors/:id/location-history`
 - `GET /api/surveyors/:id/profile`
 - `GET /api/surveyors/applications`
@@ -148,6 +152,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/vessels`
 - `GET /api/vessels/:id`
 - `GET /api/vessels/client/:clientId`
+- `GET /api/vessels/types`
 - `GET /api/website/newsletter/subscribers`
 - `GET /api/website/newsletter/unsubscribe-one-click`
 - `GET /api/website/static-content/about-us`
@@ -186,7 +191,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/incidents`
 - `POST /api/jobs`
 - `POST /api/jobs/:id/documents`
-- `POST /api/jobs/:id/messages`
+- `POST /api/jobs/:id/messages/external`
+- `POST /api/jobs/:id/messages/internal`
 - `POST /api/jobs/:id/notes`
 - `POST /api/payments/:id/partial`
 - `POST /api/payments/:id/refund`
@@ -214,8 +220,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/change-requests/:id/reject`
 - `PUT /api/checklist-templates/:id`
 - `PUT /api/checklist-templates/:id/activate`
-- `PUT /api/checklists/jobs/:jobId/items/:itemId/review`
-- `PUT /api/checklists/jobs/:jobId/signed-files/:fileIndex/review`
 - `PUT /api/clients/:id`
 - `PUT /api/flags/:id`
 - `PUT /api/incidents/:id/status`
@@ -223,6 +227,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/jobs/:id/authorize-survey`
 - `PUT /api/jobs/:id/cancel`
 - `PUT /api/jobs/:id/documents/:documentId`
+- `PUT /api/jobs/:id/priority`
 - `PUT /api/jobs/:id/reassign`
 - `PUT /api/jobs/:id/reject`
 - `PUT /api/notifications/:id/read`
@@ -254,8 +259,10 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
 - `GET /api/certificates/job/:jobId`
+- `GET /api/certificates/type-names`
 - `GET /api/certificates/types`
 - `GET /api/certificates/types/:id`
+- `GET /api/certificates/types/:id/required-documents`
 - `GET /api/certificates/upload-url`
 - `GET /api/certificates/verify/:number`
 - `GET /api/certificates/vessel/:vesselId`
@@ -298,6 +305,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `GET /api/payments/:id/ledger`
+- `GET /api/payments/job/:jobId`
 - `GET /api/payments/summary`
 - `GET /api/portfolio-feedback`
 - `GET /api/portfolio-feedback/public`
@@ -309,6 +317,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/support`
 - `GET /api/support/:id`
 - `GET /api/surveyors`
+- `GET /api/surveyors/:id/authorization-checklist`
 - `GET /api/surveyors/:id/location-history`
 - `GET /api/surveyors/:id/profile`
 - `GET /api/surveyors/applications/:id`
@@ -325,6 +334,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/vessels`
 - `GET /api/vessels/:id`
 - `GET /api/vessels/client/:clientId`
+- `GET /api/vessels/types`
 - `GET /api/website/newsletter/unsubscribe-one-click`
 - `GET /api/website/static-content/about-us`
 - `GET /api/website/static-content/faq`
@@ -345,6 +355,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/certificates`
 - `POST /api/certificates/:id/extend`
 - `POST /api/certificates/:id/issue`
+- `POST /api/certificates/:id/override`
 - `POST /api/certificates/:id/transfer`
 - `POST /api/certificates/vessel/:vesselId/external`
 - `POST /api/change-requests`
@@ -358,7 +369,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/incidents`
 - `POST /api/jobs`
 - `POST /api/jobs/:id/documents`
-- `POST /api/jobs/:id/messages`
+- `POST /api/jobs/:id/messages/external`
+- `POST /api/jobs/:id/messages/internal`
 - `POST /api/jobs/:id/notes`
 - `POST /api/payments/:id/partial`
 - `POST /api/payments/:id/refund`
@@ -380,7 +392,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/jobs/:id/approve-request`
 - `PUT /api/jobs/:id/cancel`
 - `PUT /api/jobs/:id/documents/:documentId`
-- `PUT /api/jobs/:id/finalize`
 - `PUT /api/jobs/:id/priority`
 - `PUT /api/jobs/:id/reject`
 - `PUT /api/jobs/:id/reschedule`
@@ -389,7 +400,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/payments/:id/pay`
 - `PUT /api/support/:id`
 - `PUT /api/support/:id/status`
-- `PUT /api/surveys/jobs/:jobId/rework`
 - `PUT /api/users/fcm-token`
 - `PUT /api/users/me`
 - `PUT /api/users/profile-pic`
@@ -407,6 +417,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
 - `GET /api/certificates/job/:jobId`
+- `GET /api/certificates/type-names`
 - `GET /api/certificates/types`
 - `GET /api/certificates/types/:id`
 - `GET /api/certificates/types/:id/required-documents`
@@ -446,6 +457,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `GET /api/payments/:id/ledger`
+- `GET /api/payments/job/:jobId`
+- `GET /api/payments/summary`
 - `GET /api/portfolio-feedback/public`
 - `GET /api/reports/certificates`
 - `GET /api/reports/financials`
@@ -455,6 +468,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/support`
 - `GET /api/support/:id`
 - `GET /api/surveyors`
+- `GET /api/surveyors/:id/authorization-checklist`
 - `GET /api/surveyors/:id/location-history`
 - `GET /api/surveyors/:id/profile`
 - `GET /api/surveyors/applications`
@@ -472,6 +486,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/vessels`
 - `GET /api/vessels/:id`
 - `GET /api/vessels/client/:clientId`
+- `GET /api/vessels/types`
 - `GET /api/website/newsletter/unsubscribe-one-click`
 - `GET /api/website/static-content/about-us`
 - `GET /api/website/static-content/faq`
@@ -503,7 +518,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/documents/upload`
 - `POST /api/incidents`
 - `POST /api/jobs/:id/documents`
-- `POST /api/jobs/:id/messages`
+- `POST /api/jobs/:id/messages/external`
+- `POST /api/jobs/:id/messages/internal`
 - `POST /api/jobs/:id/notes`
 - `POST /api/payments/:id/partial`
 - `POST /api/payments/invoice`
@@ -527,8 +543,6 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/certificates/:id/suspend`
 - `PUT /api/certificates/types/:id`
 - `PUT /api/certificates/types/:id/required-documents/:docId`
-- `PUT /api/checklists/jobs/:jobId/items/:itemId/review`
-- `PUT /api/checklists/jobs/:jobId/signed-files/:fileIndex/review`
 - `PUT /api/clients/:id`
 - `PUT /api/incidents/:id/status`
 - `PUT /api/jobs/:id/authorize-survey`
@@ -561,8 +575,10 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
 - `GET /api/certificates/job/:jobId`
+- `GET /api/certificates/type-names`
 - `GET /api/certificates/types`
 - `GET /api/certificates/types/:id`
+- `GET /api/certificates/types/:id/required-documents`
 - `GET /api/certificates/verify/:number`
 - `GET /api/certificates/vessel/:vesselId`
 - `GET /api/checklist-templates/job/:jobId`
@@ -591,6 +607,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `GET /api/payments/:id/ledger`
+- `GET /api/payments/job/:jobId`
+- `GET /api/payments/summary`
 - `GET /api/portfolio-feedback/public`
 - `GET /api/search`
 - `GET /api/support`
@@ -606,6 +624,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/users/me`
 - `GET /api/vessels`
 - `GET /api/vessels/:id`
+- `GET /api/vessels/types`
 - `GET /api/website/newsletter/unsubscribe-one-click`
 - `GET /api/website/static-content/about-us`
 - `GET /api/website/static-content/faq`
@@ -621,7 +640,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/auth/reset-password`
 - `POST /api/contact`
 - `POST /api/documents/get-presigned-url`
-- `POST /api/jobs/:id/messages`
+- `POST /api/jobs/:id/messages/external`
+- `POST /api/jobs/:id/messages/internal`
 - `POST /api/jobs/:id/notes`
 - `POST /api/non-conformities`
 - `POST /api/payments/:id/partial`
@@ -631,6 +651,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/website/newsletter/subscribe`
 - `POST /api/website/newsletter/unsubscribe`
 - `POST /api/website/newsletter/unsubscribe-one-click`
+- `PUT /api/checklists/jobs/:jobId/items/:itemId/review`
+- `PUT /api/checklists/jobs/:jobId/signed-files/:fileIndex/review`
 - `PUT /api/jobs/:id/review`
 - `PUT /api/jobs/:id/verify-documents`
 - `PUT /api/non-conformities/:id/close`
@@ -642,6 +664,8 @@ These endpoints do not have specific role restrictions but require a valid login
 - `PUT /api/users/profile-pic`
 
 ## 👤 Role: SURVEYOR
+- `GET /api/certificates/type-names`
+- `GET /api/certificates/types/:id/required-documents`
 - `GET /api/certificates/verify/:number`
 - `GET /api/checklist-templates/job/:jobId`
 - `GET /api/checklist-templates/job/:jobId/download`
@@ -664,6 +688,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/search`
 - `GET /api/support`
 - `GET /api/support/:id`
+- `GET /api/surveyors/:id/authorization-checklist`
 - `GET /api/surveyors/:id/profile`
 - `GET /api/surveyors/get-upload-url`
 - `GET /api/surveys/jobs/:jobId`
@@ -673,6 +698,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/system/version`
 - `GET /api/users/me`
 - `GET /api/vessels/:id`
+- `GET /api/vessels/types`
 - `GET /api/website/newsletter/unsubscribe-one-click`
 - `GET /api/website/static-content/about-us`
 - `GET /api/website/static-content/faq`
@@ -692,7 +718,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/documents/get-presigned-url`
 - `POST /api/documents/register`
 - `POST /api/documents/upload`
-- `POST /api/jobs/:id/messages`
+- `POST /api/jobs/:id/messages/external`
 - `POST /api/non-conformities`
 - `POST /api/support`
 - `POST /api/surveyors/apply`
@@ -724,8 +750,10 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/certificates/:id/history`
 - `GET /api/certificates/:id/preview`
 - `GET /api/certificates/job/:jobId`
+- `GET /api/certificates/type-names`
 - `GET /api/certificates/types`
 - `GET /api/certificates/types/:id`
+- `GET /api/certificates/types/:id/required-documents`
 - `GET /api/certificates/verify/:number`
 - `GET /api/certificates/vessel/:vesselId`
 - `GET /api/change-requests`
@@ -749,6 +777,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `GET /api/payments/:id/ledger`
+- `GET /api/payments/job/:jobId`
 - `GET /api/payments/summary`
 - `GET /api/portfolio-feedback/my-feedback`
 - `GET /api/portfolio-feedback/public`
@@ -762,6 +791,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `GET /api/users/me`
 - `GET /api/vessels`
 - `GET /api/vessels/:id`
+- `GET /api/vessels/types`
 - `GET /api/website/newsletter/unsubscribe-one-click`
 - `GET /api/website/static-content/about-us`
 - `GET /api/website/static-content/faq`
@@ -787,7 +817,7 @@ These endpoints do not have specific role restrictions but require a valid login
 - `POST /api/incidents`
 - `POST /api/jobs`
 - `POST /api/jobs/:id/documents`
-- `POST /api/jobs/:id/messages`
+- `POST /api/jobs/:id/messages/external`
 - `POST /api/portfolio-feedback`
 - `POST /api/support`
 - `POST /api/surveyors/apply`

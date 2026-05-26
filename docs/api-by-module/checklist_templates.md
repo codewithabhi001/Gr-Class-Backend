@@ -52,7 +52,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ChecklistTemplateCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `createChecklistTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:394`
+- Joi schema source: `src/middlewares/validate.middleware.js:403`
 ```js
 Joi.object({
         name: Joi.string().required(),
@@ -305,7 +305,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist_template.routes.js:121`
 - Controller: `src/modules/checklists/checklist_template.controller.js:121`
-- Service: `src/modules/checklists/checklist_template.service.js:296` (`checklistTemplateService.deleteChecklistTemplate`)
+- Service: `src/modules/checklists/checklist_template.service.js:297` (`checklistTemplateService.deleteChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk
 - Service returns (detected): { message: 'Checklist template deleted successfully' }
 
@@ -340,7 +340,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist_template.routes.js:99`
 - Controller: `src/modules/checklists/checklist_template.controller.js:136`
-- Service: `src/modules/checklists/checklist_template.service.js:320` (`checklistTemplateService.activateChecklistTemplate`)
+- Service: `src/modules/checklists/checklist_template.service.js:321` (`checklistTemplateService.activateChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk, ChecklistTemplate.update
 - Service returns (detected): await db.sequelize.transaction(async (t) => {
         const template = await ChecklistTemplate.findByPk(id, { transaction: t }) | await template.update({
@@ -379,6 +379,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/checklists/checklist_template.routes.js:110`
 - Controller: `src/modules/checklists/checklist_template.controller.js:155`
-- Service: `src/modules/checklists/checklist_template.service.js:379` (`checklistTemplateService.cloneChecklistTemplate`)
+- Service: `src/modules/checklists/checklist_template.service.js:380` (`checklistTemplateService.cloneChecklistTemplate`)
 - Models touched: ChecklistTemplate.findByPk, ChecklistTemplate.create
 - Service returns (detected): newTemplate

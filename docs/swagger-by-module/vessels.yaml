@@ -1126,26 +1126,74 @@ components:
           type: string
           format: date
     UploadExternalCertificateRequest:
-      type: object
-      required:
-        - certificate_type_id
-        - certificate_number
-        - issue_date
-        - expiry_date
-        - s3_key
-      properties:
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
-        certificate_number:
-          type: string
-        issue_date:
-          type: string
-          format: date
-        expiry_date:
-          type: string
-          format: date
-        s3_key:
-          type: string
+      oneOf:
+        -
+          type: object
+          required:
+            - certificates
+          properties:
+            certificates:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required:
+                  - certificate_type_id
+                  - certificate_number
+                  - issue_date
+                  - expiry_date
+                  - s3_key
+                properties:
+                  certificate_type_id: {$ref: '#/components/schemas/UUID'}
+                  certificate_number: {type: string}
+                  issue_date: {type: string, format: date}
+                  expiry_date: {type: string, format: date}
+                  s3_key: {type: string}
+        -
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - certificate_type_id
+              - certificate_number
+              - issue_date
+              - expiry_date
+              - s3_key
+            properties:
+              certificate_type_id:
+                $ref: '#/components/schemas/UUID'
+              certificate_number:
+                type: string
+              issue_date:
+                type: string
+                format: date
+              expiry_date:
+                type: string
+                format: date
+              s3_key:
+                type: string
+        -
+          type: object
+          required:
+            - certificate_type_id
+            - certificate_number
+            - issue_date
+            - expiry_date
+            - s3_key
+          properties:
+            certificate_type_id:
+              $ref: '#/components/schemas/UUID'
+            certificate_number:
+              type: string
+            issue_date:
+              type: string
+              format: date
+            expiry_date:
+              type: string
+              format: date
+            s3_key:
+              type: string
     CertificateHistoryResponse:
       type: object
       properties:
@@ -1989,6 +2037,17 @@ components:
                 $ref: '#/components/schemas/UUID'
               file_url:
                 type: string
+        payment:
+          type: object
+          description: 'Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice.'
+          properties:
+            amount:
+              type: number
+              example: 1000
+            currency:
+              type: string
+              default: USD
+              example: USD
     JobResponse:
       type: object
       properties:
@@ -2451,6 +2510,13 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+          description: 'Human-readable job reference (e.g. GRJ-XXXXXXXX)'
+        vessel_name:
+          type: string
+          nullable: true
         description:
           type: string
         severity:
@@ -2484,6 +2550,12 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+        vessel_name:
+          type: string
+          nullable: true
         severity:
           type: string
           enum:
@@ -4075,6 +4147,77 @@ components:
         FlagAdministration:
           flag_state_name: 'Marshall Islands Maritime Administrator'
 paths:
+  /api/v1/vessels/types:
+    get:
+      tags:
+        - Vessels
+      summary: 'Get distinct vessel types'
+      description: "Returns a deduplicated list of all `ship_type` values present in the\nvessels table. Useful for populating dropdowns and filter chips.\nSupports optional `?search=` query for partial matching.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n"
+      security:
+        -
+          bearerAuth: []
+      operationId: getVesselTypes
+      x-roles:
+        - CLIENT
+        - ADMIN
+        - GM
+        - TM
+        - TO
+        - SURVEYOR
+      parameters:
+        -
+          name: search
+          in: query
+          required: false
+          description: 'Filter vessel types by partial name match (case-insensitive LIKE)'
+          schema:
+            type: string
+            example: tanker
+      responses:
+        '200':
+          description: 'List of distinct vessel ship_type values'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Vessel types fetched successfully'}
+                  data: {type: array, items: {type: string}, example: ['Bulk Carrier', 'Container Ship', 'Oil Tanker', 'RORO Vessel']}
+              example:
+                success: true
+                message: 'Vessel types fetched successfully'
+                data:
+                  - 'Bulk Carrier'
+                  - 'Container Ship'
+                  - 'Oil Tanker'
+                  - 'RORO Vessel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
   /api/v1/vessels:
     get:
       tags:

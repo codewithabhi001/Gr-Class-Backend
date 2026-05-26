@@ -31,7 +31,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/payments/payment.routes.js:13`
 - Controller: `src/modules/payments/payment.controller.js:17`
-- Service: `src/modules/payments/payment.service.js:214` (`paymentService.getPayments`)
+- Service: `src/modules/payments/payment.service.js:213` (`paymentService.getPayments`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -59,8 +59,8 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/payments/payment.routes.js:16`
-- Controller: `src/modules/payments/payment.controller.js:33`
-- Service: `src/modules/payments/payment.service.js:296` (`paymentService.getFinancialSummary`)
+- Controller: `src/modules/payments/payment.controller.js:41`
+- Service: `src/modules/payments/payment.service.js:322` (`paymentService.getFinancialSummary`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -88,13 +88,43 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/payments/payment.routes.js:22`
-- Controller: `src/modules/payments/payment.controller.js:41`
+- Route file: `src/modules/payments/payment.routes.js:25`
+- Controller: `src/modules/payments/payment.controller.js:49`
 - Service: `src/modules/payments/payment.service.js:93` (`paymentService.createInvoice`)
 - Models touched: JobRequest.findByPk, Payment.findOne, Payment.create, AuditLog.create
 - Service returns (detected): payment
 
-### 4. GET /api/v1/payments/{id}
+### 4. GET /api/v1/payments/job/{jobId}
+- Summary: Get payment by job ID
+- Operation ID: `getPaymentByJobId`
+- Access Roles: CLIENT, ADMIN, GM, TM, TO
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `jobId` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[jobId], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Payment details (application/json => object)
+- `404`: Payment not found for this job (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s):
+```js
+{ success: true, data: payment }
+```
+
+Implementation Trace
+- Route file: `src/modules/payments/payment.routes.js:19`
+- Controller: `src/modules/payments/payment.controller.js:33`
+- Service: `src/modules/payments/payment.service.js:295` (`paymentService.getPaymentByJobId`)
+- Models touched: N/A
+- Service returns (detected): N/A
+
+### 5. GET /api/v1/payments/{id}
 - Summary: Get payment by ID
 - Operation ID: `getPaymentById`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -118,13 +148,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/payments/payment.routes.js:19`
+- Route file: `src/modules/payments/payment.routes.js:22`
 - Controller: `src/modules/payments/payment.controller.js:25`
 - Service: `src/modules/payments/payment.service.js:270` (`paymentService.getPaymentById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
-### 5. PUT /api/v1/payments/{id}/pay
+### 6. PUT /api/v1/payments/{id}/pay
 - Summary: Mark invoice as paid
 - Operation ID: `markPaymentPaid`
 - Access Roles: ADMIN, GM, TM, TO
@@ -149,7 +179,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 6. POST /api/v1/payments/{id}/refund
+### 7. POST /api/v1/payments/{id}/refund
 - Summary: Process refund
 - Operation ID: `refundPayment`
 - Access Roles: ADMIN, GM
@@ -173,7 +203,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 7. POST /api/v1/payments/{id}/partial
+### 8. POST /api/v1/payments/{id}/partial
 - Summary: Record payment (advance / partial)
 - Operation ID: `recordPartialPayment`
 - Access Roles: ADMIN, GM, TM, TO
@@ -197,7 +227,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 8. GET /api/v1/payments/{id}/ledger
+### 9. GET /api/v1/payments/{id}/ledger
 - Summary: Get payment ledger
 - Operation ID: `getPaymentLedger`
 - Access Roles: ADMIN, GM
@@ -221,7 +251,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 9. POST /api/v1/payments/writeoff
+### 10. POST /api/v1/payments/writeoff
 - Summary: Write off payment
 - Operation ID: `writeOffPayment`
 - Access Roles: ADMIN

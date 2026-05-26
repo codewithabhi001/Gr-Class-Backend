@@ -17,7 +17,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `startSurvey`
-- Joi schema source: `src/middlewares/validate.middleware.js:328`
+- Joi schema source: `src/middlewares/validate.middleware.js:337`
 ```js
 Joi.object({
         job_id: Joi.string().guid().required(),
@@ -68,9 +68,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:112`
+- Route file: `src/modules/surveys/survey.routes.js:111`
 - Controller: `src/modules/surveys/survey.controller.js:64`
-- Service: `src/modules/surveys/survey.service.js:572` (`surveyService.getSurveyReports`)
+- Service: `src/modules/surveys/survey.service.js:579` (`surveyService.getSurveyReports`)
 - Models touched: Survey.findAndCountAll, Survey.findAll
 - Service returns (detected): {
         total: count,
@@ -95,7 +95,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[file]
 - Validation schema key: `submitSurvey`
-- Joi schema source: `src/middlewares/validate.middleware.js:76`
+- Joi schema source: `src/middlewares/validate.middleware.js:85`
 ```js
 Joi.object({
         job_id: Joi.string().guid().required(),
@@ -147,9 +147,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:127`
+- Route file: `src/modules/surveys/survey.routes.js:126`
 - Controller: `src/modules/surveys/survey.controller.js:72`
-- Service: `src/modules/surveys/survey.service.js:615` (`surveyService.getSurveyDetails`)
+- Service: `src/modules/surveys/survey.service.js:624` (`surveyService.getSurveyDetails`)
 - Models touched: Survey.findOne
 - Service returns (detected): await fileAccessService.resolveEntity(survey, { id: user?.id })
 
@@ -186,8 +186,8 @@ Implementation Trace
 ### 6. PUT /api/v1/surveys/jobs/{jobId}/rework
 - Summary: Request Rework
 - Operation ID: `requestRework`
-- Access Roles: GM, TM
-- Change Access: GM, TM
+- Access Roles: GM, TM, TO, ADMIN
+- Change Access: GM, TM, TO, ADMIN
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -208,7 +208,7 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:78`
+- Route file: `src/modules/surveys/survey.routes.js:77`
 - Controller: `src/modules/surveys/survey.controller.js:48`
 - Service: `src/modules/surveys/survey.service.js:366` (`surveyService.requestRework`)
 - Models touched: ActivityPlanning.count, JobRequest.findByPk
@@ -227,7 +227,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[jobId], query=[], body=[], user=[id], files=[]
 - Validation schema key: `updateGps`
-- Joi schema source: `src/middlewares/validate.middleware.js:168`
+- Joi schema source: `src/middlewares/validate.middleware.js:177`
 ```js
 Joi.object({
         latitude: Joi.number().required(),
@@ -246,7 +246,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/surveys/survey.routes.js:38`
 - Controller: `src/modules/surveys/survey.controller.js:24`
-- Service: `src/modules/surveys/survey.service.js:644` (`surveyService.streamLocation`)
+- Service: `src/modules/surveys/survey.service.js:653` (`surveyService.streamLocation`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -286,7 +286,7 @@ Implementation Trace
 ### 9. GET /api/v1/surveys/jobs/{jobId}/timeline
 - Summary: Get survey execution timeline
 - Operation ID: `getSurveyTimeline`
-- Access Roles: ADMIN, GM, TM
+- Access Roles: ADMIN, GM, TM, TO, SURVEYOR
 - Change Access: N/A (read endpoint)
 
 Request (Code + Schema)
@@ -310,8 +310,8 @@ Implementation Trace
 ### 10. POST /api/v1/surveys/jobs/{jobId}/violation
 - Summary: Flag survey violation
 - Operation ID: `flagViolation`
-- Access Roles: ADMIN, TM
-- Change Access: ADMIN, TM
+- Access Roles: TM
+- Change Access: TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -330,9 +330,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/surveys/survey.routes.js:85`
+- Route file: `src/modules/surveys/survey.routes.js:84`
 - Controller: `src/modules/surveys/survey.controller.js:56`
-- Service: `src/modules/surveys/survey.service.js:715` (`surveyService.flagViolation`)
+- Service: `src/modules/surveys/survey.service.js:724` (`surveyService.flagViolation`)
 - Models touched: AuditLog.create
 - Service returns (detected): { message: 'Violation flagged and admins notified.' }
 
@@ -384,3 +384,35 @@ Implementation Trace
 - Route file: `N/A`
 - Controller: `N/A`
 - Services: N/A
+
+### 13. POST /api/v1/surveys/jobs/{jobId}/sync
+- Summary: Offline sync — replay batched data
+- Operation ID: `syncOfflineData`
+- Access Roles: SURVEYOR
+- Change Access: SURVEYOR
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `jobId` (path, required, string)
+- Request Body from YAML:
+- `application/json`: object
+- Req usage in controller: params=[jobId], query=[], body=[], user=[id], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Offline data synced successfully (application/json => object)
+- `400`: Invalid job state or surveyor mismatch
+- `403`: Forbidden — caller is not the assigned surveyor
+- `404`: Job or survey not found
+- Controller response envelope(s):
+```js
+{ success: true, ...result }
+```
+
+Implementation Trace
+- Route file: `src/modules/surveys/survey.routes.js:50`
+- Controller: `src/modules/surveys/survey.controller.js:103`
+- Service: `src/modules/surveys/survey.service.js:751` (`surveyService.syncOfflineData`)
+- Models touched: N/A
+- Service returns (detected): N/A

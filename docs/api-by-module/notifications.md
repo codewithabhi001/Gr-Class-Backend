@@ -35,7 +35,8 @@ Implementation Trace
         where: { user_id: userId },
         attributes: ['id', 'title', 'message', 'type', 'is_read', 'created_at'],
         order: [['created_at', 'DESC']],
-        limit: 50
+        limit: 50,
+        useReplica: true
     })
 
 ### 2. PUT /api/v1/notifications/{id}/read

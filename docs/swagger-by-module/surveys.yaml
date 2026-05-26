@@ -1126,26 +1126,74 @@ components:
           type: string
           format: date
     UploadExternalCertificateRequest:
-      type: object
-      required:
-        - certificate_type_id
-        - certificate_number
-        - issue_date
-        - expiry_date
-        - s3_key
-      properties:
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
-        certificate_number:
-          type: string
-        issue_date:
-          type: string
-          format: date
-        expiry_date:
-          type: string
-          format: date
-        s3_key:
-          type: string
+      oneOf:
+        -
+          type: object
+          required:
+            - certificates
+          properties:
+            certificates:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required:
+                  - certificate_type_id
+                  - certificate_number
+                  - issue_date
+                  - expiry_date
+                  - s3_key
+                properties:
+                  certificate_type_id: {$ref: '#/components/schemas/UUID'}
+                  certificate_number: {type: string}
+                  issue_date: {type: string, format: date}
+                  expiry_date: {type: string, format: date}
+                  s3_key: {type: string}
+        -
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - certificate_type_id
+              - certificate_number
+              - issue_date
+              - expiry_date
+              - s3_key
+            properties:
+              certificate_type_id:
+                $ref: '#/components/schemas/UUID'
+              certificate_number:
+                type: string
+              issue_date:
+                type: string
+                format: date
+              expiry_date:
+                type: string
+                format: date
+              s3_key:
+                type: string
+        -
+          type: object
+          required:
+            - certificate_type_id
+            - certificate_number
+            - issue_date
+            - expiry_date
+            - s3_key
+          properties:
+            certificate_type_id:
+              $ref: '#/components/schemas/UUID'
+            certificate_number:
+              type: string
+            issue_date:
+              type: string
+              format: date
+            expiry_date:
+              type: string
+              format: date
+            s3_key:
+              type: string
     CertificateHistoryResponse:
       type: object
       properties:
@@ -1989,6 +2037,17 @@ components:
                 $ref: '#/components/schemas/UUID'
               file_url:
                 type: string
+        payment:
+          type: object
+          description: 'Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice.'
+          properties:
+            amount:
+              type: number
+              example: 1000
+            currency:
+              type: string
+              default: USD
+              example: USD
     JobResponse:
       type: object
       properties:
@@ -2451,6 +2510,13 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+          description: 'Human-readable job reference (e.g. GRJ-XXXXXXXX)'
+        vessel_name:
+          type: string
+          nullable: true
         description:
           type: string
         severity:
@@ -2484,6 +2550,12 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+        vessel_name:
+          type: string
+          nullable: true
         severity:
           type: string
           enum:
@@ -4425,6 +4497,8 @@ paths:
       x-roles:
         - GM
         - TM
+        - TO
+        - ADMIN
       parameters:
         -
           name: jobId
@@ -4593,6 +4667,8 @@ paths:
         - ADMIN
         - GM
         - TM
+        - TO
+        - SURVEYOR
       parameters:
         -
           name: jobId
@@ -4625,7 +4701,6 @@ paths:
       description: 'Flag discrepancies found in survey execution (e.g. location mismatch).'
       operationId: flagViolation
       x-roles:
-        - ADMIN
         - TM
       parameters:
         -
@@ -4746,3 +4821,103 @@ paths:
               example:
                 success: true
                 message: 'Request successful'
+  '/api/v1/surveys/jobs/{jobId}/sync':
+    post:
+      tags:
+        - Surveys
+      summary: 'Offline sync — replay batched data'
+      description: "Replays batched checklist answers and GPS points captured offline.\nThe surveyor's mobile app collects data while offline and sends it\nin a single batch when connectivity is restored.\n\n**Payload shape:**\n- `checklist` — array of checklist answers to upsert\n- `gps_points` — array of GPS pings to bulk-create\n\nAll items are written atomically inside a single transaction.\n"
+      operationId: syncOfflineData
+      x-roles:
+        - SURVEYOR
+      parameters:
+        -
+          name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                checklist:
+                  type: array
+                  description: 'Checklist answers captured offline'
+                  items: {type: object, required: [question_code, question_text, answer], properties: {question_code: {type: string, example: Q1}, question_text: {type: string, example: 'Is the fire extinguisher inspected?'}, answer: {type: string, example: YES}, remarks: {type: string, example: 'All in order'}}}
+                gps_points:
+                  type: array
+                  description: 'GPS pings captured offline with timestamps'
+                  items: {type: object, required: [latitude, longitude], properties: {latitude: {type: number, example: 1.3521}, longitude: {type: number, example: 103.8198}, captured_at: {type: string, format: date-time, description: 'When the GPS point was captured (defaults to now)'}}}
+            example:
+              checklist:
+                -
+                  question_code: Q1
+                  question_text: 'Is the fire extinguisher inspected?'
+                  answer: YES
+                  remarks: 'All in order'
+              gps_points:
+                -
+                  latitude: 1.3521
+                  longitude: 103.8198
+                  captured_at: '2026-05-22T10:30:00.000Z'
+      responses:
+        '200':
+          description: 'Offline data synced successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Offline data synced successfully.'}
+                  synced: {type: object, properties: {checklist_items: {type: integer, example: 5}, gps_points: {type: integer, example: 12}}}
+              example:
+                success: true
+                message: 'Offline data synced successfully.'
+                synced:
+                  checklist_items: 5
+                  gps_points: 12
+        '400':
+          description: 'Invalid job state or surveyor mismatch'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: 'Forbidden — caller is not the assigned surveyor'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Job or survey not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f

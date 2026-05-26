@@ -1595,33 +1595,111 @@
         }
       },
       "UploadExternalCertificateRequest": {
-        "type": "object",
-        "required": [
-          "certificate_type_id",
-          "certificate_number",
-          "issue_date",
-          "expiry_date",
-          "s3_key"
-        ],
-        "properties": {
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "certificates"
+            ],
+            "properties": {
+              "certificates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "certificate_type_id",
+                    "certificate_number",
+                    "issue_date",
+                    "expiry_date",
+                    "s3_key"
+                  ],
+                  "properties": {
+                    "certificate_type_id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "certificate_number": {
+                      "type": "string"
+                    },
+                    "issue_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "expiry_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "s3_key": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
-          "certificate_number": {
-            "type": "string"
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "certificate_type_id",
+                "certificate_number",
+                "issue_date",
+                "expiry_date",
+                "s3_key"
+              ],
+              "properties": {
+                "certificate_type_id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "certificate_number": {
+                  "type": "string"
+                },
+                "issue_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "expiry_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "s3_key": {
+                  "type": "string"
+                }
+              }
+            }
           },
-          "issue_date": {
-            "type": "string",
-            "format": "date"
-          },
-          "expiry_date": {
-            "type": "string",
-            "format": "date"
-          },
-          "s3_key": {
-            "type": "string"
+          {
+            "type": "object",
+            "required": [
+              "certificate_type_id",
+              "certificate_number",
+              "issue_date",
+              "expiry_date",
+              "s3_key"
+            ],
+            "properties": {
+              "certificate_type_id": {
+                "$ref": "#/components/schemas/UUID"
+              },
+              "certificate_number": {
+                "type": "string"
+              },
+              "issue_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "expiry_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "s3_key": {
+                "type": "string"
+              }
+            }
           }
-        }
+        ]
       },
       "CertificateHistoryResponse": {
         "type": "object",
@@ -2876,6 +2954,21 @@
                 }
               }
             }
+          },
+          "payment": {
+            "type": "object",
+            "description": "Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice.",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "example": 1000
+              },
+              "currency": {
+                "type": "string",
+                "default": "USD",
+                "example": "USD"
+              }
+            }
           }
         }
       },
@@ -3533,6 +3626,15 @@
           "job_id": {
             "$ref": "#/components/schemas/UUID"
           },
+          "job_request_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Human-readable job reference (e.g. GRJ-XXXXXXXX)"
+          },
+          "vessel_name": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string"
           },
@@ -3578,6 +3680,14 @@
           },
           "job_id": {
             "$ref": "#/components/schemas/UUID"
+          },
+          "job_request_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "vessel_name": {
+            "type": "string",
+            "nullable": true
           },
           "severity": {
             "type": "string",
@@ -6066,6 +6176,102 @@
           },
           "400": {
             "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/job/{jobId}": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Get payment by job ID",
+        "description": "Get payment details by job ID.",
+        "operationId": "getPaymentByJobId",
+        "x-roles": [
+          "CLIENT",
+          "ADMIN",
+          "GM",
+          "TM",
+          "TO"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PaymentResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "job_id": "string",
+                    "invoice_number": "string",
+                    "amount": 1.5,
+                    "currency": "string",
+                    "payment_status": "UNPAID",
+                    "payment_date": "2026-03-15T10:00:00.000Z",
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "paid_at": "2026-03-15T10:00:00.000Z",
+                    "verified_by_user_id": "string",
+                    "amount_collected": "string",
+                    "refunded_amount": "string",
+                    "amount_paid": "string",
+                    "net_amount": "string",
+                    "remaining": "string",
+                    "updated_at": "2026-03-15T10:00:00.000Z",
+                    "JobRequest": {
+                      "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                      "job_status": "string",
+                      "Vessel": {
+                        "vessel_name": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment not found for this job",
             "content": {
               "application/json": {
                 "schema": {

@@ -560,13 +560,31 @@ export const schemas = {
         issue_date: Joi.date().iso().optional(),
         expiry_date: Joi.date().iso().optional(),
     }),
-    uploadExternalCertificate: Joi.object({
-        certificate_type_id: Joi.string().guid().required(),
-        certificate_number: Joi.string().required(),
-        issue_date: Joi.date().iso().required(),
-        expiry_date: Joi.date().iso().required(),
-        s3_key: Joi.string().required(),
-    }),
+    uploadExternalCertificate: Joi.alternatives().try(
+        Joi.object({
+            certificates: Joi.array().items(Joi.object({
+                certificate_type_id: Joi.string().guid().required(),
+                certificate_number: Joi.string().required(),
+                issue_date: Joi.date().iso().required(),
+                expiry_date: Joi.date().iso().required(),
+                s3_key: Joi.string().required(),
+            })).min(1).required()
+        }),
+        Joi.array().items(Joi.object({
+            certificate_type_id: Joi.string().guid().required(),
+            certificate_number: Joi.string().required(),
+            issue_date: Joi.date().iso().required(),
+            expiry_date: Joi.date().iso().required(),
+            s3_key: Joi.string().required(),
+        })).min(1),
+        Joi.object({
+            certificate_type_id: Joi.string().guid().required(),
+            certificate_number: Joi.string().required(),
+            issue_date: Joi.date().iso().required(),
+            expiry_date: Joi.date().iso().required(),
+            s3_key: Joi.string().required(),
+        })
+    ),
     overrideCertificate: Joi.object({
         s3_key: Joi.string().required(),
         reason: Joi.string().optional().allow('', null)

@@ -34,7 +34,8 @@ Implementation Trace
 - Models touched: Toca.findAll
 - Service returns (detected): await Toca.findAll({
         limit: 10,
-        attributes: ['id', 'vessel_id', 'losing_class_society', 'gaining_class_society', 'request_date', 'status', 'decision_date']
+        attributes: ['id', 'vessel_id', 'losing_class_society', 'gaining_class_society', 'request_date', 'status', 'decision_date'],
+        useReplica: true
     })
 
 ### 2. POST /api/v1/toca
@@ -50,7 +51,7 @@ Request (Code + Schema)
 - `application/json`: object
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `createToca`
-- Joi schema source: `src/middlewares/validate.middleware.js:199`
+- Joi schema source: `src/middlewares/validate.middleware.js:208`
 ```js
 Joi.object({
         vessel_id: Joi.string().guid().required(),

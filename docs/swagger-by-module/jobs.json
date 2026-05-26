@@ -1595,33 +1595,111 @@
         }
       },
       "UploadExternalCertificateRequest": {
-        "type": "object",
-        "required": [
-          "certificate_type_id",
-          "certificate_number",
-          "issue_date",
-          "expiry_date",
-          "s3_key"
-        ],
-        "properties": {
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "certificates"
+            ],
+            "properties": {
+              "certificates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "certificate_type_id",
+                    "certificate_number",
+                    "issue_date",
+                    "expiry_date",
+                    "s3_key"
+                  ],
+                  "properties": {
+                    "certificate_type_id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "certificate_number": {
+                      "type": "string"
+                    },
+                    "issue_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "expiry_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "s3_key": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
-          "certificate_number": {
-            "type": "string"
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "certificate_type_id",
+                "certificate_number",
+                "issue_date",
+                "expiry_date",
+                "s3_key"
+              ],
+              "properties": {
+                "certificate_type_id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "certificate_number": {
+                  "type": "string"
+                },
+                "issue_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "expiry_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "s3_key": {
+                  "type": "string"
+                }
+              }
+            }
           },
-          "issue_date": {
-            "type": "string",
-            "format": "date"
-          },
-          "expiry_date": {
-            "type": "string",
-            "format": "date"
-          },
-          "s3_key": {
-            "type": "string"
+          {
+            "type": "object",
+            "required": [
+              "certificate_type_id",
+              "certificate_number",
+              "issue_date",
+              "expiry_date",
+              "s3_key"
+            ],
+            "properties": {
+              "certificate_type_id": {
+                "$ref": "#/components/schemas/UUID"
+              },
+              "certificate_number": {
+                "type": "string"
+              },
+              "issue_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "expiry_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "s3_key": {
+                "type": "string"
+              }
+            }
           }
-        }
+        ]
       },
       "CertificateHistoryResponse": {
         "type": "object",
@@ -2876,6 +2954,21 @@
                 }
               }
             }
+          },
+          "payment": {
+            "type": "object",
+            "description": "Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice.",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "example": 1000
+              },
+              "currency": {
+                "type": "string",
+                "default": "USD",
+                "example": "USD"
+              }
+            }
           }
         }
       },
@@ -3533,6 +3626,15 @@
           "job_id": {
             "$ref": "#/components/schemas/UUID"
           },
+          "job_request_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Human-readable job reference (e.g. GRJ-XXXXXXXX)"
+          },
+          "vessel_name": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string"
           },
@@ -3578,6 +3680,14 @@
           },
           "job_id": {
             "$ref": "#/components/schemas/UUID"
+          },
+          "job_request_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "vessel_name": {
+            "type": "string",
+            "nullable": true
           },
           "severity": {
             "type": "string",
@@ -5833,7 +5943,8 @@
           "Jobs"
         ],
         "summary": "Get presigned S3 upload URL for job documents",
-        "description": "Generates a signed URL for uploading files directly to S3. \nReturns the `uploadUrl` (where to PUT the file) and the `fileKey` \n(to be used as `file_url` in subsequent job registration calls).\n\n**Roles:** CLIENT, ADMIN, GM, TM, SURVEYOR\n",
+        "deprecated": true,
+        "description": "> **Deprecated** – Use `GET /api/v1/documents/get-upload-url` instead.\n\nGenerates a signed URL for uploading files directly to S3. \nReturns the `uploadUrl` (where to PUT the file) and the `fileKey` \n(to be used as `file_url` in subsequent job registration calls).\n\n**Roles:** CLIENT, ADMIN, GM, TM, SURVEYOR\n",
         "operationId": "getJobUploadUrl",
         "x-roles": [
           "CLIENT",
@@ -6494,10 +6605,12 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "TO: Verify or reject documents",
-        "description": "**Transition:** `CREATED → DOCUMENT_VERIFIED` (when all docs approved)\n\nTechnical Officer reviews uploaded documents for validity and completeness.\n\n**Two flows:**\n1. **Approve all** (`approved: true` or empty body) — Marks all documents as\n   APPROVED and transitions the job to `DOCUMENT_VERIFIED`.\n2. **Reject specific docs** (`approved: false`) — Marks listed documents as\n   REJECTED with reasons. Job stays in `CREATED`. Client is notified to\n   re-upload the rejected documents.\n\nIf mandatory documents are missing (not uploaded at all), returns `400`\nregardless of the `approved` flag.\n\n**Roles:** TO\n",
+        "summary": "ADMIN/GM/TO: Verify or reject documents",
+        "description": "**Transition:** `CREATED → DOCUMENT_VERIFIED` (when all docs approved)\n\nTechnical Officer (or Admin/GM) reviews uploaded documents for validity and completeness.\n\n**Two flows:**\n1. **Approve all** (`approved: true` or empty body) — Marks all documents as\n   APPROVED and transitions the job to `DOCUMENT_VERIFIED`.\n2. **Reject specific docs** (`approved: false`) — Marks listed documents as\n   REJECTED with reasons. Job stays in `CREATED`. Client is notified to\n   re-upload the rejected documents.\n\nIf mandatory documents are missing (not uploaded at all), returns `400`\nregardless of the `approved` flag.\n\n**Roles:** ADMIN, GM, TO\n",
         "operationId": "verifyJobDocuments",
         "x-roles": [
+          "ADMIN",
+          "GM",
           "TO"
         ],
         "parameters": [
@@ -6725,7 +6838,7 @@
             }
           },
           "403": {
-            "description": "Forbidden – only TO can call this endpoint",
+            "description": "Forbidden – only ADMIN, GM, or TO can call this endpoint",
             "content": {
               "application/json": {
                 "schema": {
@@ -6771,9 +6884,10 @@
           "Jobs"
         ],
         "summary": "GM/ADMIN: Approve request → APPROVED",
-        "description": "**Transition:** `DOCUMENT_VERIFIED → APPROVED`\n\nGeneral Manager or Admin formally approves the job request after document\nverification. Records `approved_by_user_id` on the job.\n\n**Roles:** GM\n",
+        "description": "**Transition:** `DOCUMENT_VERIFIED → APPROVED`\n\nGeneral Manager or Admin formally approves the job request after document\nverification. Records `approved_by_user_id` on the job.\n\n**Roles:** ADMIN, GM\n",
         "operationId": "approveRequest",
         "x-roles": [
+          "ADMIN",
           "GM"
         ],
         "parameters": [
@@ -6966,9 +7080,10 @@
           "Jobs"
         ],
         "summary": "ADMIN/GM/TM: Finalize non-survey job → FINALIZED",
-        "description": "**Transition:** `APPROVED → FINALIZED`\n\nOnly applicable to jobs where `is_survey_required = false`. For jobs that\nrequire a survey, finalization happens automatically when the survey is\ncompleted and the TM finalizes the survey report.\n\n**Roles:** GM, TM\n",
+        "description": "**Transition:** `APPROVED → FINALIZED`\n\nOnly applicable to jobs where `is_survey_required = false`. For jobs that\nrequire a survey, finalization happens automatically when the survey is\ncompleted and the TM finalizes the survey report.\n\n**Roles:** ADMIN, GM, TM\n",
         "operationId": "finalizeJob",
         "x-roles": [
+          "ADMIN",
           "GM",
           "TM"
         ],
@@ -7162,9 +7277,10 @@
           "Jobs"
         ],
         "summary": "ADMIN/GM: Assign surveyor → ASSIGNED",
-        "description": "**Transition:** `APPROVED → ASSIGNED`\n\nAssigns a surveyor to the job. The target user must exist and have\n`role = SURVEYOR`. Records `assigned_surveyor_id` and `assigned_by_user_id`\nand sends a push notification to the surveyor.\n\n**Roles:** GM\n",
+        "description": "**Transition:** `APPROVED → ASSIGNED`\n\nAssigns a surveyor to the job. The target user must exist and have\n`role = SURVEYOR`. Records `assigned_surveyor_id` and `assigned_by_user_id`\nand sends a push notification to the surveyor.\n\n**Roles:** ADMIN, GM\n",
         "operationId": "assignSurveyor",
         "x-roles": [
+          "ADMIN",
           "GM"
         ],
         "parameters": [
@@ -7351,10 +7467,11 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "GM/TM: Reassign surveyor (no status change)",
-        "description": "Replaces the assigned surveyor without changing job status.  \nCan be called on any non-terminal job that already has a surveyor.\nA `reason` is mandatory for audit purposes.\n\n**Roles:** GM, TM\n",
+        "summary": "ADMIN/GM/TM: Reassign surveyor (no status change)",
+        "description": "Replaces the assigned surveyor without changing job status.  \nCan be called on any non-terminal job that already has a surveyor.\nA `reason` is mandatory for audit purposes.\n\n**Roles:** ADMIN, GM, TM\n",
         "operationId": "reassignSurveyor",
         "x-roles": [
+          "ADMIN",
           "GM",
           "TM"
         ],
@@ -7544,9 +7661,10 @@
           "Jobs"
         ],
         "summary": "ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED",
-        "description": "**Transition:** `ASSIGNED → SURVEY_AUTHORIZED`\n\nAdmin or Technical Manager formally authorizes the survey to proceed.\nRequires a surveyor to already be assigned. Notifies the surveyor and the\nclient. The surveyor can now call `POST /api/v1/surveys/start` to begin.\n\n**Roles:** TM\n",
+        "description": "**Transition:** `ASSIGNED → SURVEY_AUTHORIZED`\n\nAdmin or Technical Manager formally authorizes the survey to proceed.\nRequires a surveyor to already be assigned. Notifies the surveyor and the\nclient. The surveyor can now call `POST /api/v1/surveys/start` to begin.\n\n**Roles:** ADMIN, TM\n",
         "operationId": "authorizeSurvey",
         "x-roles": [
+          "ADMIN",
           "TM"
         ],
         "parameters": [
@@ -7738,10 +7856,11 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "TO: Technical review → REVIEWED",
-        "description": "**Transition:** `SURVEY_DONE → REVIEWED`\n\nTechnical Officer performs a technical review of the submitted survey findings.\nOnly a TO can call this endpoint.\n\n**Roles:** TO\n",
+        "summary": "ADMIN/TO: Technical review → REVIEWED",
+        "description": "**Transition:** `SURVEY_DONE → REVIEWED`\n\nTechnical Officer (or Admin) performs a technical review of the submitted survey findings.\n\n**Roles:** ADMIN, TO\n",
         "operationId": "reviewJob",
         "x-roles": [
+          "ADMIN",
           "TO"
         ],
         "parameters": [
@@ -7888,7 +8007,7 @@
             }
           },
           "403": {
-            "description": "Forbidden – only TO",
+            "description": "Forbidden – only ADMIN or TO",
             "content": {
               "application/json": {
                 "schema": {
@@ -8702,6 +8821,206 @@
         }
       }
     },
+    "/api/v1/jobs/{id}/eligible-surveyors": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "ADMIN/GM/TM: Get eligible surveyors for a job",
+        "description": "Returns all active surveyors with eligibility status for the given job.\nChecks authorization against the job's vessel type and certificate type.\nSurveyors who lack the required authorizations or are unavailable are\nreturned in a separate `not_eligible` list with reasons.\n\n**Roles:** ADMIN, GM, TM\n",
+        "operationId": "getEligibleSurveyors",
+        "x-roles": [
+          "ADMIN",
+          "GM",
+          "TM"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by surveyor name or license number",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of surveyors with eligibility",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "surveyors": {
+                          "type": "array",
+                          "description": "All active surveyors",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "phone": {
+                                "type": "string"
+                              },
+                              "is_available": {
+                                "type": "boolean"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "license_number": {
+                                "type": "string"
+                              },
+                              "years_of_experience": {
+                                "type": "integer"
+                              },
+                              "is_eligible": {
+                                "type": "boolean"
+                              },
+                              "missing_reasons": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "eligible": {
+                          "type": "array",
+                          "description": "Surveyors who match all requirements",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "not_eligible": {
+                          "type": "array",
+                          "description": "Surveyors who lack authorizations or are unavailable",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "surveyors": [
+                      {
+                        "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                        "name": "string",
+                        "email": "user@example.com",
+                        "phone": "string",
+                        "is_available": true,
+                        "status": "string",
+                        "license_number": "string",
+                        "years_of_experience": 1,
+                        "is_eligible": true,
+                        "missing_reasons": [
+                          "string"
+                        ]
+                      }
+                    ],
+                    "eligible": [
+                      {}
+                    ],
+                    "not_eligible": [
+                      {}
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs/{id}/documents": {
       "get": {
         "tags": [
@@ -9132,6 +9451,154 @@
         }
       }
     },
+    "/api/v1/jobs/{id}/documents/{documentId}": {
+      "put": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Re-upload a rejected document",
+        "description": "Client or staff replaces a previously rejected document with a new version.\nOnly documents with `verification_status = REJECTED` can be re-uploaded.\nThe new version is created as a separate record (PENDING) to maintain\naudit trail of the rejected original.\n\nOnly allowed while the job is in `CREATED` status.\n\n**Roles:** CLIENT, ADMIN, GM, TM\n",
+        "operationId": "reuploadJobDocument",
+        "x-roles": [
+          "CLIENT",
+          "ADMIN",
+          "GM",
+          "TM"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the rejected JobDocument to replace",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file_url"
+                ],
+                "properties": {
+                  "file_url": {
+                    "type": "string",
+                    "description": "S3/CDN URL of the replacement file",
+                    "example": "https://cdn.example.com/docs/updated-certificate.pdf"
+                  }
+                }
+              },
+              "example": {
+                "file_url": "https://cdn.example.com/docs/updated-certificate.pdf"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document re-uploaded successfully (new version in PENDING state)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Document re-uploaded successfully."
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Document re-uploaded successfully.",
+                  "data": {}
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Job not in CREATED state, or the document is not in REJECTED status.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – client can only re-upload for their own jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job or document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs/{id}/history": {
       "get": {
         "tags": [
@@ -9513,6 +9980,160 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Send external (client-visible) message",
+        "description": "Posts a new external message to the job thread. Supports text-only or multipart\nwith a file attachment.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n",
+        "operationId": "sendExternalJobMessage",
+        "x-roles": [
+          "CLIENT",
+          "ADMIN",
+          "GM",
+          "TM",
+          "TO",
+          "SURVEYOR"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Message text",
+                    "example": "Vessel is ready for inspection."
+                  },
+                  "attachment_url": {
+                    "type": "string",
+                    "description": "Optional: S3/CDN URL of an attachment. (Upload via pre-signed URL first)",
+                    "example": "https://s3.aws.com/girik/attachments/my-image.jpg"
+                  }
+                },
+                "example": {
+                  "content": "Vessel is ready for inspection.",
+                  "attachment_url": "https://s3.aws.com/girik/attachments/my-image.jpg"
+                }
+              },
+              "example": {
+                "content": "Vessel is ready for inspection.",
+                "attachment_url": "https://s3.aws.com/girik/attachments/my-image.jpg"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message sent successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/JobMessageResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f",
+                    "job_id": "string",
+                    "sender_id": "string",
+                    "message_text": "string",
+                    "is_internal": true,
+                    "attachment_url": "https://example.com/resource",
+                    "created_at": "2026-03-15T10:00:00.000Z",
+                    "Sender": {
+                      "name": "string",
+                      "role": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/jobs/{id}/messages/internal": {
@@ -9620,23 +10241,19 @@
             }
           }
         }
-      }
-    },
-    "/api/v1/jobs/{id}/messages": {
+      },
       "post": {
         "tags": [
           "Jobs"
         ],
-        "summary": "Send message (with optional attachment)",
-        "description": "Posts a new message to the job thread. Supports text-only or multipart\nwith a file attachment.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n",
-        "operationId": "sendJobMessage",
+        "summary": "ADMIN/GM/TM/TO: Send internal (staff-only) message",
+        "description": "Posts a new internal message to the job thread. Supports text-only or multipart\nwith a file attachment.\n\n**Roles:** ADMIN, GM, TM, TO\n",
+        "operationId": "sendInternalJobMessage",
         "x-roles": [
-          "CLIENT",
           "ADMIN",
           "GM",
           "TM",
-          "TO",
-          "SURVEYOR"
+          "TO"
         ],
         "parameters": [
           {
@@ -9662,22 +10279,22 @@
                   "content": {
                     "type": "string",
                     "description": "Message text",
-                    "example": "Vessel is ready for inspection."
+                    "example": "Discussion regarding the surveyor report."
                   },
                   "attachment_url": {
                     "type": "string",
                     "description": "Optional: S3/CDN URL of an attachment. (Upload via pre-signed URL first)",
-                    "example": "https://s3.aws.com/girik/attachments/my-image.jpg"
+                    "example": "https://s3.aws.com/girik/attachments/internal-memo.pdf"
                   }
                 },
                 "example": {
-                  "content": "Vessel is ready for inspection.",
-                  "attachment_url": "https://s3.aws.com/girik/attachments/my-image.jpg"
+                  "content": "Discussion regarding the surveyor report.",
+                  "attachment_url": "https://s3.aws.com/girik/attachments/internal-memo.pdf"
                 }
               },
               "example": {
-                "content": "Vessel is ready for inspection.",
-                "attachment_url": "https://s3.aws.com/girik/attachments/my-image.jpg"
+                "content": "Discussion regarding the surveyor report.",
+                "attachment_url": "https://s3.aws.com/girik/attachments/internal-memo.pdf"
               }
             }
           }

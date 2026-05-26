@@ -64,9 +64,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:16`
-- Controller: `src/modules/jobs/job.controller.js:50`
-- Service: `src/modules/jobs/job.service.js:271` (`jobService.getJobs`)
+- Route file: `src/modules/jobs/job.routes.js:17`
+- Controller: `src/modules/jobs/job.controller.js:64`
+- Service: `src/modules/jobs/job.service.js:290` (`jobService.getJobs`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -81,9 +81,9 @@ Request (Code + Schema)
 - None
 - Request Body from YAML:
 - `application/json`: #/components/schemas/JobCreateRequest
-- Req usage in controller: params=[], query=[], body=[], user=[role, client_id, id], files=[]
+- Req usage in controller: params=[], query=[], body=[payment], user=[role, client_id, id], files=[]
 - Validation schema key: `createJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:65`
+- Joi schema source: `src/middlewares/validate.middleware.js:69`
 ```js
 Joi.object({
         vessel_id: Joi.string().guid().required(),
@@ -92,9 +92,14 @@ Joi.object({
         target_port: Joi.string().required(),
         target_date: Joi.date().iso().required(),
         uploaded_documents: Joi.array().items(Joi.object({
-            required_document_id: Joi.string().guid().required(),
+            required_document_id: Joi.string().guid().optional().allow(null, ''),
+            custom_document_name: Joi.string().optional().allow(null, ''),
             file_url: Joi.string().required()
-        })).optional()
+        })).optional(),
+        payment: Joi.object({
+            amount: Joi.number().positive().required(),
+            currency: Joi.string().optional().default('USD')
+        }).optional()
     })
 ```
 
@@ -110,12 +115,12 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:22`
-- Controller: `src/modules/jobs/job.controller.js:38`
-- Service: `src/modules/jobs/job.service.js:246` (`jobService.createJobForClient`)
+- Route file: `src/modules/jobs/job.routes.js:23`
+- Controller: `src/modules/jobs/job.controller.js:46`
+- Service: `src/modules/jobs/job.service.js:265` (`jobService.createJobForClient`)
 - Models touched: Vessel.findOne
 - Service returns (detected): createJob(data, userId)
-- Service: `src/modules/jobs/job.service.js:133` (`jobService.createJob`)
+- Service: `src/modules/jobs/job.service.js:134` (`jobService.createJob`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -145,17 +150,17 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:17`
-- Controller: `src/modules/jobs/job.controller.js:58`
-- Service: `src/modules/jobs/job.service.js:370` (`jobService.getJobById`)
+- Route file: `src/modules/jobs/job.routes.js:18`
+- Controller: `src/modules/jobs/job.controller.js:72`
+- Service: `src/modules/jobs/job.service.js:391` (`jobService.getJobById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
 ### 5. PUT /api/v1/jobs/{id}/verify-documents
-- Summary: TO: Verify or reject documents
+- Summary: ADMIN/GM/TO: Verify or reject documents
 - Operation ID: `verifyJobDocuments`
-- Access Roles: TO
-- Change Access: TO
+- Access Roles: ADMIN, GM, TO
+- Change Access: ADMIN, GM, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -174,7 +179,7 @@ If rejected, job stays in CREATED and client is notified.
 or `rejected_documents` array is empty when `approved=false`.
  (application/json => #/components/schemas/ErrorResponse)
 - `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
-- `403`: Forbidden – only TO can call this endpoint (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden – only ADMIN, GM, or TO can call this endpoint (application/json => #/components/schemas/ErrorResponse)
 - `404`: Job not found (application/json => #/components/schemas/ErrorResponse)
 - Controller response envelope(s):
 ```js
@@ -182,9 +187,9 @@ or `rejected_documents` array is empty when `approved=false`.
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:26`
-- Controller: `src/modules/jobs/job.controller.js:78`
-- Service: `src/modules/jobs/job.service.js:541` (`jobService.verifyJobDocuments`)
+- Route file: `src/modules/jobs/job.routes.js:27`
+- Controller: `src/modules/jobs/job.controller.js:92`
+- Service: `src/modules/jobs/job.service.js:581` (`jobService.verifyJobDocuments`)
 - Models touched: CertificateRequiredDocument.findAll, JobDocument.findAll, JobDocument.update, JobStatusHistory.create, User.findOne
 - Service returns (detected): const updatedDocs = await JobDocument.findAll({
             where: { job_id: id },
@@ -202,8 +207,8 @@ Implementation Trace
 ### 6. PUT /api/v1/jobs/{id}/approve-request
 - Summary: GM/ADMIN: Approve request → APPROVED
 - Operation ID: `approveRequest`
-- Access Roles: GM
-- Change Access: GM
+- Access Roles: ADMIN, GM
+- Change Access: ADMIN, GM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -226,17 +231,17 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:29`
-- Controller: `src/modules/jobs/job.controller.js:86`
-- Service: `src/modules/jobs/job.service.js:691` (`jobService.approveRequest`)
+- Route file: `src/modules/jobs/job.routes.js:30`
+- Controller: `src/modules/jobs/job.controller.js:100`
+- Service: `src/modules/jobs/job.service.js:733` (`jobService.approveRequest`)
 - Models touched: User.findOne
 - Service returns (detected): updated
 
 ### 7. PUT /api/v1/jobs/{id}/finalize
 - Summary: ADMIN/GM/TM: Finalize non-survey job → FINALIZED
 - Operation ID: `finalizeJob`
-- Access Roles: GM, TM
-- Change Access: GM, TM
+- Access Roles: ADMIN, GM, TM
+- Change Access: ADMIN, GM, TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -259,17 +264,17 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:32`
-- Controller: `src/modules/jobs/job.controller.js:94`
-- Service: `src/modules/jobs/job.service.js:717` (`jobService.finalizeJob`)
+- Route file: `src/modules/jobs/job.routes.js:33`
+- Controller: `src/modules/jobs/job.controller.js:108`
+- Service: `src/modules/jobs/job.service.js:759` (`jobService.finalizeJob`)
 - Models touched: N/A
-- Service returns (detected): await finalizeSurvey(id, user.id) | await lifecycleService.updateJobStatus(id, 'FINALIZED', user.id, remarks || `${user.role} finalized non-survey job`)
+- Service returns (detected): await finalizeSurvey(id, user) | await lifecycleService.updateJobStatus(id, 'FINALIZED', user.id, remarks || `${user.role} finalized non-survey job`)
 
 ### 8. PUT /api/v1/jobs/{id}/assign
 - Summary: ADMIN/GM: Assign surveyor → ASSIGNED
 - Operation ID: `assignSurveyor`
-- Access Roles: GM
-- Change Access: GM
+- Access Roles: ADMIN, GM
+- Change Access: ADMIN, GM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -278,7 +283,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/AssignSurveyorRequest
 - Req usage in controller: params=[id], query=[], body=[surveyorId, surveyor_id], user=[], files=[]
 - Validation schema key: `assignJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:336`
+- Joi schema source: `src/middlewares/validate.middleware.js:345`
 ```js
 Joi.object({
         surveyorId: Joi.string().guid().optional(),
@@ -300,17 +305,17 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:35`
-- Controller: `src/modules/jobs/job.controller.js:102`
-- Service: `src/modules/jobs/job.service.js:736` (`jobService.assignSurveyor`)
+- Route file: `src/modules/jobs/job.routes.js:36`
+- Controller: `src/modules/jobs/job.controller.js:116`
+- Service: `src/modules/jobs/job.service.js:778` (`jobService.assignSurveyor`)
 - Models touched: User.findByPk
 - Service returns (detected): updated
 
 ### 9. PUT /api/v1/jobs/{id}/reassign
-- Summary: GM/TM: Reassign surveyor (no status change)
+- Summary: ADMIN/GM/TM: Reassign surveyor (no status change)
 - Operation ID: `reassignSurveyor`
-- Access Roles: GM, TM
-- Change Access: GM, TM
+- Access Roles: ADMIN, GM, TM
+- Change Access: ADMIN, GM, TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -319,7 +324,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ReassignJobRequest
 - Req usage in controller: params=[id], query=[], body=[surveyorId, surveyor_id, reason], user=[], files=[]
 - Validation schema key: `reassignJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:341`
+- Joi schema source: `src/middlewares/validate.middleware.js:350`
 ```js
 Joi.object({
         surveyorId: Joi.string().guid().optional(),
@@ -341,17 +346,17 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:37`
-- Controller: `src/modules/jobs/job.controller.js:111`
-- Service: `src/modules/jobs/job.service.js:768` (`jobService.reassignSurveyor`)
+- Route file: `src/modules/jobs/job.routes.js:38`
+- Controller: `src/modules/jobs/job.controller.js:125`
+- Service: `src/modules/jobs/job.service.js:810` (`jobService.reassignSurveyor`)
 - Models touched: JobStatusHistory.create, Survey.findOne
 - Service returns (detected): job
 
 ### 10. PUT /api/v1/jobs/{id}/authorize-survey
 - Summary: ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED
 - Operation ID: `authorizeSurvey`
-- Access Roles: TM
-- Change Access: TM
+- Access Roles: ADMIN, TM
+- Change Access: ADMIN, TM
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -374,17 +379,17 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:43`
-- Controller: `src/modules/jobs/job.controller.js:120`
-- Service: `src/modules/jobs/job.service.js:803` (`jobService.authorizeSurvey`)
+- Route file: `src/modules/jobs/job.routes.js:44`
+- Controller: `src/modules/jobs/job.controller.js:134`
+- Service: `src/modules/jobs/job.service.js:845` (`jobService.authorizeSurvey`)
 - Models touched: User.findOne
 - Service returns (detected): updated
 
 ### 11. PUT /api/v1/jobs/{id}/review
-- Summary: TO: Technical review → REVIEWED
+- Summary: ADMIN/TO: Technical review → REVIEWED
 - Operation ID: `reviewJob`
-- Access Roles: TO
-- Change Access: TO
+- Access Roles: ADMIN, TO
+- Change Access: ADMIN, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:
@@ -399,7 +404,7 @@ Response (Actual)
 - `200`: Job reviewed. Status → REVIEWED. (application/json => object)
 - `400`: Job not in SURVEY_DONE state (application/json => #/components/schemas/ErrorResponse)
 - `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
-- `403`: Forbidden – only TO (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden – only ADMIN or TO (application/json => #/components/schemas/ErrorResponse)
 - `404`: Job not found (application/json => #/components/schemas/ErrorResponse)
 - Controller response envelope(s):
 ```js
@@ -407,11 +412,11 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:48`
-- Controller: `src/modules/jobs/job.controller.js:128`
-- Service: `src/modules/jobs/job.service.js:836` (`jobService.reviewJob`)
-- Models touched: N/A
-- Service returns (detected): updated
+- Route file: `src/modules/jobs/job.routes.js:49`
+- Controller: `src/modules/jobs/job.controller.js:142`
+- Service: `src/modules/jobs/job.service.js:878` (`jobService.reviewJob`)
+- Models touched: ActivityPlanning.update, Survey.findOne
+- Service returns (detected): { ...file, status: 'APPROVED' } | file | updated
 
 ### 12. PUT /api/v1/jobs/{id}/reschedule
 - Summary: ADMIN/GM: Reschedule job date/port
@@ -426,7 +431,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/RescheduleJobRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `rescheduleJob`
-- Joi schema source: `src/middlewares/validate.middleware.js:346`
+- Joi schema source: `src/middlewares/validate.middleware.js:355`
 ```js
 Joi.object({
         new_target_date: Joi.date().iso().required(),
@@ -450,9 +455,9 @@ or `reason` is missing.
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:40`
-- Controller: `src/modules/jobs/job.controller.js:138`
-- Service: `src/modules/jobs/job.service.js:864` (`jobService.rescheduleJob`)
+- Route file: `src/modules/jobs/job.routes.js:41`
+- Controller: `src/modules/jobs/job.controller.js:152`
+- Service: `src/modules/jobs/job.service.js:944` (`jobService.rescheduleJob`)
 - Models touched: JobRequest.findByPk, JobReschedule.create, JobStatusHistory.create
 - Service returns (detected): job
 
@@ -483,9 +488,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:59`
-- Controller: `src/modules/jobs/job.controller.js:146`
-- Service: `src/modules/jobs/job.service.js:938` (`jobService.rejectJob`)
+- Route file: `src/modules/jobs/job.routes.js:60`
+- Controller: `src/modules/jobs/job.controller.js:160`
+- Service: `src/modules/jobs/job.service.js:1018` (`jobService.rejectJob`)
 - Models touched: N/A
 - Service returns (detected): await lifecycleService.updateJobStatus(id, 'REJECTED', user.id, remarks || `${role} rejected job`)
 
@@ -516,12 +521,12 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:62`
-- Controller: `src/modules/jobs/job.controller.js:154`
-- Service: `src/modules/jobs/job.service.js:988` (`jobService.cancelJobForClient`)
+- Route file: `src/modules/jobs/job.routes.js:63`
+- Controller: `src/modules/jobs/job.controller.js:168`
+- Service: `src/modules/jobs/job.service.js:1068` (`jobService.cancelJobForClient`)
 - Models touched: JobRequest.findByPk
 - Service returns (detected): await lifecycleService.updateJobStatus(id, 'REJECTED', userId, reason || 'Cancelled by client')
-- Service: `src/modules/jobs/job.service.js:968` (`jobService.cancelJob`)
+- Service: `src/modules/jobs/job.service.js:1048` (`jobService.cancelJob`)
 - Models touched: N/A
 - Service returns (detected): await lifecycleService.updateJobStatus(id, 'REJECTED', userId, reason || 'Job cancelled')
 
@@ -552,7 +557,40 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 16. GET /api/v1/jobs/{id}/documents
+### 16. GET /api/v1/jobs/{id}/eligible-surveyors
+- Summary: ADMIN/GM/TM: Get eligible surveyors for a job
+- Operation ID: `getEligibleSurveyors`
+- Access Roles: ADMIN, GM, TM
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- `search` (query, optional, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: List of surveyors with eligibility (application/json => object)
+- `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
+- `404`: Job not found (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s):
+```js
+{ success: true, data: surveyors }
+```
+
+Implementation Trace
+- Route file: `src/modules/jobs/job.routes.js:19`
+- Controller: `src/modules/jobs/job.controller.js:80`
+- Service: `src/modules/jobs/job.service.js:473` (`jobService.getEligibleSurveyors`)
+- Models touched: N/A
+- Service returns (detected): N/A
+
+### 17. GET /api/v1/jobs/{id}/documents
 - Summary: List job documents with verification status
 - Operation ID: `getJobDocuments`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -577,9 +615,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:69`
-- Controller: `src/modules/jobs/job.controller.js:187`
-- Service: `src/modules/jobs/job.service.js:1010` (`jobService.getJobDocuments`)
+- Route file: `src/modules/jobs/job.routes.js:70`
+- Controller: `src/modules/jobs/job.controller.js:201`
+- Service: `src/modules/jobs/job.service.js:1090` (`jobService.getJobDocuments`)
 - Models touched: Vessel.findByPk, JobDocument.findAll, CertificateRequiredDocument.findAll, CertificateType.findByPk
 - Service returns (detected): {
             requirement_id: rd.id,
@@ -603,7 +641,7 @@ Implementation Trace
         }
     }
 
-### 17. POST /api/v1/jobs/{id}/documents
+### 18. POST /api/v1/jobs/{id}/documents
 - Summary: Upload or replace job documents
 - Operation ID: `uploadJobDocuments`
 - Access Roles: CLIENT, ADMIN, GM, TM
@@ -631,13 +669,47 @@ or missing required fields.
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:72`
-- Controller: `src/modules/jobs/job.controller.js:194`
-- Service: `src/modules/jobs/job.service.js:1092` (`jobService.uploadJobDocuments`)
+- Route file: `src/modules/jobs/job.routes.js:73`
+- Controller: `src/modules/jobs/job.controller.js:208`
+- Service: `src/modules/jobs/job.service.js:1175` (`jobService.uploadJobDocuments`)
 - Models touched: Vessel.findByPk, JobDocument.findOne, JobDocument.create
 - Service returns (detected): created
 
-### 18. GET /api/v1/jobs/{id}/history
+### 19. PUT /api/v1/jobs/{id}/documents/{documentId}
+- Summary: Re-upload a rejected document
+- Operation ID: `reuploadJobDocument`
+- Access Roles: CLIENT, ADMIN, GM, TM
+- Change Access: CLIENT, ADMIN, GM, TM
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- `documentId` (path, required, string)
+- Request Body from YAML:
+- `application/json`: object
+- Req usage in controller: params=[id, documentId], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Document re-uploaded successfully (new version in PENDING state) (application/json => object)
+- `400`: Job not in CREATED state, or the document is not in REJECTED status.
+ (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden – client can only re-upload for their own jobs (application/json => #/components/schemas/ErrorResponse)
+- `404`: Job or document not found (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s):
+```js
+{ success: true, message: 'Document re-uploaded successfully.', data: doc }
+```
+
+Implementation Trace
+- Route file: `src/modules/jobs/job.routes.js:76`
+- Controller: `src/modules/jobs/job.controller.js:215`
+- Service: `src/modules/jobs/job.service.js:1249` (`jobService.reuploadJobDocument`)
+- Models touched: Vessel.findByPk, JobDocument.findOne, JobDocument.create
+- Service returns (detected): resultDoc
+
+### 20. GET /api/v1/jobs/{id}/history
 - Summary: ADMIN/GM/TM/TO/CLIENT/SURVEYOR: Job status history & audit trail
 - Operation ID: `getJobHistory`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
@@ -664,7 +736,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 19. POST /api/v1/jobs/{id}/notes
+### 21. POST /api/v1/jobs/{id}/notes
 - Summary: ADMIN/GM/TM/TO: Add internal staff note
 - Operation ID: `addInternalNote`
 - Access Roles: ADMIN, GM, TM, TO
@@ -690,13 +762,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/jobs/job.routes.js:79`
-- Controller: `src/modules/jobs/job.controller.js:208`
-- Service: `src/modules/jobs/job.service.js:1279` (`jobService.addInternalNote`)
+- Route file: `src/modules/jobs/job.routes.js:80`
+- Controller: `src/modules/jobs/job.controller.js:222`
+- Service: `src/modules/jobs/job.service.js:1367` (`jobService.addInternalNote`)
 - Models touched: JobNote.create, Message.create
 - Service returns (detected): note
 
-### 20. GET /api/v1/jobs/{id}/messages/external
+### 22. GET /api/v1/jobs/{id}/messages/external
 - Summary: Get external (client-visible) messages
 - Operation ID: `getExternalMessages`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
@@ -722,7 +794,34 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 21. GET /api/v1/jobs/{id}/messages/internal
+### 23. POST /api/v1/jobs/{id}/messages/external
+- Summary: Send external (client-visible) message
+- Operation ID: `sendExternalJobMessage`
+- Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+- Change Access: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- `application/json`: object
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `201`: Message sent successfully. (application/json => object)
+- `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
+- `404`: Job not found (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s): N/A
+
+Implementation Trace
+- Route file: `N/A`
+- Controller: `N/A`
+- Services: N/A
+
+### 24. GET /api/v1/jobs/{id}/messages/internal
 - Summary: ADMIN/GM/TM/TO: Get internal (staff-only) messages
 - Operation ID: `getInternalMessages`
 - Access Roles: ADMIN, GM, TM, TO
@@ -748,11 +847,11 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 22. POST /api/v1/jobs/{id}/messages
-- Summary: Send message (with optional attachment)
-- Operation ID: `sendJobMessage`
-- Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
-- Change Access: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+### 25. POST /api/v1/jobs/{id}/messages/internal
+- Summary: ADMIN/GM/TM/TO: Send internal (staff-only) message
+- Operation ID: `sendInternalJobMessage`
+- Access Roles: ADMIN, GM, TM, TO
+- Change Access: ADMIN, GM, TM, TO
 
 Request (Code + Schema)
 - Route Params/Query from YAML:

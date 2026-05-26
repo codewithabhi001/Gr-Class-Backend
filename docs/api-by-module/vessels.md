@@ -4,7 +4,42 @@ Source YAML: `src/docs/paths/vessels.yaml`
 
 ## Routes
 
-### 1. GET /api/v1/vessels
+### 1. GET /api/v1/vessels/types
+- Summary: Get distinct vessel types
+- Operation ID: `getVesselTypes`
+- Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `search` (query, optional, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: List of distinct vessel ship_type values (application/json => object)
+- `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s):
+```js
+{
+            success: true,
+            message: 'Vessel types fetched successfully',
+            data: types,
+        }
+```
+
+Implementation Trace
+- Route file: `src/modules/vessels/vessel.routes.js:15`
+- Controller: `src/modules/vessels/vessel.controller.js:3`
+- Service: `src/modules/vessels/vessel.service.js:40` (`vesselService.getVesselTypes`)
+- Models touched: Vessel.findAll
+- Service returns (detected): rows.map((r) => r.ship_type).filter(Boolean)
+
+### 2. GET /api/v1/vessels
 - Summary: List vessels
 - Operation ID: `getVessels`
 - Access Roles: ADMIN, GM, TM, TO, CLIENT
@@ -35,12 +70,12 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/vessels/vessel.routes.js:12`
-- Controller: `src/modules/vessels/vessel.controller.js:22`
-- Service: `src/modules/vessels/vessel.service.js:74` (`vesselService.getVessels`)
+- Controller: `src/modules/vessels/vessel.controller.js:34`
+- Service: `src/modules/vessels/vessel.service.js:96` (`vesselService.getVessels`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
-### 2. POST /api/v1/vessels
+### 3. POST /api/v1/vessels
 - Summary: Create vessel
 - Operation ID: `createVessel`
 - Access Roles: ADMIN, GM, TM
@@ -53,7 +88,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/VesselCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
 - Validation schema key: `createVessel`
-- Joi schema source: `src/middlewares/validate.middleware.js:446`
+- Joi schema source: `src/middlewares/validate.middleware.js:455`
 ```js
 Joi.object({
         client_id: Joi.string().guid().required(),
@@ -98,13 +133,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/vessels/vessel.routes.js:18`
-- Controller: `src/modules/vessels/vessel.controller.js:11`
-- Service: `src/modules/vessels/vessel.service.js:36` (`vesselService.createVessel`)
+- Route file: `src/modules/vessels/vessel.routes.js:21`
+- Controller: `src/modules/vessels/vessel.controller.js:23`
+- Service: `src/modules/vessels/vessel.service.js:58` (`vesselService.createVessel`)
 - Models touched: Client.findByPk, Vessel.findOne, Vessel.create, VesselDocument.bulkCreate
 - Service returns (detected): vessel
 
-### 3. GET /api/v1/vessels/client/{clientId}
+### 4. GET /api/v1/vessels/client/{clientId}
 - Summary: Get vessels by client
 - Operation ID: `getVesselsByClient`
 - Access Roles: ADMIN, GM, TM
@@ -129,7 +164,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 4. GET /api/v1/vessels/{id}
+### 5. GET /api/v1/vessels/{id}
 - Summary: Get vessel by ID
 - Operation ID: `getVesselById`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
@@ -157,13 +192,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/vessels/vessel.routes.js:21`
-- Controller: `src/modules/vessels/vessel.controller.js:34`
-- Service: `src/modules/vessels/vessel.service.js:117` (`vesselService.getVesselById`)
+- Route file: `src/modules/vessels/vessel.routes.js:24`
+- Controller: `src/modules/vessels/vessel.controller.js:46`
+- Service: `src/modules/vessels/vessel.service.js:141` (`vesselService.getVesselById`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
-### 5. PUT /api/v1/vessels/{id}
+### 6. PUT /api/v1/vessels/{id}
 - Summary: Update vessel
 - Operation ID: `updateVessel`
 - Access Roles: ADMIN, GM, TM
@@ -176,7 +211,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/VesselUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `updateVessel`
-- Joi schema source: `src/middlewares/validate.middleware.js:473`
+- Joi schema source: `src/middlewares/validate.middleware.js:482`
 ```js
 Joi.object({
         client_id: Joi.string().guid().optional(),
@@ -221,8 +256,8 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/vessels/vessel.routes.js:24`
-- Controller: `src/modules/vessels/vessel.controller.js:57`
-- Service: `src/modules/vessels/vessel.service.js:181` (`vesselService.updateVessel`)
+- Route file: `src/modules/vessels/vessel.routes.js:27`
+- Controller: `src/modules/vessels/vessel.controller.js:69`
+- Service: `src/modules/vessels/vessel.service.js:206` (`vesselService.updateVessel`)
 - Models touched: N/A
 - Service returns (detected): N/A

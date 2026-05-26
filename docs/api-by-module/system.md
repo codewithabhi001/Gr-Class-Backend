@@ -163,7 +163,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/system/system.routes.js:18`
 - Controller: `src/modules/system/system.controller.js:17`
-- Service: `src/modules/system/system.service.js:87` (`systemService.forceLogout`)
+- Service: `src/modules/system/system.service.js:88` (`systemService.forceLogout`)
 - Models touched: N/A
 - Service returns (detected): { success: true, message: `User session invalidation command sent for ${userId}` }
 
@@ -193,7 +193,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/system/system.routes.js:19`
 - Controller: `src/modules/system/system.controller.js:63`
-- Service: `src/modules/system/system.service.js:167` (`systemService.getMigrations`)
+- Service: `src/modules/system/system.service.js:169` (`systemService.getMigrations`)
 - Models touched: N/A
 - Service returns (detected): {
             applied,
@@ -228,7 +228,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/system/system.routes.js:20`
 - Controller: `src/modules/system/system.controller.js:24`
-- Service: `src/modules/system/system.service.js:91` (`systemService.getFailedJobs`)
+- Service: `src/modules/system/system.service.js:92` (`systemService.getFailedJobs`)
 - Models touched: JobRequest.findAll
 - Service returns (detected): rejected.map(r => ({
         id: r.id,
@@ -264,7 +264,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/system/system.routes.js:21`
 - Controller: `src/modules/system/system.controller.js:31`
-- Service: `src/modules/system/system.service.js:110` (`systemService.retryJob`)
+- Service: `src/modules/system/system.service.js:112` (`systemService.retryJob`)
 - Models touched: JobRequest.findByPk, JobStatusHistory.create
 - Service returns (detected): { 
         success: true, 
@@ -298,7 +298,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/system/system.routes.js:22`
 - Controller: `src/modules/system/system.controller.js:38`
-- Service: `src/modules/system/system.service.js:141` (`systemService.performMaintenance`)
+- Service: `src/modules/system/system.service.js:143` (`systemService.performMaintenance`)
 - Models touched: N/A
 - Service returns (detected): { message: `Cleared ${keys.length} keys from cache`, action } | { message: 'No distributed cache (Redis) configured to clear', action } | { message: 'Metadata re-indexing requested successfully', action }
 
@@ -356,7 +356,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/system/system.routes.js:24`
 - Controller: `src/modules/system/system.controller.js:70`
-- Service: `src/modules/system/system.service.js:193` (`systemService.getLocales`)
+- Service: `src/modules/system/system.service.js:195` (`systemService.getLocales`)
 - Models touched: FlagAdministration.findAll
 - Service returns (detected): { 
         available: flags.map(f => ({ code: f.country, name: f.flag_state_name })),

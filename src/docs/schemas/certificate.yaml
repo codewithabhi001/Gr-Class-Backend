@@ -409,14 +409,41 @@ UpdateCertificateDraftRequest:
     expiry_date: { type: string, format: date }
 
 UploadExternalCertificateRequest:
-  type: object
-  required: [certificate_type_id, certificate_number, issue_date, expiry_date, s3_key]
-  properties:
-    certificate_type_id: { $ref: '#/components/schemas/UUID' }
-    certificate_number: { type: string }
-    issue_date: { type: string, format: date }
-    expiry_date: { type: string, format: date }
-    s3_key: { type: string }
+  oneOf:
+    - type: object
+      required: [certificates]
+      properties:
+        certificates:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [certificate_type_id, certificate_number, issue_date, expiry_date, s3_key]
+            properties:
+              certificate_type_id: { $ref: '#/components/schemas/UUID' }
+              certificate_number: { type: string }
+              issue_date: { type: string, format: date }
+              expiry_date: { type: string, format: date }
+              s3_key: { type: string }
+    - type: array
+      minItems: 1
+      items:
+        type: object
+        required: [certificate_type_id, certificate_number, issue_date, expiry_date, s3_key]
+        properties:
+          certificate_type_id: { $ref: '#/components/schemas/UUID' }
+          certificate_number: { type: string }
+          issue_date: { type: string, format: date }
+          expiry_date: { type: string, format: date }
+          s3_key: { type: string }
+    - type: object
+      required: [certificate_type_id, certificate_number, issue_date, expiry_date, s3_key]
+      properties:
+        certificate_type_id: { $ref: '#/components/schemas/UUID' }
+        certificate_number: { type: string }
+        issue_date: { type: string, format: date }
+        expiry_date: { type: string, format: date }
+        s3_key: { type: string }
 
 CertificateHistoryResponse:
   type: object

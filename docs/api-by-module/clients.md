@@ -52,7 +52,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/ClientCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createClient`
-- Joi schema source: `src/middlewares/validate.middleware.js:226`
+- Joi schema source: `src/middlewares/validate.middleware.js:235`
 ```js
 Joi.object({
         company_name: Joi.string().required(),
@@ -172,9 +172,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/clients/client.routes.js:17`
 - Controller: `src/modules/clients/client.controller.js:25`
-- Service: `src/modules/clients/client.service.js:70` (`clientService.getClientById`)
-- Models touched: Client.findByPk
-- Service returns (detected): client
+- Service: `src/modules/clients/client.service.js:82` (`clientService.getClientById`)
+- Models touched: N/A
+- Service returns (detected): N/A
 
 ### 6. PUT /api/v1/clients/{id}
 - Summary: Update client
@@ -205,7 +205,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/clients/client.routes.js:19`
 - Controller: `src/modules/clients/client.controller.js:36`
-- Service: `src/modules/clients/client.service.js:76` (`clientService.updateClient`)
+- Service: `src/modules/clients/client.service.js:88` (`clientService.updateClient`)
 - Models touched: N/A
 - Service returns (detected): await client.update(data)
 
@@ -238,6 +238,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/clients/client.routes.js:20`
 - Controller: `src/modules/clients/client.controller.js:47`
-- Service: `src/modules/clients/client.service.js:81` (`clientService.deleteClient`)
+- Service: `src/modules/clients/client.service.js:93` (`clientService.deleteClient`)
 - Models touched: N/A
 - Service returns (detected): await client.update({ status: 'INACTIVE' })

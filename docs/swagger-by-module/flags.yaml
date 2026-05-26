@@ -1126,26 +1126,74 @@ components:
           type: string
           format: date
     UploadExternalCertificateRequest:
-      type: object
-      required:
-        - certificate_type_id
-        - certificate_number
-        - issue_date
-        - expiry_date
-        - s3_key
-      properties:
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
-        certificate_number:
-          type: string
-        issue_date:
-          type: string
-          format: date
-        expiry_date:
-          type: string
-          format: date
-        s3_key:
-          type: string
+      oneOf:
+        -
+          type: object
+          required:
+            - certificates
+          properties:
+            certificates:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required:
+                  - certificate_type_id
+                  - certificate_number
+                  - issue_date
+                  - expiry_date
+                  - s3_key
+                properties:
+                  certificate_type_id: {$ref: '#/components/schemas/UUID'}
+                  certificate_number: {type: string}
+                  issue_date: {type: string, format: date}
+                  expiry_date: {type: string, format: date}
+                  s3_key: {type: string}
+        -
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - certificate_type_id
+              - certificate_number
+              - issue_date
+              - expiry_date
+              - s3_key
+            properties:
+              certificate_type_id:
+                $ref: '#/components/schemas/UUID'
+              certificate_number:
+                type: string
+              issue_date:
+                type: string
+                format: date
+              expiry_date:
+                type: string
+                format: date
+              s3_key:
+                type: string
+        -
+          type: object
+          required:
+            - certificate_type_id
+            - certificate_number
+            - issue_date
+            - expiry_date
+            - s3_key
+          properties:
+            certificate_type_id:
+              $ref: '#/components/schemas/UUID'
+            certificate_number:
+              type: string
+            issue_date:
+              type: string
+              format: date
+            expiry_date:
+              type: string
+              format: date
+            s3_key:
+              type: string
     CertificateHistoryResponse:
       type: object
       properties:
@@ -1989,6 +2037,17 @@ components:
                 $ref: '#/components/schemas/UUID'
               file_url:
                 type: string
+        payment:
+          type: object
+          description: 'Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice.'
+          properties:
+            amount:
+              type: number
+              example: 1000
+            currency:
+              type: string
+              default: USD
+              example: USD
     JobResponse:
       type: object
       properties:
@@ -2451,6 +2510,13 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+          description: 'Human-readable job reference (e.g. GRJ-XXXXXXXX)'
+        vessel_name:
+          type: string
+          nullable: true
         description:
           type: string
         severity:
@@ -2484,6 +2550,12 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+        vessel_name:
+          type: string
+          nullable: true
         severity:
           type: string
           enum:
@@ -4193,6 +4265,73 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
   '/api/v1/flags/{id}':
+    get:
+      tags:
+        - Flags
+      summary: 'Get flag by ID'
+      operationId: getFlag
+      x-roles:
+        - ADMIN
+        - GM
+        - TM
+        - TO
+      security:
+        -
+          bearerAuth: []
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Flag details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  data: {$ref: '#/components/schemas/FlagAdministrationListItem'}
+              example:
+                success: true
+                data:
+                  id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  flag_state_name: string
+                  country: string
+                  authority_name: string
+                  contact_email: user@example.com
+                  logo_url: string
+                  status: ACTIVE
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Flag not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
     put:
       tags:
         - Flags
@@ -4200,6 +4339,9 @@ paths:
       operationId: updateFlag
       x-roles:
         - ADMIN
+      security:
+        -
+          bearerAuth: []
       parameters:
         -
           name: id
@@ -4259,3 +4401,85 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+    delete:
+      tags:
+        - Flags
+      summary: 'Delete flag'
+      description: "Permanently deletes a flag administration record.\n\n**Guards before deletion:**\n- Returns **409** if the flag is currently assigned to one or more vessels\n- Returns **409** if the flag is referenced in any certificates\n\nIf the flag is in use, reassign or update those records first, then retry.\n\n**Role:** ADMIN only\n"
+      operationId: deleteFlag
+      x-roles:
+        - ADMIN
+      security:
+        -
+          bearerAuth: []
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          description: 'Flag UUID to delete'
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Flag deleted successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean, example: true}
+                  message: {type: string, example: 'Flag deleted successfully'}
+              example:
+                success: true
+                message: 'Flag deleted successfully'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '403':
+          description: 'Forbidden — ADMIN role required'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '404':
+          description: 'Flag not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+        '409':
+          description: "Conflict — flag is still in use.\nMessage describes exactly how many vessels or certificates reference it.\n"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: API_ERROR
+                message: 'Cannot delete this flag: it is currently assigned to 2 vessels. Please reassign or remove the flag from those vessels first.'

@@ -32,7 +32,7 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:14`
 - Controller: `src/modules/templates/template.controller.js:10`
-- Service: `src/modules/templates/template.service.js:30` (`templateService.getTemplates`)
+- Service: `src/modules/templates/template.service.js:32` (`templateService.getTemplates`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
@@ -49,7 +49,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertificateTemplateCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:378`
+- Joi schema source: `src/middlewares/validate.middleware.js:387`
 ```js
 Joi.object({
         template_name: Joi.string().required(),
@@ -74,16 +74,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:11`
 - Controller: `src/modules/templates/template.controller.js:3`
-- Service: `src/modules/templates/template.service.js:6` (`templateService.createTemplate`)
+- Service: `src/modules/templates/template.service.js:7` (`templateService.createTemplate`)
 - Models touched: CertificateTemplate.create
-- Service returns (detected): await CertificateTemplate.create({
-        template_name: data.template_name,
-        certificate_type_id: data.certificate_type_id,
-        certificate_term: data.certificate_term ?? null,
-        template_file_url: data.template_file_url,
-        variables: data.variables || [],
-        is_active: data.is_active !== false
-    })
+- Service returns (detected): await fileAccessService.resolveEntity(template)
 
 ### 3. GET /api/v1/certificate-templates/get-upload-url
 - Summary: Get S3 upload URL for the certificate-template DOCX
@@ -139,9 +132,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:21`
 - Controller: `src/modules/templates/template.controller.js:17`
-- Service: `src/modules/templates/template.service.js:42` (`templateService.getTemplateById`)
+- Service: `src/modules/templates/template.service.js:46` (`templateService.getTemplateById`)
 - Models touched: CertificateTemplate.findByPk
-- Service returns (detected): template
+- Service returns (detected): await fileAccessService.resolveEntity(template)
 
 ### 5. PUT /api/v1/certificate-templates/{id}
 - Summary: Update certificate template
@@ -156,7 +149,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertificateTemplateUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateTemplate`
-- Joi schema source: `src/middlewares/validate.middleware.js:386`
+- Joi schema source: `src/middlewares/validate.middleware.js:395`
 ```js
 Joi.object({
         template_name: Joi.string().optional(),
@@ -182,9 +175,9 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:24`
 - Controller: `src/modules/templates/template.controller.js:24`
-- Service: `src/modules/templates/template.service.js:50` (`templateService.updateTemplate`)
+- Service: `src/modules/templates/template.service.js:54` (`templateService.updateTemplate`)
 - Models touched: CertificateTemplate.findByPk
-- Service returns (detected): await template.update(data)
+- Service returns (detected): await fileAccessService.resolveEntity(updated)
 
 ### 6. DELETE /api/v1/certificate-templates/{id}
 - Summary: Delete certificate template
@@ -213,6 +206,6 @@ Response (Actual)
 Implementation Trace
 - Route file: `src/modules/templates/template.routes.js:27`
 - Controller: `src/modules/templates/template.controller.js:31`
-- Service: `src/modules/templates/template.service.js:57` (`templateService.deleteTemplate`)
+- Service: `src/modules/templates/template.service.js:62` (`templateService.deleteTemplate`)
 - Models touched: CertificateTemplate.findByPk
 - Service returns (detected): { message: 'Template deleted successfully' }

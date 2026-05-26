@@ -50,7 +50,7 @@ Implementation Trace
         client_with_vessels: stats.client_with_vessels,
         recent_activities: stats.recent_activities
     }
-- Service: `src/modules/dashboard/dashboard.service.js:276` (`dashboardService.getGMDashboard`)
+- Service: `src/modules/dashboard/dashboard.service.js:290` (`dashboardService.getGMDashboard`)
 - Models touched: JobRequest.findAll
 - Service returns (detected): {
         role: 'GM',
@@ -67,7 +67,7 @@ Implementation Trace
         client_with_vessels: stats.client_with_vessels,
         recent_activities: stats.recent_activities
     }
-- Service: `src/modules/dashboard/dashboard.service.js:310` (`dashboardService.getTMDashboard`)
+- Service: `src/modules/dashboard/dashboard.service.js:325` (`dashboardService.getTMDashboard`)
 - Models touched: JobRequest.findAll
 - Service returns (detected): acc | {
         role: 'TM',
@@ -82,7 +82,7 @@ Implementation Trace
             pending_finalizations: pendingFinalizationJobs.map(formatJob)
         }
     }
-- Service: `src/modules/dashboard/dashboard.service.js:379` (`dashboardService.getTODashboard`)
+- Service: `src/modules/dashboard/dashboard.service.js:398` (`dashboardService.getTODashboard`)
 - Models touched: JobRequest.findAll, NonConformity.findAll, NonConformity.count
 - Service returns (detected): acc | {
         role: 'TO',
@@ -98,6 +98,9 @@ Implementation Trace
             rework_items: reworkJobs.map(formatJob),
             open_non_conformities: openNCs.map(n => ({
                 id: n.id,
+                job_id: n.job_id,
+                job_request_number: n.JobRequest?.job_request_number,
+                vessel_name: n.JobRequest?.Vessel?.vessel_name,
                 vessel: n.JobRequest?.Vessel?.vessel_name,
                 description: n.description,
                 severity: n.severity,
@@ -108,7 +111,7 @@ Implementation Trace
 - Service: `src/modules/dashboard/dashboard.service.js` (`dashboardService.getSurveyorDashboard`)
 - Models touched: N/A
 - Service returns (detected): N/A
-- Service: `src/modules/dashboard/dashboard.service.js:578` (`dashboardService.getClientDashboard`)
+- Service: `src/modules/dashboard/dashboard.service.js:614` (`dashboardService.getClientDashboard`)
 - Models touched: Vessel.findAll, JobRequest.findAll, Certificate.findAll, Payment.findAll, Survey.findAll, NonConformity.findAll
 - Service returns (detected): {
             role: 'CLIENT',
@@ -160,6 +163,9 @@ Implementation Trace
         })),
         open_non_conformities_list: ncs.filter(n => n.status === 'OPEN').slice(0, 5).map(n => ({
             id: n.id,
+            job_id: n.job_id,
+            job_request_number: n.JobRequest?.job_request_number,
+            vessel_name: n.JobRequest?.Vessel?.vessel_name,
             vessel: n.JobRequest?.Vessel?.vessel_name,
             description: n.description,
             severity: n.severity,
@@ -175,7 +181,7 @@ Implementation Trace
         expiring_certificates: certificates
             .filter(c => {
                 const expiry = new Date(c.expiry_date)
-- Service: `src/modules/dashboard/dashboard.service.js:745` (`dashboardService.getDefaultDashboard`)
+- Service: `src/modules/dashboard/dashboard.service.js:790` (`dashboardService.getDefaultDashboard`)
 - Models touched: N/A
 - Service returns (detected): {
         role: user.role,

@@ -1123,26 +1123,74 @@ components:
           type: string
           format: date
     UploadExternalCertificateRequest:
-      type: object
-      required:
-        - certificate_type_id
-        - certificate_number
-        - issue_date
-        - expiry_date
-        - s3_key
-      properties:
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
-        certificate_number:
-          type: string
-        issue_date:
-          type: string
-          format: date
-        expiry_date:
-          type: string
-          format: date
-        s3_key:
-          type: string
+      oneOf:
+        -
+          type: object
+          required:
+            - certificates
+          properties:
+            certificates:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required:
+                  - certificate_type_id
+                  - certificate_number
+                  - issue_date
+                  - expiry_date
+                  - s3_key
+                properties:
+                  certificate_type_id: {$ref: '#/components/schemas/UUID'}
+                  certificate_number: {type: string}
+                  issue_date: {type: string, format: date}
+                  expiry_date: {type: string, format: date}
+                  s3_key: {type: string}
+        -
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - certificate_type_id
+              - certificate_number
+              - issue_date
+              - expiry_date
+              - s3_key
+            properties:
+              certificate_type_id:
+                $ref: '#/components/schemas/UUID'
+              certificate_number:
+                type: string
+              issue_date:
+                type: string
+                format: date
+              expiry_date:
+                type: string
+                format: date
+              s3_key:
+                type: string
+        -
+          type: object
+          required:
+            - certificate_type_id
+            - certificate_number
+            - issue_date
+            - expiry_date
+            - s3_key
+          properties:
+            certificate_type_id:
+              $ref: '#/components/schemas/UUID'
+            certificate_number:
+              type: string
+            issue_date:
+              type: string
+              format: date
+            expiry_date:
+              type: string
+              format: date
+            s3_key:
+              type: string
     CertificateHistoryResponse:
       type: object
       properties:
@@ -1986,6 +2034,17 @@ components:
                 $ref: '#/components/schemas/UUID'
               file_url:
                 type: string
+        payment:
+          type: object
+          description: 'Optional payment object (only processed for ADMIN/GM). Instantly creates an invoice.'
+          properties:
+            amount:
+              type: number
+              example: 1000
+            currency:
+              type: string
+              default: USD
+              example: USD
     JobResponse:
       type: object
       properties:
@@ -2448,6 +2507,13 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+          description: 'Human-readable job reference (e.g. GRJ-XXXXXXXX)'
+        vessel_name:
+          type: string
+          nullable: true
         description:
           type: string
         severity:
@@ -2481,6 +2547,12 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+        job_request_number:
+          type: string
+          nullable: true
+        vessel_name:
+          type: string
+          nullable: true
         severity:
           type: string
           enum:

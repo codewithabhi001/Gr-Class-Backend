@@ -29,8 +29,8 @@ Response (Actual)
 
 Implementation Trace
 - Route file: `src/modules/certificates/certificate.routes.js:12`
-- Controller: `src/modules/certificates/certificate.controller.js:301`
-- Service: `src/modules/certificates/certificate.service.js:979` (`certService.verifyCertificate`)
+- Controller: `src/modules/certificates/certificate.controller.js:354`
+- Service: `src/modules/certificates/certificate.service.js:1094` (`certService.verifyCertificate`)
 - Models touched: Certificate.findOne
 - Service returns (detected): {
         valid: ['VALID', 'ISSUED'].includes(cert.status) && new Date(cert.expiry_date) >= new Date().setHours(0, 0, 0, 0),
@@ -83,9 +83,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:29`
+- Route file: `src/modules/certificates/certificate.routes.js:31`
 - Controller: `src/modules/certificates/certificate.controller.js:14`
-- Service: `src/modules/certificates/certificate.service.js:531` (`certService.getCertificates`)
+- Service: `src/modules/certificates/certificate.service.js:582` (`certService.getCertificates`)
 - Models touched: Certificate.findAndCountAll, Certificate.findAll
 - Service returns (detected): {
         total: count,
@@ -93,7 +93,7 @@ Implementation Trace
         limit: pageLimit,
         totalPages: Math.ceil(count / pageLimit),
         status_counts: buildFullStatusCounts(statusCounts, CERTIFICATE_STATUSES),
-        rows: rows.map(flatCertificateListRow),
+        rows: resolvedRows.map(flatCertificateListRow),
     }
 
 ### 3. POST /api/v1/certificates
@@ -124,11 +124,11 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:43`
+- Route file: `src/modules/certificates/certificate.routes.js:45`
 - Controller: `src/modules/certificates/certificate.controller.js:3`
-- Service: `src/modules/certificates/certificate.service.js:322` (`certService.generateCertificate`)
+- Service: `src/modules/certificates/certificate.service.js:371` (`certService.generateCertificate`)
 - Models touched: JobRequest.findByPk, Survey.findOne, Certificate.findOne, NonConformity.count, Certificate.create, CertificateHistory.create, AuditLog.create, Certificate.findByPk, Vessel.findByPk, User.findAll, User.findByPk
-- Service returns (detected): finalCert | await Certificate.findByPk(cert.id, { include: [db.Vessel, db.CertificateType] })
+- Service returns (detected): finalCert | await Certificate.findByPk(cert.id, { include: [db.Vessel, db.CertificateType], useMaster: true })
 
 ### 4. GET /api/v1/certificates/upload-url
 - Summary: Get presigned URL for certificate upload
@@ -157,9 +157,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:31`
-- Controller: `src/modules/certificates/certificate.controller.js:158`
-- Service: `src/modules/certificates/certificate.service.js:843` (`certService.getCertificateUploadUrl`)
+- Route file: `src/modules/certificates/certificate.routes.js:33`
+- Controller: `src/modules/certificates/certificate.controller.js:169`
+- Service: `src/modules/certificates/certificate.service.js:944` (`certService.getCertificateUploadUrl`)
 - Models touched: N/A
 - Service returns (detected): { uploadUrl, key }
 
@@ -174,18 +174,8 @@ Request (Code + Schema)
 - `vesselId` (path, required, string)
 - Request Body from YAML:
 - `application/json`: #/components/schemas/UploadExternalCertificateRequest
-- Req usage in controller: params=[vesselId], query=[], body=[], user=[id], files=[]
+- Req usage in controller: params=[vesselId], query=[], body=[certificates], user=[id], files=[]
 - Validation schema key: `uploadExternalCertificate`
-- Joi schema source: `src/middlewares/validate.middleware.js:553`
-```js
-Joi.object({
-        certificate_type_id: Joi.string().guid().required(),
-        certificate_number: Joi.string().required(),
-        issue_date: Joi.date().iso().required(),
-        expiry_date: Joi.date().iso().required(),
-        s3_key: Joi.string().required(),
-    })
-```
 
 Response (Actual)
 - YAML response map:
@@ -194,19 +184,54 @@ Response (Actual)
 ```js
 {
             success: true,
-            message: 'External certificate uploaded successfully',
-            data: result
+            message: 'External certificate(s) uploaded successfully',
+            data: responseData
         }
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:34`
-- Controller: `src/modules/certificates/certificate.controller.js:169`
-- Service: `src/modules/certificates/certificate.service.js:849` (`certService.uploadExternalCertificate`)
+- Route file: `src/modules/certificates/certificate.routes.js:36`
+- Controller: `src/modules/certificates/certificate.controller.js:180`
+- Service: `src/modules/certificates/certificate.service.js:950` (`certService.uploadExternalCertificate`)
 - Models touched: Certificate.create, CertificateHistory.create
-- Service returns (detected): cert
+- Service returns (detected): createdCerts
 
-### 6. GET /api/v1/certificates/types
+### 6. GET /api/v1/certificates/type-names
+- Summary: Get certificate type names (slim dropdown list)
+- Operation ID: `getCertificateTypeNames`
+- Access Roles: CLIENT, ADMIN, GM, TM, TO, SURVEYOR
+- Change Access: N/A (read endpoint)
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `search` (query, optional, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[], query=[search], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Slim list of certificate type id+name pairs (application/json => object)
+- `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s):
+```js
+{
+            success: true,
+            message: 'Certificate type names fetched successfully',
+            data: slim,
+        }
+```
+
+Implementation Trace
+- Route file: `src/modules/certificates/certificate.routes.js:17`
+- Controller: `src/modules/certificates/certificate.controller.js:276`
+- Service: `src/modules/certificates/certificate.service.js:36` (`certService.getCertificateTypes`)
+- Models touched: N/A
+- Service returns (detected): N/A
+
+### 7. GET /api/v1/certificates/types
 - Summary: List certificate types (minimal)
 - Operation ID: `getCertificateTypes`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -232,13 +257,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:17`
-- Controller: `src/modules/certificates/certificate.controller.js:236`
+- Route file: `src/modules/certificates/certificate.routes.js:18`
+- Controller: `src/modules/certificates/certificate.controller.js:262`
 - Service: `src/modules/certificates/certificate.service.js:36` (`certService.getCertificateTypes`)
 - Models touched: N/A
 - Service returns (detected): N/A
 
-### 7. POST /api/v1/certificates/types
+### 8. POST /api/v1/certificates/types
 - Summary: Create certificate type
 - Operation ID: `createCertificateType`
 - Access Roles: ADMIN
@@ -251,7 +276,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertificateTypeCreateRequest
 - Req usage in controller: params=[], query=[], body=[], user=[], files=[]
 - Validation schema key: `createCertificateType`
-- Joi schema source: `src/middlewares/validate.middleware.js:290`
+- Joi schema source: `src/middlewares/validate.middleware.js:299`
 ```js
 Joi.object({
         name: Joi.string().required().trim(),
@@ -279,13 +304,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:18`
-- Controller: `src/modules/certificates/certificate.controller.js:252`
-- Service: `src/modules/certificates/certificate.service.js:76` (`certService.createCertificateType`)
+- Route file: `src/modules/certificates/certificate.routes.js:19`
+- Controller: `src/modules/certificates/certificate.controller.js:297`
+- Service: `src/modules/certificates/certificate.service.js:77` (`certService.createCertificateType`)
 - Models touched: CertificateType.findOne, CertificateType.create, CertificateRequiredDocument.bulkCreate
 - Service returns (detected): await getCertificateTypeById(type.id)
 
-### 8. GET /api/v1/certificates/types/{id}
+### 9. GET /api/v1/certificates/types/{id}
 - Summary: Get certificate type detail (with required documents)
 - Operation ID: `getCertificateTypeById`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -311,13 +336,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:19`
-- Controller: `src/modules/certificates/certificate.controller.js:245`
-- Service: `src/modules/certificates/certificate.service.js:60` (`certService.getCertificateTypeById`)
+- Route file: `src/modules/certificates/certificate.routes.js:20`
+- Controller: `src/modules/certificates/certificate.controller.js:290`
+- Service: `src/modules/certificates/certificate.service.js:61` (`certService.getCertificateTypeById`)
 - Models touched: CertificateType.findByPk
 - Service returns (detected): shapeCertificateTypeDetail(plain)
 
-### 9. PUT /api/v1/certificates/types/{id}
+### 10. PUT /api/v1/certificates/types/{id}
 - Summary: Update certificate type
 - Operation ID: `updateCertificateType`
 - Access Roles: ADMIN, TM
@@ -330,7 +355,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertificateTypeUpdateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateCertificateType`
-- Joi schema source: `src/middlewares/validate.middleware.js:302`
+- Joi schema source: `src/middlewares/validate.middleware.js:311`
 ```js
 Joi.object({
         name: Joi.string().optional().trim(),
@@ -358,13 +383,50 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:20`
-- Controller: `src/modules/certificates/certificate.controller.js:259`
-- Service: `src/modules/certificates/certificate.service.js:110` (`certService.updateCertificateType`)
+- Route file: `src/modules/certificates/certificate.routes.js:21`
+- Controller: `src/modules/certificates/certificate.controller.js:304`
+- Service: `src/modules/certificates/certificate.service.js:111` (`certService.updateCertificateType`)
 - Models touched: CertificateType.findByPk, CertificateType.findOne, CertificateRequiredDocument.destroy, CertificateRequiredDocument.bulkCreate
 - Service returns (detected): await getCertificateTypeById(id)
 
-### 10. GET /api/v1/certificates/types/{id}/required-documents
+### 11. DELETE /api/v1/certificates/types/{id}
+- Summary: Deactivate certificate type
+- Operation ID: `deactivateCertificateType`
+- Access Roles: ADMIN
+- Change Access: ADMIN
+
+Request (Code + Schema)
+- Route Params/Query from YAML:
+- `id` (path, required, string)
+- Request Body from YAML:
+- None
+- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
+- Validation schema key: `N/A`
+
+Response (Actual)
+- YAML response map:
+- `200`: Certificate type successfully deactivated (application/json => object)
+- `401`: Unauthorized (application/json => #/components/schemas/ErrorResponse)
+- `403`: Forbidden — ADMIN role required (application/json => #/components/schemas/ErrorResponse)
+- `404`: Certificate type not found (application/json => #/components/schemas/ErrorResponse)
+- `409`: Conflict — cannot deactivate because:
+- Certificate type is already inactive
+- Active certificates still reference this type
+- Active jobs still reference this type
+ (application/json => #/components/schemas/ErrorResponse)
+- Controller response envelope(s):
+```js
+{ success: true, message: result.message, data: result }
+```
+
+Implementation Trace
+- Route file: `src/modules/certificates/certificate.routes.js:22`
+- Controller: `src/modules/certificates/certificate.controller.js:311`
+- Service: `src/modules/certificates/certificate.service.js:148` (`certService.deactivateCertificateType`)
+- Models touched: CertificateType.findByPk, Certificate.count, JobRequest.count
+- Service returns (detected): { id: type.id, name: type.name, status: 'INACTIVE', message: 'Certificate type deactivated successfully.' }
+
+### 12. GET /api/v1/certificates/types/{id}/required-documents
 - Summary: List required documents for a certificate type
 - Operation ID: `getCertificateTypeRequiredDocuments`
 - Access Roles: ADMIN, TM
@@ -390,17 +452,18 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:23`
-- Controller: `src/modules/certificates/certificate.controller.js:266`
-- Service: `src/modules/certificates/certificate.service.js:146` (`certService.getCertificateTypeRequiredDocuments`)
+- Route file: `src/modules/certificates/certificate.routes.js:25`
+- Controller: `src/modules/certificates/certificate.controller.js:319`
+- Service: `src/modules/certificates/certificate.service.js:192` (`certService.getCertificateTypeRequiredDocuments`)
 - Models touched: CertificateType.findByPk, CertificateRequiredDocument.findAll
 - Service returns (detected): await db.CertificateRequiredDocument.findAll({
         where: { certificate_type_id: certificateTypeId },
         attributes: ['id', 'certificate_type_id', 'document_name', 'is_mandatory', 'createdAt', 'updatedAt'],
         order: [['document_name', 'ASC']],
+        useReplica: true
     })
 
-### 11. POST /api/v1/certificates/types/{id}/required-documents
+### 13. POST /api/v1/certificates/types/{id}/required-documents
 - Summary: Add required document for a certificate type
 - Operation ID: `addCertificateTypeRequiredDocument`
 - Access Roles: ADMIN, TM
@@ -413,7 +476,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertificateRequiredDocumentCreateRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `addCertificateTypeRequiredDocument`
-- Joi schema source: `src/middlewares/validate.middleware.js:314`
+- Joi schema source: `src/middlewares/validate.middleware.js:323`
 ```js
 Joi.object({
         document_name: Joi.string().required().trim(),
@@ -435,9 +498,9 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:24`
-- Controller: `src/modules/certificates/certificate.controller.js:273`
-- Service: `src/modules/certificates/certificate.service.js:160` (`certService.addCertificateTypeRequiredDocument`)
+- Route file: `src/modules/certificates/certificate.routes.js:26`
+- Controller: `src/modules/certificates/certificate.controller.js:326`
+- Service: `src/modules/certificates/certificate.service.js:207` (`certService.addCertificateTypeRequiredDocument`)
 - Models touched: CertificateType.findByPk, CertificateRequiredDocument.findOne, CertificateRequiredDocument.create
 - Service returns (detected): await db.CertificateRequiredDocument.create({
         certificate_type_id: certificateTypeId,
@@ -445,7 +508,7 @@ Implementation Trace
         is_mandatory: data.is_mandatory ?? true,
     })
 
-### 12. PUT /api/v1/certificates/types/{id}/required-documents/{docId}
+### 14. PUT /api/v1/certificates/types/{id}/required-documents/{docId}
 - Summary: Update required document for a certificate type
 - Operation ID: `updateCertificateTypeRequiredDocument`
 - Access Roles: ADMIN, TM
@@ -459,7 +522,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertificateRequiredDocumentUpdateRequest
 - Req usage in controller: params=[id, docId], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateCertificateTypeRequiredDocument`
-- Joi schema source: `src/middlewares/validate.middleware.js:318`
+- Joi schema source: `src/middlewares/validate.middleware.js:327`
 ```js
 Joi.object({
         document_name: Joi.string().optional().trim(),
@@ -481,13 +544,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:25`
-- Controller: `src/modules/certificates/certificate.controller.js:280`
-- Service: `src/modules/certificates/certificate.service.js:178` (`certService.updateCertificateTypeRequiredDocument`)
+- Route file: `src/modules/certificates/certificate.routes.js:27`
+- Controller: `src/modules/certificates/certificate.controller.js:333`
+- Service: `src/modules/certificates/certificate.service.js:226` (`certService.updateCertificateTypeRequiredDocument`)
 - Models touched: CertificateRequiredDocument.findByPk, CertificateRequiredDocument.findOne
 - Service returns (detected): doc
 
-### 13. DELETE /api/v1/certificates/types/{id}/required-documents/{docId}
+### 15. DELETE /api/v1/certificates/types/{id}/required-documents/{docId}
 - Summary: Delete required document for a certificate type
 - Operation ID: `deleteCertificateTypeRequiredDocument`
 - Access Roles: ADMIN, TM
@@ -515,13 +578,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:26`
-- Controller: `src/modules/certificates/certificate.controller.js:287`
-- Service: `src/modules/certificates/certificate.service.js:205` (`certService.deleteCertificateTypeRequiredDocument`)
+- Route file: `src/modules/certificates/certificate.routes.js:28`
+- Controller: `src/modules/certificates/certificate.controller.js:340`
+- Service: `src/modules/certificates/certificate.service.js:254` (`certService.deleteCertificateTypeRequiredDocument`)
 - Models touched: CertificateRequiredDocument.findByPk, JobDocument.count
 - Service returns (detected): { deleted: true }
 
-### 14. POST /api/v1/certificates/bulk-renew
+### 16. POST /api/v1/certificates/bulk-renew
 - Summary: Bulk renew certificates
 - Operation ID: `bulkRenewCertificates`
 - Access Roles: ADMIN, TM
@@ -546,7 +609,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 15. GET /api/v1/certificates/job/{jobId}
+### 17. GET /api/v1/certificates/job/{jobId}
 - Summary: Get certificate by job ID
 - Operation ID: `getCertificateByJobId`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -574,13 +637,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:40`
+- Route file: `src/modules/certificates/certificate.routes.js:42`
 - Controller: `src/modules/certificates/certificate.controller.js:36`
-- Service: `src/modules/certificates/certificate.service.js:624` (`certService.getCertificateByJobId`)
+- Service: `src/modules/certificates/certificate.service.js:681` (`certService.getCertificateByJobId`)
 - Models touched: JobRequest.findByPk
 - Service returns (detected): await getCertificateById(job.generated_certificate_id, user)
 
-### 16. GET /api/v1/certificates/vessel/{vesselId}
+### 18. GET /api/v1/certificates/vessel/{vesselId}
 - Summary: Get certificates by vessel
 - Operation ID: `getCertificatesByVessel`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -607,13 +670,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:37`
+- Route file: `src/modules/certificates/certificate.routes.js:39`
 - Controller: `src/modules/certificates/certificate.controller.js:25`
-- Service: `src/modules/certificates/certificate.service.js:598` (`certService.getCertificatesByVessel`)
+- Service: `src/modules/certificates/certificate.service.js:653` (`certService.getCertificatesByVessel`)
 - Models touched: Certificate.findAll
-- Service returns (detected): certs.map(flatCertificateListRow)
+- Service returns (detected): resolvedCerts.map(flatCertificateListRow)
 
-### 17. GET /api/v1/certificates/{id}
+### 19. GET /api/v1/certificates/{id}
 - Summary: Get certificate by ID
 - Operation ID: `getCertificateById`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -642,13 +705,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:52`
+- Route file: `src/modules/certificates/certificate.routes.js:57`
 - Controller: `src/modules/certificates/certificate.controller.js:47`
-- Service: `src/modules/certificates/certificate.service.js:638` (`certService.getCertificateById`)
+- Service: `src/modules/certificates/certificate.service.js:695` (`certService.getCertificateById`)
 - Models touched: Certificate.findOne, Certificate.findByPk
 - Service returns (detected): cert
 
-### 18. PUT /api/v1/certificates/{id}
+### 20. PUT /api/v1/certificates/{id}
 - Summary: Update certificate draft
 - Operation ID: `updateCertificateDraft`
 - Access Roles: TM, GM
@@ -675,7 +738,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 19. GET /api/v1/certificates/{id}/download
+### 21. GET /api/v1/certificates/{id}/download
 - Summary: Download certificate PDF
 - Operation ID: `downloadCertificate`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -703,12 +766,12 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:55`
+- Route file: `src/modules/certificates/certificate.routes.js:60`
 - Controller: `src/modules/certificates/certificate.controller.js:60`
-- Service: `src/modules/certificates/certificate.service.js:638` (`certService.getCertificateById`)
+- Service: `src/modules/certificates/certificate.service.js:695` (`certService.getCertificateById`)
 - Models touched: Certificate.findOne, Certificate.findByPk
 - Service returns (detected): cert
-- Service: `src/services/fileAccess.service.js:247` (`fileAccessService.processFileAccess`)
+- Service: `src/services/fileAccess.service.js:308` (`fileAccessService.processFileAccess`)
 - Models touched: N/A
 - Service returns (detected): {
         fileName: key.split('/').pop(), // Simple filename extraction
@@ -717,7 +780,7 @@ Implementation Trace
         signedUrl: signedUrl
     }
 
-### 20. PUT /api/v1/certificates/{id}/suspend
+### 22. PUT /api/v1/certificates/{id}/suspend
 - Summary: Suspend certificate
 - Operation ID: `suspendCertificate`
 - Access Roles: TM
@@ -730,7 +793,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertActionRequest
 - Req usage in controller: params=[id], query=[], body=[reason], user=[id], files=[]
 - Validation schema key: `certAction`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:289`
 ```js
 Joi.object({
         reason: Joi.string().required(),
@@ -754,13 +817,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:58`
+- Route file: `src/modules/certificates/certificate.routes.js:63`
 - Controller: `src/modules/certificates/certificate.controller.js:77`
-- Service: `src/modules/certificates/certificate.service.js:672` (`certService.updateStatus`)
+- Service: `src/modules/certificates/certificate.service.js:741` (`certService.updateStatus`)
 - Models touched: Certificate.findByPk, CertificateHistory.create
 - Service returns (detected): cert
 
-### 21. PUT /api/v1/certificates/{id}/revoke
+### 23. PUT /api/v1/certificates/{id}/revoke
 - Summary: Revoke certificate
 - Operation ID: `revokeCertificate`
 - Access Roles: TM
@@ -773,7 +836,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertActionRequest
 - Req usage in controller: params=[id], query=[], body=[reason], user=[id], files=[]
 - Validation schema key: `certAction`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:289`
 ```js
 Joi.object({
         reason: Joi.string().required(),
@@ -796,13 +859,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:59`
+- Route file: `src/modules/certificates/certificate.routes.js:64`
 - Controller: `src/modules/certificates/certificate.controller.js:88`
-- Service: `src/modules/certificates/certificate.service.js:672` (`certService.updateStatus`)
+- Service: `src/modules/certificates/certificate.service.js:741` (`certService.updateStatus`)
 - Models touched: Certificate.findByPk, CertificateHistory.create
 - Service returns (detected): cert
 
-### 22. PUT /api/v1/certificates/{id}/restore
+### 24. PUT /api/v1/certificates/{id}/restore
 - Summary: Restore certificate
 - Operation ID: `restoreCertificate`
 - Access Roles: TM
@@ -815,7 +878,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertActionRequest
 - Req usage in controller: params=[id], query=[], body=[reason], user=[id], files=[]
 - Validation schema key: `certAction`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:289`
 ```js
 Joi.object({
         reason: Joi.string().required(),
@@ -838,13 +901,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:60`
+- Route file: `src/modules/certificates/certificate.routes.js:65`
 - Controller: `src/modules/certificates/certificate.controller.js:99`
-- Service: `src/modules/certificates/certificate.service.js:672` (`certService.updateStatus`)
+- Service: `src/modules/certificates/certificate.service.js:741` (`certService.updateStatus`)
 - Models touched: Certificate.findByPk, CertificateHistory.create
 - Service returns (detected): cert
 
-### 23. PUT /api/v1/certificates/{id}/renew
+### 25. PUT /api/v1/certificates/{id}/renew
 - Summary: Renew certificate
 - Operation ID: `renewCertificate`
 - Access Roles: TM, GM
@@ -857,7 +920,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/RenewCertRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[id], files=[]
 - Validation schema key: `renewCert`
-- Joi schema source: `src/middlewares/validate.middleware.js:286`
+- Joi schema source: `src/middlewares/validate.middleware.js:295`
 ```js
 Joi.object({
         validity_years: Joi.number().integer().min(1).max(5).required(),
@@ -878,13 +941,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:63`
+- Route file: `src/modules/certificates/certificate.routes.js:68`
 - Controller: `src/modules/certificates/certificate.controller.js:110`
-- Service: `src/modules/certificates/certificate.service.js:694` (`certService.renewCertificate`)
+- Service: `src/modules/certificates/certificate.service.js:763` (`certService.renewCertificate`)
 - Models touched: Certificate.findByPk, Certificate.create, CertificateHistory.create
 - Service returns (detected): newCert
 
-### 24. POST /api/v1/certificates/{id}/reissue
+### 26. POST /api/v1/certificates/{id}/reissue
 - Summary: Reissue certificate
 - Operation ID: `reissueCertificate`
 - Access Roles: ADMIN, TM
@@ -911,13 +974,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:67`
-- Controller: `src/modules/certificates/certificate.controller.js:147`
-- Service: `src/modules/certificates/certificate.service.js:802` (`certService.reissueCertificate`)
+- Route file: `src/modules/certificates/certificate.routes.js:72`
+- Controller: `src/modules/certificates/certificate.controller.js:158`
+- Service: `src/modules/certificates/certificate.service.js:903` (`certService.reissueCertificate`)
 - Models touched: Certificate.findByPk, Certificate.create, CertificateHistory.create
 - Service returns (detected): newCert
 
-### 25. POST /api/v1/certificates/{id}/transfer
+### 27. POST /api/v1/certificates/{id}/transfer
 - Summary: Transfer certificate
 - Operation ID: `transferCertificate`
 - Access Roles: ADMIN, GM
@@ -930,7 +993,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertActionRequest
 - Req usage in controller: params=[id], query=[], body=[newOwnerId, reason], user=[id], files=[]
 - Validation schema key: `certAction`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:289`
 ```js
 Joi.object({
         reason: Joi.string().required(),
@@ -954,13 +1017,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:76`
-- Controller: `src/modules/certificates/certificate.controller.js:203`
-- Service: `src/modules/certificates/certificate.service.js:890` (`certService.transferCertificate`)
+- Route file: `src/modules/certificates/certificate.routes.js:81`
+- Controller: `src/modules/certificates/certificate.controller.js:229`
+- Service: `src/modules/certificates/certificate.service.js:1005` (`certService.transferCertificate`)
 - Models touched: Certificate.findByPk, Certificate.create, CertificateHistory.create
 - Service returns (detected): newCert
 
-### 26. POST /api/v1/certificates/{id}/extend
+### 28. POST /api/v1/certificates/{id}/extend
 - Summary: Extend certificate
 - Operation ID: `extendCertificate`
 - Access Roles: ADMIN, GM
@@ -973,7 +1036,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertActionRequest
 - Req usage in controller: params=[id], query=[], body=[extensionMonths, reason], user=[id], files=[]
 - Validation schema key: `certAction`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:289`
 ```js
 Joi.object({
         reason: Joi.string().required(),
@@ -997,13 +1060,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:77`
-- Controller: `src/modules/certificates/certificate.controller.js:214`
-- Service: `src/modules/certificates/certificate.service.js:917` (`certService.extendCertificate`)
+- Route file: `src/modules/certificates/certificate.routes.js:82`
+- Controller: `src/modules/certificates/certificate.controller.js:240`
+- Service: `src/modules/certificates/certificate.service.js:1032` (`certService.extendCertificate`)
 - Models touched: Certificate.findByPk, CertificateHistory.create
 - Service returns (detected): cert
 
-### 27. PUT /api/v1/certificates/{id}/downgrade
+### 29. PUT /api/v1/certificates/{id}/downgrade
 - Summary: Downgrade certificate
 - Operation ID: `downgradeCertificate`
 - Access Roles: ADMIN, GM
@@ -1016,7 +1079,7 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/CertActionRequest
 - Req usage in controller: params=[id], query=[], body=[newTypeId, reason], user=[id], files=[]
 - Validation schema key: `certAction`
-- Joi schema source: `src/middlewares/validate.middleware.js:280`
+- Joi schema source: `src/middlewares/validate.middleware.js:289`
 ```js
 Joi.object({
         reason: Joi.string().required(),
@@ -1040,13 +1103,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:78`
-- Controller: `src/modules/certificates/certificate.controller.js:225`
-- Service: `src/modules/certificates/certificate.service.js:937` (`certService.downgradeCertificate`)
+- Route file: `src/modules/certificates/certificate.routes.js:83`
+- Controller: `src/modules/certificates/certificate.controller.js:251`
+- Service: `src/modules/certificates/certificate.service.js:1052` (`certService.downgradeCertificate`)
 - Models touched: Certificate.findByPk, CertificateType.findByPk, Certificate.create, CertificateHistory.create
 - Service returns (detected): newCert
 
-### 28. GET /api/v1/certificates/{id}/preview
+### 30. GET /api/v1/certificates/{id}/preview
 - Summary: Preview certificate
 - Operation ID: `previewCertificate`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -1073,13 +1136,13 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:70`
-- Controller: `src/modules/certificates/certificate.controller.js:180`
-- Service: `src/modules/certificates/certificate.service.js:877` (`certService.previewCertificate`)
+- Route file: `src/modules/certificates/certificate.routes.js:75`
+- Controller: `src/modules/certificates/certificate.controller.js:206`
+- Service: `src/modules/certificates/certificate.service.js:992` (`certService.previewCertificate`)
 - Models touched: N/A
 - Service returns (detected): await getCertificateById(id, user)
 
-### 29. GET /api/v1/certificates/{id}/history
+### 31. GET /api/v1/certificates/{id}/history
 - Summary: Get certificate history
 - Operation ID: `getCertificateHistory`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
@@ -1103,7 +1166,7 @@ Implementation Trace
 - Controller: `N/A`
 - Services: N/A
 
-### 30. POST /api/v1/certificates/{id}/issue
+### 32. POST /api/v1/certificates/{id}/issue
 - Summary: Issue certificate
 - Operation ID: `issueCertificate`
 - Access Roles: GM
@@ -1116,12 +1179,11 @@ Request (Code + Schema)
 - `application/json`: #/components/schemas/UpdateCertificateDraftRequest
 - Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
 - Validation schema key: `updateCertificateDraft`
-- Joi schema source: `src/middlewares/validate.middleware.js:545`
+- Joi schema source: `src/middlewares/validate.middleware.js:556`
 ```js
 Joi.object({
         flag_administration_id: Joi.string().guid().optional(),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),
-        manual_text: Joi.alternatives().try(Joi.object(), Joi.string()).optional(),
         remarks: Joi.string().allow('', null).optional(),
         issue_date: Joi.date().iso().optional(),
         expiry_date: Joi.date().iso().optional(),
@@ -1141,11 +1203,11 @@ Response (Actual)
 ```
 
 Implementation Trace
-- Route file: `src/modules/certificates/certificate.routes.js:49`
+- Route file: `src/modules/certificates/certificate.routes.js:51`
 - Controller: `src/modules/certificates/certificate.controller.js:133`
-- Service: `src/modules/certificates/certificate.service.js:728` (`certService.updateDraft`)
+- Service: `src/modules/certificates/certificate.service.js:796` (`certService.updateDraft`)
 - Models touched: Certificate.findByPk, CertificateHistory.create
 - Service returns (detected): cert
-- Service: `src/modules/certificates/certificate.service.js:755` (`certService.issueCertificate`)
+- Service: `src/modules/certificates/certificate.service.js:822` (`certService.issueCertificate`)
 - Models touched: Certificate.findByPk, CertificateHistory.create
 - Service returns (detected): cert

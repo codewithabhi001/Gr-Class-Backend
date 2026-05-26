@@ -947,32 +947,46 @@ export const getCertificateUploadUrl = async (fileName, contentType) => {
     return { uploadUrl, key };
 };
 
-export const uploadExternalCertificate = async (vesselId, data, userId) => {
-    const { certificate_type_id, certificate_number, issue_date, expiry_date, s3_key } = data;
+export const uploadExternalCertificate = async (vesselId, dataArray, userId) => {
+    const certsData = Array.isArray(dataArray) ? dataArray : [dataArray];
+    const createdCerts = [];
+    const transaction = await db.sequelize.transaction();
+    
+    try {
+        for (const data of certsData) {
+            const { certificate_type_id, certificate_number, issue_date, expiry_date, s3_key } = data;
 
-    const cert = await Certificate.create({
-        vessel_id: vesselId,
-        certificate_type_id,
-        certificate_number,
-        issue_date,
-        expiry_date,
-        source_type: 'EXTERNAL',
-        status: 'VALID', // External certs are valid by default
-        uploaded_file_url: s3_key,
-        pdf_file_url: s3_key,
-        issued_by_user_id: userId,
-        version: 1
-    });
+            const cert = await Certificate.create({
+                vessel_id: vesselId,
+                certificate_type_id,
+                certificate_number,
+                issue_date,
+                expiry_date,
+                source_type: 'EXTERNAL',
+                status: 'VALID', // External certs are valid by default
+                uploaded_file_url: s3_key,
+                pdf_file_url: s3_key,
+                issued_by_user_id: userId,
+                version: 1
+            }, { transaction });
 
-    await db.CertificateHistory.create({
-        certificate_id: cert.id,
-        status: 'VALID',
-        changed_by_user_id: userId,
-        change_reason: 'External certificate uploaded manually',
-        changed_at: new Date()
-    });
-
-    return cert;
+            await db.CertificateHistory.create({
+                certificate_id: cert.id,
+                status: 'VALID',
+                changed_by_user_id: userId,
+                change_reason: 'External certificate uploaded manually',
+                changed_at: new Date()
+            }, { transaction });
+            
+            createdCerts.push(cert);
+        }
+        
+        await transaction.commit();
+        return createdCerts;
+    } catch (err) {
+        await transaction.rollback();
+        throw err;
+    }
 };
 
 export const previewCertificate = async (id, user) => {
