@@ -1031,6 +1031,10 @@ components:
       properties:
         job_id:
           $ref: '#/components/schemas/UUID'
+          description: 'The root Job request ID'
+        job_certificate_id:
+          $ref: '#/components/schemas/UUID'
+          description: 'Optional/Required for multi-cert jobs to target a specific certificate'
         validity_years:
           type: integer
           minimum: 1

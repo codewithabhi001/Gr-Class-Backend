@@ -26,7 +26,7 @@
   "tags": [
     {
       "name": "Jobs",
-      "description": "Job lifecycle management"
+      "description": "Manages the full lifecycle of a service/certification job request (from `CREATED` → `CERTIFIED`).\n**Role-Based Access Matrix**:\n* **CLIENT**: Can create jobs (only for vessels in their fleet), list/get own jobs, cancel jobs, and chat via job messages.\n* **ADMIN**: Unrestricted access to all lifecycle transitions, manual overrides, and internal note/chat logs.\n* **GM (General Manager)**: Approve incoming job requests, assign/reassign/reschedule surveyors, cancel jobs, change priority, and view histories.\n* **TM (Technical Manager)**: Reassign surveyors, reschedule dates/ports, authorize field surveys, and reject/cancel jobs.\n* **TO (Technical Officer)**: Verify uploaded documents (approve/reject single files), review submitted checksheets, and add internal notes.\n* **SURVEYOR**: View details and chat on assigned jobs only.\n"
     }
   ],
   "components": {
@@ -1455,7 +1455,12 @@
         ],
         "properties": {
           "job_id": {
-            "$ref": "#/components/schemas/UUID"
+            "$ref": "#/components/schemas/UUID",
+            "description": "The root Job request ID"
+          },
+          "job_certificate_id": {
+            "$ref": "#/components/schemas/UUID",
+            "description": "Optional/Required for multi-cert jobs to target a specific certificate"
           },
           "validity_years": {
             "type": "integer",

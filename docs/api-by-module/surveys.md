@@ -10,7 +10,7 @@ Source: `src/docs/paths/surveys.yaml`
 ## Role Action Matrix (Change Endpoints)
 1. `POST /api/v1/surveys/start` -> SURVEYOR
 2. `POST /api/v1/surveys` -> SURVEYOR
-3. `PUT /api/v1/surveys/jobs/{jobId}/finalize` -> TM
+3. `PUT /api/v1/surveys/jobs/{jobId}/finalize` -> TM, ADMIN
 4. `PUT /api/v1/surveys/jobs/{jobId}/rework` -> GM, TM, TO, ADMIN
 5. `POST /api/v1/surveys/jobs/{jobId}/location` -> SURVEYOR
 6. `POST /api/v1/surveys/jobs/{jobId}/proof` -> SURVEYOR
@@ -80,20 +80,21 @@ Source: `src/docs/paths/surveys.yaml`
 - `404`: Survey not found
 
 ### 5. PUT /api/v1/surveys/jobs/{jobId}/finalize
-- Summary: Finalize all surveys for a job (TM)
+- Summary: Finalize submitted surveys for a job (TM/ADMIN)
 - Operation ID: `finalizeSurvey`
-- Access Roles: TM
+- Access Roles: TM, ADMIN
 - Action Type: CHANGE (can modify state)
 - Path/Query/Header Params:
 - `jobId` (path, required, string)
 - Request Body:
-- None
+- `application/json`: object
 - Responses:
-- `200`: All surveys finalized (application/json => object)
-- `403`: Forbidden
+- `200`: Survey(s) finalized successfully (application/json => object)
+- `400`: No submitted surveys found to finalize
+- `403`: Forbidden — not a TM or ADMIN
 
 ### 6. PUT /api/v1/surveys/jobs/{jobId}/rework
-- Summary: Request rework on a survey
+- Summary: Request rework on a survey (GM/TM/TO/ADMIN)
 - Operation ID: `requestRework`
 - Access Roles: GM, TM, TO, ADMIN
 - Action Type: CHANGE (can modify state)
@@ -103,9 +104,9 @@ Source: `src/docs/paths/surveys.yaml`
 - Request Body:
 - `application/json`: object
 - Responses:
-- `200`: Rework requested (application/json => object)
-- `400`: Invalid transition
-- `403`: Forbidden
+- `200`: Rework requested successfully (application/json => object)
+- `400`: Job is not in REVIEWED state, or job is already finalized
+- `403`: Forbidden — caller does not have GM/TM/TO/ADMIN privileges
 
 ### 7. POST /api/v1/surveys/jobs/{jobId}/location
 - Summary: Stream live GPS location (per certificate)

@@ -30,7 +30,7 @@
     },
     {
       "name": "Jobs",
-      "description": "Job lifecycle management"
+      "description": "Manages the full lifecycle of a service/certification job request (from `CREATED` → `CERTIFIED`).\n**Role-Based Access Matrix**:\n* **CLIENT**: Can create jobs (only for vessels in their fleet), list/get own jobs, cancel jobs, and chat via job messages.\n* **ADMIN**: Unrestricted access to all lifecycle transitions, manual overrides, and internal note/chat logs.\n* **GM (General Manager)**: Approve incoming job requests, assign/reassign/reschedule surveyors, cancel jobs, change priority, and view histories.\n* **TM (Technical Manager)**: Reassign surveyors, reschedule dates/ports, authorize field surveys, and reject/cancel jobs.\n* **TO (Technical Officer)**: Verify uploaded documents (approve/reject single files), review submitted checksheets, and add internal notes.\n* **SURVEYOR**: View details and chat on assigned jobs only.\n"
     },
     {
       "name": "Vessels",
@@ -38,7 +38,7 @@
     },
     {
       "name": "Certificates",
-      "description": "Certificate management and verification"
+      "description": "Governs marine certificate drafting, issuance, renewal, suspension, and revocation.\n**Role-Based Access Matrix**:\n* **CLIENT**: List, preview, and download certificates associated with their vessels.\n* **GM (General Manager)**: Generate drafts, issue final certificates (moves to `ISSUED` and generates PDF), manually override PDFs, and perform advanced lifecycle management (transfer, extend, downgrade).\n* **TM (Technical Manager)**: Generate drafts, update drafts, suspend, revoke, restore, and renew certificates.\n* **ADMIN / TO / TM**: List, get, and review all certificates.\n* **PUBLIC**: Unauthenticated verification of any certificate using the certificate number.\n"
     },
     {
       "name": "Payments",
@@ -58,7 +58,7 @@
     },
     {
       "name": "Surveys",
-      "description": "Survey management"
+      "description": "Handles the execution of field survey operations (checklist execution, evidence proof uploads, GPS streaming, and survey statements).\n**Role-Based Access Matrix**:\n* **SURVEYOR**: Start survey check-in, upload evidence proof files, stream live GPS location, sync offline data, and draft survey statements.\n* **TM (Technical Manager)**: Finalize survey reports (transitions survey to `FINALIZED`), and issue signed survey statements (PDFs).\n* **GM / TM / TO / ADMIN**: Request rework on any submitted survey (triggers isolation of that specific certificate's checklist for re-evaluation).\n* **ADMIN / GM / TM / TO / SURVEYOR**: Get timelines and GPS traces.\n"
     },
     {
       "name": "Surveyors",
@@ -22482,14 +22482,134 @@
         }
       }
     },
+    "/api/v1/surveys/jobs/{jobId}/finalize": {
+      "put": {
+        "tags": [
+          "Surveys"
+        ],
+        "summary": "Finalize submitted surveys for a job (TM/ADMIN)",
+        "description": "Allows a Technical Manager (TM) or Admin to grant final approval to all submitted surveys under a job.\n\n**Workflow Logic:**\n- Non-submitted surveys (e.g. `STARTED` or `REWORK_REQUIRED`) are skipped, enabling other completed surveys on the same job to finalize independently.\n- Transition: `SUBMITTED → FINALIZED`.\n- Unlocks certificate drafting and generation for those finalized surveys.\n- Automatically sets the parent Job status to `FINALIZED` if all of its surveys are finalized.\n\n**Roles:** TM, ADMIN\n",
+        "operationId": "finalizeSurvey",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-roles": [
+          "TM",
+          "ADMIN"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Job Request ID"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "skip_validation": {
+                    "type": "boolean",
+                    "description": "ADMIN only — Force status directly to FINALIZED, skipping guard checks (E2E testing)",
+                    "default": false
+                  }
+                }
+              },
+              "example": {
+                "skip_validation": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Survey(s) finalized successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "All surveys finalized. Job is now FINALIZED."
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "All surveys finalized. Job is now FINALIZED."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No submitted surveys found to finalize",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — not a TM or ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/surveys/jobs/{jobId}/rework": {
       "put": {
         "tags": [
           "Surveys"
         ],
-        "summary": "Request rework on a survey",
-        "description": "GM, TM, or TO requests corrections on a submitted survey.",
+        "summary": "Request rework on a survey (GM/TM/TO/ADMIN)",
+        "description": "Allows a General Manager, Technical Manager, Technical Officer, or Admin to request corrections on a submitted survey.\n\n**Workflow Logic (Per-Certificate Rework):**\n- If `job_certificate_id` is supplied in query or body, only that specific survey status is set to `REWORK_REQUIRED` (using `_skipSurveySync` internally to isolate it).\n- The parent Job status remains as `REVIEWED`, allowing other surveys in the job to progress to finalization.\n- If no `job_certificate_id` is provided, it defaults to the first survey.\n- Job status must be `REVIEWED` (technical document review must have finished) before rework can be requested.\n\n**Roles:** GM, TM, TO, ADMIN\n",
         "operationId": "requestRework",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "x-roles": [
           "GM",
           "TM",
@@ -22504,7 +22624,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Job Request ID"
           },
           {
             "name": "job_certificate_id",
@@ -22514,7 +22635,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "Target a specific certificate's survey (if omitted, applies to first)"
+            "description": "Target specific certificate's survey (optional)"
           }
         ],
         "requestBody": {
@@ -22529,12 +22650,13 @@
                 "properties": {
                   "reason": {
                     "type": "string",
+                    "description": "Reason/feedback for requesting rework",
                     "example": "Incomplete proof for engine section."
                   },
                   "job_certificate_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "Optional — target specific cert"
+                    "description": "Optional alternative target certificate ID"
                   }
                 }
               },
@@ -22546,7 +22668,7 @@
         },
         "responses": {
           "200": {
-            "description": "Rework requested",
+            "description": "Rework requested successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -22570,7 +22692,7 @@
             }
           },
           "400": {
-            "description": "Invalid transition",
+            "description": "Job is not in REVIEWED state, or job is already finalized",
             "content": {
               "application/json": {
                 "schema": {
@@ -22589,7 +22711,7 @@
             }
           },
           "403": {
-            "description": "Forbidden",
+            "description": "Forbidden — caller does not have GM/TM/TO/ADMIN privileges",
             "content": {
               "application/json": {
                 "schema": {

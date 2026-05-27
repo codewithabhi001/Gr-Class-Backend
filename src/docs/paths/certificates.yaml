@@ -125,8 +125,17 @@
 
   post:
     tags: [Certificates]
-    summary: Generate certificate
-    description: Generate a new certificate for a completed job. GM, TM only.
+    summary: Generate draft certificate (GM/TM)
+    description: |
+      Generates a new draft certificate for a completed survey.
+      
+      **Workflow Logic:**
+      - The associated certificate survey must be `FINALIZED`.
+      - **Multi-certificate Jobs**: You **must** provide `job_certificate_id` in the request body to identify which certificate to generate. Otherwise, the request will fail with a `400` status.
+      - **Single-certificate Jobs**: If `job_certificate_id` is omitted, it will automatically fall back to the sole certificate associated with the job.
+      - Transitions the targeted `JobCertificate` to have a `DRAFT` certificate.
+      
+      **Roles:** GM, TM
     security: [{ bearerAuth: [] }]
     operationId: generateCertificate
     x-roles: [GM, TM]
@@ -138,9 +147,11 @@
             $ref: '#/components/schemas/GenerateCertificateRequest'
           example:
             job_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+            job_certificate_id: "019e640c-0000-0000-0000-000000000001"
             validity_years: 1
             flag_administration_id: "7a9b2a10-7b3d-4b2f-9a10-814b0e8a9c77"
             certificate_term: "FULL_TERM"
+
     responses:
       "201":
         description: Certificate generated

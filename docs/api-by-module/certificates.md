@@ -65,7 +65,7 @@ Source: `src/docs/paths/certificates.yaml`
 - `403`: Forbidden (application/json => #/components/schemas/ErrorResponse)
 
 ### 3. POST /api/v1/certificates
-- Summary: Generate certificate
+- Summary: Generate draft certificate (GM/TM)
 - Operation ID: `generateCertificate`
 - Access Roles: GM, TM
 - Action Type: CHANGE (can modify state)

@@ -23,11 +23,26 @@ tags:
   - name: Public
     description: Public APIs (no auth)
   - name: Jobs
-    description: Job lifecycle management
+    description: |
+      Manages the full lifecycle of a service/certification job request (from `CREATED` → `CERTIFIED`).
+      **Role-Based Access Matrix**:
+      * **CLIENT**: Can create jobs (only for vessels in their fleet), list/get own jobs, cancel jobs, and chat via job messages.
+      * **ADMIN**: Unrestricted access to all lifecycle transitions, manual overrides, and internal note/chat logs.
+      * **GM (General Manager)**: Approve incoming job requests, assign/reassign/reschedule surveyors, cancel jobs, change priority, and view histories.
+      * **TM (Technical Manager)**: Reassign surveyors, reschedule dates/ports, authorize field surveys, and reject/cancel jobs.
+      * **TO (Technical Officer)**: Verify uploaded documents (approve/reject single files), review submitted checksheets, and add internal notes.
+      * **SURVEYOR**: View details and chat on assigned jobs only.
   - name: Vessels
     description: Vessel registry and management
   - name: Certificates
-    description: Certificate management and verification
+    description: |
+      Governs marine certificate drafting, issuance, renewal, suspension, and revocation.
+      **Role-Based Access Matrix**:
+      * **CLIENT**: List, preview, and download certificates associated with their vessels.
+      * **GM (General Manager)**: Generate drafts, issue final certificates (moves to `ISSUED` and generates PDF), manually override PDFs, and perform advanced lifecycle management (transfer, extend, downgrade).
+      * **TM (Technical Manager)**: Generate drafts, update drafts, suspend, revoke, restore, and renew certificates.
+      * **ADMIN / TO / TM**: List, get, and review all certificates.
+      * **PUBLIC**: Unauthenticated verification of any certificate using the certificate number.
   - name: Payments
     description: Payment and invoice management
   - name: Dashboard
@@ -37,7 +52,14 @@ tags:
   - name: Health
     description: Health check
   - name: Surveys
-    description: Survey management
+    description: |
+      Handles the execution of field survey operations (checklist execution, evidence proof uploads, GPS streaming, and survey statements).
+      **Role-Based Access Matrix**:
+      * **SURVEYOR**: Start survey check-in, upload evidence proof files, stream live GPS location, sync offline data, and draft survey statements.
+      * **TM (Technical Manager)**: Finalize survey reports (transitions survey to `FINALIZED`), and issue signed survey statements (PDFs).
+      * **GM / TM / TO / ADMIN**: Request rework on any submitted survey (triggers isolation of that specific certificate's checklist for re-evaluation).
+      * **ADMIN / GM / TM / TO / SURVEYOR**: Get timelines and GPS traces.
+
   - name: Surveyors
     description: Surveyor management
   - name: Checklists

@@ -198,48 +198,80 @@
 /api/v1/surveys/jobs/{jobId}/finalize:
   put:
     tags: [Surveys]
-    summary: Finalize all surveys for a job (TM)
+    summary: Finalize submitted surveys for a job (TM/ADMIN)
     description: |
-      TM grants final approval to all survey findings for the job.
-      - Sets all `JobCertificate` surveys to `FINALIZED`.
-      - When all surveys are finalized, Job automatically moves to `FINALIZED`.
-      - Unlocks certificate generation for each `JobCertificate`.
+      Allows a Technical Manager (TM) or Admin to grant final approval to all submitted surveys under a job.
+      
+      **Workflow Logic:**
+      - Non-submitted surveys (e.g. `STARTED` or `REWORK_REQUIRED`) are skipped, enabling other completed surveys on the same job to finalize independently.
+      - Transition: `SUBMITTED → FINALIZED`.
+      - Unlocks certificate drafting and generation for those finalized surveys.
+      - Automatically sets the parent Job status to `FINALIZED` if all of its surveys are finalized.
+      
+      **Roles:** TM, ADMIN
     operationId: finalizeSurvey
-    x-roles: [TM]
+    security: [{ bearerAuth: [] }]
+    x-roles: [TM, ADMIN]
     parameters:
       - name: jobId
         in: path
         required: true
         schema: { type: string, format: uuid }
+        description: Job Request ID
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              skip_validation:
+                type: boolean
+                description: "ADMIN only — Force status directly to FINALIZED, skipping guard checks (E2E testing)"
+                default: false
     responses:
       "200":
-        description: All surveys finalized
+        description: Survey(s) finalized successfully
         content:
           application/json:
             schema:
               type: object
               properties:
                 success: { type: boolean, example: true }
-                message: { type: string, example: "All surveys finalized." }
-      "403": { description: Forbidden }
+                message: { type: string, example: "All surveys finalized. Job is now FINALIZED." }
+      "400":
+        description: No submitted surveys found to finalize
+      "403":
+        description: Forbidden — not a TM or ADMIN
 
 /api/v1/surveys/jobs/{jobId}/rework:
   put:
     tags: [Surveys]
-    summary: Request rework on a survey
-    description: GM, TM, or TO requests corrections on a submitted survey.
+    summary: Request rework on a survey (GM/TM/TO/ADMIN)
+    description: |
+      Allows a General Manager, Technical Manager, Technical Officer, or Admin to request corrections on a submitted survey.
+      
+      **Workflow Logic (Per-Certificate Rework):**
+      - If `job_certificate_id` is supplied in query or body, only that specific survey status is set to `REWORK_REQUIRED` (using `_skipSurveySync` internally to isolate it).
+      - The parent Job status remains as `REVIEWED`, allowing other surveys in the job to progress to finalization.
+      - If no `job_certificate_id` is provided, it defaults to the first survey.
+      - Job status must be `REVIEWED` (technical document review must have finished) before rework can be requested.
+      
+      **Roles:** GM, TM, TO, ADMIN
     operationId: requestRework
+    security: [{ bearerAuth: [] }]
     x-roles: [GM, TM, TO, ADMIN]
     parameters:
       - name: jobId
         in: path
         required: true
         schema: { type: string, format: uuid }
+        description: Job Request ID
       - name: job_certificate_id
         in: query
         required: false
         schema: { type: string, format: uuid }
-        description: Target a specific certificate's survey (if omitted, applies to first)
+        description: Target specific certificate's survey (optional)
     requestBody:
       required: true
       content:
@@ -248,11 +280,17 @@
             type: object
             required: [reason]
             properties:
-              reason: { type: string, example: "Incomplete proof for engine section." }
-              job_certificate_id: { type: string, format: uuid, description: "Optional — target specific cert" }
+              reason:
+                type: string
+                description: Reason/feedback for requesting rework
+                example: "Incomplete proof for engine section."
+              job_certificate_id:
+                type: string
+                format: uuid
+                description: Optional alternative target certificate ID
     responses:
       "200":
-        description: Rework requested
+        description: Rework requested successfully
         content:
           application/json:
             schema:
@@ -260,8 +298,11 @@
               properties:
                 success: { type: boolean, example: true }
                 message: { type: string, example: "Rework requested successfully" }
-      "400": { description: Invalid transition }
-      "403": { description: Forbidden }
+      "400":
+        description: Job is not in REVIEWED state, or job is already finalized
+      "403":
+        description: Forbidden — caller does not have GM/TM/TO/ADMIN privileges
+
 
 /api/v1/surveys/jobs/{jobId}/location:
   post:
