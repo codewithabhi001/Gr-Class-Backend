@@ -59,34 +59,12 @@ const resolveJobAndCert = async (jobId, jobCertificateId = null) => {
  */
 export const getChecklist = async (jobId, filters = {}, user = null) => {
     const { answer, question_code, search, job_certificate_id } = filters;
-
-    if (job_certificate_id) {
-        return await getSingleChecklist(jobId, job_certificate_id, filters, user);
-    } else {
-        const job = await JobRequest.findByPk(jobId, { useMaster: true });
-        if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
-
-        const certificates = await JobCertificate.findAll({
-            where: { job_request_id: jobId },
-            useMaster: true
-        });
-
-        if (!certificates || certificates.length === 0) return [];
-
-        const checklists = [];
-        for (const cert of certificates) {
-            const cl = await getSingleChecklist(jobId, cert.id, filters, user);
-            checklists.push(cl);
-        }
-        return checklists;
-    }
-};
-
-const getSingleChecklist = async (jobId, job_certificate_id, filters, user) => {
-    const { answer, question_code, search } = filters;
     const { job, jobCert, certId, survey } = await resolveJobAndCert(jobId, job_certificate_id);
 
-    const where = certId ? { job_certificate_id: certId } : { job_id: jobId };
+    // Build where clause — use job_certificate_id if available, else fall back to job_id
+    const where = certId
+        ? { job_certificate_id: certId }
+        : { job_id: jobId };
 
     if (answer) where.answer = answer;
     if (question_code) where.question_code = question_code;
@@ -110,8 +88,10 @@ const getSingleChecklist = async (jobId, job_certificate_id, filters, user) => {
     const resolvedItems = await fileAccessService.resolveEntity(items, user);
     await ensureFullFileUrls(resolvedItems);
 
+    // Signed checklist files from the certificate's survey
     const signedFiles = await resolveKeyArray(survey?.signed_checklist_files, user);
 
+    // Checklist template for this certificate type
     let templateMeta = null;
     let templateFiles = [];
     let templateSections = [];
