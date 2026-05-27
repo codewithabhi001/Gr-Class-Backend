@@ -1462,4 +1462,46 @@
                 success: { type: boolean, example: true }
                 data: { $ref: '#/components/schemas/CertificateResponse' }
 
+/api/v1/certificates/{id}/override:
+  post:
+    tags: [Certificates]
+    summary: Override certificate
+    description: Manually uploads/overrides a certificate PDF. GM only.
+    security: [{ bearerAuth: [] }]
+    operationId: overrideCertificate
+    x-roles: [GM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [s3_key]
+            properties:
+              s3_key:
+                type: string
+                description: S3 key of the manually uploaded certificate PDF
+              reason:
+                type: string
+                description: Reason for manual override
+            example:
+              s3_key: "certificates/override-123.pdf"
+              reason: "Original signed copy from flag state"
+    responses:
+      "200":
+        description: Certificate overridden successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data: { $ref: '#/components/schemas/CertificateResponse' }
+
+
 

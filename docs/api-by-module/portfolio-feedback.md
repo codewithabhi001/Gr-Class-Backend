@@ -1,6 +1,15 @@
-# Portfolio Feedback Module API (Actual)
+# Portfolio Feedback Module API
 
-Source YAML: `src/docs/paths/portfolio-feedback.yaml`
+Source: `src/docs/paths/portfolio-feedback.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT, GM, PUBLIC
+- Roles with read access: ADMIN, CLIENT, GM, PUBLIC
+- Roles with change access: ADMIN, CLIENT
+
+## Role Action Matrix (Change Endpoints)
+1. `POST /api/v1/portfolio-feedback` -> CLIENT
+2. `PATCH /api/v1/portfolio-feedback/{id}/visibility` -> ADMIN
 
 ## Routes
 
@@ -8,118 +17,58 @@ Source YAML: `src/docs/paths/portfolio-feedback.yaml`
 - Summary: Get all portfolio feedback (Admin view)
 - Operation ID: `N/A`
 - Access Roles: ADMIN, GM
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
-- `200`: List of feedbacks (application/json => array)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
+- Responses:
+- `200`: List of feedbacks (application/json => array<#/components/schemas/PortfolioFeedback>)
 
 ### 2. POST /api/v1/portfolio-feedback
 - Summary: Submit/Update portfolio feedback (Client view)
 - Operation ID: `N/A`
 - Access Roles: CLIENT
-- Change Access: CLIENT
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - `application/json`: #/components/schemas/PortfolioFeedbackInput
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Feedback submitted (application/json => #/components/schemas/PortfolioFeedbackPublic)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 3. GET /api/v1/portfolio-feedback/my-feedback
 - Summary: Get own portfolio feedback (Client view)
 - Operation ID: `N/A`
 - Access Roles: CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Client feedback (application/json => #/components/schemas/PortfolioFeedbackPublic)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 4. GET /api/v1/portfolio-feedback/public
 - Summary: Get visible portfolio feedback (Public view)
 - Operation ID: `N/A`
 - Access Roles: PUBLIC
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
-- `200`: List of visible feedbacks (application/json => array)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
+- Responses:
+- `200`: List of visible feedbacks (application/json => array<#/components/schemas/PortfolioFeedbackPublic>)
 
 ### 5. PATCH /api/v1/portfolio-feedback/{id}/visibility
 - Summary: Toggle feedback visibility (Admin Only)
 - Operation ID: `N/A`
 - Access Roles: ADMIN
-- Change Access: ADMIN
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - `application/json`: #/components/schemas/PortfolioFeedbackVisibilityInput
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Visibility updated (application/json => #/components/schemas/PortfolioFeedback)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

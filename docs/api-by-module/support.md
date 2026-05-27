@@ -1,6 +1,16 @@
-# Support Module API (Actual)
+# Support Module API
 
-Source YAML: `src/docs/paths/support.yaml`
+Source: `src/docs/paths/support.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with read access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with change access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+
+## Role Action Matrix (Change Endpoints)
+1. `POST /api/v1/support` -> ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+2. `PUT /api/v1/support/{id}` -> ADMIN, GM
+3. `PUT /api/v1/support/{id}/status` -> ADMIN, GM
 
 ## Routes
 
@@ -8,123 +18,63 @@ Source YAML: `src/docs/paths/support.yaml`
 - Summary: Get support tickets
 - Operation ID: `getSupportTickets`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `status` (query, optional, string)
 - `page` (query, optional, integer)
 - `limit` (query, optional, integer)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: List of tickets (application/json => object)
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 2. POST /api/v1/support
 - Summary: Create support ticket
 - Operation ID: `createSupportTicket`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `201`: Ticket created
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 3. GET /api/v1/support/{id}
 - Summary: Get ticket by ID
 - Operation ID: `getSupportTicketById`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Ticket detail (application/json => object)
 - `404`: Ticket not found
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 4. PUT /api/v1/support/{id}
 - Summary: Update ticket status (or use /support/{id}/status)
 - Operation ID: `updateSupportTicketStatus`
 - Access Roles: ADMIN, GM
-- Change Access: ADMIN, GM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Status updated
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 5. PUT /api/v1/support/{id}/status
 - Summary: Update ticket status
 - Operation ID: `updateSupportTicketStatusPath`
 - Access Roles: ADMIN, GM
-- Change Access: ADMIN, GM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Status updated
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

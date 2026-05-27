@@ -1,6 +1,15 @@
-# Notifications Module API (Actual)
+# Notifications Module API
 
-Source YAML: `src/docs/paths/notifications.yaml`
+Source: `src/docs/paths/notifications.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with read access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with change access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+
+## Role Action Matrix (Change Endpoints)
+1. `PUT /api/v1/notifications/{id}/read` -> ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+2. `PUT /api/v1/notifications/read-all` -> ADMIN, GM, TM, TO, SURVEYOR, CLIENT
 
 ## Routes
 
@@ -8,81 +17,34 @@ Source YAML: `src/docs/paths/notifications.yaml`
 - Summary: Get notifications
 - Operation ID: `getNotifications`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: List of notifications retrieved successfully (application/json => array)
-- Controller response envelope(s):
-```js
-{ success: true, data: notifications }
-```
-
-Implementation Trace
-- Route file: `src/modules/notifications/notification.routes.js:8`
-- Controller: `src/modules/notifications/notification.controller.js:3`
-- Service: `src/modules/notifications/notification.service.js:86` (`notificationService.getNotifications`)
-- Models touched: Notification.findAll
-- Service returns (detected): await Notification.findAll({
-        where: { user_id: userId },
-        attributes: ['id', 'title', 'message', 'type', 'is_read', 'created_at'],
-        order: [['created_at', 'DESC']],
-        limit: 50,
-        useReplica: true
-    })
 
 ### 2. PUT /api/v1/notifications/{id}/read
 - Summary: Mark as read
 - Operation ID: `markNotificationRead`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Marked as read
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 3. PUT /api/v1/notifications/read-all
 - Summary: Mark all as read
 - Operation ID: `markAllNotificationsRead`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: All marked as read
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

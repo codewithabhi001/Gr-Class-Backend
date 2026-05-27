@@ -221,3 +221,98 @@
         description: Subscriber list
     x-roles:
       - ADMIN
+
+/api/v1/website/newsletter/unsubscribe:
+  post:
+    tags:
+      - Website
+    summary: Unsubscribe from newsletter
+    description: Remove email from the mailing list.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties:
+              email: { type: string, example: "mariner@example.com" }
+    responses:
+      200:
+        description: Unsubscribed successfully
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/newsletter/unsubscribe-one-click:
+  get:
+    tags:
+      - Website
+    summary: RFC 8058 GET one-click unsubscribe
+    description: Unsubscribes the user using a token query parameter and displays an HTML response.
+    parameters:
+      - name: token
+        in: query
+        required: true
+        schema: { type: string }
+    responses:
+      200:
+        description: HTML response indicating success or failure of unsubscribe
+        content:
+          text/html:
+            schema: { type: string }
+    x-roles:
+      - PUBLIC
+
+  post:
+    tags:
+      - Website
+    summary: RFC 8058 POST one-click unsubscribe (Gmail)
+    description: Unsubscribes the user using a token parameter in query or body. Used by email clients like Gmail.
+    parameters:
+      - name: token
+        in: query
+        required: false
+        schema: { type: string }
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              token: { type: string }
+    responses:
+      204:
+        description: Unsubscribed successfully (No content)
+      400:
+        description: Invalid token
+    x-roles:
+      - PUBLIC
+
+/api/v1/website/newsletter/send:
+  post:
+    tags:
+      - Website
+    summary: Broadcast newsletter to subscribers (Admin Only)
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [subject, message]
+            properties:
+              emails:
+                type: array
+                items: { type: string }
+                description: Optional array of target emails (omitting sends to all subscribers)
+              subject: { type: string, example: "GR-Class Regulatory Update May 2026" }
+              message: { type: string, example: "Dear Mariner, here are the updates..." }
+    responses:
+      200:
+        description: Broadcast sent successfully
+    x-roles:
+      - ADMIN
+

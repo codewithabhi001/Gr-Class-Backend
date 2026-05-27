@@ -1,6 +1,15 @@
-# Toca Module API (Actual)
+# Toca Module API
 
-Source YAML: `src/docs/paths/toca.yaml`
+Source: `src/docs/paths/toca.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, GM, TM
+- Roles with read access: ADMIN, GM, TM
+- Roles with change access: ADMIN, TM
+
+## Role Action Matrix (Change Endpoints)
+1. `POST /api/v1/toca` -> TM
+2. `PUT /api/v1/toca/{id}/status` -> TM, ADMIN
 
 ## Routes
 
@@ -8,96 +17,37 @@ Source YAML: `src/docs/paths/toca.yaml`
 - Summary: Get TOCAs
 - Operation ID: `getTocas`
 - Access Roles: ADMIN, GM, TM
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: List of TOCAs
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-{ success: true, data: list }
-```
-
-Implementation Trace
-- Route file: `src/modules/toca/toca.routes.js:12`
-- Controller: `src/modules/toca/toca.controller.js:17`
-- Service: `src/modules/toca/toca.service.js:22` (`tocaService.getTocas`)
-- Models touched: Toca.findAll
-- Service returns (detected): await Toca.findAll({
-        limit: 10,
-        attributes: ['id', 'vessel_id', 'losing_class_society', 'gaining_class_society', 'request_date', 'status', 'decision_date'],
-        useReplica: true
-    })
 
 ### 2. POST /api/v1/toca
 - Summary: Create TOCA
 - Operation ID: `createToca`
 - Access Roles: TM
-- Change Access: TM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[id], files=[]
-- Validation schema key: `createToca`
-- Joi schema source: `src/middlewares/validate.middleware.js:208`
-```js
-Joi.object({
-        vessel_id: Joi.string().guid().required(),
-        losing_class_society: Joi.string().required(),
-        gaining_class_society: Joi.string().required(),
-        request_date: Joi.date().required(),
-    })
-```
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `201`: TOCA created
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-{ success: true, data: toca }
-```
-
-Implementation Trace
-- Route file: `src/modules/toca/toca.routes.js:10`
-- Controller: `src/modules/toca/toca.controller.js:3`
-- Service: `src/modules/toca/toca.service.js:6` (`tocaService.createToca`)
-- Models touched: Toca.create
-- Service returns (detected): toca
 
 ### 3. PUT /api/v1/toca/{id}/status
 - Summary: Update TOCA status
 - Operation ID: `updateTocaStatus`
 - Access Roles: TM, ADMIN
-- Change Access: TM, ADMIN
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Status updated
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

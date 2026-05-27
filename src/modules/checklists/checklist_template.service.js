@@ -93,17 +93,29 @@ export const getChecklistTemplateById = async (id) => {
  * Get checklist template for a specific job
  * This is what surveyors will use to know what questions to answer
  */
-export const getChecklistTemplateForJob = async (jobId) => {
+export const getChecklistTemplateForJob = async (jobId, jobCertificateId = null) => {
     const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) {
         throw { statusCode: 404, message: 'Job not found' };
     }
 
-    const jobCert = await db.JobCertificate.findOne({
-        where: { job_request_id: jobId },
-        useMaster: true
-    });
-    const certTypeId = jobCert?.certificate_type_id;
+    let certTypeId;
+
+    if (jobCertificateId) {
+        const jobCert = await db.JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+        if (jobCert && jobCert.job_request_id === jobId) {
+            certTypeId = jobCert.certificate_type_id;
+        }
+    }
+
+    if (!certTypeId) {
+        const jobCert = await db.JobCertificate.findOne({
+            where: { job_request_id: jobId },
+            useMaster: true
+        });
+        certTypeId = jobCert?.certificate_type_id;
+    }
+
     if (!certTypeId) {
         throw { statusCode: 400, message: 'No certificate linked to this job request.' };
     }
@@ -138,7 +150,7 @@ export const getChecklistTemplateForJob = async (jobId) => {
 /**
  * Download a job-specific auto-filled checklist (DOCX), generate + cache in documents table.
  */
-export const downloadChecklistTemplateForJob = async (jobId, user, { force = false } = {}) => {
+export const downloadChecklistTemplateForJob = async (jobId, user, { force = false, jobCertificateId = null } = {}) => {
     const job = await JobRequest.findByPk(jobId, {
         include: [
             { model: db.Vessel, include: [{ model: db.Client, as: 'Client' }] },
@@ -148,11 +160,23 @@ export const downloadChecklistTemplateForJob = async (jobId, user, { force = fal
     });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
 
-    const jobCert = await db.JobCertificate.findOne({
-        where: { job_request_id: jobId },
-        useMaster: true
-    });
-    const certTypeId = jobCert?.certificate_type_id;
+    let certTypeId;
+    
+    if (jobCertificateId) {
+        const jobCert = await db.JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+        if (jobCert && jobCert.job_request_id === jobId) {
+            certTypeId = jobCert.certificate_type_id;
+        }
+    }
+
+    if (!certTypeId) {
+        const jobCert = await db.JobCertificate.findOne({
+            where: { job_request_id: jobId },
+            useMaster: true
+        });
+        certTypeId = jobCert?.certificate_type_id;
+    }
+
     if (!certTypeId) {
         throw { statusCode: 400, message: 'No certificate linked to this job' };
     }

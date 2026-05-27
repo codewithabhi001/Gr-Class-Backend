@@ -2816,9 +2816,6 @@
           "vessel_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
-          },
           "target_port": {
             "type": "string"
           },
@@ -2878,25 +2875,28 @@
               }
             }
           },
-          "CertificateType": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UUID"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "survey": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UUID"
-              },
-              "survey_status": {
-                "type": "string"
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "CertificateType": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
           },
@@ -2909,7 +2909,7 @@
         "type": "object",
         "required": [
           "vessel_id",
-          "certificate_type_id",
+          "certificates",
           "reason",
           "target_port",
           "target_date"
@@ -2918,8 +2918,41 @@
           "vessel_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
+          "certificates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "certificate_type_id"
+              ],
+              "properties": {
+                "certificate_type_id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "uploaded_documents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "required_document_id",
+                      "file_url"
+                    ],
+                    "properties": {
+                      "required_document_id": {
+                        "$ref": "#/components/schemas/UUID"
+                      },
+                      "file_url": {
+                        "type": "string"
+                      },
+                      "custom_document_name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "reason": {
             "type": "string",
@@ -2988,9 +3021,6 @@
           "requested_by_user_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
-          },
           "reason": {
             "type": "string"
           },
@@ -3040,10 +3070,6 @@
             "$ref": "#/components/schemas/UUID",
             "nullable": true
           },
-          "generated_certificate_id": {
-            "$ref": "#/components/schemas/UUID",
-            "nullable": true
-          },
           "remarks": {
             "type": "string",
             "nullable": true
@@ -3058,15 +3084,6 @@
             "type": "string",
             "example": "UNPAID"
           },
-          "certificate_url": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
-          },
-          "certificate_number": {
-            "type": "string",
-            "nullable": true
-          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -3078,55 +3095,95 @@
           "Vessel": {
             "$ref": "#/components/schemas/VesselSummary"
           },
-          "CertificateType": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "name": {
-                "type": "string"
-              },
-              "issuing_authority": {
-                "type": "string"
-              }
-            }
-          },
-          "survey": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "survey_status": {
-                "type": "string"
-              },
-              "survey_statement_status": {
-                "type": "string"
-              },
-              "survey_statement_pdf_url": {
-                "type": "string",
-                "format": "uri",
-                "nullable": true
-              },
-              "started_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "submitted_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "signed_checklist_files": {
-                "type": "array",
-                "description": "Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.",
-                "items": {
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "rework_remarks": {
                   "type": "string",
-                  "format": "uri"
+                  "nullable": true
+                },
+                "CertificateType": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "issuing_authority": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "survey": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "survey_status": {
+                      "type": "string"
+                    },
+                    "survey_statement_status": {
+                      "type": "string"
+                    },
+                    "survey_statement_pdf_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "started_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "submitted_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                },
+                "Certificate": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "certificate_number": {
+                      "type": "string"
+                    },
+                    "source_type": {
+                      "type": "string"
+                    },
+                    "uploaded_file_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "generated_pdf_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "pdf_file_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
                 }
               }
             }
@@ -3241,16 +3298,22 @@
             "imo_number": "9876501",
             "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
           },
-          "CertificateType": {
-            "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-            "name": "Safety Equipment Certificate",
-            "issuing_authority": "CLASS"
-          },
-          "survey": {
-            "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-            "survey_status": "NOT_STARTED",
-            "survey_statement_status": "NOT_PREPARED"
-          },
+          "certificates": [
+            {
+              "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+              "status": "PENDING",
+              "CertificateType": {
+                "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                "name": "Safety Equipment Certificate",
+                "issuing_authority": "CLASS"
+              },
+              "survey": {
+                "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                "survey_status": "NOT_STARTED",
+                "survey_statement_status": "NOT_PREPARED"
+              }
+            }
+          ],
           "requester": {
             "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
             "name": "System Admin",
@@ -5970,6 +6033,16 @@
           },
           {
             "in": "query",
+            "name": "job_certificate_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "description": "Target a specific certificate (recommended for multi-cert jobs)"
+          },
+          {
+            "in": "query",
             "name": "answer",
             "schema": {
               "type": "string",
@@ -6132,6 +6205,7 @@
                 "$ref": "#/components/schemas/ChecklistSubmission"
               },
               "example": {
+                "job_certificate_id": "019e640c-0000-0000-0000-000000000001",
                 "items": [
                   {
                     "question_code": "LSE001",
@@ -6567,6 +6641,11 @@
                   "signed_checklist_files"
                 ],
                 "properties": {
+                  "job_certificate_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Target certificate survey"
+                  },
                   "signed_checklist_files": {
                     "type": "array",
                     "items": {
@@ -6576,6 +6655,7 @@
                 }
               },
               "example": {
+                "job_certificate_id": "019e640c-0000-0000-0000-000000000001",
                 "signed_checklist_files": [
                   "surveys/signed-checklists/<jobId>/1714000000000_signed.pdf"
                 ]
@@ -6680,6 +6760,291 @@
           },
           "404": {
             "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checklists/jobs/{jobId}/items/{itemId}/review": {
+      "put": {
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "TO Review checklist item",
+        "description": "Allows a Technical Officer (TO) to approve or reject a specific checklist question answer.\n**Roles:** TO\n",
+        "operationId": "reviewChecklistItem",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-roles": [
+          "TO"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "description": "Unique identifier of the job"
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "description": "Unique identifier of the checklist item/answer"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVED",
+                      "REJECTED"
+                    ],
+                    "description": "Status of the checklist item review"
+                  },
+                  "rejection_reason": {
+                    "type": "string",
+                    "description": "Reason for rejection (required if status is REJECTED)"
+                  },
+                  "job_certificate_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Optional job certificate ID"
+                  }
+                },
+                "example": {
+                  "status": "REJECTED",
+                  "rejection_reason": "Evidence photo is blurry"
+                }
+              },
+              "example": {
+                "status": "REJECTED",
+                "rejection_reason": "Evidence photo is blurry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checklist item reviewed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Item rejected successfully"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Item rejected successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (validation error)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checklists/jobs/{jobId}/signed-files/{fileIndex}/review": {
+      "put": {
+        "tags": [
+          "Checklists"
+        ],
+        "summary": "TO Review signed document scan",
+        "description": "Allows a Technical Officer (TO) to approve or reject a specific uploaded signed checklist document scan (by its index in the array).\n**Roles:** TO\n",
+        "operationId": "reviewSignedDocument",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-roles": [
+          "TO"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "description": "Unique identifier of the job"
+          },
+          {
+            "in": "path",
+            "name": "fileIndex",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "The 0-based index of the signed file to review in the files array"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVED",
+                      "REJECTED"
+                    ],
+                    "description": "Status of the signed document review"
+                  },
+                  "rejection_reason": {
+                    "type": "string",
+                    "description": "Reason for rejection (required if status is REJECTED)"
+                  },
+                  "job_certificate_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Optional job certificate ID"
+                  }
+                },
+                "example": {
+                  "status": "APPROVED"
+                }
+              },
+              "example": {
+                "status": "APPROVED"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed document reviewed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Signed document approved successfully"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Signed document approved successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (validation error)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error_code": "VALIDATION_ERROR",
+                  "message": "Validation failed. Please correct the highlighted fields.",
+                  "errors": {
+                    "vessel_id": "vessel_id is required"
+                  },
+                  "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {

@@ -94,6 +94,51 @@
       "201": { description: Registered }
       "403": { description: Forbidden }
 
+/api/v1/documents/get-presigned-url:
+  post:
+    tags: [Documents]
+    summary: Get a pre-signed URL to read/view a file from S3
+    description: |
+      Generates a short-lived temporary signed URL to view/download a file from S3 using its key.
+      **Roles:** ADMIN, GM, TM, TO, SURVEYOR, CLIENT
+    security: [{ bearerAuth: [] }]
+    operationId: getPresignedReadUrl
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [fileKey]
+            properties:
+              fileKey:
+                type: string
+                description: The S3 key of the file to retrieve
+              expiresIn:
+                type: integer
+                default: 3600
+                description: Time in seconds for the link to remain valid
+            example:
+              fileKey: "surveys/checklist-evidence/123/proof.jpg"
+              expiresIn: 3600
+    responses:
+      "200":
+        description: Pre-signed URL generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    signedUrl: { type: string, example: "https://bucket.s3.amazonaws.com/surveys/checklist-evidence/123/proof.jpg?AWSAccessKeyId=..." }
+                    fileKey: { type: string, example: "surveys/checklist-evidence/123/proof.jpg" }
+                    expiresIn: { type: integer, example: 3600 }
+
+
 /api/v1/documents/{entityType}/{entityId}/register:
   post:
     tags: [Documents]

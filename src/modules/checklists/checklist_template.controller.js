@@ -52,7 +52,7 @@ export const getChecklistTemplateById = async (req, res, next) => {
  */
 export const getChecklistTemplateForJob = async (req, res, next) => {
     try {
-        const template = await checklistTemplateService.getChecklistTemplateForJob(req.params.jobId);
+        const template = await checklistTemplateService.getChecklistTemplateForJob(req.params.jobId, req.query.job_certificate_id);
         res.json({
             success: true,
             data: template,
@@ -69,7 +69,7 @@ export const getChecklistTemplateForJob = async (req, res, next) => {
 export const downloadChecklistTemplateForJob = async (req, res, next) => {
     try {
         const force = String(req.query.force || '').toLowerCase() === 'true';
-        const data = await checklistTemplateService.downloadChecklistTemplateForJob(req.params.jobId, req.user, { force });
+        const data = await checklistTemplateService.downloadChecklistTemplateForJob(req.params.jobId, req.user, { force, jobCertificateId: req.query.job_certificate_id });
         res.json({ success: true, data });
     } catch (error) {
         next(error);

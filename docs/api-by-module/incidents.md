@@ -1,6 +1,15 @@
-# Incidents Module API (Actual)
+# Incidents Module API
 
-Source YAML: `src/docs/paths/incidents.yaml`
+Source: `src/docs/paths/incidents.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT, GM, TM, TO
+- Roles with read access: ADMIN, CLIENT, GM, TM, TO
+- Roles with change access: ADMIN, CLIENT, GM, TM
+
+## Role Action Matrix (Change Endpoints)
+1. `POST /api/v1/incidents` -> CLIENT, ADMIN, GM, TM
+2. `PUT /api/v1/incidents/{id}/status` -> ADMIN, GM, TM
 
 ## Routes
 
@@ -8,119 +17,52 @@ Source YAML: `src/docs/paths/incidents.yaml`
 - Summary: Get incidents
 - Operation ID: `getIncidents`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `page` (query, optional, integer)
 - `limit` (query, optional, integer)
 - `status` (query, optional, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: List of incidents (application/json => object)
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-{ success: true, data: result }
-```
-
-Implementation Trace
-- Route file: `src/modules/incidents/incident.routes.js:10`
-- Controller: `src/modules/incidents/incident.controller.js:19`
-- Service: `src/modules/incidents/incident.service.js:24` (`incidentService.getIncidents`)
-- Models touched: N/A
-- Service returns (detected): N/A
 
 ### 2. POST /api/v1/incidents
 - Summary: Report incident
 - Operation ID: `reportIncident`
 - Access Roles: CLIENT, ADMIN, GM, TM
-- Change Access: CLIENT, ADMIN, GM, TM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[role, client_id, id], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `201`: Incident reported
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-{ success: true, data: result }
-```
-
-Implementation Trace
-- Route file: `src/modules/incidents/incident.routes.js:9`
-- Controller: `src/modules/incidents/incident.controller.js:11`
-- Service: `src/modules/incidents/incident.service.js:9` (`incidentService.reportIncident`)
-- Models touched: Vessel.findOne, Incident.create
-- Service returns (detected): await Incident.create({
-        ...data,
-        reported_by: userId,
-        status: 'OPEN'
-    })
 
 ### 3. GET /api/v1/incidents/{id}
 - Summary: Get incident by ID
 - Operation ID: `getIncidentById`
 - Access Roles: CLIENT, ADMIN, GM, TM, TO
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[id], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Incident detail (application/json => object)
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-{ success: true, data: result }
-```
-
-Implementation Trace
-- Route file: `src/modules/incidents/incident.routes.js:11`
-- Controller: `src/modules/incidents/incident.controller.js:27`
-- Service: `src/modules/incidents/incident.service.js:63` (`incidentService.getIncidentById`)
-- Models touched: N/A
-- Service returns (detected): N/A
 
 ### 4. PUT /api/v1/incidents/{id}/status
 - Summary: Update incident status
 - Operation ID: `updateIncidentStatus`
 - Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Status updated
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

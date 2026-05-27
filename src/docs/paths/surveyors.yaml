@@ -60,6 +60,72 @@
       "201": { description: Surveyor created }
       "403": { description: Forbidden }
 
+/api/v1/surveyors/get-upload-url:
+  get:
+    tags: [Surveyors]
+    summary: Get public upload URLs for surveyor application documents
+    description: |
+      Generates pre-signed S3 upload URLs for public surveyor applicants to upload
+      their CV, ID Proof, and certificates.
+      **Roles:** PUBLIC (unauthenticated)
+    security: []
+    operationId: getSurveyorUploadUrls
+    x-roles: [PUBLIC]
+    parameters:
+      - name: cv_filename
+        in: query
+        description: CV filename
+        schema: { type: string }
+      - name: cv_mimetype
+        in: query
+        description: CV file MIME type
+        schema: { type: string, default: "application/pdf" }
+      - name: id_proof_filename
+        in: query
+        description: ID proof filename
+        schema: { type: string }
+      - name: id_proof_mimetype
+        in: query
+        description: ID proof MIME type
+        schema: { type: string, default: "application/pdf" }
+      - name: certificate_filenames
+        in: query
+        description: Comma-separated list or JSON array of certificate filenames
+        schema: { type: string }
+      - name: certificate_mimetypes
+        in: query
+        description: Comma-separated list or JSON array of certificate MIME types
+        schema: { type: string }
+    responses:
+      "200":
+        description: Pre-signed upload URLs generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                data:
+                  type: object
+                  properties:
+                    cv:
+                      type: object
+                      properties:
+                        key: { type: string, example: "surveyors/cv/uuid-cv.pdf" }
+                        uploadUrl: { type: string, example: "https://s3.example.com/upload-cv-url" }
+                    id_proof:
+                      type: object
+                      properties:
+                        key: { type: string, example: "surveyors/id-proof/uuid-id.pdf" }
+                        uploadUrl: { type: string, example: "https://s3.example.com/upload-id-url" }
+                    certificates:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          key: { type: string, example: "surveyors/certificates/uuid-cert.pdf" }
+                          uploadUrl: { type: string, example: "https://s3.example.com/upload-cert-url" }
+
 /api/v1/surveyors/apply:
   post:
     tags: [Surveyors]

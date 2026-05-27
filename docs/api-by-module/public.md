@@ -1,6 +1,14 @@
-# Public Module API (Actual)
+# Public Module API
 
-Source YAML: `src/docs/paths/public.yaml`
+Source: `src/docs/paths/public.yaml`
+
+## Access Summary
+- Roles with any access: PUBLIC
+- Roles with read access: PUBLIC
+- Roles with change access: N/A
+
+## Role Action Matrix (Change Endpoints)
+- No write/change endpoint in this module.
 
 ## Routes
 
@@ -8,70 +16,34 @@ Source YAML: `src/docs/paths/public.yaml`
 - Summary: Verify certificate (public)
 - Operation ID: `verifyCertificatePublic`
 - Access Roles: PUBLIC
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `number` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Certificate verification result
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 2. GET /api/v1/public/vessel/{imo}
 - Summary: Verify vessel by IMO (public)
 - Operation ID: `N/A`
 - Access Roles: PUBLIC
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `imo` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Vessel verification result
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 3. GET /api/v1/public/flags
 - Summary: Get public flags list (public)
 - Operation ID: `N/A`
 - Access Roles: PUBLIC
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: List of active flags with minimal info
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

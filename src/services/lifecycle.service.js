@@ -161,7 +161,8 @@ export const updateJobStatus = async (jobId, newStatus, userId, reason = null, o
             }
 
             // Sync Status: If Job moves to REWORK, all non-finalized Surveys must follow
-            if (newStatus === 'REWORK_REQUESTED') {
+            // UNLESS _skipSurveySync is true (used for per-certificate rework)
+            if (newStatus === 'REWORK_REQUESTED' && !options._skipSurveySync) {
                 const surveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map(jc => jc.id) }, transaction: txn });
                 for (const survey of surveys) {
                     if (!['FINALIZED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {

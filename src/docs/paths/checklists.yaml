@@ -368,3 +368,130 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
+
+/api/v1/checklists/jobs/{jobId}/items/{itemId}/review:
+  put:
+    tags:
+      - Checklists
+    summary: TO Review checklist item
+    description: |
+      Allows a Technical Officer (TO) to approve or reject a specific checklist question answer.
+      **Roles:** TO
+    operationId: reviewChecklistItem
+    security:
+      - bearerAuth: []
+    x-roles: [TO]
+    parameters:
+      - in: path
+        name: jobId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: Unique identifier of the job
+      - in: path
+        name: itemId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: Unique identifier of the checklist item/answer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [APPROVED, REJECTED]
+                description: Status of the checklist item review
+              rejection_reason:
+                type: string
+                description: Reason for rejection (required if status is REJECTED)
+              job_certificate_id:
+                type: string
+                format: uuid
+                description: Optional job certificate ID
+            example:
+              status: "REJECTED"
+              rejection_reason: "Evidence photo is blurry"
+    responses:
+      '200':
+        description: Checklist item reviewed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Item rejected successfully" }
+      '400':
+        description: Bad Request (validation error)
+      '403':
+        description: Forbidden
+
+/api/v1/checklists/jobs/{jobId}/signed-files/{fileIndex}/review:
+  put:
+    tags:
+      - Checklists
+    summary: TO Review signed document scan
+    description: |
+      Allows a Technical Officer (TO) to approve or reject a specific uploaded signed checklist document scan (by its index in the array).
+      **Roles:** TO
+    operationId: reviewSignedDocument
+    security:
+      - bearerAuth: []
+    x-roles: [TO]
+    parameters:
+      - in: path
+        name: jobId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: Unique identifier of the job
+      - in: path
+        name: fileIndex
+        schema:
+          type: integer
+        required: true
+        description: The 0-based index of the signed file to review in the files array
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [APPROVED, REJECTED]
+                description: Status of the signed document review
+              rejection_reason:
+                type: string
+                description: Reason for rejection (required if status is REJECTED)
+              job_certificate_id:
+                type: string
+                format: uuid
+                description: Optional job certificate ID
+            example:
+              status: "APPROVED"
+    responses:
+      '200':
+        description: Signed document reviewed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Signed document approved successfully" }
+      '400':
+        description: Bad Request (validation error)
+      '403':
+        description: Forbidden
+

@@ -1,6 +1,14 @@
-# Health Module API (Actual)
+# Health Module API
 
-Source YAML: `src/docs/paths/health.yaml`
+Source: `src/docs/paths/health.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with read access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with change access: N/A
+
+## Role Action Matrix (Change Endpoints)
+- No write/change endpoint in this module.
 
 ## Routes
 
@@ -8,25 +16,10 @@ Source YAML: `src/docs/paths/health.yaml`
 - Summary: Health check
 - Operation ID: `getHealth`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Server is healthy (application/json => object)
-- Controller response envelope(s):
-```js
-{ success: true, data: { status: 'UP', timestamp: new Date() } }
-```
-
-Implementation Trace
-- Route file: `src/modules/system/system.routes.js:9`
-- Controller: `src/modules/system/system.controller.js:45`
-- Services: N/A

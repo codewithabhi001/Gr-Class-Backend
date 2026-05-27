@@ -1942,8 +1942,6 @@ components:
           type: string
         vessel_id:
           $ref: '#/components/schemas/UUID'
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
         target_port:
           type: string
         target_date:
@@ -1984,35 +1982,49 @@ components:
               type: string
             imo_number:
               type: string
-        CertificateType:
-          type: object
-          properties:
-            id:
-              $ref: '#/components/schemas/UUID'
-            name:
-              type: string
-        survey:
-          type: object
-          properties:
-            id:
-              $ref: '#/components/schemas/UUID'
-            survey_status:
-              type: string
+        certificates:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/UUID'
+              status:
+                type: string
+              CertificateType:
+                type: object
+                properties:
+                  id: {$ref: '#/components/schemas/UUID'}
+                  name: {type: string}
         payment_status:
           type: string
     JobCreateRequest:
       type: object
       required:
         - vessel_id
-        - certificate_type_id
+        - certificates
         - reason
         - target_port
         - target_date
       properties:
         vessel_id:
           $ref: '#/components/schemas/UUID'
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
+        certificates:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - certificate_type_id
+            properties:
+              certificate_type_id:
+                $ref: '#/components/schemas/UUID'
+              uploaded_documents:
+                type: array
+                items:
+                  type: object
+                  required: [required_document_id, file_url]
+                  properties: {required_document_id: {$ref: '#/components/schemas/UUID'}, file_url: {type: string}, custom_document_name: {type: string}}
         reason:
           type: string
           example: 'Annual survey due'
@@ -2060,8 +2072,6 @@ components:
           $ref: '#/components/schemas/UUID'
         requested_by_user_id:
           $ref: '#/components/schemas/UUID'
-        certificate_type_id:
-          $ref: '#/components/schemas/UUID'
         reason:
           type: string
         target_port:
@@ -2101,9 +2111,6 @@ components:
         approved_by_user_id:
           $ref: '#/components/schemas/UUID'
           nullable: true
-        generated_certificate_id:
-          $ref: '#/components/schemas/UUID'
-          nullable: true
         remarks:
           type: string
           nullable: true
@@ -2114,13 +2121,6 @@ components:
         payment_status:
           type: string
           example: UNPAID
-        certificate_url:
-          type: string
-          format: uri
-          nullable: true
-        certificate_number:
-          type: string
-          nullable: true
         created_at:
           type: string
           format: date-time
@@ -2129,44 +2129,42 @@ components:
           format: date-time
         Vessel:
           $ref: '#/components/schemas/VesselSummary'
-        CertificateType:
-          type: object
-          properties:
-            id:
-              type: string
-              format: uuid
-            name:
-              type: string
-            issuing_authority:
-              type: string
-        survey:
-          type: object
-          properties:
-            id:
-              type: string
-              format: uuid
-            survey_status:
-              type: string
-            survey_statement_status:
-              type: string
-            survey_statement_pdf_url:
-              type: string
-              format: uri
-              nullable: true
-            started_at:
-              type: string
-              format: date-time
-              nullable: true
-            submitted_at:
-              type: string
-              format: date-time
-              nullable: true
-            signed_checklist_files:
-              type: array
-              description: 'Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.'
-              items:
+        certificates:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/UUID'
+              status:
                 type: string
-                format: uri
+              rework_remarks:
+                type: string
+                nullable: true
+              CertificateType:
+                type: object
+                properties:
+                  id: {type: string, format: uuid}
+                  name: {type: string}
+                  issuing_authority: {type: string}
+              survey:
+                type: object
+                properties:
+                  id: {type: string, format: uuid}
+                  survey_status: {type: string}
+                  survey_statement_status: {type: string}
+                  survey_statement_pdf_url: {type: string, format: uri, nullable: true}
+                  started_at: {type: string, format: date-time, nullable: true}
+                  submitted_at: {type: string, format: date-time, nullable: true}
+              Certificate:
+                type: object
+                properties:
+                  id: {type: string, format: uuid}
+                  certificate_number: {type: string}
+                  source_type: {type: string}
+                  uploaded_file_url: {type: string, format: uri, nullable: true}
+                  generated_pdf_url: {type: string, format: uri, nullable: true}
+                  pdf_file_url: {type: string, format: uri, nullable: true}
         ActivityPlannings:
           type: array
           description: 'List of checklist items and surveyor findings for this job.'
@@ -2246,14 +2244,18 @@ components:
           vessel_name: 'MV Pacific Guardian'
           imo_number: '9876501'
           client_id: 019c79a4-3ab9-7055-a1a7-9d7332fb025e
-        CertificateType:
-          id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede
-          name: 'Safety Equipment Certificate'
-          issuing_authority: CLASS
-        survey:
-          id: 019d7c59-7f7e-768d-a9a5-00cb91079432
-          survey_status: NOT_STARTED
-          survey_statement_status: NOT_PREPARED
+        certificates:
+          -
+            id: 019d3ac5-3464-74f9-891e-f6eda7ee366c
+            status: PENDING
+            CertificateType:
+              id: 019cbf1d-bdc2-75e8-9fc8-3d161ae90ede
+              name: 'Safety Equipment Certificate'
+              issuing_authority: CLASS
+            survey:
+              id: 019d7c59-7f7e-768d-a9a5-00cb91079432
+              survey_status: NOT_STARTED
+              survey_statement_status: NOT_PREPARED
         requester:
           id: 019c79a4-3eee-731a-9eff-b0eed303e215
           name: 'System Admin'
@@ -4151,8 +4153,8 @@ paths:
     post:
       tags:
         - Surveys
-      summary: 'Start survey (Check-in)'
-      description: 'Surveyor checks in at the vessel location. Sets job status to IN_PROGRESS.'
+      summary: 'Start survey / Check-in (per certificate)'
+      description: "Surveyor checks in at the vessel location for a **specific certificate**.\nA separate check-in is required for each `JobCertificate` in the job.\n\n- Sets that certificate's survey status to `STARTED`.\n- Records a GPS entry scoped to this certificate's survey.\n- When the **first** certificate survey is started, the parent Job status moves to `IN_PROGRESS`.\n"
       operationId: startSurvey
       x-roles:
         - SURVEYOR
@@ -4163,26 +4165,30 @@ paths:
             schema:
               type: object
               required:
-                - job_id
                 - latitude
                 - longitude
               properties:
                 job_id:
                   type: string
                   format: uuid
+                  description: 'Job Request ID (provide either this OR job_certificate_id)'
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'The specific certificate to start survey for (preferred)'
                 latitude:
                   type: number
-                  example: 1.3521
+                  example: 19.076
                 longitude:
                   type: number
-                  example: 103.8198
+                  example: 72.8777
             example:
-              job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-              latitude: 1.3521
-              longitude: 103.8198
+              job_certificate_id: 019e640c-0000-0000-0000-000000000001
+              latitude: 19.076
+              longitude: 72.8777
       responses:
         '201':
-          description: 'Survey started'
+          description: 'Survey started for this certificate'
           content:
             application/json:
               schema:
@@ -4190,16 +4196,30 @@ paths:
                 properties:
                   success: {type: boolean, example: true}
                   message: {type: string, example: 'Survey Started'}
-                  data: {type: object, properties: {message: {type: string}, job_id: {type: string, format: uuid}, started_at: {type: string, format: date-time}}}
+                  data: {type: object, properties: {survey_id: {type: string, format: uuid}, job_certificate_id: {type: string, format: uuid}, job_id: {type: string, format: uuid}, started_at: {type: string, format: date-time}}}
               example:
                 success: true
                 message: 'Survey Started'
                 data:
-                  message: string
+                  survey_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+                  job_certificate_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
                   job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
                   started_at: '2026-03-15T10:00:00.000Z'
+        '400':
+          description: 'Survey already started or invalid state'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: Forbidden
+          description: 'Forbidden — not the assigned surveyor'
           content:
             application/json:
               schema:
@@ -4215,8 +4235,8 @@ paths:
     post:
       tags:
         - Surveys
-      summary: 'Submit survey report (Check-out)'
-      description: 'Surveyor submits final findings and attendance photo. Sets job status to SURVEY_DONE. Requires checklist submission first.'
+      summary: 'Submit survey report / Check-out (per certificate)'
+      description: "Surveyor submits final findings for a **specific certificate**. Each\n`JobCertificate` has its own independent survey that must be submitted\nseparately.\n\n- Sets this certificate's survey to `SUBMITTED`.\n- When **all** certificates' surveys are `SUBMITTED`, the parent Job status\n  automatically advances to `SURVEY_DONE`.\n\n**Note:** In production, `photoKey` and `signatureKey` are required (obtained\nfrom pre-signed S3 upload URLs). For E2E testing, `skip_validation: true`\n(ADMIN only) bypasses these file checks.\n"
       operationId: submitSurveyReport
       x-roles:
         - SURVEYOR
@@ -4225,25 +4245,23 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - job_id
-                - submit_latitude
-                - submit_longitude
               properties:
                 job_id:
                   type: string
                   format: uuid
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'The specific certificate being surveyed (preferred)'
                 submit_latitude:
                   type: number
-                  description: 'Latitude at submission (check-out)'
+                  description: 'GPS latitude at submission'
                 submit_longitude:
                   type: number
-                  description: 'Longitude at submission (check-out)'
+                  description: 'GPS longitude at submission'
                 survey_statement:
                   type: string
-                  description: 'Final statement (optional if already drafted)'
-                reason_if_outside:
-                  type: string
+                  description: 'Final findings statement'
                 photo:
                   type: string
                   format: binary
@@ -4254,49 +4272,60 @@ paths:
                   description: 'Surveyor digital signature'
                 photoKey:
                   type: string
-                  description: 'S3 key for attendance photo (if already uploaded)'
+                  description: 'S3 key for attendance photo (if pre-uploaded)'
                 signatureKey:
                   type: string
-                  description: 'S3 key for surveyor signature (if already uploaded)'
+                  description: 'S3 key for signature (if pre-uploaded)'
+                skip_validation:
+                  type: boolean
+                  description: 'ADMIN only — skip file/GPS checks (E2E testing)'
             example:
               job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+              job_certificate_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
               submit_latitude: 1.5
               submit_longitude: 1.5
+              survey_statement: string
+              photo: file.bin
+              signature: file.bin
+              photoKey: string
+              signatureKey: string
+              skip_validation: true
           application/json:
             schema:
               type: object
-              required:
-                - job_id
-                - submit_latitude
-                - submit_longitude
-                - photoKey
-                - signatureKey
               properties:
                 job_id:
                   type: string
                   format: uuid
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'The specific certificate (preferred)'
                 submit_latitude:
                   type: number
                 submit_longitude:
                   type: number
                 survey_statement:
                   type: string
-                  description: 'Final statement (optional if already drafted)'
                 photoKey:
                   type: string
                   description: 'S3 key for attendance photo'
                 signatureKey:
                   type: string
                   description: 'S3 key for surveyor signature'
+                skip_validation:
+                  type: boolean
+                  default: false
+                  description: 'ADMIN only — bypass file/GPS checks'
             example:
-              job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-              submit_latitude: 1.5
-              submit_longitude: 1.5
-              photoKey: string
-              signatureKey: string
+              job_certificate_id: 019e640c-0000-0000-0000-000000000001
+              submit_latitude: 19.076
+              submit_longitude: 72.8777
+              survey_statement: 'Vessel hull in satisfactory condition. Anti-fouling paint intact.'
+              skip_validation: false
       responses:
         '201':
-          description: 'Survey submitted'
+          description: 'Survey submitted for this certificate'
           content:
             application/json:
               schema:
@@ -4319,6 +4348,19 @@ paths:
                   declaration_hash: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e
                   started_at: '2026-02-25T10:00:00Z'
                   submitted_at: '2026-02-25T12:00:00Z'
+        '400':
+          description: 'Checklist/proof incomplete or invalid state'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error_code: VALIDATION_ERROR
+                message: 'Validation failed. Please correct the highlighted fields.'
+                errors:
+                  vessel_id: 'vessel_id is required'
+                trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
           description: Forbidden
           content:
@@ -4360,6 +4402,14 @@ paths:
           in: query
           schema:
             type: string
+            enum:
+              - NOT_STARTED
+              - STARTED
+              - CHECKLIST_SUBMITTED
+              - PROOF_UPLOADED
+              - SUBMITTED
+              - REWORK_REQUIRED
+              - FINALIZED
         -
           name: surveyor_id
           in: query
@@ -4375,7 +4425,7 @@ paths:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  data: {type: object, properties: {total: {type: integer, example: 50}, page: {type: integer, example: 1}, limit: {type: integer, example: 10}, totalPages: {type: integer, example: 5}, status_counts: {type: array, items: {$ref: '#/components/schemas/StatusCount'}}, rows: {type: array, items: {$ref: '#/components/schemas/SurveyListResponse'}}}}
+                  data: {type: object, properties: {total: {type: integer, example: 50}, page: {type: integer, example: 1}, limit: {type: integer, example: 10}, totalPages: {type: integer, example: 5}, rows: {type: array, items: {$ref: '#/components/schemas/SurveyListResponse'}}}}
               example:
                 success: true
                 data:
@@ -4383,14 +4433,13 @@ paths:
                   page: 1
                   limit: 10
                   totalPages: 5
-                  status_counts: [{status: CREATED, count: 5}]
                   rows: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, job_id: string, surveyor_id: string, survey_status: NOT_STARTED, submission_count: 1, started_at: '2026-03-15T10:00:00.000Z', submitted_at: '2026-03-15T10:00:00.000Z', finalized_at: '2026-03-15T10:00:00.000Z', survey_statement_status: NOT_PREPARED, survey_statement_pdf_url: 'https://example.com/resource', signed_checklist_files: [string], JobRequest: {id: string, job_status: string, Vessel: {vessel_name: string, imo_number: string}}, User: {name: string, email: string}}]
   '/api/v1/surveys/jobs/{jobId}':
     get:
       tags:
         - Surveys
-      summary: 'Get survey details'
-      description: 'Fetches full details of a survey for a specific job, including related objects.'
+      summary: 'Get all surveys for a job'
+      description: "Returns all surveys for a job — one per `JobCertificate`. Each survey\ncontains its own checklist items, GPS trace, and status.\n"
       operationId: getSurveyDetails
       x-roles:
         - ADMIN
@@ -4406,9 +4455,18 @@ paths:
           schema:
             type: string
             format: uuid
+          description: 'Job Request ID'
+        -
+          name: job_certificate_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: 'Filter to a specific certificate''s survey'
       responses:
         '200':
-          description: 'Survey details fetched'
+          description: 'Survey details (array for multi-cert jobs)'
           content:
             application/json:
               schema:
@@ -4448,8 +4506,8 @@ paths:
     put:
       tags:
         - Surveys
-      summary: 'Finalize survey'
-      description: 'TM grants final approval to the survey findings. Unlocks certificate generation.'
+      summary: 'Finalize all surveys for a job (TM)'
+      description: "TM grants final approval to all survey findings for the job.\n- Sets all `JobCertificate` surveys to `FINALIZED`.\n- When all surveys are finalized, Job automatically moves to `FINALIZED`.\n- Unlocks certificate generation for each `JobCertificate`.\n"
       operationId: finalizeSurvey
       x-roles:
         - TM
@@ -4463,17 +4521,17 @@ paths:
             format: uuid
       responses:
         '200':
-          description: 'Survey finalized'
+          description: 'All surveys finalized'
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Survey Finalized.'}
+                  message: {type: string, example: 'All surveys finalized.'}
               example:
                 success: true
-                message: 'Survey Finalized.'
+                message: 'All surveys finalized.'
         '403':
           description: Forbidden
           content:
@@ -4491,8 +4549,8 @@ paths:
     put:
       tags:
         - Surveys
-      summary: 'Request Rework'
-      description: 'GM or TM requests corrections/rework on a submitted survey.'
+      summary: 'Request rework on a survey'
+      description: 'GM, TM, or TO requests corrections on a submitted survey.'
       operationId: requestRework
       x-roles:
         - GM
@@ -4507,6 +4565,14 @@ paths:
           schema:
             type: string
             format: uuid
+        -
+          name: job_certificate_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: 'Target a specific certificate''s survey (if omitted, applies to first)'
       requestBody:
         required: true
         content:
@@ -4519,6 +4585,10 @@ paths:
                 reason:
                   type: string
                   example: 'Incomplete proof for engine section.'
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'Optional — target specific cert'
             example:
               reason: 'Incomplete proof for engine section.'
       responses:
@@ -4564,8 +4634,8 @@ paths:
     post:
       tags:
         - Surveys
-      summary: 'Stream live location'
-      description: 'Real-time GPS tracking during survey execution.'
+      summary: 'Stream live GPS location (per certificate)'
+      description: "Real-time GPS tracking during survey execution.\nGPS points are now scoped to the specific `JobCertificate` survey.\n"
       operationId: streamLocation
       x-roles:
         - SURVEYOR
@@ -4590,6 +4660,10 @@ paths:
                   type: number
                 longitude:
                   type: number
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'Certificate being surveyed'
             example:
               latitude: 1.5
               longitude: 1.5
@@ -4610,8 +4684,8 @@ paths:
     post:
       tags:
         - Surveys
-      summary: 'Upload survey evidence'
-      description: 'Supplemental photos or documents for the survey. Multiple uploads are allowed until final submission. Moves survey status to PROOF_UPLOADED if in a previous state.'
+      summary: 'Upload survey evidence proof (per certificate)'
+      description: "Upload supplemental photos or documents for a specific certificate's survey.\nMoves that certificate's survey to `PROOF_UPLOADED`.\n"
       operationId: uploadProof
       x-roles:
         - SURVEYOR
@@ -4632,8 +4706,16 @@ paths:
                 proof:
                   type: string
                   format: binary
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                skip_validation:
+                  type: boolean
+                  description: 'ADMIN only — bypass state guards'
             example:
               proof: file.bin
+              job_certificate_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+              skip_validation: true
           application/json:
             schema:
               type: object
@@ -4641,8 +4723,12 @@ paths:
                 fileKey:
                   type: string
                   description: 'S3 key for evidence proof'
+                job_certificate_id:
+                  type: string
+                  format: uuid
             example:
               fileKey: string
+              job_certificate_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
       responses:
         '201':
           description: 'Proof uploaded'
@@ -4660,8 +4746,8 @@ paths:
     get:
       tags:
         - Surveys
-      summary: 'Get survey execution timeline'
-      description: 'Analytical view of survey duration and GPS variance.'
+      summary: 'Get survey execution timeline (all certificates)'
+      description: "Returns GPS trace and status history for all certificate surveys of this job.\nGPS points are now scoped per `JobCertificate`.\n"
       operationId: getSurveyTimeline
       x-roles:
         - ADMIN
@@ -4679,7 +4765,7 @@ paths:
             format: uuid
       responses:
         '200':
-          description: 'Survey timeline fetched'
+          description: 'Survey timeline'
           content:
             application/json:
               schema:
@@ -4698,7 +4784,6 @@ paths:
       tags:
         - Surveys
       summary: 'Flag survey violation'
-      description: 'Flag discrepancies found in survey execution (e.g. location mismatch).'
       operationId: flagViolation
       x-roles:
         - TM
@@ -4727,8 +4812,8 @@ paths:
     post:
       tags:
         - Surveys
-      summary: 'Draft survey statement / Generate Preview'
-      description: "Saves the survey statement text and/or triggers report generation.\n- **SURVEYOR**: Required to provide `survey_statement` text. Cannot see the PDF.\n- **TM/ADMIN**: Can provide new text OR leave it empty to trigger/refresh the branded \"**DRAFT**\" PDF using existing findings.\n"
+      summary: 'Draft survey statement / Generate preview'
+      description: "Saves the survey statement text and/or triggers report generation.\n- **SURVEYOR**: Must provide `survey_statement` text.\n- **TM/ADMIN**: Can leave empty to trigger/refresh the branded \"DRAFT\" PDF.\n"
       operationId: draftSurveyStatement
       x-roles:
         - SURVEYOR
@@ -4751,19 +4836,23 @@ paths:
               properties:
                 survey_statement:
                   type: string
-                  description: 'Text findings. Required for surveyors; optional for management to trigger PDF.'
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'Target specific cert'
             example:
               survey_statement: string
+              job_certificate_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
       responses:
         '200':
-          description: 'Success. Returns message and, for management, the signed PDF URL.'
+          description: 'Statement drafted'
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  data: {type: object, properties: {message: {type: string}, status: {type: string, example: DRAFTED}, pdf_url: {type: string, format: uri, description: 'Only returned for TM/ADMIN'}}}
+                  data: {type: object, properties: {message: {type: string}, status: {type: string, example: DRAFTED}, pdf_url: {type: string, format: uri, description: 'Only for TM/ADMIN'}}}
               example:
                 success: true
                 data:
@@ -4775,7 +4864,7 @@ paths:
       tags:
         - Surveys
       summary: 'Issue signed survey statement (PDF)'
-      description: 'Finalizes and issues the statement as an official document. Removes the "DRAFT" watermark. If no file is uploaded, the system automatically uses the most recent automated draft.'
+      description: 'Finalizes the statement as official. Removes "DRAFT" watermark.'
       operationId: issueSurveyStatement
       x-roles:
         - TM
@@ -4805,7 +4894,6 @@ paths:
               properties:
                 fileKey:
                   type: string
-                  description: 'S3 key for signed PDF'
             example:
               fileKey: string
       responses:
@@ -4826,7 +4914,7 @@ paths:
       tags:
         - Surveys
       summary: 'Offline sync — replay batched data'
-      description: "Replays batched checklist answers and GPS points captured offline.\nThe surveyor's mobile app collects data while offline and sends it\nin a single batch when connectivity is restored.\n\n**Payload shape:**\n- `checklist` — array of checklist answers to upsert\n- `gps_points` — array of GPS pings to bulk-create\n\nAll items are written atomically inside a single transaction.\n"
+      description: "Replays checklist answers and GPS points captured while offline.\nInclude `job_certificate_id` to scope data to the correct certificate survey.\n"
       operationId: syncOfflineData
       x-roles:
         - SURVEYOR
@@ -4845,43 +4933,44 @@ paths:
             schema:
               type: object
               properties:
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'The certificate being surveyed offline'
                 checklist:
                   type: array
-                  description: 'Checklist answers captured offline'
-                  items: {type: object, required: [question_code, question_text, answer], properties: {question_code: {type: string, example: Q1}, question_text: {type: string, example: 'Is the fire extinguisher inspected?'}, answer: {type: string, example: YES}, remarks: {type: string, example: 'All in order'}}}
+                  items: {type: object, required: [question_code, question_text, answer], properties: {question_code: {type: string, example: Q1}, question_text: {type: string}, answer: {type: string, enum: [YES, NO, NA]}, remarks: {type: string}}}
                 gps_points:
                   type: array
-                  description: 'GPS pings captured offline with timestamps'
-                  items: {type: object, required: [latitude, longitude], properties: {latitude: {type: number, example: 1.3521}, longitude: {type: number, example: 103.8198}, captured_at: {type: string, format: date-time, description: 'When the GPS point was captured (defaults to now)'}}}
+                  items: {type: object, required: [latitude, longitude], properties: {latitude: {type: number}, longitude: {type: number}, captured_at: {type: string, format: date-time}}}
             example:
+              job_certificate_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
               checklist:
                 -
                   question_code: Q1
-                  question_text: 'Is the fire extinguisher inspected?'
+                  question_text: string
                   answer: YES
-                  remarks: 'All in order'
               gps_points:
                 -
-                  latitude: 1.3521
-                  longitude: 103.8198
-                  captured_at: '2026-05-22T10:30:00.000Z'
+                  latitude: 1.5
+                  longitude: 1.5
       responses:
         '200':
-          description: 'Offline data synced successfully'
+          description: 'Offline data synced'
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   success: {type: boolean, example: true}
-                  message: {type: string, example: 'Offline data synced successfully.'}
-                  synced: {type: object, properties: {checklist_items: {type: integer, example: 5}, gps_points: {type: integer, example: 12}}}
+                  message: {type: string}
+                  synced: {type: object, properties: {checklist_items: {type: integer}, gps_points: {type: integer}}}
               example:
                 success: true
-                message: 'Offline data synced successfully.'
+                message: string
                 synced:
-                  checklist_items: 5
-                  gps_points: 12
+                  checklist_items: 1
+                  gps_points: 1
         '400':
           description: 'Invalid job state or surveyor mismatch'
           content:
@@ -4896,7 +4985,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: 'Forbidden — caller is not the assigned surveyor'
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -4909,7 +4998,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '404':
-          description: 'Job or survey not found'
+          description: 'Job not found'
           content:
             application/json:
               schema:

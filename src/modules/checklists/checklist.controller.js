@@ -80,7 +80,7 @@ export const reviewChecklistItem = async (req, res, next) => {
 export const reviewSignedDocument = async (req, res, next) => {
     try {
         const result = await checklistService.reviewSignedDocument(
-            req.params.jobId, req.params.fileIndex, req.body, req.user
+            req.params.jobId, req.params.fileIndex, req.body, req.user, req.body.job_certificate_id
         );
         res.json({ success: true, data: result });
     } catch (error) { next(error); }

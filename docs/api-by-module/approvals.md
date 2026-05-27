@@ -1,6 +1,15 @@
-# Approvals Module API (Actual)
+# Approvals Module API
 
-Source YAML: `src/docs/paths/approvals.yaml`
+Source: `src/docs/paths/approvals.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, GM, TM
+- Roles with read access: N/A
+- Roles with change access: ADMIN, GM, TM
+
+## Role Action Matrix (Change Endpoints)
+1. `POST /api/v1/approvals` -> ADMIN, GM, TM
+2. `PUT /api/v1/approvals/{id}/step` -> ADMIN, GM, TM
 
 ## Routes
 
@@ -8,53 +17,24 @@ Source YAML: `src/docs/paths/approvals.yaml`
 - Summary: Create approval
 - Operation ID: `createApproval`
 - Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `201`: Approval created
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-result
-```
-
-Implementation Trace
-- Route file: `src/modules/approvals/approval.routes.js:9`
-- Controller: `src/modules/approvals/approval.controller.js:3`
-- Service: `src/modules/approvals/approval.service.js:4` (`approvalService.createApproval`)
-- Models touched: Approval.create
-- Service returns (detected): await Approval.create({ ...data, status: 'PENDING' })
 
 ### 2. PUT /api/v1/approvals/{id}/step
 - Summary: Update approval step
 - Operation ID: `updateApprovalStep`
 - Access Roles: ADMIN, GM, TM
-- Change Access: ADMIN, GM, TM
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - `application/json`: object
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Step updated
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A

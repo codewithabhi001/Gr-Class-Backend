@@ -1,6 +1,14 @@
-# Search Module API (Actual)
+# Search Module API
 
-Source YAML: `src/docs/paths/search.yaml`
+Source: `src/docs/paths/search.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with read access: ADMIN, CLIENT, GM, SURVEYOR, TM, TO
+- Roles with change access: N/A
+
+## Role Action Matrix (Change Endpoints)
+- No write/change endpoint in this module.
 
 ## Routes
 
@@ -8,34 +16,11 @@ Source YAML: `src/docs/paths/search.yaml`
 - Summary: Global search
 - Operation ID: `globalSearch`
 - Access Roles: ADMIN, GM, TM, TO, SURVEYOR, CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `q` (query, required, string)
 - `type` (query, optional, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Search results (application/json => object)
-- Controller response envelope(s):
-```js
-{ success: true, data: result }
-```
-
-Implementation Trace
-- Route file: `src/modules/search/search.routes.js:8`
-- Controller: `src/modules/search/search.controller.js:3`
-- Service: `src/modules/search/search.service.js:8` (`searchService.globalSearch`)
-- Models touched: Vessel.findAll, JobRequest.findAll, Certificate.findAll
-- Service returns (detected): empty jobs
-            jobWhere = { id: null } | empty certificates
-            certWhere = { id: null } | {
-        vessels: vessels.map(flatSearchVesselRow),
-        jobs: jobs.map(flatSearchJobRow),
-        certificates: certificates.map(flatSearchCertificateRow),
-    }

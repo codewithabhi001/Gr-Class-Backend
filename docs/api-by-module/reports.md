@@ -1,6 +1,14 @@
-# Reports Module API (Actual)
+# Reports Module API
 
-Source YAML: `src/docs/paths/reports.yaml`
+Source: `src/docs/paths/reports.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, GM, TM
+- Roles with read access: ADMIN, GM, TM
+- Roles with change access: N/A
+
+## Role Action Matrix (Change Endpoints)
+- No write/change endpoint in this module.
 
 ## Routes
 
@@ -8,118 +16,50 @@ Source YAML: `src/docs/paths/reports.yaml`
 - Summary: Certificate report
 - Operation ID: `getCertificateReport`
 - Access Roles: ADMIN, GM, TM
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Certificate report
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-report
-```
-
-Implementation Trace
-- Route file: `src/modules/reports/report.routes.js:10`
-- Controller: `src/modules/reports/report.controller.js:9`
-- Service: `src/modules/reports/report.service.js:32` (`reportService.getCertificateReport`)
-- Models touched: N/A
-- Service returns (detected): N/A
 
 ### 2. GET /api/v1/reports/surveyors
 - Summary: Surveyor report
 - Operation ID: `getSurveyorReport`
 - Access Roles: ADMIN, GM, TM
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Surveyor report
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-report
-```
-
-Implementation Trace
-- Route file: `src/modules/reports/report.routes.js:11`
-- Controller: `src/modules/reports/report.controller.js:24`
-- Service: `src/modules/reports/report.service.js:70` (`reportService.getSurveyorPerformanceReport`)
-- Models touched: N/A
-- Service returns (detected): N/A
 
 ### 3. GET /api/v1/reports/non-conformities
 - Summary: Non-conformity report
 - Operation ID: `getNonConformityReport`
 - Access Roles: ADMIN, GM, TM
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: NC report
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-report
-```
-
-Implementation Trace
-- Route file: `src/modules/reports/report.routes.js:12`
-- Controller: `src/modules/reports/report.controller.js:39`
-- Service: `src/modules/reports/report.service.js:116` (`reportService.getNonConformityReport`)
-- Models touched: N/A
-- Service returns (detected): N/A
 
 ### 4. GET /api/v1/reports/financials
 - Summary: Financial report
 - Operation ID: `getFinancialReport`
 - Access Roles: ADMIN, GM, TM
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - None
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[format], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Financial report
 - `403`: Forbidden
-- Controller response envelope(s):
-```js
-report
-```
-
-Implementation Trace
-- Route file: `src/modules/reports/report.routes.js:13`
-- Controller: `src/modules/reports/report.controller.js:54`
-- Service: `src/modules/reports/report.service.js:122` (`reportService.getFinancialReport`)
-- Models touched: N/A
-- Service returns (detected): N/A

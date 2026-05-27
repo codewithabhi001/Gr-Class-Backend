@@ -402,8 +402,8 @@ export const generateCertificate = async (data, user) => {
         if (!job) throw { statusCode: 404, message: 'Job not found' };
 
         // ── Guard 1: Job status ──
-        if (!skip_validation && job.job_status !== 'FINALIZED' && job.job_status !== 'PAYMENT_DONE') {
-            throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED or PAYMENT_DONE. Current: ${job.job_status}` };
+        if (!skip_validation && !['FINALIZED', 'PAYMENT_DONE', 'REWORK_REQUESTED', 'SURVEY_DONE', 'REVIEWED'].includes(job.job_status)) {
+            throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED, PAYMENT_DONE, REWORK_REQUESTED, SURVEY_DONE or REVIEWED. Current: ${job.job_status}` };
         }
 
         if (!jobCert) {

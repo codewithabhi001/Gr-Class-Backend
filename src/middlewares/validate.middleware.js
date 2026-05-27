@@ -187,7 +187,8 @@ export const schemas = {
             is: 'REJECTED',
             then: Joi.string().required(),
             otherwise: Joi.string().allow('', null).optional()
-        })
+        }),
+        job_certificate_id: Joi.string().guid().allow('', null).optional()
     }),
     updateGps: Joi.object({
         latitude: Joi.number().required(),

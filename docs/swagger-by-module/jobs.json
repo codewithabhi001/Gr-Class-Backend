@@ -2816,9 +2816,6 @@
           "vessel_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
-          },
           "target_port": {
             "type": "string"
           },
@@ -2878,25 +2875,28 @@
               }
             }
           },
-          "CertificateType": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UUID"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "survey": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UUID"
-              },
-              "survey_status": {
-                "type": "string"
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "CertificateType": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
           },
@@ -2909,7 +2909,7 @@
         "type": "object",
         "required": [
           "vessel_id",
-          "certificate_type_id",
+          "certificates",
           "reason",
           "target_port",
           "target_date"
@@ -2918,8 +2918,41 @@
           "vessel_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
+          "certificates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "certificate_type_id"
+              ],
+              "properties": {
+                "certificate_type_id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "uploaded_documents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "required_document_id",
+                      "file_url"
+                    ],
+                    "properties": {
+                      "required_document_id": {
+                        "$ref": "#/components/schemas/UUID"
+                      },
+                      "file_url": {
+                        "type": "string"
+                      },
+                      "custom_document_name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "reason": {
             "type": "string",
@@ -2988,9 +3021,6 @@
           "requested_by_user_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
-          },
           "reason": {
             "type": "string"
           },
@@ -3040,10 +3070,6 @@
             "$ref": "#/components/schemas/UUID",
             "nullable": true
           },
-          "generated_certificate_id": {
-            "$ref": "#/components/schemas/UUID",
-            "nullable": true
-          },
           "remarks": {
             "type": "string",
             "nullable": true
@@ -3058,15 +3084,6 @@
             "type": "string",
             "example": "UNPAID"
           },
-          "certificate_url": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
-          },
-          "certificate_number": {
-            "type": "string",
-            "nullable": true
-          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -3078,55 +3095,95 @@
           "Vessel": {
             "$ref": "#/components/schemas/VesselSummary"
           },
-          "CertificateType": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "name": {
-                "type": "string"
-              },
-              "issuing_authority": {
-                "type": "string"
-              }
-            }
-          },
-          "survey": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "survey_status": {
-                "type": "string"
-              },
-              "survey_statement_status": {
-                "type": "string"
-              },
-              "survey_statement_pdf_url": {
-                "type": "string",
-                "format": "uri",
-                "nullable": true
-              },
-              "started_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "submitted_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "signed_checklist_files": {
-                "type": "array",
-                "description": "Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.",
-                "items": {
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "rework_remarks": {
                   "type": "string",
-                  "format": "uri"
+                  "nullable": true
+                },
+                "CertificateType": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "issuing_authority": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "survey": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "survey_status": {
+                      "type": "string"
+                    },
+                    "survey_statement_status": {
+                      "type": "string"
+                    },
+                    "survey_statement_pdf_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "started_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "submitted_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                },
+                "Certificate": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "certificate_number": {
+                      "type": "string"
+                    },
+                    "source_type": {
+                      "type": "string"
+                    },
+                    "uploaded_file_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "generated_pdf_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "pdf_file_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
                 }
               }
             }
@@ -3241,16 +3298,22 @@
             "imo_number": "9876501",
             "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
           },
-          "CertificateType": {
-            "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-            "name": "Safety Equipment Certificate",
-            "issuing_authority": "CLASS"
-          },
-          "survey": {
-            "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-            "survey_status": "NOT_STARTED",
-            "survey_statement_status": "NOT_PREPARED"
-          },
+          "certificates": [
+            {
+              "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+              "status": "PENDING",
+              "CertificateType": {
+                "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                "name": "Safety Equipment Certificate",
+                "issuing_authority": "CLASS"
+              },
+              "survey": {
+                "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                "survey_status": "NOT_STARTED",
+                "survey_statement_status": "NOT_PREPARED"
+              }
+            }
+          ],
           "requester": {
             "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
             "name": "System Admin",
@@ -6270,16 +6333,20 @@
               },
               "example": {
                 "vessel_id": "019c574f-0991-7758-b696-03bb416c7433",
-                "certificate_type_id": "019c79a4-55ba-773c-9454-f6bee169ab03",
+                "certificates": [
+                  {
+                    "certificate_type_id": "019c79a4-55ba-773c-9454-f6bee169ab03",
+                    "uploaded_documents": [
+                      {
+                        "required_document_id": "019c4001-0002-7000-a000-000000000001",
+                        "file_url": "https://cdn.example.com/docs/reg-cert.pdf"
+                      }
+                    ]
+                  }
+                ],
                 "reason": "Annual survey due",
                 "target_port": "Singapore",
-                "target_date": "2026-04-15",
-                "uploaded_documents": [
-                  {
-                    "required_document_id": "019c4001-0002-7000-a000-000000000001",
-                    "file_url": "https://cdn.example.com/docs/reg-cert.pdf"
-                  }
-                ]
+                "target_date": "2026-04-15"
               }
             }
           }
@@ -6323,16 +6390,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -6508,16 +6581,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -6767,16 +6846,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -6963,16 +7048,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -7160,16 +7251,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -7351,16 +7448,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -7544,16 +7647,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -7740,16 +7849,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -7936,16 +8051,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -8128,16 +8249,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -8325,16 +8452,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -8523,16 +8656,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",
@@ -8729,16 +8868,22 @@
                       "imo_number": "9876501",
                       "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
                     },
-                    "CertificateType": {
-                      "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-                      "name": "Safety Equipment Certificate",
-                      "issuing_authority": "CLASS"
-                    },
-                    "survey": {
-                      "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-                      "survey_status": "NOT_STARTED",
-                      "survey_statement_status": "NOT_PREPARED"
-                    },
+                    "certificates": [
+                      {
+                        "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+                        "status": "PENDING",
+                        "CertificateType": {
+                          "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                          "name": "Safety Equipment Certificate",
+                          "issuing_authority": "CLASS"
+                        },
+                        "survey": {
+                          "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                          "survey_status": "NOT_STARTED",
+                          "survey_statement_status": "NOT_PREPARED"
+                        }
+                      }
+                    ],
                     "requester": {
                       "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
                       "name": "System Admin",

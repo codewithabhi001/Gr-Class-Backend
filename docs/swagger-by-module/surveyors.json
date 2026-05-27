@@ -2816,9 +2816,6 @@
           "vessel_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
-          },
           "target_port": {
             "type": "string"
           },
@@ -2878,25 +2875,28 @@
               }
             }
           },
-          "CertificateType": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UUID"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "survey": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UUID"
-              },
-              "survey_status": {
-                "type": "string"
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "CertificateType": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
           },
@@ -2909,7 +2909,7 @@
         "type": "object",
         "required": [
           "vessel_id",
-          "certificate_type_id",
+          "certificates",
           "reason",
           "target_port",
           "target_date"
@@ -2918,8 +2918,41 @@
           "vessel_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
+          "certificates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "certificate_type_id"
+              ],
+              "properties": {
+                "certificate_type_id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "uploaded_documents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "required_document_id",
+                      "file_url"
+                    ],
+                    "properties": {
+                      "required_document_id": {
+                        "$ref": "#/components/schemas/UUID"
+                      },
+                      "file_url": {
+                        "type": "string"
+                      },
+                      "custom_document_name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "reason": {
             "type": "string",
@@ -2988,9 +3021,6 @@
           "requested_by_user_id": {
             "$ref": "#/components/schemas/UUID"
           },
-          "certificate_type_id": {
-            "$ref": "#/components/schemas/UUID"
-          },
           "reason": {
             "type": "string"
           },
@@ -3040,10 +3070,6 @@
             "$ref": "#/components/schemas/UUID",
             "nullable": true
           },
-          "generated_certificate_id": {
-            "$ref": "#/components/schemas/UUID",
-            "nullable": true
-          },
           "remarks": {
             "type": "string",
             "nullable": true
@@ -3058,15 +3084,6 @@
             "type": "string",
             "example": "UNPAID"
           },
-          "certificate_url": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
-          },
-          "certificate_number": {
-            "type": "string",
-            "nullable": true
-          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -3078,55 +3095,95 @@
           "Vessel": {
             "$ref": "#/components/schemas/VesselSummary"
           },
-          "CertificateType": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "name": {
-                "type": "string"
-              },
-              "issuing_authority": {
-                "type": "string"
-              }
-            }
-          },
-          "survey": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "survey_status": {
-                "type": "string"
-              },
-              "survey_statement_status": {
-                "type": "string"
-              },
-              "survey_statement_pdf_url": {
-                "type": "string",
-                "format": "uri",
-                "nullable": true
-              },
-              "started_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "submitted_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "signed_checklist_files": {
-                "type": "array",
-                "description": "Resolved (signed) HTTPS URLs of surveyor uploaded signed checklist scans.",
-                "items": {
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "rework_remarks": {
                   "type": "string",
-                  "format": "uri"
+                  "nullable": true
+                },
+                "CertificateType": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "issuing_authority": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "survey": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "survey_status": {
+                      "type": "string"
+                    },
+                    "survey_statement_status": {
+                      "type": "string"
+                    },
+                    "survey_statement_pdf_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "started_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "submitted_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                },
+                "Certificate": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "certificate_number": {
+                      "type": "string"
+                    },
+                    "source_type": {
+                      "type": "string"
+                    },
+                    "uploaded_file_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "generated_pdf_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "pdf_file_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    }
+                  }
                 }
               }
             }
@@ -3241,16 +3298,22 @@
             "imo_number": "9876501",
             "client_id": "019c79a4-3ab9-7055-a1a7-9d7332fb025e"
           },
-          "CertificateType": {
-            "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
-            "name": "Safety Equipment Certificate",
-            "issuing_authority": "CLASS"
-          },
-          "survey": {
-            "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
-            "survey_status": "NOT_STARTED",
-            "survey_statement_status": "NOT_PREPARED"
-          },
+          "certificates": [
+            {
+              "id": "019d3ac5-3464-74f9-891e-f6eda7ee366c",
+              "status": "PENDING",
+              "CertificateType": {
+                "id": "019cbf1d-bdc2-75e8-9fc8-3d161ae90ede",
+                "name": "Safety Equipment Certificate",
+                "issuing_authority": "CLASS"
+              },
+              "survey": {
+                "id": "019d7c59-7f7e-768d-a9a5-00cb91079432",
+                "survey_status": "NOT_STARTED",
+                "survey_statement_status": "NOT_PREPARED"
+              }
+            }
+          ],
           "requester": {
             "id": "019c79a4-3eee-731a-9eff-b0eed303e215",
             "name": "System Admin",
@@ -6149,6 +6212,156 @@
                     "vessel_id": "vessel_id is required"
                   },
                   "trace_id": "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/surveyors/get-upload-url": {
+      "get": {
+        "tags": [
+          "Surveyors"
+        ],
+        "summary": "Get public upload URLs for surveyor application documents",
+        "description": "Generates pre-signed S3 upload URLs for public surveyor applicants to upload\ntheir CV, ID Proof, and certificates.\n**Roles:** PUBLIC (unauthenticated)\n",
+        "security": [],
+        "operationId": "getSurveyorUploadUrls",
+        "x-roles": [
+          "PUBLIC"
+        ],
+        "parameters": [
+          {
+            "name": "cv_filename",
+            "in": "query",
+            "description": "CV filename",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cv_mimetype",
+            "in": "query",
+            "description": "CV file MIME type",
+            "schema": {
+              "type": "string",
+              "default": "application/pdf"
+            }
+          },
+          {
+            "name": "id_proof_filename",
+            "in": "query",
+            "description": "ID proof filename",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id_proof_mimetype",
+            "in": "query",
+            "description": "ID proof MIME type",
+            "schema": {
+              "type": "string",
+              "default": "application/pdf"
+            }
+          },
+          {
+            "name": "certificate_filenames",
+            "in": "query",
+            "description": "Comma-separated list or JSON array of certificate filenames",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "certificate_mimetypes",
+            "in": "query",
+            "description": "Comma-separated list or JSON array of certificate MIME types",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pre-signed upload URLs generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "cv": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "example": "surveyors/cv/uuid-cv.pdf"
+                            },
+                            "uploadUrl": {
+                              "type": "string",
+                              "example": "https://s3.example.com/upload-cv-url"
+                            }
+                          }
+                        },
+                        "id_proof": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "example": "surveyors/id-proof/uuid-id.pdf"
+                            },
+                            "uploadUrl": {
+                              "type": "string",
+                              "example": "https://s3.example.com/upload-id-url"
+                            }
+                          }
+                        },
+                        "certificates": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string",
+                                "example": "surveyors/certificates/uuid-cert.pdf"
+                              },
+                              "uploadUrl": {
+                                "type": "string",
+                                "example": "https://s3.example.com/upload-cert-url"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "cv": {
+                      "key": "surveyors/cv/uuid-cv.pdf",
+                      "uploadUrl": "https://s3.example.com/upload-cv-url"
+                    },
+                    "id_proof": {
+                      "key": "surveyors/id-proof/uuid-id.pdf",
+                      "uploadUrl": "https://s3.example.com/upload-id-url"
+                    },
+                    "certificates": [
+                      {
+                        "key": "surveyors/certificates/uuid-cert.pdf",
+                        "uploadUrl": "https://s3.example.com/upload-cert-url"
+                      }
+                    ]
+                  }
                 }
               }
             }

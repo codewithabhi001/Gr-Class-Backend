@@ -1,6 +1,14 @@
-# Compliance Module API (Actual)
+# Compliance Module API
 
-Source YAML: `src/docs/paths/compliance.yaml`
+Source: `src/docs/paths/compliance.yaml`
+
+## Access Summary
+- Roles with any access: ADMIN, CLIENT
+- Roles with read access: ADMIN, CLIENT
+- Roles with change access: ADMIN
+
+## Role Action Matrix (Change Endpoints)
+1. `POST /api/v1/compliance/anonymize/{id}` -> ADMIN
 
 ## Routes
 
@@ -8,48 +16,24 @@ Source YAML: `src/docs/paths/compliance.yaml`
 - Summary: Export data
 - Operation ID: `complianceExport`
 - Access Roles: ADMIN, CLIENT
-- Change Access: N/A (read endpoint)
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: READ (view only)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Export data
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
 
 ### 2. POST /api/v1/compliance/anonymize/{id}
 - Summary: Anonymize data
 - Operation ID: `complianceAnonymize`
 - Access Roles: ADMIN
-- Change Access: ADMIN
-
-Request (Code + Schema)
-- Route Params/Query from YAML:
+- Action Type: CHANGE (can modify state)
+- Path/Query/Header Params:
 - `id` (path, required, string)
-- Request Body from YAML:
+- Request Body:
 - None
-- Req usage in controller: params=[], query=[], body=[], user=[], files=[]
-- Validation schema key: `N/A`
-
-Response (Actual)
-- YAML response map:
+- Responses:
 - `200`: Data anonymized
 - `403`: Forbidden
-- Controller response envelope(s): N/A
-
-Implementation Trace
-- Route file: `N/A`
-- Controller: `N/A`
-- Services: N/A
