@@ -59,7 +59,11 @@ const requireSurvey = async (jobId) => {
     // jobId here refers to the job_request_id; find via JobCertificate
     const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
     if (!jobCerts.length) throw { statusCode: 404, message: 'No certificates found for this job.' };
-    const survey = await Survey.findOne({ where: { job_certificate_id: jobCerts.map(jc => jc.id) }, useMaster: true });
+    // BUG FIX: Must use Op.in for array of IDs — findOne with a bare array is not valid SQL
+    const survey = await Survey.findOne({
+        where: { job_certificate_id: { [db.Sequelize.Op.in]: jobCerts.map(jc => jc.id) } },
+        useMaster: true
+    });
     if (!survey) throw { statusCode: 404, message: 'Survey report not found. Please start the survey inspection first.' };
     return survey;
 };
@@ -70,7 +74,11 @@ const requireSurvey = async (jobId) => {
 const requireAllSurveys = async (jobId) => {
     const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
     if (!jobCerts.length) return [];
-    return Survey.findAll({ where: { job_certificate_id: jobCerts.map(jc => jc.id) }, useMaster: true });
+    // BUG FIX: Must use Op.in for array of IDs
+    return Survey.findAll({
+        where: { job_certificate_id: { [db.Sequelize.Op.in]: jobCerts.map(jc => jc.id) } },
+        useMaster: true
+    });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -460,9 +468,10 @@ export const finalizeSurvey = async (jobId, user, { skip_validation = false } = 
 /**
  * Allowed only when survey is SUBMITTED and job has not passed FINALIZED.
  */
-export const requestRework = async (jobId, reason, userId) => {
+export const requestRework = async (jobId, reason, userId, jobCertificateId = null) => {
     const job = await assertJobAccessible(jobId, userId, { checkSurveyor: false });
 
+    // Rework can only be requested after TO has reviewed all documents
     if (job.job_status !== 'REVIEWED') {
         throw { statusCode: 400, message: 'Rework can only be requested after the Technical Officer has reviewed all documents.' };
     }
@@ -471,13 +480,92 @@ export const requestRework = async (jobId, reason, userId) => {
         throw { statusCode: 400, message: `Rework cannot be requested when job is ${job.job_status}.` };
     }
 
+    // ── Per-Certificate Rework ──────────────────────────────────────────────
+    // When job_certificate_id is provided, only THAT certificate's survey goes
+    // to REWORK_REQUIRED. The job itself stays in REVIEWED so the surveyor can
+    // resubmit just that one certificate without affecting others.
+    if (jobCertificateId) {
+        const jc = await db.JobCertificate.findOne({
+            where: { id: jobCertificateId, job_request_id: jobId },
+            useMaster: true
+        });
+        if (!jc) {
+            throw { statusCode: 404, message: 'Certificate not found for this job.' };
+        }
+
+        const survey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
+        if (!survey) {
+            throw { statusCode: 404, message: 'Survey not found for this certificate.' };
+        }
+        if (!['SUBMITTED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
+            throw { statusCode: 400, message: `Rework can only be requested for submitted surveys. Current status: ${survey.survey_status}` };
+        }
+
+        const rejectedItems = await ActivityPlanning.count({
+            where: { job_certificate_id: jobCertificateId, status: 'REJECTED' },
+            useMaster: true
+        });
+        const rejectedFiles = (survey.signed_checklist_files || []).filter(f => f.status === 'REJECTED').length;
+
+        let finalReason = reason;
+        if (rejectedItems > 0 || rejectedFiles > 0) {
+            finalReason = `Granular Rejection: ${rejectedItems} items and ${rejectedFiles} documents rejected. ${reason || ''}`.trim();
+        }
+
+        // Mark JobCertificate with REWORK_REQUESTED status and rework remarks
+        await jc.update({ status: 'REWORK_REQUESTED', rework_remarks: finalReason });
+
+        // Set survey to REWORK_REQUIRED — with _skipJobSync so job stays REVIEWED
+        // for now; we check below whether ALL certs are in rework.
+        await lifecycleService.updateSurveyStatus(survey.id, 'REWORK_REQUIRED', userId, finalReason, { _skipJobSync: true });
+
+        // ── Maritime rule: if EVERY survey is now REWORK_REQUIRED, advance job ──
+        // This handles "all certs need rework" consistently with the global rework path.
+        const allJobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+        const allSurveys  = await Survey.findAll({
+            where: { job_certificate_id: { [db.Sequelize.Op.in]: allJobCerts.map(c => c.id) } },
+            useMaster: true
+        });
+        const allNeedRework = allSurveys.length > 0 &&
+            allSurveys.every(s => ['REWORK_REQUIRED'].includes(s.survey_status));
+
+        let jobStatusOutcome = 'REVIEWED';
+        if (allNeedRework) {
+            // All certs need rework → advance job to REWORK_REQUESTED
+            await lifecycleService.updateJobStatus(jobId, 'REWORK_REQUESTED', userId,
+                `All certificates require rework. Triggered by per-cert rework on ${jc.certificate_type_id}.`);
+            jobStatusOutcome = 'REWORK_REQUESTED';
+        }
+
+        const jobWithVessel = await JobRequest.findByPk(jobId, { include: ['Vessel'], useMaster: true });
+        if (job.assigned_surveyor_id) {
+            const certType = await db.CertificateType.findByPk(jc.certificate_type_id, { useMaster: true });
+            notificationService.sendNotification(job.assigned_surveyor_id, 'SURVEY_REWORK_REQUESTED', {
+                jobId, vesselName: jobWithVessel.Vessel.vessel_name,
+                reason: finalReason,
+                certificate_name: certType?.name || 'Certificate'
+            }).catch(() => { });
+        }
+
+        const msg = allNeedRework
+            ? `Rework requested for all certificates. Job moved to REWORK_REQUESTED.`
+            : `Rework requested for certificate ${jc.certificate_type_id}. Job remains in REVIEWED — other certificates can still proceed.`;
+        return { message: msg, job_status: jobStatusOutcome };
+    }
+
+    // ── Legacy: Global Rework (no specific certificate) ────────────────────
+    // Backward-compatible: finds ANY submitted survey and requests rework.
     const surveys = await requireAllSurveys(jobId);
     const submittedSurvey = surveys.find(s => s.survey_status === 'SUBMITTED');
     if (!submittedSurvey) {
         throw { statusCode: 400, message: `Rework can only be requested for submitted survey reports.` };
     }
 
-    const rejectedItems = await ActivityPlanning.count({ where: { job_id: jobId, status: 'REJECTED' }, useMaster: true });
+    // BUG FIX: ActivityPlanning is scoped by job_certificate_id, not job_id
+    const rejectedItems = await ActivityPlanning.count({
+        where: { job_certificate_id: submittedSurvey.job_certificate_id, status: 'REJECTED' },
+        useMaster: true
+    });
     const rejectedFiles = (submittedSurvey.signed_checklist_files || []).filter(f => f.status === 'REJECTED').length;
 
     let finalReason = reason;
@@ -522,8 +610,9 @@ const generateSurveyReportPdf = async (survey, user) => {
     });
     const job = jc?.JobRequest;
     const surveyor = await User.findByPk(survey.surveyor_id, { attributes: ['name'], useMaster: true });
+    // BUG FIX: Checklist scoped by job_certificate_id, not job_id
     const checklist = await ActivityPlanning.findAll({
-        where: { job_id: jc?.job_request_id },
+        where: { job_certificate_id: survey.job_certificate_id },
         attributes: ['question_text', 'answer', 'remarks', 'file_url'],
         useMaster: true
     });
@@ -769,7 +858,8 @@ export const getSurveyDetails = async (jobId, user) => {
         order: [[db.SurveyStatusHistory, 'createdAt', 'ASC']]
     });
 
-    if (!surveys.length) throw { statusCode: 404, message: 'Survey report not found for this job.' };
+    // Return empty array if no surveys yet (job may be newly ASSIGNED/AUTHORIZED)
+    if (!surveys.length) return [];
 
     return await fileAccessService.resolveEntity(surveys, { id: user?.id });
 };
@@ -817,10 +907,12 @@ export const streamLocation = async (jobId, { latitude, longitude }, userId) => 
 /**
  * Generates a pre-signed URL for the surveyor to upload a signed checklist scan.
  */
-export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId) => {
+export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId, jobCertificateId = null) => {
     await assertJobAccessible(jobId, userId, { checkSurveyor: true });
-    
-    const key = `surveys/signed-checklists/${jobId}/${Date.now()}_${fileName}`;
+
+    // BUG FIX: Scope key to job_certificate_id so concurrent cert uploads don't overwrite each other
+    const certSegment = jobCertificateId ? jobCertificateId : jobId;
+    const key = `surveys/signed-checklists/${certSegment}/${Date.now()}_${fileName}`;
     const signedUrl = await s3Service.getUploadSignedUrl(key, contentType);
 
     return {
@@ -832,13 +924,21 @@ export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, 
 /**
  * Saves the array of S3 keys for the signed checklist scans.
  */
-export const updateSignedChecklist = async (jobId, fileKeys, userId) => {
+export const updateSignedChecklist = async (jobId, fileKeys, userId, jobCertificateId = null) => {
     if (!Array.isArray(fileKeys)) {
         throw { statusCode: 400, message: 'fileKeys must be an array of S3 keys strings.' };
     }
 
     await assertJobAccessible(jobId, userId, { checkSurveyor: true });
-    const survey = await requireSurvey(jobId);
+
+    // BUG FIX: For multi-cert jobs, update the specific certificate's survey, not just the first one
+    let survey;
+    if (jobCertificateId) {
+        survey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
+        if (!survey) throw { statusCode: 404, message: 'Survey not found for this certificate.' };
+    } else {
+        survey = await requireSurvey(jobId);
+    }
     assertSurveyNotFinalized(survey);
 
     const txn = await db.sequelize.transaction();
@@ -885,14 +985,21 @@ export const flagViolation = async (jobId, userId) => {
  *   gps_points: [{ latitude, longitude, captured_at }]
  * }
  */
-export const syncOfflineData = async (jobId, { checklist = [], gps_points = [] }, userId) => {
+export const syncOfflineData = async (jobId, { checklist = [], gps_points = [], job_certificate_id = null }, userId) => {
     // Guard: job must be accessible and surveyor must match
     const job = await assertJobAccessible(jobId, userId, {
         checkSurveyor: true,
         allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE']
     });
 
-    const survey = await requireSurvey(jobId);
+    // BUG FIX: Look up survey by specific job_certificate_id if provided
+    let survey;
+    if (job_certificate_id) {
+        survey = await Survey.findOne({ where: { job_certificate_id }, useMaster: true });
+        if (!survey) throw { statusCode: 404, message: 'Survey not found for this certificate.' };
+    } else {
+        survey = await requireSurvey(jobId);
+    }
     assertSurveyNotFinalized(survey);
 
     const txn = await db.sequelize.transaction();
@@ -901,8 +1008,10 @@ export const syncOfflineData = async (jobId, { checklist = [], gps_points = [] }
         let checklistSynced = 0;
         if (checklist.length > 0) {
             for (const item of checklist) {
+                // BUG FIX: ActivityPlanning must be scoped by job_certificate_id (not job_id)
                 await ActivityPlanning.upsert({
                     job_id: jobId,
+                    job_certificate_id: survey.job_certificate_id,
                     question_code: item.question_code,
                     question_text: item.question_text,
                     answer: item.answer,

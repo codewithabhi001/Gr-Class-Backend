@@ -73,17 +73,17 @@ router.put(
     surveyController.finalizeSurvey
 );
 
-// Request rework — GM / TM / TO / ADMIN (survey must be SUBMITTED)
+// Request rework — ADMIN / GM / TM (survey must be SUBMITTED, job must be REVIEWED)
 router.put(
     '/jobs/:jobId/rework',
-    authorizeRoles('TM'),
+    authorizeRoles('ADMIN', 'GM', 'TM'),
     surveyController.requestRework
 );
 
-// Flag a violation (TM)
+// Flag a violation (SURVEYOR / TM / ADMIN)
 router.post(
     '/jobs/:jobId/violation',
-    authorizeRoles('TM'),
+    authorizeRoles('SURVEYOR', 'TM', 'ADMIN'),
     surveyController.flagViolation
 );
 
@@ -122,10 +122,10 @@ router.get(
     surveyController.getTimeline
 );
 
-// Get survey details for a job
+// Get survey details for a job (SURVEYOR can also read their own survey)
 router.get(
     '/jobs/:jobId',
-    authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'),
+    authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT'),
     surveyController.getSurveyDetails
 );
 

@@ -407,11 +407,19 @@ export const generateCertificate = async (data, user) => {
         }
 
         if (!jobCert) {
-            jobCert = await db.JobCertificate.findOne({
+            // For multi-cert jobs, always require job_certificate_id to avoid ambiguity
+            const allJobCerts = await db.JobCertificate.findAll({
                 where: { job_request_id: resolvedJobId },
                 transaction,
                 lock: transaction.LOCK.UPDATE
             });
+            if (allJobCerts.length > 1) {
+                throw {
+                    statusCode: 400,
+                    message: 'This job has multiple certificates. Please specify job_certificate_id to generate a certificate for a specific one.'
+                };
+            }
+            jobCert = allJobCerts[0] || null;
         }
 
         // ── Resolve certificate type from JobCertificate ──

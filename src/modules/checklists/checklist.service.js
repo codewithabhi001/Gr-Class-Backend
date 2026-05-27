@@ -391,7 +391,7 @@ export const reviewChecklistItem = async (jobId, itemId, { status, rejection_rea
 /**
  * TO action to approve/reject a signed checklist document (by index on the certificate's survey).
  */
-export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection_reason }, user) => {
+export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection_reason }, user, jobCertificateId = null) => {
     if (user.role !== 'TO') {
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to review documents.' };
     }
@@ -399,9 +399,13 @@ export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection
     // Find the survey — try per-certificate first
     const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
     let survey = null;
-    if (jobCerts.length > 0) {
+    if (jobCertificateId) {
+        // BUG FIX: scope to the specific certificate when provided
+        survey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
+    } else if (jobCerts.length > 0) {
+        // BUG FIX: must use Op.in for array of IDs
         survey = await Survey.findOne({
-            where: { job_certificate_id: jobCerts.map(jc => jc.id) },
+            where: { job_certificate_id: { [db.Sequelize.Op.in]: jobCerts.map(jc => jc.id) } },
             useMaster: true
         });
     }

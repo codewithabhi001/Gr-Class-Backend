@@ -204,7 +204,7 @@ export const updateJobStatus = async (jobId, newStatus, userId, reason = null, o
  * @param {object}  [options]   - { transaction }
  */
 export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = null, options = {}) => {
-    const { transaction: externalTxn } = options;
+    const { transaction: externalTxn, _skipJobSync = false } = options;
     const txn = externalTxn || await db.sequelize.transaction();
 
     try {
@@ -310,17 +310,23 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
         });
 
         // ── 10. Automatic Job sync ──
-        // For multi-certificate jobs: only advance the job status when ALL surveys
-        // for the job have reached the equivalent survey state.
-        // e.g. Job only becomes SURVEY_DONE when every survey is SUBMITTED.
+        // Maritime rule:
+        //   STARTED       → Job IN_PROGRESS     (on first survey start)
+        //   SUBMITTED     → Job SURVEY_DONE     (when ALL surveys SUBMITTED or FINALIZED)
+        //   REWORK_REQUIRED → Job REWORK_REQUESTED (when ALL surveys REWORK_REQUIRED, skip = individual cert)
+        //   FINALIZED     → Job FINALIZED       (when ALL surveys FINALIZED)
+        //
+        // _skipJobSync=true is used for per-certificate rework so job stays in REVIEWED
+        // while other certs can still be processed.
+        // After all per-cert rework calls, we do an explicit all-certs check in survey.service.requestRework.
         const jobSyncMap = {
-            STARTED:        'IN_PROGRESS',
-            SUBMITTED:      'SURVEY_DONE',
+            STARTED:         'IN_PROGRESS',
+            SUBMITTED:       'SURVEY_DONE',
             REWORK_REQUIRED: 'REWORK_REQUESTED',
-            FINALIZED:      'FINALIZED',
+            FINALIZED:       'FINALIZED',
         };
         const jobTarget = jobSyncMap[newStatus];
-        if (jobTarget && jcForLog) {
+        if (jobTarget && jcForLog && !_skipJobSync) {
             const jobId = jcForLog.job_request_id;
 
             // Fetch all certs and their surveys for this job
@@ -330,10 +336,18 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
             // Check if surveys have reached the target
             let statusReached = false;
             if (newStatus === 'STARTED') {
-                // For IN_PROGRESS, trigger when the FIRST survey starts
-                statusReached = true; 
+                // Maritime: job goes IN_PROGRESS the moment the FIRST survey starts
+                statusReached = true;
+            } else if (newStatus === 'SUBMITTED') {
+                // Maritime: job goes SURVEY_DONE when ALL surveys are SUBMITTED or already FINALIZED
+                // (FINALIZED certs are "done" and should not block the sync)
+                statusReached = allSurveys.every(s =>
+                    s.id === surveyId
+                        ? true  // the one we just updated
+                        : ['SUBMITTED', 'FINALIZED'].includes(s.survey_status)
+                );
             } else {
-                // For other states (SUBMITTED, FINALIZED), trigger when ALL surveys reach the state
+                // FINALIZED, REWORK_REQUIRED: ALL surveys must reach the same state
                 statusReached = allSurveys.every(s =>
                     s.id === surveyId ? true : s.survey_status === newStatus
                 );

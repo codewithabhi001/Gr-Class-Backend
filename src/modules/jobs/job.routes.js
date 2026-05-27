@@ -23,11 +23,11 @@ router.get('/:id/eligible-surveyors', authorizeRoles('ADMIN', 'GM', 'TM'), jobCo
 router.post('/', authorizeRoles('CLIENT', 'ADMIN', 'GM'), validate(schemas.createJob), jobController.createJob);
 
 // ─── Explicit Semantic Workflow Transitions ───────────────
-// CREATED → DOCUMENT_VERIFIED  (TO / GM)
-router.put('/:id/verify-documents', authorizeRoles('TO'), jobController.verifyJobDocuments);
+// CREATED → DOCUMENT_VERIFIED  (TO / GM / ADMIN)
+router.put('/:id/verify-documents', authorizeRoles('TO', 'GM', 'ADMIN'), jobController.verifyJobDocuments);
 
 // DOCUMENT_VERIFIED → APPROVED   (GM / ADMIN)
-router.put('/:id/approve-request', authorizeRoles('GM'), jobController.approveRequest);
+router.put('/:id/approve-request', authorizeRoles('GM', 'ADMIN'), jobController.approveRequest);
 
 // APPROVED → FINALIZED (for non-survey jobs)
 router.put('/:id/finalize', authorizeRoles('TM'), jobController.finalizeJob);
@@ -38,7 +38,7 @@ router.put('/:id/assign', authorizeRoles(...RBAC.ASSIGN_JOB), validate(schemas.a
 router.put('/:id/reassign', authorizeRoles(...RBAC.REASSIGN_JOB), validate(schemas.reassignJob), jobController.reassignSurveyor);
 
 // Reschedule
-router.put('/:id/reschedule', authorizeRoles('GM'), validate(schemas.rescheduleJob), jobController.rescheduleJob);
+router.put('/:id/reschedule', authorizeRoles('GM', 'ADMIN'), validate(schemas.rescheduleJob), jobController.rescheduleJob);
 
 // ASSIGNED → SURVEY_AUTHORIZED (see RBAC.AUTHORIZE_SURVEY)
 router.put('/:id/authorize-survey', authorizeRoles(...RBAC.AUTHORIZE_SURVEY), jobController.authorizeSurvey);
@@ -70,10 +70,10 @@ router.put('/:id/priority', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.u
 router.get('/:id/documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), jobController.getJobDocuments);
 
 // Upload additional documents (Client can add more docs while job is CREATED)
-router.post('/:id/documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), jobController.uploadJobDocuments);
+router.post('/:id/documents', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), jobController.uploadJobDocuments);
 
 // Re-upload a specific rejected document (Client replaces the rejected doc)
-router.put('/:id/documents/:documentId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM'), jobController.reuploadJobDocument);
+router.put('/:id/documents/:documentId', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO'), jobController.reuploadJobDocument);
 
 // ─── History & Notes ─────────────────────────────────────
 router.get('/:id/history', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getHistory);

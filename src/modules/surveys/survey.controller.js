@@ -47,8 +47,9 @@ export const finalizeSurvey = async (req, res, next) => {
 // PUT /surveys/jobs/:jobId/rework
 export const requestRework = async (req, res, next) => {
     try {
-        const result = await surveyService.requestRework(req.params.jobId, req.body.reason, req.user.id);
-        res.json({ success: true, message: 'Rework requested.', data: result });
+        const { reason, job_certificate_id } = req.body;
+        const result = await surveyService.requestRework(req.params.jobId, reason, req.user.id, job_certificate_id || null);
+        res.json({ success: true, message: result.message || 'Rework requested.', data: result });
     } catch (error) { next(error); }
 };
 

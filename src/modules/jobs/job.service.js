@@ -1180,6 +1180,7 @@ export const cancelJobForClient = async (id, reason, clientId, userId) => {
 
 /**
  * List all documents for a job with their verification status.
+ * Returns documents grouped by certificate type for multi-certificate jobs.
  */
 export const getJobDocuments = async (jobId, user) => {
     const job = await requireJob(jobId, { includeVessel: true });
@@ -1204,66 +1205,78 @@ export const getJobDocuments = async (jobId, user) => {
 
     const resolvedDocs = await fileAccessService.resolveEntity(docs, user);
 
-    // Fetch all certificates associated with the job
+    // Fetch all certificates for this job (with type info)
     const jobCerts = await JobCertificate.findAll({
         where: { job_request_id: jobId },
+        include: [{ model: CertificateType, attributes: ['id', 'name', 'issuing_authority', 'requires_survey'] }],
         useReplica: true
     });
-    const certTypeIds = jobCerts.map(jc => jc.certificate_type_id).filter(Boolean);
 
-    // Also get required docs to show what's still needed
-    const requiredDocs = certTypeIds.length > 0
-        ? await CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: { [Op.in]: certTypeIds } },
+    // Build per-certificate grouped response
+    const certificates = await Promise.all(jobCerts.map(async (jc) => {
+        const jcPlain = jc.get({ plain: true });
+
+        // Required docs for this specific certificate type
+        const requiredDocs = await CertificateRequiredDocument.findAll({
+            where: { certificate_type_id: jcPlain.certificate_type_id },
             useReplica: true
-        })
-        : [];
+        });
 
-    const certificateType = certTypeIds.length > 0
-        ? await db.CertificateType.findByPk(certTypeIds[0], {
-            attributes: ['id', 'name', 'issuing_authority', 'requires_survey'],
-            useReplica: true
-        })
-        : null;
+        // Docs uploaded specifically for this certificate (by job_certificate_id)
+        const certDocs = resolvedDocs.filter(d => d.job_certificate_id === jc.id);
 
-    const uploadedDocIds = docs.map(d => d.required_document_id);
-    const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
+        // Group requirements with upload status
+        const groupedRequirements = requiredDocs.map(rd => {
+            const docsForReq = certDocs.filter(d => d.required_document_id === rd.id);
+            let status = 'MISSING';
+            if (docsForReq.length > 0) {
+                docsForReq.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                status = docsForReq[0].verification_status; // latest: PENDING, APPROVED, REJECTED
+            }
+            return {
+                requirement_id: rd.id,
+                document_name: rd.document_name,
+                is_mandatory: rd.is_mandatory,
+                status,
+                uploaded_versions: docsForReq
+            };
+        });
 
-    // Grouping by requirement
-    const groupedRequirements = requiredDocs.map(rd => {
-        const docsForReq = resolvedDocs.filter(d => d.required_document_id === rd.id);
-
-        let status = 'MISSING';
-        if (docsForReq.length > 0) {
-            // Sort by createdAt desc to get the latest version first
-            docsForReq.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            status = docsForReq[0].verification_status; // latest status: 'PENDING', 'APPROVED', or 'REJECTED'
-        }
+        const customDocuments = certDocs.filter(d => !d.required_document_id);
 
         return {
-            requirement_id: rd.id,
-            document_name: rd.document_name,
-            is_mandatory: rd.is_mandatory,
-            status: status,
-            uploaded_versions: docsForReq
+            job_certificate_id: jc.id,
+            certificate_type_id: jcPlain.certificate_type_id,
+            certificate_type_name: jcPlain.CertificateType?.name || null,
+            issuing_authority: jcPlain.CertificateType?.issuing_authority || null,
+            requires_survey: jcPlain.CertificateType?.requires_survey ?? true,
+            certificate_status: jcPlain.status,
+            rework_remarks: jcPlain.rework_remarks || null,
+            grouped_requirements: groupedRequirements,
+            custom_documents: customDocuments,
+            summary: {
+                total_uploaded: certDocs.length,
+                approved: certDocs.filter(d => d.verification_status === 'APPROVED').length,
+                rejected: certDocs.filter(d => d.verification_status === 'REJECTED').length,
+                pending: certDocs.filter(d => d.verification_status === 'PENDING').length,
+                missing: groupedRequirements.filter(r => r.status === 'MISSING').length
+            }
         };
-    });
+    }));
 
-    const customDocuments = resolvedDocs.filter(d => !d.required_document_id);
+    // Also include any "global" docs not tied to a specific certificate
+    const globalDocs = resolvedDocs.filter(d => !d.job_certificate_id);
+    const allDocs = docs;
 
     return {
-        certificate_type: certificateType,
-        grouped_requirements: groupedRequirements,
-        custom_documents: customDocuments,
-        documents: resolvedDocs,
-        required_documents: requiredDocs,
-        missing_documents: missingDocs,
+        certificates,
+        global_documents: globalDocs,
         summary: {
-            total_uploaded: docs.length,
-            approved: docs.filter(d => d.verification_status === 'APPROVED').length,
-            rejected: docs.filter(d => d.verification_status === 'REJECTED').length,
-            pending: docs.filter(d => d.verification_status === 'PENDING').length,
-            missing: missingDocs.length
+            total_uploaded: allDocs.length,
+            approved: allDocs.filter(d => d.verification_status === 'APPROVED').length,
+            rejected: allDocs.filter(d => d.verification_status === 'REJECTED').length,
+            pending: allDocs.filter(d => d.verification_status === 'PENDING').length,
+            missing: certificates.reduce((acc, cg) => acc + cg.summary.missing, 0)
         }
     };
 };
@@ -1280,8 +1293,10 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
 
     const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
-    if (job.job_status !== 'CREATED') {
-        throw { statusCode: 400, message: 'Documents can only be uploaded while the job is in CREATED status.' };
+    // Allow uploads while job is CREATED (initial) or REWORK_REQUESTED (surveyor cycle)
+    const UPLOAD_ALLOWED_STATUSES = ['CREATED', 'REWORK_REQUESTED'];
+    if (!UPLOAD_ALLOWED_STATUSES.includes(job.job_status)) {
+        throw { statusCode: 400, message: 'Documents can only be uploaded while the job is in CREATED or REWORK_REQUESTED status.' };
     }
 
     // Client ownership check
@@ -1374,40 +1389,40 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
         throw { statusCode: 404, message: 'Document not found for this job.' };
     }
 
-    if (doc.verification_status !== 'REJECTED') {
-        throw { statusCode: 400, message: `Only rejected documents can be re-uploaded. This document is currently: ${doc.verification_status}.` };
+    if (doc.verification_status === 'APPROVED') {
+        throw { statusCode: 400, message: `Approved documents cannot be re-uploaded. This document is currently: ${doc.verification_status}.` };
     }
 
-    // Check if a PENDING version already exists for this requirement/name
+    // Check if a PENDING version already exists for this requirement/name and certificate
     const existingPending = await JobDocument.findOne({
         where: {
             job_id: jobId,
             verification_status: 'PENDING',
-            ...(doc.required_document_id ? { required_document_id: doc.required_document_id } : { custom_document_name: doc.custom_document_name })
+            ...(doc.required_document_id ? { required_document_id: doc.required_document_id } : { custom_document_name: doc.custom_document_name }),
+            ...(doc.job_certificate_id ? { job_certificate_id: doc.job_certificate_id } : {})
         },
         useMaster: true
     });
 
-    let resultDoc;
     if (existingPending) {
-        // Overwrite existing pending document
+        // Reject existing pending document automatically
         await existingPending.update({
-            file_url: body.file_url,
-            uploaded_by: user.id,
-            rejection_reason: null
-        });
-        resultDoc = existingPending;
-    } else {
-        // Create a NEW record to maintain the audit trail of the rejected document
-        resultDoc = await JobDocument.create({
-            job_id: jobId,
-            required_document_id: doc.required_document_id,
-            custom_document_name: doc.custom_document_name,
-            file_url: body.file_url,
-            verification_status: 'PENDING',
-            uploaded_by: user.id
+            verification_status: 'REJECTED',
+            rejection_reason: 'Automatically rejected due to new document upload.',
+            verified_by: user.id
         });
     }
+
+    // Always create a NEW record to maintain the audit trail
+    const resultDoc = await JobDocument.create({
+        job_id: jobId,
+        job_certificate_id: doc.job_certificate_id,
+        required_document_id: doc.required_document_id,
+        custom_document_name: doc.custom_document_name,
+        file_url: body.file_url,
+        verification_status: 'PENDING',
+        uploaded_by: user.id
+    });
 
     // Notify TO that a document was re-uploaded (or updated)
     notificationService.notifyRoles(['TO'], 'JOB_DOCUMENT_REUPLOADED', {
