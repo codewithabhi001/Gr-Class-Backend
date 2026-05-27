@@ -309,6 +309,19 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
             triggeredBy: userId, reason: reason ?? undefined,
         });
 
+        // ── 9.5 Sync JobCertificate status ──
+        if (jcForLog) {
+            if (newStatus === 'SUBMITTED' || newStatus === 'FINALIZED') {
+                if (!['SURVEY_DONE', 'ISSUED'].includes(jcForLog.status)) {
+                    await jcForLog.update({ status: 'SURVEY_DONE' }, { transaction: txn });
+                }
+            } else if (newStatus === 'REWORK_REQUIRED') {
+                if (jcForLog.status !== 'REWORK_REQUESTED') {
+                    await jcForLog.update({ status: 'REWORK_REQUESTED' }, { transaction: txn });
+                }
+            }
+        }
+
         // ── 10. Automatic Job sync ──
         // Maritime rule:
         //   STARTED       → Job IN_PROGRESS     (on first survey start)
