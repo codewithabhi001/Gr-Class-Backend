@@ -2,6 +2,7 @@ import db from '../../models/index.js';
 import * as authService from '../auth/auth.service.js';
 import * as fileAccessService from '../../services/fileAccess.service.js';
 import * as s3Service from '../../services/s3.service.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const User = db.User;
 
@@ -58,6 +59,29 @@ export const getProfile = async (id, role, options = {}) => {
 };
 
 export const createUser = async (data) => {
+    if (data.role === 'SURVEYOR') {
+        return await db.sequelize.transaction(async (transaction) => {
+            const result = await authService.register(data, { transaction });
+            const user = result.user;
+            
+            await db.SurveyorProfile.create({
+                user_id: user.id,
+                license_number: data.license_number || `SURV-${uuidv4().substring(0, 6).toUpperCase()}`,
+                authorized_ship_types: data.authorized_ship_types || [],
+                authorized_certificates: data.authorized_certificates || [],
+                valid_from: data.valid_from || new Date(),
+                status: 'ACTIVE',
+                nationality: data.nationality || null,
+                qualification: data.qualification || data.qualifications || null,
+                years_of_experience: data.years_of_experience || 0,
+                cv_url: data.cv_url || null,
+                id_proof_url: data.id_proof_url || null,
+                license_copy_url: data.license_copy_url || null
+            }, { transaction });
+            
+            return result;
+        });
+    }
     return await authService.register(data);
 };
 
