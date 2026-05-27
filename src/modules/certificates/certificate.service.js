@@ -650,7 +650,7 @@ export const getCertificates = async (query, user) => {
 
     const { count, rows } = await Certificate.findAndCountAll({
         where,
-        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt', 'pdf_file_url', 'uploaded_file_url', 'generated_pdf_url', 'manually_overridden_file_url'],
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt', 'source_type', 'pdf_file_url', 'uploaded_file_url', 'generated_pdf_url', 'manually_overridden_file_url'],
         limit: Math.min(parseInt(limit, 10) || 10, 100),
         offset: (Math.max(1, parseInt(page, 10)) - 1) * (parseInt(limit, 10) || 10),
         include: [vesselInclude, { model: db.CertificateType, attributes: ['id', 'name'] }],
@@ -706,7 +706,7 @@ export const getCertificatesByVessel = async (vesselId, user) => {
 
     const certs = await Certificate.findAll({
         where,
-        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt', 'pdf_file_url', 'uploaded_file_url', 'generated_pdf_url', 'manually_overridden_file_url'],
+        attributes: ['id', 'vessel_id', 'certificate_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'createdAt', 'source_type', 'pdf_file_url', 'uploaded_file_url', 'generated_pdf_url', 'manually_overridden_file_url'],
         include: [{ model: db.CertificateType, attributes: ['name'] }],
         order: [['expiry_date', 'ASC']],
         useReplica: true
