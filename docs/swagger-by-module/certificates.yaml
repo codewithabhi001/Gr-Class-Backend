@@ -3640,6 +3640,10 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+          nullable: true
+        job_certificate_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
         latitude:
           type: number
         longitude:
@@ -5036,14 +5040,18 @@ paths:
       tags:
         - Certificates
       summary: 'List required documents for a certificate type'
-      description: "Returns the list of required documents configured for a certificate type.\n**Roles:** ADMIN, TM\n"
+      description: "Returns the list of required documents configured for a certificate type.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR\n"
       security:
         -
           bearerAuth: []
       operationId: getCertificateTypeRequiredDocuments
       x-roles:
+        - CLIENT
         - ADMIN
+        - GM
         - TM
+        - TO
+        - SURVEYOR
       parameters:
         -
           name: id
@@ -5446,10 +5454,9 @@ paths:
       tags:
         - Certificates
       summary: 'Bulk renew certificates'
-      description: 'Renew multiple certificates in one operation. ADMIN, TM only.'
+      description: 'Renew multiple certificates in one operation. TM only.'
       operationId: bulkRenewCertificates
       x-roles:
-        - ADMIN
         - TM
       requestBody:
         required: true
@@ -6066,12 +6073,11 @@ paths:
     put:
       tags:
         - Certificates
-      summary: 'Renew certificate'
-      description: 'Renew an expiring certificate. TM, GM only.'
+      summary: 'TM: Renew certificate'
+      description: "Renew an expiring certificate with a new validity period.\n\n**Roles:** TM\n"
       operationId: renewCertificate
       x-roles:
         - TM
-        - GM
       parameters:
         -
           name: id
@@ -6132,10 +6138,9 @@ paths:
       tags:
         - Certificates
       summary: 'Reissue certificate'
-      description: 'Reissue a certificate (e.g. after loss). ADMIN, TM only.'
+      description: 'Reissue a certificate (e.g. after loss). TM only.'
       operationId: reissueCertificate
       x-roles:
-        - ADMIN
         - TM
       parameters:
         -
@@ -6196,10 +6201,9 @@ paths:
       tags:
         - Certificates
       summary: 'Transfer certificate'
-      description: 'Transfer certificate ownership/association. ADMIN, GM only.'
+      description: 'Transfer certificate ownership/association. GM only.'
       operationId: transferCertificate
       x-roles:
-        - ADMIN
         - GM
       parameters:
         -
@@ -6248,10 +6252,9 @@ paths:
       tags:
         - Certificates
       summary: 'Extend certificate'
-      description: 'Extend certificate validity. ADMIN, GM only.'
+      description: 'Extend certificate validity. GM only.'
       operationId: extendCertificate
       x-roles:
-        - ADMIN
         - GM
       parameters:
         -
@@ -6300,10 +6303,9 @@ paths:
       tags:
         - Certificates
       summary: 'Downgrade certificate'
-      description: 'Downgrade certificate classification/type. ADMIN, GM only.'
+      description: 'Downgrade certificate classification/type. GM only.'
       operationId: downgradeCertificate
       x-roles:
-        - ADMIN
         - GM
       parameters:
         -

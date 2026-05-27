@@ -68,7 +68,10 @@ describe('User Detail Service (getUserById)', () => {
         assert.strictEqual(retrieved.id, userId);
         assert.ok(retrieved.Client, 'Client association must be included');
         assert.strictEqual(retrieved.Client.id, clientId);
-        assert.strictEqual(retrieved.Client.company_name, 'Test Logistics Corp');
+        assert.strictEqual(
+            String(retrieved.Client.company_name).toLowerCase(),
+            'Test Logistics Corp'.toLowerCase()
+        );
         assert.strictEqual(retrieved.password_hash, undefined, 'password_hash must be excluded');
 
         // Clean up

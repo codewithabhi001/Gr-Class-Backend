@@ -8,22 +8,27 @@ export const startSurvey = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-// POST /surveys/jobs/:jobId/proof
+// POST /surveys/job-certificates/:jobCertificateId/proof
 export const uploadProof = async (req, res, next) => {
     try {
-        // Support both file upload and pre-signed key registration
         if (!req.file && !req.body.fileKey) {
             return res.status(400).json({ success: false, message: 'No proof file or fileKey provided.' });
         }
-        const result = await surveyService.uploadProof(req.params.jobId, req.file, req.body, req.user.id);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.uploadProof(jc.job_request_id, req.file, { ...req.body, job_certificate_id: jc.id }, req.user.id);
         res.json({ success: true, message: 'Proof uploaded successfully.', data: result });
     } catch (error) { next(error); }
 };
 
-// POST /surveys/jobs/:jobId/location
+// POST /surveys/job-certificates/:jobCertificateId/location
 export const streamLocation = async (req, res, next) => {
     try {
-        const result = await surveyService.streamLocation(req.params.jobId, req.body, req.user.id);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.streamLocation(jc.job_request_id, { ...req.body, job_certificate_id: jc.id }, req.user.id);
         res.json({ success: true, message: 'Location recorded.', data: result });
     } catch (error) { next(error); }
 };
@@ -36,27 +41,38 @@ export const submitSurveyReport = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-// PUT /surveys/jobs/:jobId/finalize
+// PUT /surveys/job-certificates/:jobCertificateId/finalize
 export const finalizeSurvey = async (req, res, next) => {
     try {
-        const result = await surveyService.finalizeSurvey(req.params.jobId, req.user, { skip_validation: req.body?.skip_validation === true });
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.finalizeSurvey(jc.job_request_id, req.user, {
+            skip_validation: req.body?.skip_validation === true,
+            job_certificate_id: jc.id
+        });
         res.status(200).json({ success: true, ...result });
     } catch (error) { next(error); }
 };
 
-// PUT /surveys/jobs/:jobId/rework
+// PUT /surveys/job-certificates/:jobCertificateId/rework
 export const requestRework = async (req, res, next) => {
     try {
-        const { reason, job_certificate_id } = req.body;
-        const result = await surveyService.requestRework(req.params.jobId, reason, req.user.id, job_certificate_id || null);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.requestRework(jc.job_request_id, req.body.reason, req.user.id, jc.id);
         res.json({ success: true, message: result.message || 'Rework requested.', data: result });
     } catch (error) { next(error); }
 };
 
-// POST /surveys/jobs/:jobId/violation
+// POST /surveys/job-certificates/:jobCertificateId/violation
 export const flagViolation = async (req, res, next) => {
     try {
-        const result = await surveyService.flagViolation(req.params.jobId, req.user.id);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.flagViolation(jc.job_request_id, req.user.id);
         res.json({ success: true, message: 'Violation flagged and admins notified.', data: result });
     } catch (error) { next(error); }
 };
@@ -69,41 +85,58 @@ export const getSurveyReports = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-// GET /surveys/jobs/:jobId
+// GET /surveys/job-certificates/:jobCertificateId
 export const getSurveyDetails = async (req, res, next) => {
     try {
-        const details = await surveyService.getSurveyDetails(req.params.jobId, req.user);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        let details = await surveyService.getSurveyDetails(jc.job_request_id, req.user);
+        details = details.filter(d => d.job_certificate_id === req.params.jobCertificateId);
         res.json({ success: true, message: 'Survey details fetched successfully.', data: details });
     } catch (error) { next(error); }
 };
 
-// GET /surveys/jobs/:jobId/timeline
+// GET /surveys/job-certificates/:jobCertificateId/timeline
 export const getTimeline = async (req, res, next) => {
     try {
-        const result = await surveyService.getTimeline(req.params.jobId, req.user);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.getTimeline(jc.job_request_id, req.user);
         res.json({ success: true, message: 'Survey timeline fetched successfully.', data: result });
     } catch (error) { next(error); }
 };
 
+// POST /surveys/job-certificates/:jobCertificateId/statement/draft
 export const draftStatement = async (req, res, next) => {
     try {
-        const result = await surveyService.draftSurveyStatement(req.params.jobId, req.body, req.user);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.draftSurveyStatement(jc.job_request_id, { ...req.body, job_certificate_id: jc.id }, req.user);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };
 
-// POST /surveys/jobs/:jobId/statement/issue
+// POST /surveys/job-certificates/:jobCertificateId/statement/issue
 export const issueStatement = async (req, res, next) => {
     try {
-        const result = await surveyService.issueSurveyStatement(req.params.jobId, req.file, req.body, req.user);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.issueSurveyStatement(jc.job_request_id, req.file, { ...req.body, job_certificate_id: jc.id }, req.user);
         res.json({ success: true, data: result });
     } catch (e) { next(e); }
 };
 
-// POST /surveys/jobs/:jobId/sync
+// POST /surveys/job-certificates/:jobCertificateId/sync
 export const syncOfflineData = async (req, res, next) => {
     try {
-        const result = await surveyService.syncOfflineData(req.params.jobId, req.body, req.user.id);
+        const jc = await db.JobCertificate.findByPk(req.params.jobCertificateId);
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found.' };
+
+        const result = await surveyService.syncOfflineData(jc.job_request_id, { ...req.body, job_certificate_id: jc.id }, req.user.id);
         res.json({ success: true, ...result });
     } catch (error) { next(error); }
 };

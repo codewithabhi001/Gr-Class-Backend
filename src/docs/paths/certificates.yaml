@@ -630,10 +630,11 @@
     summary: List required documents for a certificate type
     description: |
       Returns the list of required documents configured for a certificate type.
-      **Roles:** ADMIN, TM
+
+      **Roles:** CLIENT, ADMIN, GM, TM, TO, SURVEYOR
     security: [{ bearerAuth: [] }]
     operationId: getCertificateTypeRequiredDocuments
-    x-roles: [ADMIN, TM]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO, SURVEYOR]
     parameters:
       - name: id
         in: path
@@ -895,9 +896,9 @@
   post:
     tags: [Certificates]
     summary: Bulk renew certificates
-    description: Renew multiple certificates in one operation. ADMIN, TM only.
+    description: Renew multiple certificates in one operation. TM only.
     operationId: bulkRenewCertificates
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     requestBody:
       required: true
       content:
@@ -1234,10 +1235,13 @@
 /api/v1/certificates/{id}/renew:
   put:
     tags: [Certificates]
-    summary: Renew certificate
-    description: Renew an expiring certificate. TM, GM only.
+    summary: "TM: Renew certificate"
+    description: |
+      Renew an expiring certificate with a new validity period.
+
+      **Roles:** TM
     operationId: renewCertificate
-    x-roles: [TM, GM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -1274,9 +1278,9 @@
   post:
     tags: [Certificates]
     summary: Reissue certificate
-    description: Reissue a certificate (e.g. after loss). ADMIN, TM only.
+    description: Reissue a certificate (e.g. after loss). TM only.
     operationId: reissueCertificate
-    x-roles: [ADMIN, TM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -1312,9 +1316,9 @@
   post:
     tags: [Certificates]
     summary: Transfer certificate
-    description: Transfer certificate ownership/association. ADMIN, GM only.
+    description: Transfer certificate ownership/association. GM only.
     operationId: transferCertificate
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path
@@ -1336,9 +1340,9 @@
   post:
     tags: [Certificates]
     summary: Extend certificate
-    description: Extend certificate validity. ADMIN, GM only.
+    description: Extend certificate validity. GM only.
     operationId: extendCertificate
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path
@@ -1360,9 +1364,9 @@
   put:
     tags: [Certificates]
     summary: Downgrade certificate
-    description: Downgrade certificate classification/type. ADMIN, GM only.
+    description: Downgrade certificate classification/type. GM only.
     operationId: downgradeCertificate
-    x-roles: [ADMIN, GM]
+    x-roles: [GM]
     parameters:
       - name: id
         in: path

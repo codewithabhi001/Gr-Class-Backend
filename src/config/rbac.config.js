@@ -10,13 +10,13 @@ export const RBAC = {
     /** PUT /jobs/:id/approve-request */
     APPROVE_JOB_REQUEST: ['ADMIN', 'GM'],
 
-    /** PUT /jobs/:id/verify-documents */
+    /** PUT /jobs/certificates/:jobCertificateId/verify-documents */
     VERIFY_JOB_DOCUMENTS: ['ADMIN', 'TO', 'GM'],
 
     /** PUT /jobs/:id/finalize (non-survey path) */
     FINALIZE_JOB: ['ADMIN', 'GM', 'TM'],
 
-    /** PUT /jobs/:id/review */
+    /** PUT /jobs/certificates/:jobCertificateId/review */
     REVIEW_JOB: ['ADMIN', 'TO'],
 
     /** PUT /jobs/:id/assign */

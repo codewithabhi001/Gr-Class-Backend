@@ -1,6 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# SURVEYS — Master-Detail Architecture (1 Job → N JobCertificates → N Surveys)
-# Each survey is scoped to a specific JobCertificate, not the root Job.
+# SURVEYS — 1 Job → N JobCertificates → N Surveys
+#
+# All field and TM actions use /surveys/job-certificates/{jobCertificateId}/...
+# (legacy /surveys/jobs/{jobId} paths removed from implementation)
+#
+# Role summary:
+#   SURVEYOR — start, proof, GPS, sync, submit, statement draft, violation
+#   TM       — finalize, issue statement, violation
+#   GM/ADMIN — rework, list reports, read timeline
+#   TO       — list reports, read timeline
+#   CLIENT   — read own job's survey details (GET .../job-certificates/{id})
 # ─────────────────────────────────────────────────────────────────────────────
 
 /api/v1/surveys/start:
@@ -27,7 +36,7 @@
               job_id:
                 type: string
                 format: uuid
-                description: Job Request ID (provide either this OR job_certificate_id)
+                description: Job Certificate ID (provide either this OR job_certificate_id)
               job_certificate_id:
                 type: string
                 format: uuid
@@ -163,26 +172,21 @@
                       type: array
                       items: { $ref: '#/components/schemas/SurveyListResponse' }
 
-/api/v1/surveys/jobs/{jobId}:
+/api/v1/surveys/job-certificates/{jobCertificateId}:
   get:
     tags: [Surveys]
-    summary: Get all surveys for a job
+    summary: Get survey details for a job certificate
     description: |
-      Returns all surveys for a job — one per `JobCertificate`. Each survey
-      contains its own checklist items, GPS trace, and status.
+      Returns survey execution details for the given `jobCertificateId`
+      (checklist items, GPS trace, status, statement).
     operationId: getSurveyDetails
-    x-roles: [ADMIN, GM, TM, TO, SURVEYOR]
+    x-roles: [ADMIN, GM, TM, TO, SURVEYOR, CLIENT]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
-        description: Job Request ID
-      - name: job_certificate_id
-        in: query
-        required: false
-        schema: { type: string, format: uuid }
-        description: Filter to a specific certificate's survey
+        description: Job Certificate ID
     responses:
       "200":
         description: Survey details (array for multi-cert jobs)
@@ -195,29 +199,28 @@
                 data: { $ref: '#/components/schemas/SurveyReportResponse' }
       "404": { description: Survey not found }
 
-/api/v1/surveys/jobs/{jobId}/finalize:
+/api/v1/surveys/job-certificates/{jobCertificateId}/finalize:
   put:
     tags: [Surveys]
-    summary: Finalize submitted surveys for a job (TM/ADMIN)
+    summary: Finalize submitted survey for a job certificate (TM)
     description: |
-      Allows a Technical Manager (TM) or Admin to grant final approval to all submitted surveys under a job.
+      Allows a Technical Manager (TM) to grant final approval to the submitted survey for this certificate.
       
       **Workflow Logic:**
-      - Non-submitted surveys (e.g. `STARTED` or `REWORK_REQUIRED`) are skipped, enabling other completed surveys on the same job to finalize independently.
       - Transition: `SUBMITTED → FINALIZED`.
-      - Unlocks certificate drafting and generation for those finalized surveys.
-      - Automatically sets the parent Job status to `FINALIZED` if all of its surveys are finalized.
+      - Unlocks certificate drafting and generation for this certificate.
+      - Parent job status advances when all certificate surveys are finalized.
       
-      **Roles:** TM, ADMIN
+      **Roles:** TM
     operationId: finalizeSurvey
     security: [{ bearerAuth: [] }]
-    x-roles: [TM, ADMIN]
+    x-roles: [TM]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
-        description: Job Request ID
+        description: Job Certificate ID
     requestBody:
       required: false
       content:
@@ -244,34 +247,27 @@
       "403":
         description: Forbidden — not a TM or ADMIN
 
-/api/v1/surveys/jobs/{jobId}/rework:
+/api/v1/surveys/job-certificates/{jobCertificateId}/rework:
   put:
     tags: [Surveys]
-    summary: Request rework on a survey (GM/TM/TO/ADMIN)
+    summary: Request rework on a survey (ADMIN/GM/TM)
     description: |
-      Allows a General Manager, Technical Manager, Technical Officer, or Admin to request corrections on a submitted survey.
+      Allows ADMIN, GM, or TM to request corrections on a submitted survey for this certificate.
       
-      **Workflow Logic (Per-Certificate Rework):**
-      - If `job_certificate_id` is supplied in query or body, only that specific survey status is set to `REWORK_REQUIRED` (using `_skipSurveySync` internally to isolate it).
-      - The parent Job status remains as `REVIEWED`, allowing other surveys in the job to progress to finalization.
-      - If no `job_certificate_id` is provided, it defaults to the first survey.
-      - Job status must be `REVIEWED` (technical document review must have finished) before rework can be requested.
+      **Workflow Logic:**
+      - Sets this certificate's survey status to `REWORK_REQUIRED`.
+      - Parent job must be in `REVIEWED` (technical review completed for this certificate).
       
-      **Roles:** GM, TM, TO, ADMIN
+      **Roles:** ADMIN, GM, TM
     operationId: requestRework
     security: [{ bearerAuth: [] }]
-    x-roles: [GM, TM, TO, ADMIN]
+    x-roles: [ADMIN, GM, TM]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
-        description: Job Request ID
-      - name: job_certificate_id
-        in: query
-        required: false
-        schema: { type: string, format: uuid }
-        description: Target specific certificate's survey (optional)
+        description: Job Certificate ID
     requestBody:
       required: true
       content:
@@ -301,10 +297,10 @@
       "400":
         description: Job is not in REVIEWED state, or job is already finalized
       "403":
-        description: Forbidden — caller does not have GM/TM/TO/ADMIN privileges
+        description: Forbidden — caller does not have ADMIN/GM/TM privileges
 
 
-/api/v1/surveys/jobs/{jobId}/location:
+/api/v1/surveys/job-certificates/{jobCertificateId}/location:
   post:
     tags: [Surveys]
     summary: Stream live GPS location (per certificate)
@@ -314,7 +310,7 @@
     operationId: streamLocation
     x-roles: [SURVEYOR]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
@@ -331,7 +327,7 @@
     responses:
       "200": { description: Location updated }
 
-/api/v1/surveys/jobs/{jobId}/proof:
+/api/v1/surveys/job-certificates/{jobCertificateId}/proof:
   post:
     tags: [Surveys]
     summary: Upload survey evidence proof (per certificate)
@@ -341,7 +337,7 @@
     operationId: uploadProof
     x-roles: [SURVEYOR]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
@@ -363,7 +359,7 @@
     responses:
       "201": { description: Proof uploaded }
 
-/api/v1/surveys/jobs/{jobId}/timeline:
+/api/v1/surveys/job-certificates/{jobCertificateId}/timeline:
   get:
     tags: [Surveys]
     summary: Get survey execution timeline (all certificates)
@@ -373,7 +369,7 @@
     operationId: getSurveyTimeline
     x-roles: [ADMIN, GM, TM, TO, SURVEYOR]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
@@ -388,21 +384,21 @@
                 success: { type: boolean, example: true }
                 data: { $ref: '#/components/schemas/SurveyTimelineResponse' }
 
-/api/v1/surveys/jobs/{jobId}/violation:
+/api/v1/surveys/job-certificates/{jobCertificateId}/violation:
   post:
     tags: [Surveys]
     summary: Flag survey violation
     operationId: flagViolation
-    x-roles: [TM]
+    x-roles: [SURVEYOR, TM, ADMIN]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
     responses:
       "200": { description: Violation flagged }
 
-/api/v1/surveys/jobs/{jobId}/statement/draft:
+/api/v1/surveys/job-certificates/{jobCertificateId}/statement/draft:
   post:
     tags: [Surveys]
     summary: Draft survey statement / Generate preview
@@ -411,9 +407,9 @@
       - **SURVEYOR**: Must provide `survey_statement` text.
       - **TM/ADMIN**: Can leave empty to trigger/refresh the branded "DRAFT" PDF.
     operationId: draftSurveyStatement
-    x-roles: [SURVEYOR, TM, ADMIN]
+    x-roles: [SURVEYOR, TM]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
@@ -442,7 +438,7 @@
                     status: { type: string, example: "DRAFTED" }
                     pdf_url: { type: string, format: uri, description: "Only for TM/ADMIN" }
 
-/api/v1/surveys/jobs/{jobId}/statement/issue:
+/api/v1/surveys/job-certificates/{jobCertificateId}/statement/issue:
   post:
     tags: [Surveys]
     summary: Issue signed survey statement (PDF)
@@ -450,7 +446,7 @@
     operationId: issueSurveyStatement
     x-roles: [TM]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }
@@ -470,7 +466,7 @@
     responses:
       "200": { description: Issued }
 
-/api/v1/surveys/jobs/{jobId}/sync:
+/api/v1/surveys/job-certificates/{jobCertificateId}/sync:
   post:
     tags: [Surveys]
     summary: Offline sync — replay batched data
@@ -480,7 +476,7 @@
     operationId: syncOfflineData
     x-roles: [SURVEYOR]
     parameters:
-      - name: jobId
+      - name: jobCertificateId
         in: path
         required: true
         schema: { type: string, format: uuid }

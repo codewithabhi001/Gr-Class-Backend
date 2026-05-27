@@ -60,6 +60,16 @@ export const SURVEY_TRANSITIONS = {
     FINALIZED: [],  // terminal
 };
 
+export const JOB_CERTIFICATE_TRANSITIONS = {
+    PENDING: ['DOCUMENT_VERIFIED', 'REJECTED'],
+    DOCUMENT_VERIFIED: ['SURVEY_AUTHORIZED', 'REJECTED'],
+    SURVEY_AUTHORIZED: ['SURVEY_DONE', 'REWORK_REQUESTED', 'REJECTED'],
+    REWORK_REQUESTED: ['SURVEY_AUTHORIZED', 'SURVEY_DONE', 'REJECTED'],
+    SURVEY_DONE: ['ISSUED', 'REWORK_REQUESTED', 'REJECTED'],
+    ISSUED: [],
+    REJECTED: []
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // INTERNAL HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +78,87 @@ const validateTransition = (current, next, map) => {
     const allowed = map[current] || [];
     if (!allowed.includes(next)) {
         throw { statusCode: 400, message: `Action not allowed: cannot move from ${current} to ${next} status.` };
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// JOB CERTIFICATE STATUS UPDATE — Centralized, Locked, Audited
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Updates the status of a specific JobCertificate and triggers auto-sync on the parent JobRequest.
+ */
+export const updateJobCertificateStatus = async (jobCertificateId, newStatus, userId, reason = null, options = {}) => {
+    const { transaction: externalTxn } = options;
+    const txn = externalTxn || await db.sequelize.transaction();
+
+    try {
+        const jc = await db.JobCertificate.findByPk(jobCertificateId, { transaction: txn, lock: txn.LOCK.UPDATE });
+        if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
+
+        const previousStatus = jc.status;
+
+        const syncParentJobStatus = async (certRow, certStatus) => {
+            const job = await db.JobRequest.findByPk(certRow.job_request_id, { transaction: txn, lock: txn.LOCK.UPDATE });
+            if (!job) return;
+            const allCerts = await db.JobCertificate.findAll({ where: { job_request_id: certRow.job_request_id }, transaction: txn });
+            const allTerminal = allCerts.every(c =>
+                c.id === certRow.id
+                    ? ['ISSUED', 'REJECTED'].includes(certStatus)
+                    : ['ISSUED', 'REJECTED'].includes(c.status)
+            );
+            let targetJobStatus = 'IN_PROGRESS';
+            if (allTerminal) {
+                targetJobStatus = 'CERTIFIED';
+            } else {
+                const hasStarted = allCerts.some(c =>
+                    c.id === certRow.id ? certStatus !== 'PENDING' : c.status !== 'PENDING'
+                );
+                targetJobStatus = hasStarted ? 'IN_PROGRESS' : 'CREATED';
+            }
+            if (job.job_status !== targetJobStatus) {
+                const previousJobStatus = job.job_status;
+                await job.update({ job_status: targetJobStatus }, { transaction: txn });
+                await db.JobStatusHistory.create({
+                    job_id: job.id,
+                    previous_status: previousJobStatus,
+                    new_status: targetJobStatus,
+                    changed_by: userId,
+                    reason: `Auto-sync: Child certificate status is ${certStatus}`,
+                }, { transaction: txn });
+            }
+        };
+
+        // Idempotency — still re-sync parent when all certs may have reached terminal state
+        if (previousStatus === newStatus) {
+            await syncParentJobStatus(jc, newStatus);
+            if (!externalTxn) await txn.commit();
+            return jc;
+        }
+
+        // Validate transition
+        validateTransition(previousStatus, newStatus, JOB_CERTIFICATE_TRANSITIONS);
+
+        // Apply
+        await jc.update({ status: newStatus }, { transaction: txn });
+
+        // Audit log status change
+        await db.JobStatusHistory.create({
+            job_id: jc.job_request_id,
+            previous_status: `CERT_${previousStatus}`,
+            new_status: `CERT_${newStatus}`,
+            changed_by: userId,
+            reason: `JobCertificate (${jc.id}): ${reason || 'Status updated'}`
+        }, { transaction: txn });
+
+        await syncParentJobStatus(jc, newStatus);
+
+        if (!externalTxn) await txn.commit();
+        return jc;
+    } catch (error) {
+        if (!externalTxn) await txn.rollback();
+        throw error;
     }
 };
 
@@ -242,10 +333,15 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
             if (db.NonConformity) {
                 const jc = await db.JobCertificate.findByPk(survey.job_certificate_id, { transaction: txn });
                 if (jc) {
-                    const openNCs = await db.NonConformity.count({
-                        where: { job_id: jc.job_request_id, status: { [db.Sequelize.Op.notIn]: ['CLOSED', 'RESOLVED'] } },
-                        transaction: txn
-                    });
+                    const ncWhere = {
+                        job_id: jc.job_request_id,
+                        status: { [db.Sequelize.Op.notIn]: ['CLOSED', 'RESOLVED'] },
+                        [db.Sequelize.Op.or]: [
+                            { job_certificate_id: jc.id },
+                            { job_certificate_id: null },
+                        ],
+                    };
+                    const openNCs = await db.NonConformity.count({ where: ncWhere, transaction: txn });
                     if (openNCs > 0) {
                         throw { statusCode: 400, message: `Cannot finalize survey: please resolve the ${openNCs} open Non-Conformity report${openNCs > 1 ? 's' : ''} first.` };
                     }
@@ -310,71 +406,18 @@ export const updateSurveyStatus = async (surveyId, newStatus, userId, reason = n
             triggeredBy: userId, reason: reason ?? undefined,
         });
 
-        // ── 9.5 Sync JobCertificate status ──
+        // ── 9.5 Sync JobCertificate status & Parent JobRequest status ──
         if (jcForLog) {
-            if (newStatus === 'SUBMITTED' || newStatus === 'FINALIZED') {
+            if (newStatus === 'STARTED') {
+                // Ensure parent JobRequest is IN_PROGRESS when survey starts
+                await updateJobCertificateStatus(jcForLog.id, 'SURVEY_AUTHORIZED', userId, 'Survey started by surveyor', { transaction: txn });
+            } else if (newStatus === 'SUBMITTED' || newStatus === 'FINALIZED') {
                 if (!['SURVEY_DONE', 'ISSUED'].includes(jcForLog.status)) {
-                    await jcForLog.update({ status: 'SURVEY_DONE' }, { transaction: txn });
+                    await updateJobCertificateStatus(jcForLog.id, 'SURVEY_DONE', userId, `Survey transitioned to ${newStatus}`, { transaction: txn });
                 }
             } else if (newStatus === 'REWORK_REQUIRED') {
                 if (jcForLog.status !== 'REWORK_REQUESTED') {
-                    await jcForLog.update({ status: 'REWORK_REQUESTED' }, { transaction: txn });
-                }
-            }
-        }
-
-        // ── 10. Automatic Job sync ──
-        // Maritime rule:
-        //   STARTED       → Job IN_PROGRESS     (on first survey start)
-        //   SUBMITTED     → Job SURVEY_DONE     (when ALL surveys SUBMITTED or FINALIZED)
-        //   REWORK_REQUIRED → Job REWORK_REQUESTED (when ALL surveys REWORK_REQUIRED, skip = individual cert)
-        //   FINALIZED     → Job FINALIZED       (when ALL surveys FINALIZED)
-        //
-        // _skipJobSync=true is used for per-certificate rework so job stays in REVIEWED
-        // while other certs can still be processed.
-        // After all per-cert rework calls, we do an explicit all-certs check in survey.service.requestRework.
-        const jobSyncMap = {
-            STARTED:         'IN_PROGRESS',
-            SUBMITTED:       'SURVEY_DONE',
-            REWORK_REQUIRED: 'REWORK_REQUESTED',
-            FINALIZED:       'FINALIZED',
-        };
-        const jobTarget = jobSyncMap[newStatus];
-        if (jobTarget && jcForLog && !_skipJobSync) {
-            const jobId = jcForLog.job_request_id;
-
-            // Fetch all certs and their surveys for this job
-            const allCerts   = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, transaction: txn });
-            const allSurveys = await Survey.findAll({ where: { job_certificate_id: allCerts.map(c => c.id) }, transaction: txn });
-
-            // Check if surveys have reached the target
-            let statusReached = false;
-            if (newStatus === 'STARTED') {
-                // Maritime: job goes IN_PROGRESS the moment the FIRST survey starts
-                statusReached = true;
-            } else if (newStatus === 'SUBMITTED') {
-                // Maritime: job goes SURVEY_DONE when ALL surveys are SUBMITTED or already FINALIZED
-                // (FINALIZED certs are "done" and should not block the sync)
-                statusReached = allSurveys.every(s =>
-                    s.id === surveyId
-                        ? true  // the one we just updated
-                        : ['SUBMITTED', 'FINALIZED'].includes(s.survey_status)
-                );
-            } else {
-                // FINALIZED, REWORK_REQUIRED: ALL surveys must reach the same state
-                statusReached = allSurveys.every(s =>
-                    s.id === surveyId ? true : s.survey_status === newStatus
-                );
-            }
-
-            if (statusReached) {
-                // Silently skip if job is already at or past this status (idempotent)
-                const currentJob = await db.JobRequest.findByPk(jobId, { transaction: txn });
-                const alreadyAdvanced = currentJob && JOB_TERMINAL_STATES.includes(currentJob.job_status);
-                if (!alreadyAdvanced && currentJob?.job_status !== jobTarget) {
-                    await updateJobStatus(jobId, jobTarget, userId,
-                        `Auto-sync: All surveys → ${newStatus}`,
-                        { transaction: txn, _internal: true });
+                    await updateJobCertificateStatus(jcForLog.id, 'REWORK_REQUESTED', userId, 'Survey rework requested', { transaction: txn });
                 }
             }
         }

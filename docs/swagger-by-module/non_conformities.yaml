@@ -3640,6 +3640,10 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+          nullable: true
+        job_certificate_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
         latitude:
           type: number
         longitude:
@@ -4157,7 +4161,8 @@ paths:
     post:
       tags:
         - Non-Conformities
-      summary: 'Create NC'
+      summary: 'SURVEYOR/TO: Raise non-conformity (optional per-certificate scope)'
+      description: "Creates an OPEN non-conformity. Pass `job_certificate_id` to scope blocking\nto one certificate during survey finalize and certificate issue. Omit for\njob-wide NC (blocks all certificates on that job).\n\n**Roles:** SURVEYOR, TO\n"
       operationId: createNC
       x-roles:
         - SURVEYOR
@@ -4176,6 +4181,10 @@ paths:
                 job_id:
                   type: string
                   format: uuid
+                job_certificate_id:
+                  type: string
+                  format: uuid
+                  description: 'Optional — scopes NC to one certificate; job-wide NCs omit this field'
                 description:
                   type: string
                 severity:
@@ -4183,6 +4192,7 @@ paths:
                   enum: [MINOR, MAJOR, CRITICAL]
             example:
               job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
+              job_certificate_id: 019e640c-0000-0000-0000-000000000001
               description: 'Life jacket expiry date exceeded. Replacement required.'
               severity: MAJOR
       responses:
@@ -4224,6 +4234,12 @@ paths:
       parameters:
         -
           name: job_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        -
+          name: job_certificate_id
           in: query
           schema:
             type: string
@@ -4413,6 +4429,13 @@ paths:
           schema:
             type: string
             format: uuid
+        -
+          name: job_certificate_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: 'Optional filter — return NCs scoped to one job certificate only'
       responses:
         '200':
           description: 'List of NCs'

@@ -33,12 +33,13 @@ export const closeNC = async (id, remarks) => {
     return nc;
 };
 
-const NC_LIST_ATTRIBUTES = ['id', 'job_id', 'severity', 'status', 'created_at'];
+const NC_LIST_ATTRIBUTES = ['id', 'job_id', 'job_certificate_id', 'severity', 'status', 'created_at'];
 
 export const getNCs = async (query) => {
-    const { page = 1, limit = 10, job_id, status } = query;
+    const { page = 1, limit = 10, job_id, job_certificate_id, status } = query;
     const where = {};
     if (job_id) where.job_id = job_id;
+    if (job_certificate_id) where.job_certificate_id = job_certificate_id;
     if (status) where.status = status;
 
     const { count, rows } = await NonConformity.findAndCountAll({
@@ -82,9 +83,11 @@ export const getNCById = async (id) => {
     return flatNcDetailRow(nc);
 };
 
-export const getByJob = async (jobId) => {
+export const getByJob = async (jobId, jobCertificateId = null) => {
+    const where = { job_id: jobId };
+    if (jobCertificateId) where.job_certificate_id = jobCertificateId;
     const rows = await NonConformity.findAll({
-        where: { job_id: jobId },
+        where,
         attributes: NC_LIST_ATTRIBUTES,
         include: NC_JOB_INCLUDE,
         order: [['createdAt', 'DESC']],

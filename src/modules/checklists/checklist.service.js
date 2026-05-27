@@ -174,7 +174,8 @@ export const submitChecklist = async (jobId, items, user, signedChecklistFiles =
     }
 
     // ── Guard 3: Only the assigned surveyor ──
-    if (job.assigned_surveyor_id !== userId) {
+    const assignedSurveyorId = jobCert?.assigned_surveyor_id || job.assigned_surveyor_id;
+    if (assignedSurveyorId !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
 
@@ -293,7 +294,8 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
     if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `The checklist cannot be updated as the job has already moved to ${job.job_status} status.` };
     }
-    if (job.assigned_surveyor_id !== userId) {
+    const assignedSurveyorId = jobCert?.assigned_surveyor_id || job.assigned_surveyor_id;
+    if (assignedSurveyorId !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
     if (!Array.isArray(signedChecklistFiles)) {
@@ -336,9 +338,9 @@ export const updateSignedChecklistFiles = async (jobId, signedChecklistFiles, us
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getSignedUploadUrl = async (jobId, fileName, contentType, userId, jobCertificateId = null) => {
-    const job = await JobRequest.findByPk(jobId, { useMaster: true });
-    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
-    if (job.assigned_surveyor_id !== userId) {
+    const { job, jobCert } = await resolveJobAndCert(jobId, jobCertificateId);
+    const assignedSurveyorId = jobCert?.assigned_surveyor_id || job.assigned_surveyor_id;
+    if (assignedSurveyorId !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {
@@ -352,9 +354,9 @@ export const getSignedUploadUrl = async (jobId, fileName, contentType, userId, j
 };
 
 export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId, jobCertificateId = null) => {
-    const job = await JobRequest.findByPk(jobId, { useMaster: true });
-    if (!job) throw { statusCode: 404, message: 'The requested job could not be found.' };
-    if (job.assigned_surveyor_id !== userId) {
+    const { job, jobCert } = await resolveJobAndCert(jobId, jobCertificateId);
+    const assignedSurveyorId = jobCert?.assigned_surveyor_id || job.assigned_surveyor_id;
+    if (assignedSurveyorId !== userId) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
     if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status)) {

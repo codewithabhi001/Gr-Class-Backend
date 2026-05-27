@@ -1,15 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Jobs API  –  Full lifecycle from CREATED → CERTIFIED
-# Role access summary:
-#   CLIENT  : create, list (own fleet), get, cancel, messages, documents (upload, re-upload, list)
-#   GM      : create, list, get, approve-request, finalize, assign, reassign,
-#             reschedule, reject, cancel, priority, history, notes, messages
-#   TM      : list, get, finalize, reassign, reschedule, authorize-survey,
-#             review, send-back, reject, cancel, priority, history, notes, messages
-#   ADMIN   : full access (all endpoints)
-#   TO      : list, get, verify-documents, review, send-back, history, notes, messages
-#   ADMIN/GM/TM/TO/SURVEYOR/CLIENT : role-based access only
-#   SURVEYOR: list (assigned jobs), get, messages
+# Jobs API — container JobRequest + per-certificate workflow (JobCertificate)
+#
+# Parent job_status: CREATED → IN_PROGRESS → CERTIFIED (auto-sync from child certs)
+# Per-cert status: PENDING → DOCUMENT_VERIFIED → SURVEY_AUTHORIZED → SURVEY_DONE → ISSUED
+#
+# Role summary (see also jobs-certificate-workflow.yaml):
+#   CLIENT   : create job, documents, cancel, messages (own fleet)
+#   TO       : PUT .../certificates/{id}/verify-documents, .../review
+#   GM/ADMIN : approve-request, assign/reassign (job or per cert), reschedule, reject
+#   TM       : PUT .../certificates/{id}/authorize-survey; reassign; finalize (non-survey)
+#   SURVEYOR: list/get jobs where assigned on job OR any JobCertificate row
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Collection ──────────────────────────────────────────────────────────────
@@ -290,8 +290,11 @@
 /api/v1/jobs/{id}/verify-documents:
   put:
     tags: [Jobs]
-    summary: "ADMIN/GM/TO: Verify or reject documents"
+    deprecated: true
+    summary: "ADMIN/GM/TO: Verify or reject documents (deprecated)"
     description: |
+      > **Deprecated** – Use `PUT /api/v1/jobs/certificates/{jobCertificateId}/verify-documents` instead.
+
       **Transition:** `CREATED → DOCUMENT_VERIFIED` (when all docs approved)
 
       Technical Officer (or Admin/GM) reviews uploaded documents for validity and completeness.
@@ -406,12 +409,15 @@
 /api/v1/jobs/{id}/approve-request:
   put:
     tags: [Jobs]
-    summary: "GM/ADMIN: Approve request → APPROVED"
+    summary: "GM/ADMIN: Approve job request (all certificates verified)"
     description: |
-      **Transition:** `DOCUMENT_VERIFIED → APPROVED`
+      General Manager or Admin approves the job after documents are verified.
 
-      General Manager or Admin formally approves the job request after document
-      verification. Records `approved_by_user_id` on the job.
+      **Single-certificate / legacy:** `DOCUMENT_VERIFIED → APPROVED`.
+
+      **Multi-certificate:** When parent job is already `IN_PROGRESS` and every
+      `JobCertificate` is `DOCUMENT_VERIFIED`, approval records `approved_by_user_id`
+      without forcing an invalid status transition (job stays `IN_PROGRESS`).
 
       **Roles:** ADMIN, GM
     operationId: approveRequest
@@ -463,7 +469,7 @@
 /api/v1/jobs/{id}/finalize:
   put:
     tags: [Jobs]
-    summary: "ADMIN/GM/TM: Finalize non-survey job → FINALIZED"
+    summary: "TM: Finalize non-survey job → FINALIZED"
     description: |
       **Transition:** `APPROVED → FINALIZED`
 
@@ -471,9 +477,9 @@
       require a survey, finalization happens automatically when the survey is
       completed and the TM finalizes the survey report.
 
-      **Roles:** ADMIN, GM, TM
+      **Roles:** TM
     operationId: finalizeJob
-    x-roles: [ADMIN, GM, TM]
+    x-roles: [TM]
     parameters:
       - name: id
         in: path
@@ -636,8 +642,11 @@
 /api/v1/jobs/{id}/authorize-survey:
   put:
     tags: [Jobs]
-    summary: "ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED"
+    deprecated: true
+    summary: "ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED (deprecated)"
     description: |
+      > **Deprecated** – Use `PUT /api/v1/jobs/certificates/{jobCertificateId}/authorize-survey` instead.
+
       **Transition:** `ASSIGNED → SURVEY_AUTHORIZED`
 
       Admin or Technical Manager formally authorizes the survey to proceed.
@@ -694,15 +703,18 @@
 /api/v1/jobs/{id}/review:
   put:
     tags: [Jobs]
-    summary: "ADMIN/TO: Technical review → REVIEWED"
+    deprecated: true
+    summary: "TO: Technical review → REVIEWED (deprecated)"
     description: |
+      > **Deprecated** – Use `PUT /api/v1/jobs/certificates/{jobCertificateId}/review` instead.
+
       **Transition:** `SURVEY_DONE → REVIEWED`
 
-      Technical Officer (or Admin) performs a technical review of the submitted survey findings.
+      Technical Officer performs a technical review of the submitted survey findings for one certificate.
 
-      **Roles:** ADMIN, TO
+      **Roles:** TO
     operationId: reviewJob
-    x-roles: [ADMIN, TO]
+    x-roles: [TO]
     parameters:
       - name: id
         in: path
@@ -760,9 +772,9 @@
       Logs the old and new values in `job_reschedules` and notifies the
       assigned surveyor (if any).
 
-      **Roles:** GM
+      **Roles:** GM, ADMIN
     operationId: rescheduleJob
-    x-roles: [GM]
+    x-roles: [GM, ADMIN]
     parameters:
       - name: id
         in: path
@@ -1019,6 +1031,12 @@
         in: query
         description: Search by surveyor name or license number
         schema: { type: string }
+      - name: job_certificate_id
+        in: query
+        description: |
+          Optional. When set, eligibility is evaluated only for that certificate's
+          type (split assignment / per-row assign in UI).
+        schema: { type: string, format: uuid }
     responses:
       "200":
         description: List of surveyors with eligibility
@@ -1180,9 +1198,9 @@
 
       Notifies TO team that new or updated documents are available for review.
 
-      **Roles:** CLIENT, ADMIN, GM, TM
+      **Roles:** CLIENT, ADMIN, GM, TM, TO
     operationId: uploadJobDocuments
-    x-roles: [CLIENT, ADMIN, GM, TM]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path
@@ -1262,9 +1280,9 @@
 
       Only allowed while the job is in `CREATED` status.
 
-      **Roles:** CLIENT, ADMIN, GM, TM
+      **Roles:** CLIENT, ADMIN, GM, TM, TO
     operationId: reuploadJobDocument
-    x-roles: [CLIENT, ADMIN, GM, TM]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     parameters:
       - name: id
         in: path

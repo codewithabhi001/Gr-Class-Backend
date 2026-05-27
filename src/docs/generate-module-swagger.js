@@ -90,6 +90,8 @@ const main = () => {
     }
 
     readme.push('');
+    readme.push('See [MODULE_ROLES.md](./MODULE_ROLES.md) for role × endpoint matrix (jobs, surveys, NC, certificates).');
+    readme.push('');
     readme.push('Regenerate:');
     readme.push('```bash');
     readme.push('node src/docs/generate-module-swagger.js');

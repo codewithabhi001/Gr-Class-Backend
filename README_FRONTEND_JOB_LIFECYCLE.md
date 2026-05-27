@@ -65,8 +65,10 @@ While the job is in the `CREATED` status, both the Client and the TO can view, u
 
 The TO is responsible for checking if the uploaded documents are valid, legible, and correct.
 
-**Endpoint:** `PUT /api/v1/jobs/{id}/verify-documents`
-**Role:** `TO`, `TM`, `ADMIN`
+**Endpoint:** `PUT /api/v1/jobs/certificates/{jobCertificateId}/verify-documents`
+**Role:** `TO`, `GM`, `ADMIN`
+
+For multi-certificate jobs, call this **once per certificate**. The parent job moves to `IN_PROGRESS` when any certificate is verified.
 
 The TO has two choices:
 
@@ -92,7 +94,7 @@ If everything looks good, the TO approves the documents.
   "approved": true
 }
 ```
-*Result:* All `PENDING` documents become `APPROVED`. The job transitions to `DOCUMENT_VERIFIED`.
+*Result:* All `PENDING` documents for that certificate become `APPROVED`. That certificate becomes `DOCUMENT_VERIFIED`; the parent job becomes or stays `IN_PROGRESS`.
 
 ---
 
@@ -117,10 +119,10 @@ If the TO rejected a document, the client must fix the issue. The client will us
 
 Once the job is `DOCUMENT_VERIFIED`, the General Manager reviews the overarching request (vessel eligibility, outstanding payments, priority, etc.).
 
-**Endpoint:** `POST /api/v1/jobs/{id}/approve-request`
+**Endpoint:** `PUT /api/v1/jobs/{id}/approve-request`
 **Role:** `GM`, `ADMIN`
 
-*Result:* Job transitions from `DOCUMENT_VERIFIED` to `APPROVED`.
+*Result:* When **all** certificates are `DOCUMENT_VERIFIED`, GM approval is recorded (`approved_by_user_id`). Multi-certificate jobs typically remain `IN_PROGRESS` while certificates progress independently.
 
 ---
 

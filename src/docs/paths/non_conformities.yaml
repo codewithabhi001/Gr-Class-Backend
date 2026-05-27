@@ -1,7 +1,16 @@
+# Non-Conformities — job_id required; job_certificate_id optional (per-cert scope)
+# Open NC on cert A does not block finalize/issue for cert B on the same job.
+
 /api/v1/non-conformities:
   post:
     tags: [Non-Conformities]
-    summary: Create NC
+    summary: "SURVEYOR/TO: Raise non-conformity (optional per-certificate scope)"
+    description: |
+      Creates an OPEN non-conformity. Pass `job_certificate_id` to scope blocking
+      to one certificate during survey finalize and certificate issue. Omit for
+      job-wide NC (blocks all certificates on that job).
+
+      **Roles:** SURVEYOR, TO
     operationId: createNC
     x-roles: [SURVEYOR, TO]
     requestBody:
@@ -13,10 +22,15 @@
             required: [job_id, description, severity]
             properties:
               job_id: { type: string, format: uuid }
+              job_certificate_id:
+                type: string
+                format: uuid
+                description: Optional — scopes NC to one certificate; job-wide NCs omit this field
               description: { type: string }
               severity: { type: string, enum: [MINOR, MAJOR, CRITICAL] }
           example:
             job_id: "01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f"
+            job_certificate_id: "019e640c-0000-0000-0000-000000000001"
             description: "Life jacket expiry date exceeded. Replacement required."
             severity: "MAJOR"
     responses:
@@ -30,6 +44,9 @@
     x-roles: [ADMIN, GM, TM, TO]
     parameters:
       - name: job_id
+        in: query
+        schema: { type: string, format: uuid }
+      - name: job_certificate_id
         in: query
         schema: { type: string, format: uuid }
       - name: status
@@ -126,6 +143,10 @@
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - name: job_certificate_id
+        in: query
+        schema: { type: string, format: uuid }
+        description: Optional filter — return NCs scoped to one job certificate only
     responses:
       "200":
         description: List of NCs

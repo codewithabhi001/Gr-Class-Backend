@@ -26,9 +26,8 @@ router.post(
 // PUT /api/v1/checklists/jobs/:jobId/checklist
 
 // Step 3: Upload evidence proof (survey must be CHECKLIST_SUBMITTED)
-// Uses :jobId so service knows which survey to update
 router.post(
-    '/jobs/:jobId/proof',
+    '/job-certificates/:jobCertificateId/proof',
     authorizeRoles('SURVEYOR'),
     upload.single('proof'),
     surveyController.uploadProof
@@ -36,19 +35,15 @@ router.post(
 
 // Step 3b: Stream GPS location during survey
 router.post(
-    '/jobs/:jobId/location',
+    '/job-certificates/:jobCertificateId/location',
     authorizeRoles('SURVEYOR'),
     validate(schemas.updateGps),
     surveyController.streamLocation
 );
 
-// NOTE: Signed-checklist scan upload now lives in the checklists module:
-//   GET /api/v1/checklists/jobs/:jobId/signed-checklist-upload-url
-//   PUT /api/v1/checklists/jobs/:jobId         (body.signed_checklist_files)
-
 // Step 3c: Offline sync — replay batched checklist answers and GPS points
 router.post(
-    '/jobs/:jobId/sync',
+    '/job-certificates/:jobCertificateId/sync',
     authorizeRoles('SURVEYOR'),
     surveyController.syncOfflineData
 );
@@ -68,28 +63,29 @@ router.post(
 
 // Finalize survey — TM ONLY
 router.put(
-    '/jobs/:jobId/finalize',
+    '/job-certificates/:jobCertificateId/finalize',
     authorizeRoles('TM'),
+    validate(schemas.finalizeSurvey),
     surveyController.finalizeSurvey
 );
 
-// Request rework — ADMIN / GM / TM (survey must be SUBMITTED, job must be REVIEWED)
+// Request rework — ADMIN / GM / TM (survey must be SUBMITTED)
 router.put(
-    '/jobs/:jobId/rework',
+    '/job-certificates/:jobCertificateId/rework',
     authorizeRoles('ADMIN', 'GM', 'TM'),
     surveyController.requestRework
 );
 
 // Flag a violation (SURVEYOR / TM / ADMIN)
 router.post(
-    '/jobs/:jobId/violation',
+    '/job-certificates/:jobCertificateId/violation',
     authorizeRoles('SURVEYOR', 'TM', 'ADMIN'),
     surveyController.flagViolation
 );
 
 // Draft Survey Statement (Surveyor / TM)
 router.post(
-    '/jobs/:jobId/statement/draft',
+    '/job-certificates/:jobCertificateId/statement/draft',
     authorizeRoles('SURVEYOR', 'TM'),
     validate(schemas.draftSurveyStatement),
     surveyController.draftStatement
@@ -97,7 +93,7 @@ router.post(
 
 // Issue Survey Statement (TM ONLY - requires signed PDF)
 router.post(
-    '/jobs/:jobId/statement/issue',
+    '/job-certificates/:jobCertificateId/statement/issue',
     authorizeRoles('TM'),
     upload.single('statement'),
     surveyController.issueStatement
@@ -114,17 +110,16 @@ router.get(
     surveyController.getSurveyReports
 );
 
-
 // Survey execution timeline for a job
 router.get(
-    '/jobs/:jobId/timeline',
+    '/job-certificates/:jobCertificateId/timeline',
     authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'),
     surveyController.getTimeline
 );
 
-// Get survey details for a job (SURVEYOR can also read their own survey)
+// Get survey details for a job certificate (SURVEYOR can also read their own survey)
 router.get(
-    '/jobs/:jobId',
+    '/job-certificates/:jobCertificateId',
     authorizeRoles('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT'),
     surveyController.getSurveyDetails
 );

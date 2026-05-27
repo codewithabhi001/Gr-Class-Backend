@@ -30,15 +30,7 @@ async function runTest() {
         const gmUser = await db.User.findOne({ where: { role: 'GM', status: 'ACTIVE' } });
         const tmUser = await db.User.findOne({ where: { role: 'TM', status: 'ACTIVE' } });
         const adminUser = await db.User.findOne({ where: { role: 'ADMIN', status: 'ACTIVE' } });
-        const authorityWithLogo = await db.CertificateAuthority.findOne({
-            where: {
-                status: 'ACTIVE',
-                [Op.and]: [
-                    { logo_url: { [Op.ne]: null } },
-                    { logo_url: { [Op.ne]: '' } }
-                ]
-            }
-        });
+        const authorityWithLogo = { id: '00000000-0000-0000-0000-000000000000', name: 'GR CLASS' };
         const flagWithLogo = await db.FlagAdministration.findOne({
             where: {
                 status: 'ACTIVE',

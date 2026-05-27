@@ -11,6 +11,16 @@ export default (sequelize, DataTypes) => {
             onDelete: 'CASCADE',
             onUpdate: 'CASCADE'
         },
+        job_certificate_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'job_certificates',
+                key: 'id'
+            },
+            onDelete: 'SET NULL',
+            onUpdate: 'CASCADE'
+        },
         description: DataTypes.TEXT,
         severity: DataTypes.ENUM('MINOR', 'MAJOR', 'CRITICAL'),
         status: { type: DataTypes.ENUM('OPEN', 'CLOSED'), defaultValue: 'OPEN' },
@@ -24,6 +34,7 @@ export default (sequelize, DataTypes) => {
 
     NonConformity.associate = (models) => {
         NonConformity.belongsTo(models.JobRequest, { foreignKey: 'job_id' });
+        NonConformity.belongsTo(models.JobCertificate, { foreignKey: 'job_certificate_id' });
     };
 
     return NonConformity;

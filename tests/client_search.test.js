@@ -39,7 +39,8 @@ describe('Client Search Service (getClients)', () => {
             assert.ok(resultByName.rows.length >= 1, 'Should find at least one client');
             const found1 = resultByName.rows.find(c => c.id === client1Id);
             assert.ok(found1, 'Should find client1 by name search');
-            assert.strictEqual(found1.company_name, searchName);
+            // DB normalizes client names to lowercase; compare case-insensitively
+            assert.strictEqual(String(found1.company_name).toLowerCase(), searchName.toLowerCase());
 
             // Test searching by company code
             const resultByCode = await clientService.getClients({ search: searchCode });

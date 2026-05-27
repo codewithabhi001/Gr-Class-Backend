@@ -105,6 +105,10 @@ export const schemas = {
         survey_statement: Joi.string().optional(),
         job_certificate_id: Joi.string().guid().allow('', null).optional()
     }),
+    finalizeSurvey: Joi.object({
+        job_certificate_id: Joi.string().guid().allow('', null).optional(),
+        skip_validation: Joi.boolean().optional().default(false)
+    }),
     generateCertificate: Joi.object({
         job_id: Joi.string().guid().optional(),
         job_certificate_id: Joi.string().guid().optional(), // new: per-certificate generation

@@ -39,7 +39,7 @@ export const getNCById = async (req, res, next) => {
 
 export const getByJob = async (req, res, next) => {
     try {
-        const list = await ncService.getByJob(req.params.jobId);
+        const list = await ncService.getByJob(req.params.jobId, req.query.job_certificate_id || null);
         res.json({ success: true, data: list });
     } catch (error) {
         next(error);

@@ -5285,7 +5285,12 @@
             "$ref": "#/components/schemas/UUID"
           },
           "job_id": {
-            "$ref": "#/components/schemas/UUID"
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
+          },
+          "job_certificate_id": {
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
           },
           "latitude": {
             "type": "number"

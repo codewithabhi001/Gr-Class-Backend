@@ -49,9 +49,9 @@
   get:
     tags: [Payments]
     summary: Financial summary
-    description: Get financial summary. CLIENT, ADMIN, GM only.
+    description: Get financial summary. CLIENT, ADMIN, GM, TM, TO.
     operationId: getFinancialSummary
-    x-roles: [CLIENT, ADMIN, GM]
+    x-roles: [CLIENT, ADMIN, GM, TM, TO]
     responses:
       "200":
         description: Financial summary

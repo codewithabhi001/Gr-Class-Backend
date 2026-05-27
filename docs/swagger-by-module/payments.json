@@ -5290,7 +5290,12 @@
             "$ref": "#/components/schemas/UUID"
           },
           "job_id": {
-            "$ref": "#/components/schemas/UUID"
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
+          },
+          "job_certificate_id": {
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
           },
           "latitude": {
             "type": "number"
@@ -6100,12 +6105,14 @@
           "Payments"
         ],
         "summary": "Financial summary",
-        "description": "Get financial summary. CLIENT, ADMIN, GM only.",
+        "description": "Get financial summary. CLIENT, ADMIN, GM, TM, TO.",
         "operationId": "getFinancialSummary",
         "x-roles": [
           "CLIENT",
           "ADMIN",
-          "GM"
+          "GM",
+          "TM",
+          "TO"
         ],
         "responses": {
           "200": {

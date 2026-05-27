@@ -5290,7 +5290,12 @@
             "$ref": "#/components/schemas/UUID"
           },
           "job_id": {
-            "$ref": "#/components/schemas/UUID"
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
+          },
+          "job_certificate_id": {
+            "$ref": "#/components/schemas/UUID",
+            "nullable": true
           },
           "latitude": {
             "type": "number"
@@ -6689,8 +6694,9 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "ADMIN/GM/TO: Verify or reject documents",
-        "description": "**Transition:** `CREATED → DOCUMENT_VERIFIED` (when all docs approved)\n\nTechnical Officer (or Admin/GM) reviews uploaded documents for validity and completeness.\n\n**Two flows:**\n1. **Approve all** (`approved: true` or empty body) — Marks all documents as\n   APPROVED and transitions the job to `DOCUMENT_VERIFIED`.\n2. **Reject specific docs** (`approved: false`) — Marks listed documents as\n   REJECTED with reasons. Job stays in `CREATED`. Client is notified to\n   re-upload the rejected documents.\n\nIf mandatory documents are missing (not uploaded at all), returns `400`\nregardless of the `approved` flag.\n\n**Roles:** ADMIN, GM, TO\n",
+        "deprecated": true,
+        "summary": "ADMIN/GM/TO: Verify or reject documents (deprecated)",
+        "description": "> **Deprecated** – Use `PUT /api/v1/jobs/certificates/{jobCertificateId}/verify-documents` instead.\n\n**Transition:** `CREATED → DOCUMENT_VERIFIED` (when all docs approved)\n\nTechnical Officer (or Admin/GM) reviews uploaded documents for validity and completeness.\n\n**Two flows:**\n1. **Approve all** (`approved: true` or empty body) — Marks all documents as\n   APPROVED and transitions the job to `DOCUMENT_VERIFIED`.\n2. **Reject specific docs** (`approved: false`) — Marks listed documents as\n   REJECTED with reasons. Job stays in `CREATED`. Client is notified to\n   re-upload the rejected documents.\n\nIf mandatory documents are missing (not uploaded at all), returns `400`\nregardless of the `approved` flag.\n\n**Roles:** ADMIN, GM, TO\n",
         "operationId": "verifyJobDocuments",
         "x-roles": [
           "ADMIN",
@@ -6973,8 +6979,8 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "GM/ADMIN: Approve request → APPROVED",
-        "description": "**Transition:** `DOCUMENT_VERIFIED → APPROVED`\n\nGeneral Manager or Admin formally approves the job request after document\nverification. Records `approved_by_user_id` on the job.\n\n**Roles:** ADMIN, GM\n",
+        "summary": "GM/ADMIN: Approve job request (all certificates verified)",
+        "description": "General Manager or Admin approves the job after documents are verified.\n\n**Single-certificate / legacy:** `DOCUMENT_VERIFIED → APPROVED`.\n\n**Multi-certificate:** When parent job is already `IN_PROGRESS` and every\n`JobCertificate` is `DOCUMENT_VERIFIED`, approval records `approved_by_user_id`\nwithout forcing an invalid status transition (job stays `IN_PROGRESS`).\n\n**Roles:** ADMIN, GM\n",
         "operationId": "approveRequest",
         "x-roles": [
           "ADMIN",
@@ -7175,12 +7181,10 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "ADMIN/GM/TM: Finalize non-survey job → FINALIZED",
-        "description": "**Transition:** `APPROVED → FINALIZED`\n\nOnly applicable to jobs where `is_survey_required = false`. For jobs that\nrequire a survey, finalization happens automatically when the survey is\ncompleted and the TM finalizes the survey report.\n\n**Roles:** ADMIN, GM, TM\n",
+        "summary": "TM: Finalize non-survey job → FINALIZED",
+        "description": "**Transition:** `APPROVED → FINALIZED`\n\nOnly applicable to jobs where `is_survey_required = false`. For jobs that\nrequire a survey, finalization happens automatically when the survey is\ncompleted and the TM finalizes the survey report.\n\n**Roles:** TM\n",
         "operationId": "finalizeJob",
         "x-roles": [
-          "ADMIN",
-          "GM",
           "TM"
         ],
         "parameters": [
@@ -7774,8 +7778,9 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED",
-        "description": "**Transition:** `ASSIGNED → SURVEY_AUTHORIZED`\n\nAdmin or Technical Manager formally authorizes the survey to proceed.\nRequires a surveyor to already be assigned. Notifies the surveyor and the\nclient. The surveyor can now call `POST /api/v1/surveys/start` to begin.\n\n**Roles:** ADMIN, TM\n",
+        "deprecated": true,
+        "summary": "ADMIN/TM: Authorize survey → SURVEY_AUTHORIZED (deprecated)",
+        "description": "> **Deprecated** – Use `PUT /api/v1/jobs/certificates/{jobCertificateId}/authorize-survey` instead.\n\n**Transition:** `ASSIGNED → SURVEY_AUTHORIZED`\n\nAdmin or Technical Manager formally authorizes the survey to proceed.\nRequires a surveyor to already be assigned. Notifies the surveyor and the\nclient. The surveyor can now call `POST /api/v1/surveys/start` to begin.\n\n**Roles:** ADMIN, TM\n",
         "operationId": "authorizeSurvey",
         "x-roles": [
           "ADMIN",
@@ -7976,11 +7981,11 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "ADMIN/TO: Technical review → REVIEWED",
-        "description": "**Transition:** `SURVEY_DONE → REVIEWED`\n\nTechnical Officer (or Admin) performs a technical review of the submitted survey findings.\n\n**Roles:** ADMIN, TO\n",
+        "deprecated": true,
+        "summary": "TO: Technical review → REVIEWED (deprecated)",
+        "description": "> **Deprecated** – Use `PUT /api/v1/jobs/certificates/{jobCertificateId}/review` instead.\n\n**Transition:** `SURVEY_DONE → REVIEWED`\n\nTechnical Officer performs a technical review of the submitted survey findings for one certificate.\n\n**Roles:** TO\n",
         "operationId": "reviewJob",
         "x-roles": [
-          "ADMIN",
           "TO"
         ],
         "parameters": [
@@ -8179,10 +8184,11 @@
           "Jobs"
         ],
         "summary": "ADMIN/GM: Reschedule job date/port",
-        "description": "Updates `target_date` and/or `target_port` for an existing job.\nAllowed when the job is in any of: `CREATED`, `DOCUMENT_VERIFIED`,\n`APPROVED`, `ASSIGNED`, `SURVEY_AUTHORIZED`.  \nNot allowed after survey starts or in terminal states.\n\nLogs the old and new values in `job_reschedules` and notifies the\nassigned surveyor (if any).\n\n**Roles:** GM\n",
+        "description": "Updates `target_date` and/or `target_port` for an existing job.\nAllowed when the job is in any of: `CREATED`, `DOCUMENT_VERIFIED`,\n`APPROVED`, `ASSIGNED`, `SURVEY_AUTHORIZED`.  \nNot allowed after survey starts or in terminal states.\n\nLogs the old and new values in `job_reschedules` and notifies the\nassigned surveyor (if any).\n\n**Roles:** GM, ADMIN\n",
         "operationId": "rescheduleJob",
         "x-roles": [
-          "GM"
+          "GM",
+          "ADMIN"
         ],
         "parameters": [
           {
@@ -9002,6 +9008,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "job_certificate_id",
+            "in": "query",
+            "description": "Optional. When set, eligibility is evaluated only for that certificate's\ntype (split assignment / per-row assign in UI).\n",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -9437,13 +9452,14 @@
           "Jobs"
         ],
         "summary": "Upload or replace job documents",
-        "description": "Client or staff uploads additional documents or replaces existing ones.\nOnly allowed while job is in `CREATED` status.\n\nThis endpoint handles both initial uploads and replacement of rejected \ndocuments. If a `required_document_id` is provided for a document that\nalready exists, its `file_url` will be updated and its `verification_status`\nwill be reset to `PENDING`.\n\nNotifies TO team that new or updated documents are available for review.\n\n**Roles:** CLIENT, ADMIN, GM, TM\n",
+        "description": "Client or staff uploads additional documents or replaces existing ones.\nOnly allowed while job is in `CREATED` status.\n\nThis endpoint handles both initial uploads and replacement of rejected \ndocuments. If a `required_document_id` is provided for a document that\nalready exists, its `file_url` will be updated and its `verification_status`\nwill be reset to `PENDING`.\n\nNotifies TO team that new or updated documents are available for review.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO\n",
         "operationId": "uploadJobDocuments",
         "x-roles": [
           "CLIENT",
           "ADMIN",
           "GM",
-          "TM"
+          "TM",
+          "TO"
         ],
         "parameters": [
           {
@@ -9607,13 +9623,14 @@
           "Jobs"
         ],
         "summary": "Re-upload a rejected document",
-        "description": "Client or staff replaces a previously rejected document with a new version.\nOnly documents with `verification_status = REJECTED` can be re-uploaded.\nThe new version is created as a separate record (PENDING) to maintain\naudit trail of the rejected original.\n\nOnly allowed while the job is in `CREATED` status.\n\n**Roles:** CLIENT, ADMIN, GM, TM\n",
+        "description": "Client or staff replaces a previously rejected document with a new version.\nOnly documents with `verification_status = REJECTED` can be re-uploaded.\nThe new version is created as a separate record (PENDING) to maintain\naudit trail of the rejected original.\n\nOnly allowed while the job is in `CREATED` status.\n\n**Roles:** CLIENT, ADMIN, GM, TM, TO\n",
         "operationId": "reuploadJobDocument",
         "x-roles": [
           "CLIENT",
           "ADMIN",
           "GM",
-          "TM"
+          "TM",
+          "TO"
         ],
         "parameters": [
           {

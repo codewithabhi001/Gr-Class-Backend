@@ -292,7 +292,11 @@ export const validateUserEntityAccess = async (user, entityType, entityId) => {
         // Surveyor can only access assigned jobs
         if (entityType === 'JOB') {
             const job = await JobRequest.findOne({ where: { id: entityId, assigned_surveyor_id: user.id } });
-            return !!job;
+            if (job) return true;
+            const count = await db.JobCertificate.count({
+                where: { job_request_id: entityId, assigned_surveyor_id: user.id }
+            });
+            return count > 0;
         }
     }
 

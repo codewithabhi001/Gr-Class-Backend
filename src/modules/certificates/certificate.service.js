@@ -401,11 +401,6 @@ export const generateCertificate = async (data, user) => {
         });
         if (!job) throw { statusCode: 404, message: 'Job not found' };
 
-        // ── Guard 1: Job status ──
-        if (!skip_validation && !['FINALIZED', 'PAYMENT_DONE', 'REWORK_REQUESTED', 'SURVEY_DONE', 'REVIEWED'].includes(job.job_status)) {
-            throw { statusCode: 400, message: `Certificate can only be generated when job is FINALIZED, PAYMENT_DONE, REWORK_REQUESTED, SURVEY_DONE or REVIEWED. Current: ${job.job_status}` };
-        }
-
         if (!jobCert) {
             // For multi-cert jobs, always require job_certificate_id to avoid ambiguity
             const allJobCerts = await db.JobCertificate.findAll({
@@ -420,6 +415,20 @@ export const generateCertificate = async (data, user) => {
                 };
             }
             jobCert = allJobCerts[0] || null;
+        }
+
+        // ── Guard 1: Status Check ──
+        if (!skip_validation) {
+            const targetStatus = jobCert ? jobCert.status : job.job_status;
+            const allowedStatuses = jobCert
+                ? ['SURVEY_DONE', 'REWORK_REQUESTED']
+                : ['FINALIZED', 'PAYMENT_DONE', 'REWORK_REQUESTED', 'SURVEY_DONE', 'REVIEWED'];
+            if (!allowedStatuses.includes(targetStatus)) {
+                throw {
+                    statusCode: 400,
+                    message: `Certificate can only be generated when status is ${allowedStatuses.join(', ')}. Current: ${targetStatus}`,
+                };
+            }
         }
 
         // ── Resolve certificate type from JobCertificate ──
@@ -461,10 +470,17 @@ export const generateCertificate = async (data, user) => {
 
         // ── Guard 4: No open Non-Conformities ──
         if (db.NonConformity) {
-            const openNCs = await db.NonConformity.count({
-                where: { job_id: resolvedJobId, status: { [Op.notIn]: ['CLOSED', 'RESOLVED'] } },
-                transaction
-            });
+            const ncWhere = {
+                job_id: resolvedJobId,
+                status: { [Op.notIn]: ['CLOSED', 'RESOLVED'] },
+            };
+            if (jobCert?.id) {
+                ncWhere[Op.or] = [
+                    { job_certificate_id: jobCert.id },
+                    { job_certificate_id: null },
+                ];
+            }
+            const openNCs = await db.NonConformity.count({ where: ncWhere, transaction });
             if (openNCs > 0) {
                 throw { statusCode: 400, message: `Cannot generate certificate: ${openNCs} open non-conformit${openNCs > 1 ? 'ies' : 'y'} must be resolved first.` };
             }
@@ -506,9 +522,9 @@ export const generateCertificate = async (data, user) => {
             changed_at: new Date()
         }, { transaction });
 
-        // Link generated certificate back to the JobCertificate (new) or JobRequest (legacy)
+        // Link draft certificate to JobCertificate; ISSUED status is set in issueCertificate via lifecycle sync
         if (jobCert) {
-            await jobCert.update({ generated_certificate_id: cert.id, status: 'ISSUED' }, { transaction });
+            await jobCert.update({ generated_certificate_id: cert.id }, { transaction });
         } else {
             await job.update({ generated_certificate_id: cert.id }, { transaction });
         }
@@ -880,10 +896,23 @@ export const issueCertificate = async (id, user) => {
             issued_by_user_id: user.id
         }, { transaction });
 
-        // Update Job Request status to CERTIFIED only now that cert is VALID
+        // Update JobCertificate status to ISSUED, which will auto-sync parent JobRequest status
         if (cert.job_id) {
-            await lifecycleService.updateJobStatus(cert.job_id, 'CERTIFIED', user.id,
-                `Certificate ${cert.certificate_number} officially issued.`, { transaction });
+            let jc = await db.JobCertificate.findOne({
+                where: { generated_certificate_id: cert.id },
+                transaction,
+            });
+            if (!jc) {
+                const matching = await db.JobCertificate.findAll({
+                    where: { job_request_id: cert.job_id, certificate_type_id: cert.certificate_type_id },
+                    transaction,
+                });
+                if (matching.length === 1) jc = matching[0];
+            }
+            if (jc) {
+                await lifecycleService.updateJobCertificateStatus(jc.id, 'ISSUED', user.id,
+                    `Certificate ${cert.certificate_number} officially issued.`, { transaction });
+            }
         }
 
         await _generateCertificateFile(cert, user, transaction);

@@ -28,7 +28,7 @@ const assertSurveyNotFinalized = (survey) => {
  * Validates that the job exists, is not in a terminal state, and (optionally)
  * the caller is the assigned surveyor.
  */
-const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowedStatuses = null } = {}) => {
+const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowedStatuses = null, jobCertificateId = null } = {}) => {
     const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
 
@@ -40,8 +40,32 @@ const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowe
         throw { statusCode: 400, message: `This action can only be performed when the job is in ${allowedStatuses.join(', ')} state.` };
     }
 
-    if (checkSurveyor && job.assigned_surveyor_id !== userId) {
-        throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
+    if (checkSurveyor) {
+        let isAssigned = false;
+        if (jobCertificateId) {
+            const jc = await db.JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+            if (jc && jc.assigned_surveyor_id === userId) {
+                isAssigned = true;
+            }
+        }
+        
+        if (!isAssigned) {
+            if (job.assigned_surveyor_id === userId) {
+                isAssigned = true;
+            } else {
+                const count = await db.JobCertificate.count({
+                    where: { job_request_id: jobId, assigned_surveyor_id: userId },
+                    useMaster: true
+                });
+                if (count > 0) {
+                    isAssigned = true;
+                }
+            }
+        }
+
+        if (!isAssigned) {
+            throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
+        }
     }
 
     if (job.is_survey_required === false) {
@@ -55,13 +79,25 @@ const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowe
  * Returns the survey for a job certificate, or throws if not found.
  * Can look up by job_certificate_id directly.
  */
-const requireSurvey = async (jobId) => {
+const requireSurvey = async (jobId, jobCertificateId = null) => {
     // jobId here refers to the job_request_id; find via JobCertificate
     const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
     if (!jobCerts.length) throw { statusCode: 404, message: 'No certificates found for this job.' };
-    // BUG FIX: Must use Op.in for array of IDs — findOne with a bare array is not valid SQL
+
+    if (jobCertificateId) {
+        const belongsToJob = jobCerts.some(jc => jc.id === jobCertificateId);
+        if (!belongsToJob) throw { statusCode: 400, message: 'Certificate does not belong to this job.' };
+        const survey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
+        if (!survey) throw { statusCode: 404, message: 'Survey report not found for this certificate. Please start the survey inspection first.' };
+        return survey;
+    }
+
+    if (jobCerts.length > 1) {
+        throw { statusCode: 400, message: 'This job has multiple certificates. Please specify the job_certificate_id.' };
+    }
+
     const survey = await Survey.findOne({
-        where: { job_certificate_id: { [db.Sequelize.Op.in]: jobCerts.map(jc => jc.id) } },
+        where: { job_certificate_id: jobCerts[0].id },
         useMaster: true
     });
     if (!survey) throw { statusCode: 404, message: 'Survey report not found. Please start the survey inspection first.' };
@@ -114,7 +150,8 @@ export const startSurvey = async (data, userId) => {
     // Guard: job must be SURVEY_AUTHORIZED (or IN_PROGRESS if subsequent cert)
     await assertJobAccessible(resolvedJobId, userId, {
         checkSurveyor: true,
-        allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS']
+        allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS'],
+        jobCertificateId: certId
     });
 
     const txn = await db.sequelize.transaction();
@@ -177,14 +214,9 @@ export const startSurvey = async (data, userId) => {
  * Survey must be CHECKLIST_SUBMITTED (or REWORK_REQUIRED to allow re-upload).
  */
 export const uploadProof = async (jobId, file, data, userId) => {
-    const job = await assertJobAccessible(jobId, userId, { checkSurveyor: true });
-
     const certId = data.job_certificate_id;
-    const survey = certId
-        ? await Survey.findOne({ where: { job_certificate_id: certId }, useMaster: true })
-        : await requireSurvey(jobId);
-        
-    if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
+    const job = await assertJobAccessible(jobId, userId, { checkSurveyor: true, jobCertificateId: certId });
+    const survey = await requireSurvey(jobId, certId);
     assertSurveyNotFinalized(survey);
 
     // Guard: must have submitted checklist first OR already uploaded proof OR rework
@@ -252,17 +284,14 @@ export const submitSurveyReport = async (data, files, userId) => {
         if (jc) certId = jc.id;
     }
 
-    const job = await assertJobAccessible(resolvedJobId, userId, { checkSurveyor: true });
+    const job = await assertJobAccessible(resolvedJobId, userId, { checkSurveyor: true, jobCertificateId: certId });
 
     // Guard: once payment is done, survey can no longer be submitted
     if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `Survey report cannot be submitted as the job is already being finalized or certified.` };
     }
 
-    const survey = certId
-        ? await Survey.findOne({ where: { job_certificate_id: certId }, useMaster: true })
-        : await requireSurvey(resolvedJobId);
-    if (!survey) throw { statusCode: 404, message: 'Survey report not found. Please start the survey inspection first.' };
+    const survey = await requireSurvey(resolvedJobId, certId);
     assertSurveyNotFinalized(survey);
 
     // Guard: submission requires PROOF_UPLOADED, CHECKLIST_SUBMITTED or REWORK_REQUIRED
@@ -425,15 +454,31 @@ export const submitSurveyReport = async (data, files, userId) => {
  * Survey must be SUBMITTED (skippable with skip_validation for E2E testing).
  * No open Non-Conformities (checked inside lifecycle.service).
  */
-export const finalizeSurvey = async (jobId, user, { skip_validation = false } = {}) => {
+export const finalizeSurvey = async (jobId, user, { skip_validation = false, job_certificate_id = null } = {}) => {
     if (!['TM', 'ADMIN'].includes(user.role)) {
         throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to finalize surveys.' };
     }
     const userId = user.id;
     await assertJobAccessible(jobId, userId, { checkSurveyor: false });
 
-    let surveys = await requireAllSurveys(jobId);
-    if (!surveys.length) throw { statusCode: 404, message: 'No surveys found for this job.' };
+    const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+    if (!jobCerts.length) throw { statusCode: 404, message: 'No certificates found for this job.' };
+
+    let surveys = [];
+    if (job_certificate_id) {
+        const belongsToJob = jobCerts.some(jc => jc.id === job_certificate_id);
+        if (!belongsToJob) throw { statusCode: 400, message: 'Certificate does not belong to this job.' };
+        const survey = await Survey.findOne({ where: { job_certificate_id: job_certificate_id }, useMaster: true });
+        if (!survey) throw { statusCode: 404, message: 'Survey not found for this certificate.' };
+        surveys = [survey];
+    } else {
+        if (jobCerts.length > 1) {
+            throw { statusCode: 400, message: 'This job has multiple certificates. Please specify the job_certificate_id to finalize a specific survey.' };
+        }
+        const survey = await Survey.findOne({ where: { job_certificate_id: jobCerts[0].id }, useMaster: true });
+        if (!survey) throw { statusCode: 404, message: 'No survey found for this job.' };
+        surveys = [survey];
+    }
 
     if (skip_validation) {
         // Bypass lifecycle guard — force directly to FINALIZED for E2E testing
@@ -455,8 +500,12 @@ export const finalizeSurvey = async (jobId, user, { skip_validation = false } = 
     if (skip_validation) {
         const currentJob = await JobRequest.findByPk(jobId, { useMaster: true });
         if (currentJob && !['FINALIZED', 'PAYMENT_DONE', 'CERTIFIED'].includes(currentJob.job_status)) {
-            await lifecycleService.updateJobStatus(jobId, 'FINALIZED', userId,
-                'Auto-sync: All surveys finalized (skip_validation)', { _internal: true });
+            const allSurveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map(c => c.id) }, useMaster: true });
+            const allFinalized = allSurveys.every(s => s.survey_status === 'FINALIZED');
+            if (allFinalized) {
+                await lifecycleService.updateJobStatus(jobId, 'FINALIZED', userId,
+                    'Auto-sync: All surveys finalized (skip_validation)', { _internal: true });
+            }
         }
     }
 
@@ -467,7 +516,14 @@ export const finalizeSurvey = async (jobId, user, { skip_validation = false } = 
         }).catch(() => { });
     }
 
-    return { message: 'All surveys finalized. Job is now FINALIZED.' };
+    const allSurveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map(c => c.id) }, useMaster: true });
+    const allFinalized = allSurveys.every(s => s.survey_status === 'FINALIZED');
+
+    return {
+        message: allFinalized
+            ? 'All surveys finalized. Job is now FINALIZED.'
+            : 'Survey finalized successfully. Remaining surveys still pending.'
+    };
 };
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST REWORK — TM / GM Action
@@ -479,13 +535,19 @@ export const finalizeSurvey = async (jobId, user, { skip_validation = false } = 
 export const requestRework = async (jobId, reason, userId, jobCertificateId = null) => {
     const job = await assertJobAccessible(jobId, userId, { checkSurveyor: false });
 
-    // Rework can only be requested after TO has reviewed all documents
-    if (job.job_status !== 'REVIEWED') {
-        throw { statusCode: 400, message: 'Rework can only be requested after the Technical Officer has reviewed all documents.' };
-    }
-
     if (lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
         throw { statusCode: 400, message: `Rework cannot be requested when job is ${job.job_status}.` };
+    }
+
+    if (!jobCertificateId) {
+        const jobCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+        const hasEligibleCert = jobCerts.some((c) => ['SURVEY_DONE', 'REWORK_REQUESTED'].includes(c.status));
+        if (!hasEligibleCert && !['REVIEWED', 'IN_PROGRESS', 'REWORK_REQUESTED'].includes(job.job_status)) {
+            throw {
+                statusCode: 400,
+                message: 'Rework can only be requested after at least one certificate survey has been submitted.',
+            };
+        }
     }
 
     // ── Per-Certificate Rework ──────────────────────────────────────────────
@@ -656,16 +718,10 @@ const generateSurveyReportPdf = async (survey, user) => {
 };
 
 export const draftSurveyStatement = async (jobId, data, user) => {
-    await assertJobAccessible(jobId, user.id, { checkSurveyor: user.role === 'SURVEYOR' });
+    const { job_certificate_id } = data || {};
+    await assertJobAccessible(jobId, user.id, { checkSurveyor: user.role === 'SURVEYOR', jobCertificateId: job_certificate_id });
     // Get first survey for this job (or the one matching the certificate if provided)
-    const { job_certificate_id } = data;
-    let survey;
-    if (job_certificate_id) {
-        survey = await Survey.findOne({ where: { job_certificate_id }, useMaster: true });
-    } else {
-        survey = await requireSurvey(jobId);
-    }
-    if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
+    const survey = await requireSurvey(jobId, job_certificate_id);
     assertSurveyNotFinalized(survey);
 
     const isManagement = ['TM', 'ADMIN'].includes(user.role);
@@ -707,13 +763,7 @@ export const issueSurveyStatement = async (jobId, file, data, user) => {
     const userId = user.id;
     await assertJobAccessible(jobId, userId, { checkSurveyor: false });
     const { job_certificate_id } = data || {};
-    let survey;
-    if (job_certificate_id) {
-        survey = await Survey.findOne({ where: { job_certificate_id }, useMaster: true });
-    } else {
-        survey = await requireSurvey(jobId);
-    }
-    if (!survey) throw { statusCode: 404, message: 'Survey not found.' };
+    const survey = await requireSurvey(jobId, job_certificate_id);
     assertSurveyNotFinalized(survey);
 
     let finalUrl = null;
@@ -885,7 +935,28 @@ export const getSurveyDetails = async (jobId, user) => {
 export const streamLocation = async (jobId, { latitude, longitude, job_certificate_id }, userId) => {
     const job = await JobRequest.findByPk(jobId, { useMaster: true });
     if (!job) throw { statusCode: 404, message: 'Job not found' };
-    if (job.assigned_surveyor_id !== userId) {
+
+    let isAssigned = false;
+    if (job_certificate_id) {
+        const jc = await db.JobCertificate.findByPk(job_certificate_id, { useMaster: true });
+        if (jc && jc.assigned_surveyor_id === userId) {
+            isAssigned = true;
+        }
+    }
+    if (!isAssigned) {
+        if (job.assigned_surveyor_id === userId) {
+            isAssigned = true;
+        } else {
+            const count = await db.JobCertificate.count({
+                where: { job_request_id: jobId, assigned_surveyor_id: userId },
+                useMaster: true
+            });
+            if (count > 0) {
+                isAssigned = true;
+            }
+        }
+    }
+    if (!isAssigned) {
         throw { statusCode: 403, message: 'You are not the assigned surveyor for this job.' };
     }
 
@@ -921,7 +992,7 @@ export const streamLocation = async (jobId, { latitude, longitude, job_certifica
  * Generates a pre-signed URL for the surveyor to upload a signed checklist scan.
  */
 export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, userId, jobCertificateId = null) => {
-    await assertJobAccessible(jobId, userId, { checkSurveyor: true });
+    await assertJobAccessible(jobId, userId, { checkSurveyor: true, jobCertificateId });
 
     // BUG FIX: Scope key to job_certificate_id so concurrent cert uploads don't overwrite each other
     const certSegment = jobCertificateId ? jobCertificateId : jobId;
@@ -942,16 +1013,9 @@ export const updateSignedChecklist = async (jobId, fileKeys, userId, jobCertific
         throw { statusCode: 400, message: 'fileKeys must be an array of S3 keys strings.' };
     }
 
-    await assertJobAccessible(jobId, userId, { checkSurveyor: true });
+    await assertJobAccessible(jobId, userId, { checkSurveyor: true, jobCertificateId });
 
-    // BUG FIX: For multi-cert jobs, update the specific certificate's survey, not just the first one
-    let survey;
-    if (jobCertificateId) {
-        survey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
-        if (!survey) throw { statusCode: 404, message: 'Survey not found for this certificate.' };
-    } else {
-        survey = await requireSurvey(jobId);
-    }
+    const survey = await requireSurvey(jobId, jobCertificateId);
     assertSurveyNotFinalized(survey);
 
     const txn = await db.sequelize.transaction();
@@ -1002,17 +1066,11 @@ export const syncOfflineData = async (jobId, { checklist = [], gps_points = [], 
     // Guard: job must be accessible and surveyor must match
     const job = await assertJobAccessible(jobId, userId, {
         checkSurveyor: true,
-        allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE']
+        allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS', 'SURVEY_DONE'],
+        jobCertificateId: job_certificate_id
     });
 
-    // BUG FIX: Look up survey by specific job_certificate_id if provided
-    let survey;
-    if (job_certificate_id) {
-        survey = await Survey.findOne({ where: { job_certificate_id }, useMaster: true });
-        if (!survey) throw { statusCode: 404, message: 'Survey not found for this certificate.' };
-    } else {
-        survey = await requireSurvey(jobId);
-    }
+    const survey = await requireSurvey(jobId, job_certificate_id);
     assertSurveyNotFinalized(survey);
 
     const txn = await db.sequelize.transaction();

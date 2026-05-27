@@ -19,6 +19,7 @@ Generated from `src/docs/paths/*.yaml` and merged OpenAPI components.
 - `flags`: [flags.yaml](./flags.yaml), [flags.json](./flags.json)
 - `health`: [health.yaml](./health.yaml), [health.json](./health.json)
 - `incidents`: [incidents.yaml](./incidents.yaml), [incidents.json](./incidents.json)
+- `jobs-certificate-workflow`: [jobs-certificate-workflow.yaml](./jobs-certificate-workflow.yaml), [jobs-certificate-workflow.json](./jobs-certificate-workflow.json)
 - `jobs`: [jobs.yaml](./jobs.yaml), [jobs.json](./jobs.json)
 - `non_conformities`: [non_conformities.yaml](./non_conformities.yaml), [non_conformities.json](./non_conformities.json)
 - `notifications`: [notifications.yaml](./notifications.yaml), [notifications.json](./notifications.json)
@@ -36,6 +37,8 @@ Generated from `src/docs/paths/*.yaml` and merged OpenAPI components.
 - `toca`: [toca.yaml](./toca.yaml), [toca.json](./toca.json)
 - `users`: [users.yaml](./users.yaml), [users.json](./users.json)
 - `vessels`: [vessels.yaml](./vessels.yaml), [vessels.json](./vessels.json)
+
+See [MODULE_ROLES.md](./MODULE_ROLES.md) for role × endpoint matrix (jobs, surveys, NC, certificates).
 
 Regenerate:
 ```bash

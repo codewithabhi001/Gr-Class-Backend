@@ -11,9 +11,8 @@ const getScopeFilters = async (user) => {
     if (user.role === 'CLIENT') {
         const vessels = await db.Vessel.findAll({ where: { client_id: user.client_id }, attributes: ['id'] });
         scopeFilters.vessel_id = vessels.map(v => v.id);
-    } else if (user.role === 'SURVEYOR') {
-        scopeFilters.assigned_surveyor_id = user.id;
     }
+    // Surveyor scope: job row OR any JobCertificate.assigned_surveyor_id (handled in service)
     return scopeFilters;
 };
 
@@ -65,7 +64,7 @@ export const createJob = async (req, res, next) => {
 export const getJobs = async (req, res, next) => {
     try {
         const scopeFilters = await getScopeFilters(req.user);
-        const result = await jobService.getJobs(req.query, scopeFilters, req.user.role);
+        const result = await jobService.getJobs(req.query, scopeFilters, req.user.role, req.user);
         res.json({ success: true, data: result });
     } catch (error) { next(error); }
 };
@@ -92,7 +91,7 @@ export const getEligibleSurveyors = async (req, res, next) => {
 /** CREATED → DOCUMENT_VERIFIED  (TO) */
 export const verifyJobDocuments = async (req, res, next) => {
     try {
-        const result = await jobService.verifyJobDocuments(req.params.id, req.body, req.user);
+        const result = await jobService.verifyJobCertificateDocuments(req.params.jobCertificateId, req.body, req.user);
         res.json({ success: true, message: result.message, data: result.data });
     } catch (error) { next(error); }
 };
@@ -108,17 +107,29 @@ export const approveRequest = async (req, res, next) => {
 /** APPROVED → FINALIZED  (ADMIN / GM / TM) - only for non-survey jobs */
 export const finalizeJob = async (req, res, next) => {
     try {
-        const job = await jobService.finalizeJob(req.params.id, req.body?.remarks, req.user);
+        const job = await jobService.finalizeJob(req.params.id, req.body?.remarks, req.user, {
+            skip_validation: req.body?.skip_validation === true,
+            job_certificate_id: req.body?.job_certificate_id
+        });
         res.json({ success: true, message: 'Job finalized.', data: job });
     } catch (error) { next(error); }
 };
 
-/** APPROVED → ASSIGNED  (ADMIN / GM) */
+/** Bulk assign surveyor to all certificates under a Job Request (ADMIN / GM) */
 export const assignSurveyor = async (req, res, next) => {
     try {
         const surveyorId = req.body.surveyorId || req.body.surveyor_id;
         const job = await jobService.assignSurveyor(req.params.id, surveyorId, req.user);
-        res.json({ success: true, message: 'Surveyor assigned.', data: job });
+        res.json({ success: true, message: 'Surveyor bulk assigned to all certificates.', data: job });
+    } catch (error) { next(error); }
+};
+
+/** Split assign surveyor to a specific certificate row (ADMIN / GM) */
+export const assignSurveyorToCertificate = async (req, res, next) => {
+    try {
+        const surveyorId = req.body.surveyorId || req.body.surveyor_id;
+        const jc = await jobService.assignSurveyorToCertificate(req.params.jobCertificateId, surveyorId, req.user);
+        res.json({ success: true, message: 'Surveyor assigned to certificate.', data: jc });
     } catch (error) { next(error); }
 };
 
@@ -131,19 +142,32 @@ export const reassignSurveyor = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-/** ASSIGNED → SURVEY_AUTHORIZED  (ADMIN / TM) */
-export const authorizeSurvey = async (req, res, next) => {
+export const reassignSurveyorToCertificate = async (req, res, next) => {
     try {
-        const job = await jobService.authorizeSurvey(req.params.id, req.body?.remarks, req.user);
-        res.json({ success: true, message: 'Survey authorized. Surveyor can now begin field work.', data: job });
+        const surveyorId = req.body.surveyorId || req.body.surveyor_id;
+        const jc = await jobService.reassignSurveyorToCertificate(
+            req.params.jobCertificateId,
+            surveyorId,
+            req.body.reason,
+            req.user
+        );
+        res.json({ success: true, message: 'Surveyor reassigned for certificate.', data: jc });
     } catch (error) { next(error); }
 };
 
-/** SURVEY_DONE → REVIEWED  (TO) */
+/** ASSIGNED → SURVEY_AUTHORIZED (per JobCertificate) (ADMIN / TM) */
+export const authorizeSurvey = async (req, res, next) => {
+    try {
+        const jc = await jobService.authorizeSurveyForCertificate(req.params.jobCertificateId, req.body?.remarks, req.user);
+        res.json({ success: true, message: 'Survey authorized for certificate. Surveyor can begin field work.', data: jc });
+    } catch (error) { next(error); }
+};
+
+/** SURVEY_DONE → REVIEWED (per JobCertificate) (TO) */
 export const reviewJob = async (req, res, next) => {
     try {
-        const job = await jobService.reviewJob(req.params.id, req.body?.remarks, req.user);
-        res.json({ success: true, message: 'Job marked as reviewed.', data: job });
+        const jc = await jobService.reviewJobCertificate(req.params.jobCertificateId, req.body?.remarks, req.user);
+        res.json({ success: true, message: 'Certificate survey marked as reviewed.', data: jc });
     } catch (error) { next(error); }
 };
 

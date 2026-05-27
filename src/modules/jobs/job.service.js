@@ -323,13 +323,43 @@ const hasAnyUserFilter = (rest) =>
     [...ALLOWED_JOB_FILTERS, 'status', 'created_from', 'created_to']
         .some(k => rest[k] != null && String(rest[k]).trim() !== '');
 
-export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
+const applySurveyorScope = async (whereClause, user) => {
+    if (!user || user.role !== 'SURVEYOR') return;
+    const certRows = await JobCertificate.findAll({
+        where: { assigned_surveyor_id: user.id },
+        attributes: ['job_request_id'],
+        raw: true,
+        useReplica: true
+    });
+    const certJobIds = [...new Set(certRows.map((r) => r.job_request_id).filter(Boolean))];
+    whereClause[Op.or] = [
+        { assigned_surveyor_id: user.id },
+        ...(certJobIds.length ? [{ id: { [Op.in]: certJobIds } }] : []),
+    ];
+};
+
+export const surveyorCanAccessJob = async (jobId, userId) => {
+    const job = await JobRequest.findByPk(jobId, {
+        attributes: ['id', 'assigned_surveyor_id'],
+        useReplica: true,
+    });
+    if (!job) return false;
+    if (job.assigned_surveyor_id === userId) return true;
+    const certMatch = await JobCertificate.count({
+        where: { job_request_id: jobId, assigned_surveyor_id: userId },
+        useReplica: true,
+    });
+    return certMatch > 0;
+};
+
+export const getJobs = async (query, scopeFilters = {}, userRole = null, user = null) => {
     const { page = 1, limit = 10, status, created_from, created_to, recent_days, search, ...rest } = query;
 
     const whereClause = {};
     Object.entries(scopeFilters || {}).forEach(([k, v]) => {
         whereClause[k] = Array.isArray(v) ? { [Op.in]: v } : v;
     });
+    await applySurveyorScope(whereClause, user);
 
     const statuses = parseCsvOrSingle(status);
     if (statuses.length === 1) whereClause.job_status = statuses[0];
@@ -441,8 +471,15 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null) => {
 };
 
 export const getJobById = async (id, scopeFilters = {}, user = null) => {
+    let accessWhere = { id, ...scopeFilters };
+    if (user?.role === 'SURVEYOR') {
+        const allowed = await surveyorCanAccessJob(id, user.id);
+        if (!allowed) throw { statusCode: 403, message: 'You do not have access to this job.' };
+        accessWhere = { id };
+    }
+
     const job = await JobRequest.findOne({
-        where: { id, ...scopeFilters },
+        where: accessWhere,
         include: [
             {
                 model: Vessel,
@@ -532,14 +569,19 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
         vesselType = vessel?.ship_type;
     }
 
-    // Fetch all certificates for this job
-    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId } });
+    const { search, job_certificate_id: jobCertificateId } = queryParams;
+
+    let jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId } });
+    if (jobCertificateId) {
+        jobCerts = jobCerts.filter((jc) => jc.id === jobCertificateId);
+        if (!jobCerts.length) {
+            throw { statusCode: 404, message: 'Job certificate not found for this job.' };
+        }
+    }
     for (const jc of jobCerts) {
         const certType = await CertificateType.findByPk(jc.certificate_type_id);
         if (certType?.name) certNames.push(certType.name);
     }
-
-    const { search } = queryParams;
 
     const profileWhere = { status: 'ACTIVE' };
     const userWhere = { status: 'ACTIVE', role: 'SURVEYOR' };
@@ -630,52 +672,60 @@ export const getEligibleSurveyors = async (jobId, queryParams = {}) => {
  * CREATED → DOCUMENT_VERIFIED
  * Roles: TO
  */
-export const verifyJobDocuments = async (id, body, user) => {
-    if (!['TO', 'GM', 'ADMIN'].includes(user.role)) {
+/**
+ * CREATED → DOCUMENT_VERIFIED (per JobCertificate)
+ * Roles: TO
+ */
+export const verifyJobCertificateDocuments = async (jobCertificateId, body, user) => {
+    let actualBody = body;
+    let actualUser = user;
+    if (body && body.role && !user) {
+        actualUser = body;
+        actualBody = {};
+    }
+    if (!['TO', 'GM', 'ADMIN'].includes(actualUser?.role)) {
         throw { statusCode: 403, message: 'Only Technical Officers (TO), General Managers (GM) or Admins have permission to verify documents.' };
     }
-    const userId = user.id;
-    const job = await requireJob(id, { includeVessel: true, useMaster: true });
-    if (job.job_status !== 'CREATED') {
-        throw { statusCode: 400, message: `Documents can only be verified when the job is in CREATED status.` };
+    const userId = actualUser.id;
+    const jc = await JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+    if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
+
+    const jobId = jc.job_request_id;
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
+
+    if (!['PENDING', 'REWORK_REQUESTED'].includes(jc.status)) {
+        throw { statusCode: 400, message: `Documents can only be verified when the certificate is in PENDING status.` };
     }
 
-    // verifyJobDocuments: check mandatory docs per certificate
-    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, useMaster: true });
+    // verifyJobCertificateDocuments: check mandatory docs for this specific certificate
+    const requiredDocs = await CertificateRequiredDocument.findAll({
+        where: { certificate_type_id: jc.certificate_type_id, is_mandatory: true },
+        useMaster: true
+    });
 
     let hasMissingDocs = false;
-    const missingBycert = [];
-    for (const jc of jobCerts) {
-        const requiredDocs = await CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: jc.certificate_type_id, is_mandatory: true },
+    const missing = [];
+    if (requiredDocs.length > 0) {
+        const uploadedDocs = await JobDocument.findAll({
+            where: { job_certificate_id: jc.id },
             useMaster: true
         });
-        if (requiredDocs.length > 0) {
-            const uploadedDocs = await JobDocument.findAll({
-                where: { job_certificate_id: jc.id },
-                useMaster: true
-            });
-            const uploadedDocIds = uploadedDocs.map(d => d.required_document_id);
-            const missing = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
-            if (missing.length > 0) {
-                hasMissingDocs = true;
-                missingBycert.push({ job_certificate_id: jc.id, missing: missing.map(m => ({ id: m.id, name: m.document_name })) });
-            }
+        const uploadedDocIds = uploadedDocs.map(d => d.required_document_id);
+        const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
+        if (missingDocs.length > 0) {
+            hasMissingDocs = true;
+            missing.push(...missingDocs.map(m => ({ id: m.id, name: m.document_name })));
         }
     }
 
-    if (hasMissingDocs && body?.approved === false) {
-        // Only block on rejection flow — on approval the TO takes responsibility
-        throw { statusCode: 400, message: 'Mandatory documents are missing for one or more certificates.', missing_by_certificate: missingBycert };
+    if (hasMissingDocs && actualBody?.approved === false) {
+        throw { statusCode: 400, message: 'Mandatory documents are missing for this certificate.', missing_documents: missing };
     }
 
-    // ── Document Rejection Flow ──────────────────────────────
-    // body.approved = false  → TO found invalid/fake documents
-    // body.rejected_documents = [{ document_id, reason }]
-    const approved = body?.approved !== false; // default true for backward compatibility
+    const approved = actualBody?.approved !== false; // default true
 
     if (!approved) {
-        const rejectedDocs = body.rejected_documents;
+        const rejectedDocs = actualBody.rejected_documents;
         if (!rejectedDocs || !Array.isArray(rejectedDocs) || rejectedDocs.length === 0) {
             throw { statusCode: 400, message: 'Please specify which documents are invalid (rejected_documents array required).' };
         }
@@ -689,7 +739,7 @@ export const verifyJobDocuments = async (id, body, user) => {
                     rejection_reason: rd.reason || 'Document is invalid or not acceptable.',
                     verified_by: userId
                 },
-                { where: { id: rd.document_id, job_id: id, verification_status: 'PENDING' } }
+                { where: { id: rd.document_id, job_certificate_id: jobCertificateId, verification_status: 'PENDING' } }
             );
         }
 
@@ -697,70 +747,51 @@ export const verifyJobDocuments = async (id, body, user) => {
         const rejectedIds = rejectedDocs.map(rd => rd.document_id).filter(Boolean);
         await JobDocument.update(
             { verification_status: 'APPROVED', verified_by: userId },
-            { where: { job_id: id, id: { [Op.notIn]: rejectedIds }, verification_status: 'PENDING' } }
+            { where: { job_certificate_id: jobCertificateId, id: { [Op.notIn]: rejectedIds }, verification_status: 'PENDING' } }
         );
 
-        // Audit trail — log the rejection without changing job status
+        // Audit trail
         await JobStatusHistory.create({
-            job_id: id,
-            previous_status: 'CREATED',
-            new_status: 'CREATED',
+            job_id: jobId,
+            previous_status: `CERT_${jc.status}`,
+            new_status: `CERT_${jc.status}`,
             changed_by: userId,
-            reason: `Documents rejected by ${user.role}: ${rejectedDocs.map(rd => rd.reason || 'Invalid document').join('; ')}`
+            reason: `Documents rejected for certificate ${jc.id} by ${user.role}`
         });
 
         // Notify client to re-upload
         const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
         if (clientUser) {
             notificationService.sendNotification(clientUser.id, 'JOB_DOCUMENTS_REJECTED', {
-                jobId: id,
+                jobId: jobId,
                 vesselName: job.Vessel.vessel_name,
                 rejectedCount: rejectedDocs.length,
                 reasons: rejectedDocs.map(rd => rd.reason).filter(Boolean)
             }).catch(() => { });
         }
 
-        // Fetch updated docs to return
         const updatedDocs = await JobDocument.findAll({
-            where: { job_id: id },
+            where: { job_certificate_id: jobCertificateId },
             include: [{ model: CertificateRequiredDocument }]
         });
 
         return {
             message: `${rejectedDocs.length} document(s) rejected. Client has been notified to re-upload.`,
             data: {
-                job_id: id,
-                job_status: 'CREATED',
+                job_id: jobId,
+                job_certificate_id: jobCertificateId,
+                job_status: job.job_status,
                 rejected_documents: updatedDocs.filter(d => d.verification_status === 'REJECTED'),
                 approved_documents: updatedDocs.filter(d => d.verification_status === 'APPROVED')
             }
         };
     }
 
-    // ── Document Approval Flow (all docs valid) ──────────────
-    // A requirement is considered "satisfied" if it has at least one PENDING or APPROVED version.
-    // We only block "Approve All" if there are mandatory requirements that have ONLY REJECTED versions (or no versions at all).
-
-    // 1. Get all documents for this job
+    // ── Document Approval Flow ──
     const allDocs = await JobDocument.findAll({
-        where: { job_id: id }
+        where: { job_certificate_id: jobCertificateId }
     });
 
-    // 2. Collect all mandatory required docs across all certificates
-    const allRequiredDocs = [];
-    for (const jc of jobCerts) {
-        const certReqDocs = await CertificateRequiredDocument.findAll({
-            where: { certificate_type_id: jc.certificate_type_id, is_mandatory: true },
-            useMaster: true
-        });
-        allRequiredDocs.push(...certReqDocs);
-    }
-
-    // 3. Skip document-quality check when no docs were uploaded (approved=true with empty set)
-    // Just advance the status
-
-
-    // 3. Mark all PENDING documents as APPROVED
     const pendingDocs = allDocs.filter(d => d.verification_status === 'PENDING');
     if (pendingDocs.length > 0) {
         await JobDocument.update(
@@ -769,14 +800,14 @@ export const verifyJobDocuments = async (id, body, user) => {
         );
     }
 
-    const updated = await lifecycleService.updateJobStatus(id, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified all documents');
+    const updatedJc = await lifecycleService.updateJobCertificateStatus(jobCertificateId, 'DOCUMENT_VERIFIED', userId, 'Technical Officer verified all documents');
 
     // Notify ADMIN/GM/TM
     notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_DOCUMENT_VERIFIED', {
-        jobId: id, vesselName: job.Vessel.vessel_name
+        jobId: jobId, vesselName: job.Vessel.vessel_name
     }).catch(() => { });
 
-    return { message: 'All documents verified successfully.', data: updated };
+    return { message: 'All documents verified successfully for this certificate.', data: updatedJc };
 };
 
 /**
@@ -788,11 +819,35 @@ export const approveRequest = async (id, remarks, user) => {
         throw { statusCode: 403, message: 'Only General Managers (GM) or Admins have permission to approve job requests.' };
     }
     const job = await requireJob(id, { includeVessel: true, useMaster: true });
-    if (job.job_status !== 'DOCUMENT_VERIFIED') {
-        throw { statusCode: 400, message: `Jobs can only be approved after documents have been verified.` };
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, useMaster: true });
+    const allCertsVerified =
+        jobCerts.length > 0 && jobCerts.every((c) => c.status === 'DOCUMENT_VERIFIED');
+    const legacyVerified = job.job_status === 'DOCUMENT_VERIFIED';
+    const inProgressAllVerified = job.job_status === 'IN_PROGRESS' && allCertsVerified;
+
+    if (!legacyVerified && !inProgressAllVerified) {
+        throw {
+            statusCode: 400,
+            message: 'Jobs can only be approved after all certificate documents have been verified.',
+        };
     }
-    const updated = await lifecycleService.updateJobStatus(id, 'APPROVED', user.id, remarks || `${user.role} approved request`);
-    await updated.update({ approved_by_user_id: user.id });
+
+    let updated;
+    if (inProgressAllVerified && job.job_status === 'IN_PROGRESS') {
+        // Certificate-centric jobs stay IN_PROGRESS while certs move independently; record GM approval.
+        await job.update({ approved_by_user_id: user.id });
+        await JobStatusHistory.create({
+            job_id: id,
+            previous_status: job.job_status,
+            new_status: job.job_status,
+            changed_by: user.id,
+            reason: remarks || `${user.role} approved request (all certificates document-verified)`,
+        });
+        updated = await JobRequest.findByPk(id, { include: ['Vessel'], useMaster: true });
+    } else {
+        updated = await lifecycleService.updateJobStatus(id, 'APPROVED', user.id, remarks || `${user.role} approved request`);
+        await updated.update({ approved_by_user_id: user.id });
+    }
 
     // Notify Client (vessel already loaded)
     const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
@@ -809,14 +864,14 @@ export const approveRequest = async (id, remarks, user) => {
  * APPROVED → FINALIZED (for non-survey jobs)
  * Roles: ADMIN, GM, TM
  */
-export const finalizeJob = async (id, remarks, user) => {
+export const finalizeJob = async (id, remarks, user, options = {}) => {
     const job = await requireJob(id, { useMaster: true });
     if (job.is_survey_required) {
         if (!['REVIEWED', 'SURVEY_DONE'].includes(job.job_status)) {
             throw { statusCode: 400, message: 'This job requires a survey report. It must be Reviewed before finalization.' };
         }
         // Redirect to survey finalization logic
-        return await finalizeSurvey(id, user);
+        return await finalizeSurvey(id, user, options);
     }
     if (job.job_status !== 'APPROVED') {
         throw { statusCode: 400, message: `Only approved jobs can be finalized.` };
@@ -825,7 +880,7 @@ export const finalizeJob = async (id, remarks, user) => {
 };
 
 /**
- * APPROVED → ASSIGNED (sets surveyor)
+ * Bulk assign surveyor to all certificates of a Job Request
  * Roles: ADMIN, GM
  */
 export const assignSurveyor = async (jobId, surveyorId, user) => {
@@ -834,9 +889,6 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
     }
     const userId = user.id;
     const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
-    if (job.job_status !== 'APPROVED') {
-        throw { statusCode: 400, message: 'A surveyor can only be assigned after the job has been approved.' };
-    }
     const surveyor = await User.findByPk(surveyorId, { useMaster: true });
     if (!surveyor || surveyor.role !== 'SURVEYOR') {
         throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
@@ -847,13 +899,91 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
 
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
 
-    const updated = await lifecycleService.updateJobStatus(jobId, 'ASSIGNED', userId, `Surveyor ${surveyorId} assigned`);
+    // Bulk update all child certificates
+    await db.JobCertificate.update(
+        { assigned_surveyor_id: surveyorId },
+        { where: { job_request_id: jobId } }
+    );
+
+    // Sync active surveys if already provisioned
+    const activeCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId } });
+    if (activeCerts.length > 0) {
+        await db.Survey.update(
+            { surveyor_id: surveyorId },
+            { where: { job_certificate_id: activeCerts.map(c => c.id) } }
+        );
+    }
+
+    // Create status history log
+    await db.JobStatusHistory.create({
+        job_id: jobId,
+        previous_status: job.job_status,
+        new_status: job.job_status,
+        changed_by: userId,
+        reason: `Bulk assigned Surveyor ${surveyorId} to all certificates`
+    });
 
     // Vessel already loaded
     notificationService.sendNotification(surveyorId, 'JOB_ASSIGNED', {
         jobId, vesselName: job.Vessel.vessel_name, port: job.target_port
     });
-    return updated;
+    return job;
+};
+
+/**
+ * Assign surveyor to a specific certificate (split assignment)
+ * Roles: ADMIN, GM
+ */
+export const assignSurveyorToCertificate = async (jobCertificateId, surveyorId, user) => {
+    if (!isRoleAllowed(RBAC.ASSIGN_JOB, user.role)) {
+        throw { statusCode: 403, message: 'You do not have permission to assign surveyors.' };
+    }
+    const userId = user.id;
+    const jc = await db.JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+    if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
+
+    const job = await requireJob(jc.job_request_id, { includeVessel: true, useMaster: true });
+    const surveyor = await User.findByPk(surveyorId, { useMaster: true });
+    if (!surveyor || surveyor.role !== 'SURVEYOR') {
+        throw { statusCode: 400, message: 'Invalid surveyor selection. Please select a user with the Surveyor role.' };
+    }
+
+    // Validate surveyor authority for this specific certificate type
+    const certType = await db.CertificateType.findByPk(jc.certificate_type_id);
+    const profile = await db.SurveyorProfile.findOne({ where: { user_id: surveyorId, status: 'ACTIVE' } });
+    if (!profile) {
+        throw { statusCode: 400, message: 'Surveyor profile not found or inactive.' };
+    }
+    let authorizedCerts = profile.authorized_certificates;
+    if (typeof authorizedCerts === 'string') {
+        try { authorizedCerts = JSON.parse(authorizedCerts); } catch (e) { authorizedCerts = []; }
+    }
+    if (!Array.isArray(authorizedCerts)) authorizedCerts = [];
+    if (certType && !authorizedCerts.includes(certType.name)) {
+        throw { statusCode: 400, message: `Surveyor is not authorized to inspect ${certType.name}` };
+    }
+
+    await jc.update({ assigned_surveyor_id: surveyorId });
+
+    // Sync active survey if already provisioned
+    const activeSurvey = await db.Survey.findOne({ where: { job_certificate_id: jobCertificateId } });
+    if (activeSurvey) {
+        await activeSurvey.update({ surveyor_id: surveyorId });
+    }
+
+    await db.JobStatusHistory.create({
+        job_id: job.id,
+        previous_status: job.job_status,
+        new_status: job.job_status,
+        changed_by: userId,
+        reason: `Assigned Surveyor ${surveyorId} to certificate ${jc.id}`
+    });
+
+    notificationService.sendNotification(surveyorId, 'JOB_ASSIGNED', {
+        jobId: job.id, vesselName: job.Vessel.vessel_name, port: job.target_port
+    });
+
+    return jc;
 };
 
 /**
@@ -872,6 +1002,11 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
 
     const oldSurveyor = job.assigned_surveyor_id;
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
+
+    await JobCertificate.update(
+        { assigned_surveyor_id: surveyorId },
+        { where: { job_request_id: jobId } }
+    );
 
     // Status sync is now handled by lifecycle.updateJobStatus
     // We just need to trigger a status update to current status if we want to force a refresh (or rely on next transition)
@@ -896,58 +1031,90 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
 };
 
 /**
+ * Reassign surveyor on a single JobCertificate row
+ * Roles: GM, TM, ADMIN
+ */
+export const reassignSurveyorToCertificate = async (jobCertificateId, surveyorId, reason, user) => {
+    if (!isRoleAllowed(RBAC.REASSIGN_JOB, user.role)) {
+        throw { statusCode: 403, message: 'You do not have permission to reassign surveyors.' };
+    }
+    const userId = user.id;
+    const jc = await JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+    if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
+
+    const job = await requireJob(jc.job_request_id, { includeVessel: true, useMaster: true });
+    await validateSurveyorAuthority(job, surveyorId);
+
+    const oldSurveyor = jc.assigned_surveyor_id;
+    await jc.update({ assigned_surveyor_id: surveyorId });
+
+    const activeSurvey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
+    if (activeSurvey) {
+        await activeSurvey.update({ surveyor_id: surveyorId });
+    }
+
+    await JobStatusHistory.create({
+        job_id: job.id,
+        previous_status: job.job_status,
+        new_status: job.job_status,
+        changed_by: userId,
+        reason: `Certificate ${jobCertificateId}: reassigned from ${oldSurveyor} to ${surveyorId}: ${reason}`,
+    });
+
+    notificationService.sendNotification(surveyorId, 'JOB_ASSIGNED', {
+        jobId: job.id,
+        vesselName: job.Vessel.vessel_name,
+        port: job.target_port,
+    });
+
+    return jc;
+};
+
+/**
  * ASSIGNED → SURVEY_AUTHORIZED
  * Roles: ADMIN, TM
  */
-export const authorizeSurvey = async (id, remarks, user) => {
+/**
+ * Scoped survey authorization per JobCertificate
+ * Roles: ADMIN, TM
+ */
+export const authorizeSurveyForCertificate = async (jobCertificateId, remarks, user) => {
     if (!isRoleAllowed(RBAC.AUTHORIZE_SURVEY, user.role)) {
         throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to authorize surveys.' };
     }
-    const job = await requireJob(id, { includeVessel: true, useMaster: true });
-    if (job.job_status !== 'ASSIGNED') {
-        throw { statusCode: 400, message: `Survey authorization is possible only after a surveyor has been assigned.` };
-    }
-    if (!job.assigned_surveyor_id) {
+    const jc = await JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+    if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
+    if (!jc.assigned_surveyor_id) {
         throw { statusCode: 400, message: 'Cannot authorize survey: please assign a surveyor first.' };
     }
 
+    const job = await requireJob(jc.job_request_id, { includeVessel: true, useMaster: true });
+
     const txn = await db.sequelize.transaction();
     try {
-        const updated = await lifecycleService.updateJobStatus(id, 'SURVEY_AUTHORIZED', user.id,
-            remarks || `${user.role} authorized survey`, { transaction: txn });
-        await updated.update({ approved_by_user_id: user.id }, { transaction: txn });
+        const updatedJc = await lifecycleService.updateJobCertificateStatus(
+            jobCertificateId, 'SURVEY_AUTHORIZED', user.id,
+            remarks || `${user.role} authorized survey`, { transaction: txn }
+        );
 
-        // ── Pre-create one Survey record per JobCertificate ──
-        // This allows surveyors to see all their surveys immediately after authorization.
-        const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, transaction: txn });
-        for (const jc of jobCerts) {
-            await db.Survey.findOrCreate({
-                where: { job_certificate_id: jc.id },
-                defaults: {
-                    surveyor_id: job.assigned_surveyor_id,
-                    survey_status: 'NOT_STARTED'
-                },
-                transaction: txn
-            });
-
-            // Update JobCertificate status to SURVEY_AUTHORIZED
-            await jc.update({ status: 'SURVEY_AUTHORIZED' }, { transaction: txn });
-        }
+        // Pre-create Survey record for this JobCertificate
+        await db.Survey.findOrCreate({
+            where: { job_certificate_id: jobCertificateId },
+            defaults: {
+                surveyor_id: jc.assigned_surveyor_id,
+                survey_status: 'NOT_STARTED'
+            },
+            transaction: txn
+        });
 
         await txn.commit();
 
-        // ── Notifications (non-transactional) ──
-        notificationService.sendNotification(job.assigned_surveyor_id, 'JOB_APPROVED', {
-            jobId: id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel.vessel_name
+        // Notifications
+        notificationService.sendNotification(jc.assigned_surveyor_id, 'JOB_APPROVED', {
+            jobId: job.id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel?.vessel_name
         });
-        const clientUser = await User.findOne({ where: { client_id: job.Vessel.client_id, role: 'CLIENT' }, useMaster: true });
-        if (clientUser) {
-            notificationService.sendNotification(clientUser.id, 'JOB_APPROVED', {
-                jobId: id, vesselName: job.Vessel.vessel_name
-            });
-        }
 
-        return updated;
+        return updatedJc;
     } catch (error) {
         await txn.rollback();
         throw error;
@@ -955,74 +1122,71 @@ export const authorizeSurvey = async (id, remarks, user) => {
 };
 
 /**
- * SURVEY_DONE → REVIEWED
+ * Scoped technical review per JobCertificate
  * Roles: TO
  */
-export const reviewJob = async (id, remarks, user) => {
+export const reviewJobCertificate = async (jobCertificateId, remarks, user) => {
     if (user.role !== 'TO') {
         throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to mark a job as reviewed.' };
     }
-    const job = await requireJob(id, { includeVessel: true, useMaster: true });
-    if (job.job_status !== 'SURVEY_DONE') {
-        throw { statusCode: 400, message: `Jobs can only be reviewed after the survey has been completed.` };
+    const jc = await JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+    if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
+    if (jc.status !== 'SURVEY_DONE') {
+        throw { statusCode: 400, message: `Certificates can only be reviewed after the survey has been completed.` };
     }
 
-    if (job.is_survey_required) {
-        const txn = await db.sequelize.transaction();
-        try {
-            // 1. Get all certificates for this job
-            const jobCerts = await JobCertificate.findAll({ where: { job_request_id: id }, transaction: txn });
-            const certIds = jobCerts.map(jc => jc.id);
+    const jobId = jc.job_request_id;
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
-            // 2. Automatically approve all checklist items scoped to these certificates
-            if (certIds.length > 0) {
-                await db.ActivityPlanning.update(
-                    { status: 'APPROVED' },
-                    { where: { job_certificate_id: certIds }, transaction: txn }
-                );
-            }
-            // Also approve any old-style job_id scoped items (legacy fallback)
-            await db.ActivityPlanning.update(
-                { status: 'APPROVED' },
-                { where: { job_id: id }, transaction: txn }
-            );
-            const surveys = await db.Survey.findAll({
-                where: { job_certificate_id: jobCerts.map(jc => jc.id) },
-                transaction: txn,
-                lock: txn.LOCK.UPDATE
-            });
-            if (!surveys.length) {
-                throw { statusCode: 400, message: 'Cannot review job: survey report is missing.' };
-            }
+    const txn = await db.sequelize.transaction();
+    try {
+        // Automatically approve all checklist items scoped to this certificate
+        await db.ActivityPlanning.update(
+            { status: 'APPROVED' },
+            { where: { job_certificate_id: jobCertificateId }, transaction: txn }
+        );
 
-            for (const survey of surveys) {
-                let signedFiles = survey.signed_checklist_files;
-                if (Array.isArray(signedFiles) && signedFiles.length > 0) {
-                    const updatedFiles = signedFiles.map(file => {
-                        if (typeof file === 'object' && file !== null) {
-                            return { ...file, status: 'APPROVED' };
-                        }
-                        return file;
-                    });
-                    await survey.update({ signed_checklist_files: updatedFiles }, { transaction: txn });
-                }
-            }
-
-            await txn.commit();
-        } catch (error) {
-            await txn.rollback();
-            throw error;
+        const survey = await db.Survey.findOne({
+            where: { job_certificate_id: jobCertificateId },
+            transaction: txn,
+            lock: txn.LOCK.UPDATE
+        });
+        if (!survey) {
+            throw { statusCode: 400, message: 'Cannot review job certificate: survey report is missing.' };
         }
+
+        let signedFiles = survey.signed_checklist_files;
+        if (Array.isArray(signedFiles) && signedFiles.length > 0) {
+            const updatedFiles = signedFiles.map(file => {
+                if (typeof file === 'object' && file !== null) {
+                    return { ...file, status: 'APPROVED' };
+                }
+                return file;
+            });
+            await survey.update({ signed_checklist_files: updatedFiles }, { transaction: txn });
+        }
+
+        // Audit log TO review approval
+        await db.JobStatusHistory.create({
+            job_id: jobId,
+            previous_status: `CERT_${jc.status}`,
+            new_status: `CERT_${jc.status}`,
+            changed_by: user.id,
+            reason: `TO marked survey checklist and files as APPROVED: ${remarks || 'N/A'}`
+        }, { transaction: txn });
+
+        await txn.commit();
+    } catch (error) {
+        await txn.rollback();
+        throw error;
     }
 
-    const updated = await lifecycleService.updateJobStatus(id, 'REVIEWED', user.id, remarks || 'TO technical review passed.');
-
-    // Notify ADMIN/TM (vessel already loaded)
+    // Notify ADMIN/TM
     notificationService.notifyRoles(['ADMIN', 'TM'], 'JOB_REVIEWED', {
-        jobId: id, vesselName: job.Vessel.vessel_name
+        jobId: jobId, vesselName: job.Vessel?.vessel_name
     }).catch(() => { });
 
-    return updated;
+    return jc;
 };
 
 /**
@@ -1293,10 +1457,12 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
 
     const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
-    // Allow uploads while job is CREATED (initial) or REWORK_REQUESTED (surveyor cycle)
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+    const hasPendingCert = jobCerts.some((c) => ['PENDING', 'REWORK_REQUESTED'].includes(c.status));
     const UPLOAD_ALLOWED_STATUSES = ['CREATED', 'REWORK_REQUESTED'];
-    if (!UPLOAD_ALLOWED_STATUSES.includes(job.job_status)) {
-        throw { statusCode: 400, message: 'Documents can only be uploaded while the job is in CREATED or REWORK_REQUESTED status.' };
+    const inProgressWithPendingCert = job.job_status === 'IN_PROGRESS' && hasPendingCert;
+    if (!UPLOAD_ALLOWED_STATUSES.includes(job.job_status) && !inProgressWithPendingCert) {
+        throw { statusCode: 400, message: 'Documents can only be uploaded while the job is in CREATED, REWORK_REQUESTED, or IN_PROGRESS with a certificate still awaiting verification.' };
     }
 
     // Client ownership check
@@ -1338,6 +1504,7 @@ export const uploadJobDocuments = async (jobId, documents, user) => {
             // Create a new record
             const newDoc = await JobDocument.create({
                 job_id: jobId,
+                job_certificate_id: doc.job_certificate_id || null,
                 required_document_id: doc.required_document_id || null,
                 custom_document_name: doc.custom_document_name || null,
                 file_url: doc.file_url,
@@ -1369,8 +1536,13 @@ export const reuploadJobDocument = async (jobId, documentId, body, user) => {
 
     const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
-    if (job.job_status !== 'CREATED') {
-        throw { statusCode: 400, message: 'Documents can only be re-uploaded while the job is in CREATED status.' };
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+    const hasPendingCert = jobCerts.some((c) => ['PENDING', 'REWORK_REQUESTED'].includes(c.status));
+    const reuploadAllowed =
+        ['CREATED', 'REWORK_REQUESTED'].includes(job.job_status) ||
+        (job.job_status === 'IN_PROGRESS' && hasPendingCert);
+    if (!reuploadAllowed) {
+        throw { statusCode: 400, message: 'Documents can only be re-uploaded while the job allows document corrections.' };
     }
 
     // Client ownership check

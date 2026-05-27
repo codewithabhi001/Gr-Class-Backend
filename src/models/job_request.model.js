@@ -28,105 +28,97 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.VIRTUAL,
             get() {
                 const status = this.getDataValue('job_status');
-                const isSurveyRequired = this.getDataValue('is_survey_required') !== false;
+                const certs = this.certificates || [];
 
-                switch (status) {
-                    case 'CREATED':
-                    case 'REQUESTED':
-                    case 'PENDING':
-                        return {
-                            role: 'TO',
-                            fallbackRoles: [],
-                            message: 'Waiting for Document Verification'
-                        };
-                    case 'DOCUMENT_VERIFIED':
-                        return {
-                            role: 'GM',
-                            fallbackRoles: ['ADMIN'],
-                            message: 'Waiting for GM to Approve Job Request'
-                        };
-                    case 'APPROVED':
-                        if (isSurveyRequired) {
-                            return {
-                                role: 'GM',
-                                fallbackRoles: ['ADMIN'],
-                                message: 'Waiting for GM to Assign Surveyor'
-                            };
-                        } else {
-                            return {
-                                role: 'ADMIN',
-                                fallbackRoles: ['TM', 'GM'],
-                                message: 'Waiting for Finalization'
-                            };
-                        }
-                    case 'ASSIGNED':
-                        return {
-                            role: 'TM',
-                            fallbackRoles: ['ADMIN'],
-                            message: 'Waiting for TM to Authorize Survey'
-                        };
-                    case 'SURVEY_AUTHORIZED':
-                        return {
-                            role: 'SURVEYOR',
-                            fallbackRoles: [],
-                            message: 'Waiting for Surveyor to Start Survey'
-                        };
-                    case 'IN_PROGRESS':
-                        return {
-                            role: 'SURVEYOR',
-                            fallbackRoles: [],
-                            message: 'Waiting for Survey Report Submission'
-                        };
-                    case 'SURVEY_DONE':
-                        return {
-                            role: 'TO',
-                            fallbackRoles: ['ADMIN', 'TM'],
-                            message: 'Waiting for Document Review'
-                        };
-                    case 'REVIEWED': {
-                        const survey = this.survey;
-                        const statementStatus = survey?.survey_statement_status;
-                        if (statementStatus !== 'ISSUED') {
-                            return {
-                                role: 'TM',
-                                fallbackRoles: ['ADMIN'],
-                                message: 'Waiting for TM to Issue Survey Statement or Request Rework (Go to Survey Details tab: draft statement if not created, or issue it if drafted)'
-                            };
-                        } else {
-                            return {
-                                role: 'TM',
-                                fallbackRoles: ['ADMIN', 'GM'],
-                                message: 'Waiting for TM to Finalize Survey'
-                            };
-                        }
-                    }
-                    case 'FINALIZED':
-                    case 'PAYMENT_DONE': {
-                        const certs = this.certificates || [];
-                        const hasPendingDraft = certs.length === 0 || certs.some(c => !c.generated_certificate_id);
-                        if (hasPendingDraft) {
-                            return {
-                                role: 'TM',
-                                fallbackRoles: ['GM', 'ADMIN'],
-                                message: 'Waiting for TM to Generate Draft Certificate'
-                            };
-                        } else {
-                            return {
-                                role: 'GM',
-                                fallbackRoles: ['ADMIN'],
-                                message: 'Waiting for GM to Issue Certificate'
-                            };
-                        }
-                    }
-                    case 'REWORK_REQUESTED':
-                        return {
-                            role: 'SURVEYOR',
-                            fallbackRoles: [],
-                            message: 'Waiting for Surveyor to upload corrected documents'
-                        };
-                    default:
-                        return null;
+                if (status === 'CREATED') {
+                    return {
+                        role: 'TO',
+                        fallbackRoles: [],
+                        message: 'Waiting for Document Verification'
+                    };
                 }
+
+                if (status === 'REJECTED') {
+                    return null;
+                }
+
+                if (certs.length === 0) {
+                    return {
+                        role: 'TO',
+                        fallbackRoles: [],
+                        message: 'Waiting for Document Verification'
+                    };
+                }
+
+                // Scan certificates to find the earliest pending stage
+                const hasPending = certs.some(c => c.status === 'PENDING');
+                if (hasPending) {
+                    return {
+                        role: 'TO',
+                        fallbackRoles: [],
+                        message: 'Waiting for Document Verification (Certificates pending)'
+                    };
+                }
+
+                const hasDocVerified = certs.some(c => c.status === 'DOCUMENT_VERIFIED');
+                if (hasDocVerified) {
+                    return {
+                        role: 'GM',
+                        fallbackRoles: ['ADMIN'],
+                        message: 'Waiting for GM to Assign Surveyor / Approve'
+                    };
+                }
+
+                const hasRework = certs.some(c => c.status === 'REWORK_REQUESTED');
+                if (hasRework) {
+                    return {
+                        role: 'SURVEYOR',
+                        fallbackRoles: [],
+                        message: 'Waiting for Surveyor to upload corrected documents'
+                    };
+                }
+
+                const hasSurveyAuth = certs.some(c => c.status === 'SURVEY_AUTHORIZED');
+                if (hasSurveyAuth) {
+                    return {
+                        role: 'SURVEYOR',
+                        fallbackRoles: [],
+                        message: 'Waiting for Surveyor to Start Survey'
+                    };
+                }
+
+                const hasSurveyDone = certs.some(c => c.status === 'SURVEY_DONE');
+                if (hasSurveyDone) {
+                    return {
+                        role: 'TO',
+                        fallbackRoles: ['ADMIN', 'TM'],
+                        message: 'Waiting for Document Review'
+                    };
+                }
+
+                // TM issues survey statement after TO technical review (cert stays SURVEY_DONE; no REVIEWED cert enum)
+
+                // If cert has been finalized/payment done, check draft status
+                const hasPendingDraft = certs.some(c => !c.generated_certificate_id);
+                if (hasPendingDraft) {
+                    return {
+                        role: 'TM',
+                        fallbackRoles: ['GM', 'ADMIN'],
+                        message: 'Waiting for TM to Generate Draft Certificate'
+                    };
+                }
+
+                // If draft exists but not yet issued (valid)
+                const hasPendingIssue = certs.some(c => c.status !== 'ISSUED' && c.status !== 'REJECTED');
+                if (hasPendingIssue) {
+                    return {
+                        role: 'GM',
+                        fallbackRoles: ['ADMIN'],
+                        message: 'Waiting for GM to Issue Certificate'
+                    };
+                }
+
+                return null;
             }
         },
         assigned_surveyor_id: DataTypes.UUID,

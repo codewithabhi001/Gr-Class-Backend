@@ -3640,6 +3640,10 @@ components:
           $ref: '#/components/schemas/UUID'
         job_id:
           $ref: '#/components/schemas/UUID'
+          nullable: true
+        job_certificate_id:
+          $ref: '#/components/schemas/UUID'
+          nullable: true
         latitude:
           type: number
         longitude:
@@ -4175,7 +4179,7 @@ paths:
                 job_id:
                   type: string
                   format: uuid
-                  description: 'Job Request ID (provide either this OR job_certificate_id)'
+                  description: 'Job Certificate ID (provide either this OR job_certificate_id)'
                 job_certificate_id:
                   type: string
                   format: uuid
@@ -4438,12 +4442,12 @@ paths:
                   limit: 10
                   totalPages: 5
                   rows: [{id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, job_id: string, surveyor_id: string, survey_status: NOT_STARTED, submission_count: 1, started_at: '2026-03-15T10:00:00.000Z', submitted_at: '2026-03-15T10:00:00.000Z', finalized_at: '2026-03-15T10:00:00.000Z', survey_statement_status: NOT_PREPARED, survey_statement_pdf_url: 'https://example.com/resource', signed_checklist_files: [string], JobRequest: {id: string, job_status: string, Vessel: {vessel_name: string, imo_number: string}}, User: {name: string, email: string}}]
-  '/api/v1/surveys/jobs/{jobId}':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}':
     get:
       tags:
         - Surveys
-      summary: 'Get all surveys for a job'
-      description: "Returns all surveys for a job — one per `JobCertificate`. Each survey\ncontains its own checklist items, GPS trace, and status.\n"
+      summary: 'Get survey details for a job certificate'
+      description: "Returns survey execution details for the given `jobCertificateId`\n(checklist items, GPS trace, status, statement).\n"
       operationId: getSurveyDetails
       x-roles:
         - ADMIN
@@ -4451,23 +4455,16 @@ paths:
         - TM
         - TO
         - SURVEYOR
+        - CLIENT
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: 'Job Request ID'
-        -
-          name: job_certificate_id
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-          description: 'Filter to a specific certificate''s survey'
+          description: 'Job Certificate ID'
       responses:
         '200':
           description: 'Survey details (array for multi-cert jobs)'
@@ -4506,28 +4503,27 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/surveys/jobs/{jobId}/finalize':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/finalize':
     put:
       tags:
         - Surveys
-      summary: 'Finalize submitted surveys for a job (TM/ADMIN)'
-      description: "Allows a Technical Manager (TM) or Admin to grant final approval to all submitted surveys under a job.\n\n**Workflow Logic:**\n- Non-submitted surveys (e.g. `STARTED` or `REWORK_REQUIRED`) are skipped, enabling other completed surveys on the same job to finalize independently.\n- Transition: `SUBMITTED → FINALIZED`.\n- Unlocks certificate drafting and generation for those finalized surveys.\n- Automatically sets the parent Job status to `FINALIZED` if all of its surveys are finalized.\n\n**Roles:** TM, ADMIN\n"
+      summary: 'Finalize submitted survey for a job certificate (TM)'
+      description: "Allows a Technical Manager (TM) to grant final approval to the submitted survey for this certificate.\n\n**Workflow Logic:**\n- Transition: `SUBMITTED → FINALIZED`.\n- Unlocks certificate drafting and generation for this certificate.\n- Parent job status advances when all certificate surveys are finalized.\n\n**Roles:** TM\n"
       operationId: finalizeSurvey
       security:
         -
           bearerAuth: []
       x-roles:
         - TM
-        - ADMIN
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: 'Job Request ID'
+          description: 'Job Certificate ID'
       requestBody:
         required: false
         content:
@@ -4580,38 +4576,29 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/surveys/jobs/{jobId}/rework':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/rework':
     put:
       tags:
         - Surveys
-      summary: 'Request rework on a survey (GM/TM/TO/ADMIN)'
-      description: "Allows a General Manager, Technical Manager, Technical Officer, or Admin to request corrections on a submitted survey.\n\n**Workflow Logic (Per-Certificate Rework):**\n- If `job_certificate_id` is supplied in query or body, only that specific survey status is set to `REWORK_REQUIRED` (using `_skipSurveySync` internally to isolate it).\n- The parent Job status remains as `REVIEWED`, allowing other surveys in the job to progress to finalization.\n- If no `job_certificate_id` is provided, it defaults to the first survey.\n- Job status must be `REVIEWED` (technical document review must have finished) before rework can be requested.\n\n**Roles:** GM, TM, TO, ADMIN\n"
+      summary: 'Request rework on a survey (ADMIN/GM/TM)'
+      description: "Allows ADMIN, GM, or TM to request corrections on a submitted survey for this certificate.\n\n**Workflow Logic:**\n- Sets this certificate's survey status to `REWORK_REQUIRED`.\n- Parent job must be in `REVIEWED` (technical review completed for this certificate).\n\n**Roles:** ADMIN, GM, TM\n"
       operationId: requestRework
       security:
         -
           bearerAuth: []
       x-roles:
+        - ADMIN
         - GM
         - TM
-        - TO
-        - ADMIN
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: 'Job Request ID'
-        -
-          name: job_certificate_id
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-          description: 'Target specific certificate''s survey (optional)'
+          description: 'Job Certificate ID'
       requestBody:
         required: true
         content:
@@ -4658,7 +4645,7 @@ paths:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
         '403':
-          description: 'Forbidden — caller does not have GM/TM/TO/ADMIN privileges'
+          description: 'Forbidden — caller does not have ADMIN/GM/TM privileges'
           content:
             application/json:
               schema:
@@ -4670,7 +4657,7 @@ paths:
                 errors:
                   vessel_id: 'vessel_id is required'
                 trace_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
-  '/api/v1/surveys/jobs/{jobId}/location':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/location':
     post:
       tags:
         - Surveys
@@ -4681,7 +4668,7 @@ paths:
         - SURVEYOR
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
@@ -4720,7 +4707,7 @@ paths:
               example:
                 success: true
                 message: 'Request successful'
-  '/api/v1/surveys/jobs/{jobId}/proof':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/proof':
     post:
       tags:
         - Surveys
@@ -4731,7 +4718,7 @@ paths:
         - SURVEYOR
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
@@ -4782,7 +4769,7 @@ paths:
               example:
                 success: true
                 message: 'Request successful'
-  '/api/v1/surveys/jobs/{jobId}/timeline':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/timeline':
     get:
       tags:
         - Surveys
@@ -4797,7 +4784,7 @@ paths:
         - SURVEYOR
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
@@ -4819,17 +4806,19 @@ paths:
                   job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f
                   gps_trace: [{latitude: 1.5, longitude: 1.5, timestamp: '2026-03-15T10:00:00.000Z'}]
                   survey_details: {id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, job_id: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, survey_status: SUBMITTED, submission_count: 1, submit_latitude: 1.3521, submit_longitude: 103.8198, survey_statement: 'Survey completed successfully.', declared_by: 01933c5e-7f2a-7a00-8000-1a2b3c4d5e6f, declared_at: '2026-02-25T12:00:00Z', declaration_hash: a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e, started_at: '2026-02-25T10:00:00Z', submitted_at: '2026-02-25T12:00:00Z'}
-  '/api/v1/surveys/jobs/{jobId}/violation':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/violation':
     post:
       tags:
         - Surveys
       summary: 'Flag survey violation'
       operationId: flagViolation
       x-roles:
+        - SURVEYOR
         - TM
+        - ADMIN
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
@@ -4848,7 +4837,7 @@ paths:
               example:
                 success: true
                 message: 'Request successful'
-  '/api/v1/surveys/jobs/{jobId}/statement/draft':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/statement/draft':
     post:
       tags:
         - Surveys
@@ -4858,10 +4847,9 @@ paths:
       x-roles:
         - SURVEYOR
         - TM
-        - ADMIN
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
@@ -4899,7 +4887,7 @@ paths:
                   message: string
                   status: DRAFTED
                   pdf_url: 'https://example.com/resource'
-  '/api/v1/surveys/jobs/{jobId}/statement/issue':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/statement/issue':
     post:
       tags:
         - Surveys
@@ -4910,7 +4898,7 @@ paths:
         - TM
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:
@@ -4949,7 +4937,7 @@ paths:
               example:
                 success: true
                 message: 'Request successful'
-  '/api/v1/surveys/jobs/{jobId}/sync':
+  '/api/v1/surveys/job-certificates/{jobCertificateId}/sync':
     post:
       tags:
         - Surveys
@@ -4960,7 +4948,7 @@ paths:
         - SURVEYOR
       parameters:
         -
-          name: jobId
+          name: jobCertificateId
           in: path
           required: true
           schema:

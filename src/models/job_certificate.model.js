@@ -18,6 +18,11 @@ export default (sequelize, DataTypes) => {
             allowNull: true,
             comment: 'Populated when the certificate is finally issued'
         },
+        assigned_surveyor_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            comment: 'Specific surveyor assigned to this certificate'
+        },
         status: {
             type: DataTypes.ENUM(
                 'PENDING', 
@@ -46,6 +51,7 @@ export default (sequelize, DataTypes) => {
         JobCertificate.belongsTo(models.JobRequest, { foreignKey: 'job_request_id' });
         JobCertificate.belongsTo(models.CertificateType, { foreignKey: 'certificate_type_id' });
         JobCertificate.belongsTo(models.Certificate, { foreignKey: 'generated_certificate_id', as: 'Certificate' });
+        JobCertificate.belongsTo(models.User, { foreignKey: 'assigned_surveyor_id', as: 'surveyor' });
         JobCertificate.hasMany(models.JobDocument, { foreignKey: 'job_certificate_id' });
         JobCertificate.hasOne(models.Survey, { foreignKey: 'job_certificate_id', as: 'survey' });
     };
