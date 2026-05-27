@@ -997,6 +997,30 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
     const userId = user.id;
     const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
 
+    // Block reassignment for closed jobs
+    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status) || lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
+        throw { statusCode: 400, message: `Cannot reassign surveyor when job is ${job.job_status}.` };
+    }
+
+    // Whole-job reassignment is unsafe after any certificate is closed/completed.
+    const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
+    const hasTerminalCert = jobCerts.some((c) => ['ISSUED', 'REJECTED'].includes(c.status));
+    if (hasTerminalCert) {
+        throw {
+            statusCode: 400,
+            message: 'Cannot reassign entire job once any certificate is ISSUED/REJECTED. Use certificate-level reassign instead.',
+        };
+    }
+
+    const surveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map((jc) => jc.id) }, useMaster: true });
+    const hasFinalizedSurvey = surveys.some((s) => s.survey_status === 'FINALIZED');
+    if (hasFinalizedSurvey) {
+        throw {
+            statusCode: 400,
+            message: 'Cannot reassign entire job once any certificate survey is FINALIZED. Use certificate-level reassign for remaining certificates only.',
+        };
+    }
+
     // Validate new surveyor authority
     await validateSurveyorAuthority(job, surveyorId);
 
@@ -1043,6 +1067,15 @@ export const reassignSurveyorToCertificate = async (jobCertificateId, surveyorId
     if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };
 
     const job = await requireJob(jc.job_request_id, { includeVessel: true, useMaster: true });
+
+    // Block reassignment for closed jobs/certificates
+    if (lifecycleService.JOB_TERMINAL_STATES.includes(job.job_status) || lifecycleService.JOB_POST_FINALIZATION_STATES.includes(job.job_status)) {
+        throw { statusCode: 400, message: `Cannot reassign surveyor when job is ${job.job_status}.` };
+    }
+    if (['ISSUED', 'REJECTED'].includes(jc.status)) {
+        throw { statusCode: 400, message: `Cannot reassign surveyor for a ${jc.status} certificate.` };
+    }
+
     await validateSurveyorAuthority(job, surveyorId);
 
     const oldSurveyor = jc.assigned_surveyor_id;
@@ -1050,6 +1083,9 @@ export const reassignSurveyorToCertificate = async (jobCertificateId, surveyorId
 
     const activeSurvey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
     if (activeSurvey) {
+        if (activeSurvey.survey_status === 'FINALIZED') {
+            throw { statusCode: 400, message: 'Cannot reassign surveyor after survey is FINALIZED for this certificate.' };
+        }
         await activeSurvey.update({ surveyor_id: surveyorId });
     }
 

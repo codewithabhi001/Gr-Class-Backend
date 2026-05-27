@@ -10,6 +10,7 @@
     "test:lifecycle": "node tests/lifecycle_hardened.test.js && node tests/lifecycle_final.test.js",
     "test:apis": "node scripts/test_all_apis.js",
     "test:cert-flow": "node test_certificate_centric_flow.js",
+    "test:full-job-flow": "node test_full_job_flow_e2e.js",
     "swagger:generate": "node src/docs/generate-module-swagger.js",
     "swagger:audit-rbac": "node scripts/audit-swagger-rbac.js",
     "postman:build": "node scripts/build-postman-collection.js",
