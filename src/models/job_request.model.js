@@ -28,6 +28,7 @@ export default (sequelize, DataTypes) => {
             type: DataTypes.VIRTUAL,
             get() {
                 const status = this.getDataValue('job_status');
+                const isSurveyReq = this.getDataValue('is_survey_required') !== false;
                 const certs = this.certificates || [];
 
                 if (status === 'CREATED') {
@@ -38,7 +39,7 @@ export default (sequelize, DataTypes) => {
                     };
                 }
 
-                if (status === 'REJECTED') {
+                if (status === 'REJECTED' || status === 'CERTIFIED') {
                     return null;
                 }
 
@@ -50,7 +51,27 @@ export default (sequelize, DataTypes) => {
                     };
                 }
 
-                // Scan certificates to find the earliest pending stage
+                // If the job is already finalized, skip intermediate steps and check for certificate generation
+                if (status === 'FINALIZED' || status === 'PAYMENT_DONE') {
+                    const hasPendingDraft = certs.some(c => !c.generated_certificate_id);
+                    if (hasPendingDraft) {
+                        return {
+                            role: 'TM',
+                            fallbackRoles: ['GM', 'ADMIN'],
+                            message: 'Waiting for TM to Generate Draft Certificate'
+                        };
+                    }
+                    const hasPendingIssue = certs.some(c => c.status !== 'ISSUED' && c.status !== 'REJECTED');
+                    if (hasPendingIssue) {
+                        return {
+                            role: 'GM',
+                            fallbackRoles: ['ADMIN'],
+                            message: 'Waiting for GM to Issue Certificate'
+                        };
+                    }
+                    return null;
+                }
+
                 const hasPending = certs.some(c => c.status === 'PENDING');
                 if (hasPending) {
                     return {
@@ -60,12 +81,20 @@ export default (sequelize, DataTypes) => {
                     };
                 }
 
+                if (!isSurveyReq && status === 'APPROVED') {
+                    return {
+                        role: 'GM',
+                        fallbackRoles: ['TM', 'ADMIN'],
+                        message: 'Waiting to Finalize Job'
+                    };
+                }
+
                 const hasDocVerified = certs.some(c => c.status === 'DOCUMENT_VERIFIED');
                 if (hasDocVerified) {
                     return {
                         role: 'GM',
                         fallbackRoles: ['ADMIN'],
-                        message: 'Waiting for GM to Assign Surveyor / Approve'
+                        message: isSurveyReq ? 'Waiting for GM to Assign Surveyor / Approve' : 'Waiting for GM to Approve Job'
                     };
                 }
 
@@ -96,9 +125,6 @@ export default (sequelize, DataTypes) => {
                     };
                 }
 
-                // TM issues survey statement after TO technical review (cert stays SURVEY_DONE; no REVIEWED cert enum)
-
-                // If cert has been finalized/payment done, check draft status
                 const hasPendingDraft = certs.some(c => !c.generated_certificate_id);
                 if (hasPendingDraft) {
                     return {
@@ -108,7 +134,6 @@ export default (sequelize, DataTypes) => {
                     };
                 }
 
-                // If draft exists but not yet issued (valid)
                 const hasPendingIssue = certs.some(c => c.status !== 'ISSUED' && c.status !== 'REJECTED');
                 if (hasPendingIssue) {
                     return {

@@ -700,6 +700,67 @@
           application/json:
             schema: { $ref: '#/components/schemas/ErrorResponse' }
 
+/api/v1/jobs/{id}/authorize-all-surveys:
+  put:
+    tags: [Jobs]
+    summary: "ADMIN/TM: Bulk authorize all valid assigned surveys for a Job"
+    description: |
+      **Bulk Transition:** `DOCUMENT_VERIFIED → SURVEY_AUTHORIZED`
+
+      Admin or Technical Manager authorizes all surveys for a job at once.
+      It filters out any certificates that do not have a surveyor assigned yet,
+      and successfully authorizes the rest. Sends push notifications to all assigned surveyors.
+      
+      **Roles:** ADMIN, TM
+    operationId: authorizeAllSurveys
+    x-roles: [ADMIN, TM]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              remarks: { type: string, example: "Bulk authorization granted for all assigned certificates." }
+    responses:
+      "200":
+        description: Surveys authorized.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean, example: true }
+                message: { type: string, example: "Successfully authorized surveys for 3 certificate(s)." }
+                data:
+                  type: array
+                  items:
+                    type: object
+      "400":
+        description: No certificates found with an assigned surveyor to authorize.
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "403":
+        description: Forbidden – only ADMIN or TM
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+      "404":
+        description: Job not found
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErrorResponse' }
+
 /api/v1/jobs/{id}/review:
   put:
     tags: [Jobs]

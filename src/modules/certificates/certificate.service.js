@@ -378,7 +378,7 @@ export const generateCertificate = async (data, user) => {
         throw { statusCode: 403, message: 'Only Admins, General Managers, or Technical Managers have permission to generate certificates.' };
     }
     const userId = user.id;
-    const { job_id, job_certificate_id, validity_years, expiry_date, certificate_authority_id, flag_administration_id, certificate_term, skip_validation } = data;
+    const { job_id, job_certificate_id, validity_years, issue_date, expiry_date, flag_administration_id, certificate_term, skip_validation } = data;
 
     // Support both job_certificate_id (new) and job_id (legacy)
     let resolvedJobId = job_id;
@@ -486,12 +486,12 @@ export const generateCertificate = async (data, user) => {
             }
         }
 
-        const issueDate = new Date();
+        const issueDate = issue_date ? new Date(issue_date) : new Date();
         let expiryDate;
         if (expiry_date) {
             expiryDate = new Date(expiry_date);
         } else {
-            expiryDate = new Date();
+            expiryDate = new Date(issueDate);
             expiryDate.setFullYear(issueDate.getFullYear() + (validity_years || 1));
             // In maritime, certificates usually expire the day before their anniversary
             expiryDate.setDate(expiryDate.getDate() - 1);

@@ -113,6 +113,7 @@ export const schemas = {
         job_id: Joi.string().guid().optional(),
         job_certificate_id: Joi.string().guid().optional(), // new: per-certificate generation
         validity_years: Joi.number().integer().min(1).max(5).optional(),
+        issue_date: Joi.date().iso().optional(),
         expiry_date: Joi.date().iso().optional(),
         flag_administration_id: Joi.string().guid().optional().allow(null),
         certificate_term: Joi.string().valid('FULL_TERM', 'SHORT_TERM').optional(),

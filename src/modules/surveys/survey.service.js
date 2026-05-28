@@ -36,8 +36,15 @@ const assertJobAccessible = async (jobId, userId, { checkSurveyor = true, allowe
         throw { statusCode: 400, message: `This job has already been closed and cannot be modified further.` };
     }
 
-    if (allowedStatuses && !allowedStatuses.includes(job.job_status)) {
-        throw { statusCode: 400, message: `This action can only be performed when the job is in ${allowedStatuses.join(', ')} state.` };
+    if (allowedStatuses) {
+        if (jobCertificateId) {
+            const jc = await db.JobCertificate.findByPk(jobCertificateId, { useMaster: true });
+            if (jc && !allowedStatuses.includes(jc.status)) {
+                throw { statusCode: 400, message: `This action can only be performed when the certificate is in ${allowedStatuses.join(', ')} state.` };
+            }
+        } else if (!allowedStatuses.includes(job.job_status)) {
+            throw { statusCode: 400, message: `This action can only be performed when the job is in ${allowedStatuses.join(', ')} state.` };
+        }
     }
 
     if (checkSurveyor) {
@@ -147,10 +154,10 @@ export const startSurvey = async (data, userId) => {
         resolvedJobId = jc.job_request_id;
     }
 
-    // Guard: job must be SURVEY_AUTHORIZED (or IN_PROGRESS if subsequent cert)
+    // Guard: job must be SURVEY_AUTHORIZED or REWORK_REQUESTED
     await assertJobAccessible(resolvedJobId, userId, {
         checkSurveyor: true,
-        allowedStatuses: ['SURVEY_AUTHORIZED', 'IN_PROGRESS'],
+        allowedStatuses: ['SURVEY_AUTHORIZED', 'REWORK_REQUESTED'],
         jobCertificateId: certId
     });
 
@@ -164,11 +171,13 @@ export const startSurvey = async (data, userId) => {
         });
 
         // Guard: cannot re-start an already-started survey
-        if (!created && survey.survey_status !== 'NOT_STARTED') {
+        if (!created && !['NOT_STARTED', 'REWORK_REQUIRED'].includes(survey.survey_status)) {
             throw { statusCode: 400, message: `This survey has already been started or processed.` };
         }
 
-        await lifecycleService.updateSurveyStatus(survey.id, 'STARTED', userId, 'Surveyor checked in', { transaction: txn });
+        if (survey.survey_status !== 'STARTED') {
+            await lifecycleService.updateSurveyStatus(survey.id, 'STARTED', userId, 'Surveyor checked in', { transaction: txn });
+        }
 
         await survey.update({
             started_at: new Date(),

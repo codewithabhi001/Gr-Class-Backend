@@ -96,6 +96,13 @@ export const verifyJobDocuments = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const verifyAllJobDocuments = async (req, res, next) => {
+    try {
+        const result = await jobService.verifyAllJobDocuments(req.params.id, req.user);
+        res.json({ success: true, message: result.message, data: result.data });
+    } catch (error) { next(error); }
+};
+
 /** DOCUMENT_VERIFIED → APPROVED  (ADMIN / GM) */
 export const approveRequest = async (req, res, next) => {
     try {
@@ -160,6 +167,14 @@ export const authorizeSurvey = async (req, res, next) => {
     try {
         const jc = await jobService.authorizeSurveyForCertificate(req.params.jobCertificateId, req.body?.remarks, req.user);
         res.json({ success: true, message: 'Survey authorized for certificate. Surveyor can begin field work.', data: jc });
+    } catch (error) { next(error); }
+};
+
+/** Bulk authorize all surveys for a Job (ADMIN / TM) */
+export const authorizeAllSurveys = async (req, res, next) => {
+    try {
+        const result = await jobService.authorizeAllSurveysForJob(req.params.id, req.body?.remarks, req.user);
+        res.json({ success: true, message: result.message, data: result.data });
     } catch (error) { next(error); }
 };
 

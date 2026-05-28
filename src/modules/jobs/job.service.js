@@ -542,7 +542,7 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
         jobPlain.Certificate = { id: cert.id, certificate_number: cert.certificate_number, source_type: cert.source_type };
     }
 
-    jobPlain.uploaded_documents = await enrichUploadedDocuments(id, user);
+    // jobPlain.uploaded_documents = await enrichUploadedDocuments(id, user);
 
     if (jobPlain.SourceActivityRequest) {
         jobPlain.source_activity_request = {
@@ -718,7 +718,7 @@ export const verifyJobCertificateDocuments = async (jobCertificateId, body, user
         }
     }
 
-    if (hasMissingDocs && actualBody?.approved === false) {
+    if (hasMissingDocs && actualBody?.approved !== false) {
         throw { statusCode: 400, message: 'Mandatory documents are missing for this certificate.', missing_documents: missing };
     }
 
@@ -811,6 +811,77 @@ export const verifyJobCertificateDocuments = async (jobCertificateId, body, user
 };
 
 /**
+ * Verify ALL documents for ALL PENDING certificates of a Job
+ * Roles: TO, GM, ADMIN
+ */
+export const verifyAllJobDocuments = async (jobId, user) => {
+    if (!['TO', 'GM', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO), General Managers (GM) or Admins have permission to verify documents.' };
+    }
+
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
+    
+    // Get all certificates in PENDING or REWORK_REQUESTED status
+    const pendingCerts = await JobCertificate.findAll({ 
+        where: { 
+            job_request_id: jobId,
+            status: { [Op.in]: ['PENDING', 'REWORK_REQUESTED'] }
+        }, 
+        useMaster: true 
+    });
+
+    if (pendingCerts.length === 0) {
+        throw { statusCode: 400, message: 'No pending certificates found for this job to verify.' };
+    }
+
+    const verifiedCerts = [];
+    
+    for (const jc of pendingCerts) {
+        // Check mandatory docs
+        const requiredDocs = await CertificateRequiredDocument.findAll({
+            where: { certificate_type_id: jc.certificate_type_id, is_mandatory: true },
+            useMaster: true
+        });
+
+        if (requiredDocs.length > 0) {
+            const uploadedDocs = await JobDocument.findAll({
+                where: { job_certificate_id: jc.id },
+                useMaster: true
+            });
+            const uploadedDocIds = uploadedDocs.map(d => d.required_document_id);
+            const missingDocs = requiredDocs.filter(rd => !uploadedDocIds.includes(rd.id));
+            if (missingDocs.length > 0) {
+                throw { 
+                    statusCode: 400, 
+                    message: `Mandatory documents are missing for certificate ${jc.id}. Cannot bulk approve.`,
+                    missing_documents: missingDocs.map(m => ({ id: m.id, name: m.document_name }))
+                };
+            }
+        }
+
+        // Approve all pending documents for this certificate
+        await JobDocument.update(
+            { verification_status: 'APPROVED', verified_by: user.id },
+            { where: { job_certificate_id: jc.id, verification_status: 'PENDING' } }
+        );
+
+        // Update the certificate status
+        const updatedJc = await lifecycleService.updateJobCertificateStatus(jc.id, 'DOCUMENT_VERIFIED', user.id, `${user.role} bulk verified all documents`);
+        verifiedCerts.push(updatedJc);
+    }
+
+    // Notify ADMIN/GM/TM
+    notificationService.notifyRoles(['ADMIN', 'GM', 'TM'], 'JOB_DOCUMENT_VERIFIED', {
+        jobId: jobId, vesselName: job.Vessel.vessel_name
+    }).catch(() => { });
+
+    return { 
+        message: `Successfully verified all documents for ${verifiedCerts.length} certificate(s).`, 
+        data: verifiedCerts 
+    };
+};
+
+/**
  * DOCUMENT_VERIFIED → APPROVED
  * Roles: ADMIN, GM
  */
@@ -897,6 +968,19 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
     // Validate surveyor authority
     await validateSurveyorAuthority(job, surveyorId);
 
+    if (job.assigned_surveyor_id) {
+        if (job.assigned_surveyor_id === surveyorId) {
+            throw { statusCode: 400, message: 'This surveyor is already assigned to this job.' };
+        }
+        throw { statusCode: 400, message: 'A surveyor is already assigned to this job. Please use the Reassign feature.' };
+    }
+
+    const activeCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId } });
+    const hasUnverifiedCerts = activeCerts.some(cert => ['PENDING', 'REWORK_REQUESTED'].includes(cert.status));
+    if (hasUnverifiedCerts) {
+        throw { statusCode: 400, message: 'Cannot bulk assign surveyor. Some certificates do not have verified documents yet.' };
+    }
+
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
 
     // Bulk update all child certificates
@@ -905,13 +989,20 @@ export const assignSurveyor = async (jobId, surveyorId, user) => {
         { where: { job_request_id: jobId } }
     );
 
-    // Sync active surveys if already provisioned
-    const activeCerts = await db.JobCertificate.findAll({ where: { job_request_id: jobId } });
+    // Sync or create active surveys for these certificates
     if (activeCerts.length > 0) {
-        await db.Survey.update(
-            { surveyor_id: surveyorId },
-            { where: { job_certificate_id: activeCerts.map(c => c.id) } }
-        );
+        for (const cert of activeCerts) {
+            const [survey, created] = await db.Survey.findOrCreate({
+                where: { job_certificate_id: cert.id },
+                defaults: {
+                    surveyor_id: surveyorId,
+                    survey_status: 'NOT_STARTED'
+                }
+            });
+            if (!created && survey.surveyor_id !== surveyorId) {
+                await survey.update({ surveyor_id: surveyorId });
+            }
+        }
     }
 
     // Create status history log
@@ -963,12 +1054,29 @@ export const assignSurveyorToCertificate = async (jobCertificateId, surveyorId, 
         throw { statusCode: 400, message: `Surveyor is not authorized to inspect ${certType.name}` };
     }
 
+    if (jc.assigned_surveyor_id) {
+        if (jc.assigned_surveyor_id === surveyorId) {
+            throw { statusCode: 400, message: 'This surveyor is already assigned to this certificate.' };
+        }
+        throw { statusCode: 400, message: 'A surveyor is already assigned to this certificate. Please use the Reassign feature.' };
+    }
+
+    if (['PENDING', 'REWORK_REQUESTED'].includes(jc.status)) {
+        throw { statusCode: 400, message: 'Cannot assign surveyor. Documents for this certificate are not yet verified.' };
+    }
+
     await jc.update({ assigned_surveyor_id: surveyorId });
 
-    // Sync active survey if already provisioned
-    const activeSurvey = await db.Survey.findOne({ where: { job_certificate_id: jobCertificateId } });
-    if (activeSurvey) {
-        await activeSurvey.update({ surveyor_id: surveyorId });
+    // Sync or create active survey
+    const [survey, created] = await db.Survey.findOrCreate({
+        where: { job_certificate_id: jobCertificateId },
+        defaults: {
+            surveyor_id: surveyorId,
+            survey_status: 'NOT_STARTED'
+        }
+    });
+    if (!created && survey.surveyor_id !== surveyorId) {
+        await survey.update({ surveyor_id: surveyorId });
     }
 
     await db.JobStatusHistory.create({
@@ -1024,6 +1132,13 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
     // Validate new surveyor authority
     await validateSurveyorAuthority(job, surveyorId);
 
+    if (!job.assigned_surveyor_id) {
+        throw { statusCode: 400, message: 'No surveyor is currently assigned to this job. Please use the Assign feature instead.' };
+    }
+    if (job.assigned_surveyor_id === surveyorId) {
+        throw { statusCode: 400, message: 'This surveyor is already assigned to this job. Reassignment requires a different surveyor.' };
+    }
+
     const oldSurveyor = job.assigned_surveyor_id;
     await job.update({ assigned_surveyor_id: surveyorId, assigned_by_user_id: userId });
 
@@ -1044,11 +1159,19 @@ export const reassignSurveyor = async (jobId, surveyorId, reason, user) => {
 
     // Explicitly sync survey in reassignment case since it doesn't change job status
     if (job.is_survey_required) {
-        // For reassignment: update all surveys for this job
+        // For reassignment: update or create all surveys for this job
         const jobCerts = await JobCertificate.findAll({ where: { job_request_id: jobId }, useMaster: true });
-        const surveys = await Survey.findAll({ where: { job_certificate_id: jobCerts.map(jc => jc.id) }, useMaster: true });
-        for (const survey of surveys) {
-            await survey.update({ surveyor_id: surveyorId });
+        for (const cert of jobCerts) {
+            const [survey, created] = await db.Survey.findOrCreate({
+                where: { job_certificate_id: cert.id },
+                defaults: {
+                    surveyor_id: surveyorId,
+                    survey_status: 'NOT_STARTED'
+                }
+            });
+            if (!created && survey.surveyor_id !== surveyorId) {
+                await survey.update({ surveyor_id: surveyorId });
+            }
         }
     }
     return job;
@@ -1075,18 +1198,33 @@ export const reassignSurveyorToCertificate = async (jobCertificateId, surveyorId
     if (['ISSUED', 'REJECTED'].includes(jc.status)) {
         throw { statusCode: 400, message: `Cannot reassign surveyor for a ${jc.status} certificate.` };
     }
+    if (!jc.assigned_surveyor_id) {
+        throw { statusCode: 400, message: 'No surveyor is currently assigned to this certificate. Please use the Assign feature instead.' };
+    }
+    if (jc.assigned_surveyor_id === surveyorId) {
+        throw { statusCode: 400, message: 'This surveyor is already assigned to this certificate. Reassignment requires a different surveyor.' };
+    }
 
     await validateSurveyorAuthority(job, surveyorId);
 
     const oldSurveyor = jc.assigned_surveyor_id;
     await jc.update({ assigned_surveyor_id: surveyorId });
 
-    const activeSurvey = await Survey.findOne({ where: { job_certificate_id: jobCertificateId }, useMaster: true });
-    if (activeSurvey) {
-        if (activeSurvey.survey_status === 'FINALIZED') {
+    const [survey, created] = await Survey.findOrCreate({
+        where: { job_certificate_id: jobCertificateId },
+        defaults: {
+            surveyor_id: surveyorId,
+            survey_status: 'NOT_STARTED'
+        }
+    });
+
+    if (!created) {
+        if (survey.survey_status === 'FINALIZED') {
             throw { statusCode: 400, message: 'Cannot reassign surveyor after survey is FINALIZED for this certificate.' };
         }
-        await activeSurvey.update({ surveyor_id: surveyorId });
+        if (survey.surveyor_id !== surveyorId) {
+            await survey.update({ surveyor_id: surveyorId });
+        }
     }
 
     await JobStatusHistory.create({
@@ -1124,6 +1262,10 @@ export const authorizeSurveyForCertificate = async (jobCertificateId, remarks, u
         throw { statusCode: 400, message: 'Cannot authorize survey: please assign a surveyor first.' };
     }
 
+    if (!['DOCUMENT_VERIFIED'].includes(jc.status)) {
+        throw { statusCode: 400, message: `Cannot authorize survey. The certificate must be verified first. Current status: ${jc.status}` };
+    }
+
     const job = await requireJob(jc.job_request_id, { includeVessel: true, useMaster: true });
 
     const txn = await db.sequelize.transaction();
@@ -1151,6 +1293,70 @@ export const authorizeSurveyForCertificate = async (jobCertificateId, remarks, u
         });
 
         return updatedJc;
+    } catch (error) {
+        await txn.rollback();
+        throw error;
+    }
+};
+
+/**
+ * Bulk survey authorization for all valid certificates of a Job
+ * Roles: ADMIN, TM
+ */
+export const authorizeAllSurveysForJob = async (jobId, remarks, user) => {
+    if (!isRoleAllowed(RBAC.AUTHORIZE_SURVEY, user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Managers (TM) or Admins have permission to authorize surveys.' };
+    }
+    
+    const job = await requireJob(jobId, { includeVessel: true, useMaster: true });
+    
+    // Find all certificates that are ready to be authorized (verified and assigned)
+    const pendingCerts = await JobCertificate.findAll({ 
+        where: { 
+            job_request_id: jobId,
+            status: { [Op.in]: ['DOCUMENT_VERIFIED'] }
+        }, 
+        useMaster: true 
+    });
+
+    if (pendingCerts.length === 0) {
+        throw { statusCode: 400, message: 'No certificates found ready for authorization. Ensure they are verified and not already authorized.' };
+    }
+
+    const assignedCerts = pendingCerts.filter(jc => jc.assigned_surveyor_id);
+    if (assignedCerts.length === 0) {
+        throw { statusCode: 400, message: 'No certificates with an assigned surveyor found to authorize.' };
+    }
+
+    const authorizedCerts = [];
+    const txn = await db.sequelize.transaction();
+    try {
+        for (const jc of assignedCerts) {
+            const updatedJc = await lifecycleService.updateJobCertificateStatus(
+                jc.id, 'SURVEY_AUTHORIZED', user.id,
+                remarks || `${user.role} bulk authorized survey`, { transaction: txn }
+            );
+
+            // Pre-create Survey record for this JobCertificate
+            await db.Survey.findOrCreate({
+                where: { job_certificate_id: jc.id },
+                defaults: {
+                    surveyor_id: jc.assigned_surveyor_id,
+                    survey_status: 'NOT_STARTED'
+                },
+                transaction: txn
+            });
+            
+            authorizedCerts.push(updatedJc);
+            
+            // Notifications per surveyor
+            notificationService.sendNotification(jc.assigned_surveyor_id, 'JOB_APPROVED', {
+                jobId: job.id, status: 'SURVEY_AUTHORIZED', vesselName: job.Vessel?.vessel_name
+            });
+        }
+
+        await txn.commit();
+        return { message: `Successfully authorized surveys for ${authorizedCerts.length} certificate(s).`, data: authorizedCerts };
     } catch (error) {
         await txn.rollback();
         throw error;

@@ -26,6 +26,9 @@ router.post('/', authorizeRoles('CLIENT', 'ADMIN', 'GM'), validate(schemas.creat
 // CREATED → DOCUMENT_VERIFIED  (TO / GM / ADMIN) (per JobCertificate)
 router.put('/certificates/:jobCertificateId/verify-documents', authorizeRoles('TO', 'GM', 'ADMIN'), jobController.verifyJobDocuments);
 
+// CREATED → DOCUMENT_VERIFIED (TO / GM / ADMIN) (Bulk verify all certificates for a job)
+router.put('/:id/verify-all-documents', authorizeRoles('TO', 'GM', 'ADMIN'), jobController.verifyAllJobDocuments);
+
 // DOCUMENT_VERIFIED → APPROVED   (GM / ADMIN)
 router.put('/:id/approve-request', authorizeRoles('GM', 'ADMIN'), jobController.approveRequest);
 
@@ -46,6 +49,9 @@ router.put('/:id/reschedule', authorizeRoles('GM', 'ADMIN'), validate(schemas.re
 
 // ASSIGNED → SURVEY_AUTHORIZED (per JobCertificate)
 router.put('/certificates/:jobCertificateId/authorize-survey', authorizeRoles(...RBAC.AUTHORIZE_SURVEY), jobController.authorizeSurvey);
+
+// ASSIGNED → SURVEY_AUTHORIZED (Bulk for all valid certificates in a Job)
+router.put('/:id/authorize-all-surveys', authorizeRoles(...RBAC.AUTHORIZE_SURVEY), jobController.authorizeAllSurveys);
 
 // IN_PROGRESS / REWORK_REQUESTED → automatically handled by survey lifecycle
 
