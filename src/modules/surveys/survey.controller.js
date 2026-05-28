@@ -1,4 +1,5 @@
 import * as surveyService from './survey.service.js';
+import db from '../../models/index.js';
 
 // POST /surveys/start
 export const startSurvey = async (req, res, next) => {
