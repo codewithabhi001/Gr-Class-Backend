@@ -491,6 +491,8 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
             {
                 model: db.JobCertificate,
                 as: 'certificates',
+                where: user?.role === 'SURVEYOR' ? { assigned_surveyor_id: user.id } : undefined,
+                required: false,
                 include: [
                     'CertificateType',
                     { model: Survey, as: 'survey' },
@@ -1368,8 +1370,8 @@ export const authorizeAllSurveysForJob = async (jobId, remarks, user) => {
  * Roles: TO
  */
 export const reviewJobCertificate = async (jobCertificateId, remarks, user) => {
-    if (user.role !== 'TO') {
-        throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to mark a job as reviewed.' };
+    if (!['TO', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO) and Admins have permission to mark a job as reviewed.' };
     }
     const jc = await JobCertificate.findByPk(jobCertificateId, { useMaster: true });
     if (!jc) throw { statusCode: 404, message: 'Job Certificate not found' };

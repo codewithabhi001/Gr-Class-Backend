@@ -380,8 +380,8 @@ export const getSignedChecklistUploadUrl = async (jobId, fileName, contentType, 
  * TO action to approve/reject a specific checklist item (scoped to a certificate).
  */
 export const reviewChecklistItem = async (jobId, itemId, { status, rejection_reason }, user) => {
-    if (user.role !== 'TO') {
-        throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to review checklist items.' };
+    if (!['TO', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO) and Admins have permission to review checklist items.' };
     }
 
     // Find item — scoped to job (via job_id OR job_certificate_id path)
@@ -414,8 +414,8 @@ export const reviewChecklistItem = async (jobId, itemId, { status, rejection_rea
  * TO action to approve/reject a signed checklist document (by index on the certificate's survey).
  */
 export const reviewSignedDocument = async (jobId, fileIndex, { status, rejection_reason }, user, jobCertificateId = null) => {
-    if (user.role !== 'TO') {
-        throw { statusCode: 403, message: 'Only Technical Officers (TO) have permission to review documents.' };
+    if (!['TO', 'ADMIN'].includes(user.role)) {
+        throw { statusCode: 403, message: 'Only Technical Officers (TO) and Admins have permission to review documents.' };
     }
 
     // Find the survey — try per-certificate first

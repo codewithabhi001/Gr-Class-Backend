@@ -64,7 +64,7 @@ router.post(
 // Finalize survey — TM ONLY
 router.put(
     '/job-certificates/:jobCertificateId/finalize',
-    authorizeRoles('TM'),
+    authorizeRoles('TM', 'ADMIN'),
     validate(schemas.finalizeSurvey),
     surveyController.finalizeSurvey
 );
@@ -86,7 +86,7 @@ router.post(
 // Draft Survey Statement (Surveyor / TM)
 router.post(
     '/job-certificates/:jobCertificateId/statement/draft',
-    authorizeRoles('SURVEYOR', 'TM'),
+    authorizeRoles('SURVEYOR', 'TM', 'ADMIN'),
     validate(schemas.draftSurveyStatement),
     surveyController.draftStatement
 );
@@ -94,7 +94,7 @@ router.post(
 // Issue Survey Statement (TM ONLY - requires signed PDF)
 router.post(
     '/job-certificates/:jobCertificateId/statement/issue',
-    authorizeRoles('TM'),
+    authorizeRoles('TM', 'ADMIN'),
     upload.single('statement'),
     surveyController.issueStatement
 );

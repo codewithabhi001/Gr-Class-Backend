@@ -846,14 +846,23 @@ export const getTimeline = async (id, user) => {
 };
 
 export const getSurveyReports = async (query, user) => {
-    const { page = 1, limit = 10, ...filters } = query;
+    const { page = 1, limit = 10, search, ...filters } = query;
     const allowedFilters = {};
     if (filters.survey_status) allowedFilters.survey_status = filters.survey_status;
     if (filters.surveyor_id) allowedFilters.surveyor_id = filters.surveyor_id;
 
+    if (user?.role === 'SURVEYOR') {
+        allowedFilters.surveyor_id = user.id;
+    }
+
     const jobRequestWhere = {};
     if (filters.job_id) {
         jobRequestWhere.id = filters.job_id;
+    }
+    
+    if (search || filters.job_number) {
+        const term = search || filters.job_number;
+        jobRequestWhere.job_request_number = { [db.Sequelize.Op.like]: `%${term}%` };
     }
 
     const { count, rows } = await Survey.findAndCountAll({

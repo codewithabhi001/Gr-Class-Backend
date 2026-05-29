@@ -55,8 +55,8 @@ router.put('/:id/authorize-all-surveys', authorizeRoles(...RBAC.AUTHORIZE_SURVEY
 
 // IN_PROGRESS / REWORK_REQUESTED → automatically handled by survey lifecycle
 
-// SURVEY_DONE → REVIEWED (per JobCertificate) (TO — technical review)
-router.put('/certificates/:jobCertificateId/review', authorizeRoles('TO'), jobController.reviewJob);
+// SURVEY_DONE → REVIEWED (per JobCertificate)
+router.put('/certificates/:jobCertificateId/review', authorizeRoles('TO', 'ADMIN'), jobController.reviewJob);
 
 // REVIEWED → REWORK_REQUESTED  (ADMIN / TM / TO — requests surveyor correction)
 // NOTE: preferred path is PUT /api/v1/surveys/:id/rework
