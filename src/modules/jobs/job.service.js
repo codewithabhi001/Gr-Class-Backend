@@ -178,7 +178,25 @@ export const createJob = async (data, userId, options = {}) => {
         const certType = await CertificateType.findByPk(cert.certificate_type_id, { useMaster: true });
         if (!certType) throw { statusCode: 400, message: `The selected certificate type ${cert.certificate_type_id} is invalid.` };
         
-        if (certType.requires_survey) anySurveyRequired = true;
+        // ── Template Validations ──
+        const certTemplate = await db.CertificateTemplate.findOne({
+            where: { certificate_type_id: cert.certificate_type_id, is_active: true },
+            useMaster: true
+        });
+        if (!certTemplate) {
+            throw { statusCode: 400, message: `Cannot create job. No active Certificate Template found for ${certType.name}.` };
+        }
+
+        if (certType.requires_survey) {
+            anySurveyRequired = true;
+            const checklistTemplate = await db.ChecklistTemplate.findOne({
+                where: { certificate_type_id: cert.certificate_type_id, status: 'ACTIVE' },
+                useMaster: true
+            });
+            if (!checklistTemplate) {
+                throw { statusCode: 400, message: `Cannot create job. Survey is required but no active Checklist Template found for ${certType.name}.` };
+            }
+        }
 
         if (!skipMandatoryDocumentCheck) {
             const requiredDocs = await CertificateRequiredDocument.findAll({
