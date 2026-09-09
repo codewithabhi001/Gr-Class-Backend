@@ -61,7 +61,7 @@ export const schemas = {
         name: Joi.string().required(),
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT').required(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT').required(),
         company_name: Joi.string().optional(),
         client_id: Joi.string().guid().optional().allow(null, ''),
         phone: Joi.string().optional().allow('', null)
@@ -306,7 +306,7 @@ export const schemas = {
         name: Joi.string().required(),
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT').required(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT').required(),
         phone: Joi.string().pattern(/^(\+?\d{1,4}[\s-]?)?\d{6,15}$/).message('Invalid phone number').required(),
         client_id: Joi.string().guid().optional().allow(null, ''),
         license_number: Joi.string().optional().allow(''),
@@ -584,7 +584,7 @@ export const schemas = {
     updateUser: Joi.object({
         name: Joi.string().optional().max(100),
         email: Joi.string().email().optional(),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT').optional(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT').optional(),
         phone: Joi.string().pattern(/^(\+?\d{1,4}[\s-]?)?\d{6,15}$/).message('Invalid phone number').optional(),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'SUSPENDED').optional(),
         client_id: Joi.string().guid().optional().allow(null),

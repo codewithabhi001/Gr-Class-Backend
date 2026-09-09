@@ -18,8 +18,8 @@ router.use(authenticate);
 router.get('/upload-url', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), jobController.getUploadUrl);
 
 // ─── List & Detail ───────────────────────────────────────
-router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobs);
-router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobById);
+router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'ACCOUNTANT'), jobController.getJobs);
+router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'ACCOUNTANT'), jobController.getJobById);
 router.get('/:id/eligible-surveyors', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.getEligibleSurveyors);
 
 // ─── Create ───────────────────────────────────────────────

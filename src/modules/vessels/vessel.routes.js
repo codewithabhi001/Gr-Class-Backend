@@ -12,13 +12,13 @@ const router = express.Router();
 router.use(authenticate);
 
 // List all vessels (scoped by client_id for CLIENT)
-router.get('/', authorizeRoles('ADMIN', 'GM', 'CLIENT'), vesselController.getVessels);
+router.get('/', authorizeRoles('ADMIN', 'GM', 'CLIENT', 'ACCOUNTANT'), vesselController.getVessels);
 
 // Get distinct vessel types (ship_type) — for dropdowns/filters
 router.get('/types', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'SURVEYOR'), vesselController.getVesselTypes);
 
 // Get all vessels of a specific client (for management)
-router.get('/client/:clientId', authorizeRoles('ADMIN', 'GM'), vesselController.getVesselsByClientId);
+router.get('/client/:clientId', authorizeRoles('ADMIN', 'GM', 'ACCOUNTANT'), vesselController.getVesselsByClientId);
 
 // Create a new vessel
 router.post('/', authorizeRoles('ADMIN', 'GM'), validate(schemas.createVessel), vesselController.createVessel);
@@ -39,7 +39,7 @@ const lookupLimiter = rateLimit({
 router.get('/lookup/:imo', authorizeRoles('ADMIN', 'GM'), lookupLimiter, vesselController.lookupVesselByImo);
 
 // Get specific vessel details
-router.get('/:id', authorizeRoles('ADMIN', 'GM', 'SURVEYOR', 'CLIENT'), vesselController.getVesselById);
+router.get('/:id', authorizeRoles('ADMIN', 'GM', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT'), vesselController.getVesselById);
 
 // Update vessel details
 router.put('/:id', authorizeRoles('ADMIN', 'GM'), validate(schemas.updateVessel), vesselController.updateVessel);

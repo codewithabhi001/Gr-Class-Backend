@@ -13,9 +13,9 @@ router.get('/profile/documents', authorizeRoles('CLIENT'), clientController.getC
 
 // Management (Admin/Staff)
 router.post('/', authorizeRoles('ADMIN', 'GM'), validate(schemas.createClient), clientController.createClient);
-router.get('/', authorizeRoles('ADMIN', 'GM'), clientController.getClients);
-router.get('/:id', authorizeRoles('ADMIN', 'GM'), clientController.getClientById);
-router.get('/:id/documents', authorizeRoles('ADMIN', 'GM'), clientController.getClientDocuments);
+router.get('/', authorizeRoles('ADMIN', 'GM', 'ACCOUNTANT'), clientController.getClients);
+router.get('/:id', authorizeRoles('ADMIN', 'GM', 'ACCOUNTANT'), clientController.getClientById);
+router.get('/:id/documents', authorizeRoles('ADMIN', 'GM', 'ACCOUNTANT'), clientController.getClientDocuments);
 router.put('/:id', authorizeRoles('ADMIN', 'GM'), clientController.updateClient);
 router.delete('/:id', authorizeRoles('ADMIN'), clientController.deleteClient);
 
