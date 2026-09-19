@@ -446,18 +446,9 @@ export function generateSurveyStatusReport(data = {}) {
   return renderedHtml;
 }
 
-const LIVE_TABLE_IDS = [
-  'classCertsTable',
-  'statCertsTable',
-  'planApprovalTable',
-  'classificationSurveysTable',
-  'statutorySurveysTable',
-  'conditionsTable',
-  'ncTable',
-  'pscTable',
-  'infoTable',
-  'historyTable',
-];
+const CERT_STATUS_TABLE_IDS = ['classCertsTable', 'statCertsTable'];
+const SURVEY_STATUS_TABLE_IDS = ['classificationSurveysTable', 'statutorySurveysTable'];
+const DUE_STATUS_TABLE_IDS = ['conditionsTable', 'ncTable'];
 
 function extractTableTbody(html, tableId) {
   const re = new RegExp(
@@ -477,9 +468,75 @@ function replaceTableTbody(html, tableId, innerHtml) {
   return html.replace(re, `$1${innerHtml}$2`);
 }
 
-function replaceFirstMatch(html, regex, replacementHtml) {
-  if (!regex.test(html) || !replacementHtml) return html;
-  return html.replace(regex, replacementHtml);
+function stripTags(html) {
+  return String(html || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitTableCells(rowInner) {
+  const cells = [];
+  const tdRe = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
+  let match;
+  while ((match = tdRe.exec(rowInner)) !== null) {
+    cells.push({ full: match[0], attrs: match[1] || '', inner: match[2] || '' });
+  }
+  return cells;
+}
+
+function replaceRowStatusCell(rowInner, cellIndex, status) {
+  const cells = splitTableCells(rowInner);
+  if (!cells[cellIndex]) return rowInner;
+  const next = `<td${cells[cellIndex].attrs}>${statusBadgeHtml(status)}</td>`;
+  return rowInner.replace(cells[cellIndex].full, next);
+}
+
+function mapRows(tbodyHtml, mapper) {
+  return String(tbodyHtml || '').replace(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi, (full, attrs, inner) => {
+    if (/convention-row/i.test(attrs) || /colspan=/i.test(inner)) return full;
+    const nextInner = mapper(inner, attrs);
+    return nextInner == null ? full : `<tr${attrs}>${nextInner}</tr>`;
+  });
+}
+
+function refreshCertTableStatuses(tbodyHtml, certsByCode) {
+  return mapRows(tbodyHtml, (inner) => {
+    const cells = splitTableCells(inner);
+    if (cells.length < 6) return inner;
+    const code = stripTags(cells[1].inner).toUpperCase();
+    const validUntil = stripTags(cells[3].inner);
+    const currentStatus = stripTags(cells[5].inner);
+    const live = certsByCode.get(code);
+    const status = resolveCertStatus(live?.status || currentStatus, live?.validUntil || validUntil);
+    return replaceRowStatusCell(inner, 5, status);
+  });
+}
+
+function refreshSurveyTableStatuses(tbodyHtml) {
+  return mapRows(tbodyHtml, (inner) => {
+    const cells = splitTableCells(inner);
+    if (cells.length < 6) return inner;
+    const status = resolveSurveyStatus(stripTags(cells[2].inner), stripTags(cells[3].inner));
+    return replaceRowStatusCell(inner, 5, status);
+  });
+}
+
+function refreshDueDateTableStatuses(tbodyHtml, recordsById) {
+  const locked = new Set(['CLOSED', 'CLEARED', 'RECTIFIED', 'COMPLETED']);
+  return mapRows(tbodyHtml, (inner) => {
+    const cells = splitTableCells(inner);
+    if (cells.length < 5) return inner;
+    const id = stripTags(cells[0].inner).toUpperCase();
+    const live = recordsById.get(id);
+    const current = String(live?.status || stripTags(cells[4].inner) || 'OPEN').toUpperCase();
+    if (locked.has(current)) return replaceRowStatusCell(inner, 4, current);
+    const due = parseReportDate(live?.limitDate || live?.dueDate || stripTags(cells[2].inner));
+    let status = current || 'OPEN';
+    if (due && due < todayLocal()) status = 'OVERDUE';
+    else if (status === 'OVERDUE') status = 'OPEN';
+    return replaceRowStatusCell(inner, 4, status);
+  });
 }
 
 function escapeHtml(value) {
@@ -491,75 +548,49 @@ function escapeHtml(value) {
 }
 
 /**
- * Keep custom editor layout (advice text, notes, extra copy) from saved HTML,
- * but always inject live vessel / certificate / survey data from the database.
+ * Keep the editor's saved HTML (length, notes, custom rows, copy).
+ * Only refresh live statuses: expired / suspended / overdue / class status.
  */
 export function hydrateSavedSurveyStatusReport(savedHtml, data = {}) {
   if (!savedHtml || !String(savedHtml).trim()) {
     return generateSurveyStatusReport(data);
   }
 
-  const freshHtml = generateSurveyStatusReport(data);
   let html = savedHtml;
+  const certsByCode = new Map();
+  [...(data.classCertificates || []), ...(data.statutoryCertificates || [])].forEach((cert) => {
+    const code = String(cert?.code || '').trim().toUpperCase();
+    if (code) certsByCode.set(code, cert);
+  });
+  const ncById = new Map();
+  [...(data.nonConformities || []), ...(data.conditionsOfClass || [])].forEach((row) => {
+    const id = String(row?.requestNo || '').trim().toUpperCase();
+    if (id) ncById.set(id, row);
+  });
 
-  for (const tableId of LIVE_TABLE_IDS) {
-    const liveBody = extractTableTbody(freshHtml, tableId);
-    if (liveBody != null) {
-      html = replaceTableTbody(html, tableId, liveBody);
-    }
+  for (const tableId of CERT_STATUS_TABLE_IDS) {
+    const body = extractTableTbody(html, tableId);
+    if (body != null) html = replaceTableTbody(html, tableId, refreshCertTableStatuses(body, certsByCode));
+  }
+  for (const tableId of SURVEY_STATUS_TABLE_IDS) {
+    const body = extractTableTbody(html, tableId);
+    if (body != null) html = replaceTableTbody(html, tableId, refreshSurveyTableStatuses(body));
+  }
+  for (const tableId of DUE_STATUS_TABLE_IDS) {
+    const body = extractTableTbody(html, tableId);
+    if (body != null) html = replaceTableTbody(html, tableId, refreshDueDateTableStatuses(body, ncById));
   }
 
-  html = replaceFirstMatch(
-    html,
-    /<table[^>]*class=["'][^"']*particulars-table[^"']*["'][^>]*>[\s\S]*?<\/table>/i,
-    freshHtml.match(/<table[^>]*class=["'][^"']*particulars-table[^"']*["'][^>]*>[\s\S]*?<\/table>/i)?.[0],
+  const liveStatus = escapeHtml(data.classStatus || '—');
+  html = html.replace(
+    /(<span[^>]*class=["'][^"']*\bcover-meta-value\b[^"']*\bstatus\b[^"']*["'][^>]*>)[\s\S]*?(<\/span>)/i,
+    `$1${liveStatus}$2`,
   );
 
-  const liveName = escapeHtml(data.vesselName || '—');
-  const liveFlag = escapeHtml(data.flag || '—');
-  const liveImo = escapeHtml(data.imoNumber || '—');
-  const liveClassNo = escapeHtml(data.classNumber || '—');
-  const liveStatus = escapeHtml(data.classStatus || '—');
   const livePrintDate = escapeHtml(
     data.printDate ||
       new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
   );
-
-  html = html.replace(
-    /(<div class="cover-vessel-name"[^>]*>)[\s\S]*?(<\/div>)/i,
-    `$1${liveName}$2`,
-  );
-  html = html.replace(
-    /(<div class="cover-vessel-flag"[^>]*>)[\s\S]*?(<\/div>)/i,
-    `$1${liveFlag}$2`,
-  );
-  html = html.replace(
-    /(<div class="pmh-cell pmh-cell-vessel"[^>]*>)[\s\S]*?(<\/div>)/gi,
-    `$1${liveName}$2`,
-  );
-  html = html.replace(
-    /(<div class="pmh-cell pmh-cell-flag"[^>]*>)[\s\S]*?(<\/div>)/gi,
-    `$1${liveFlag}$2`,
-  );
-  html = html.replace(
-    /(IMO No\.\s*<strong[^>]*>)[\s\S]*?(<\/strong>)/gi,
-    `$1${liveImo}$2`,
-  );
-  html = html.replace(
-    /(GR CLASS No\.\s*<strong[^>]*>)[\s\S]*?(<\/strong>)/gi,
-    `$1${liveClassNo}$2`,
-  );
-
-  const coverMetaValues = [liveImo, liveClassNo, liveStatus];
-  let coverMetaIdx = 0;
-  html = html.replace(
-    /(<span[^>]*class=["'][^"']*\bcover-meta-value\b[^"']*["'][^>]*>)[\s\S]*?(<\/span>)/gi,
-    (full, open, close) => {
-      const next = coverMetaValues[coverMetaIdx++];
-      return next == null ? full : `${open}${next}${close}`;
-    },
-  );
-
   html = html.replace(
     /(Date Printout\s*:\s*<strong>)[\s\S]*?(<\/strong>)/gi,
     `$1${livePrintDate}$2`,
