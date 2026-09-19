@@ -639,6 +639,9 @@ export const schemas = {
     updateCertificateLayout: Joi.object({
         custom_html: Joi.string().required(),
     }),
+    updateSurveyStatusReport: Joi.object({
+        html: Joi.string().required(),
+    }),
     uploadExternalCertificate: Joi.alternatives().try(
         Joi.object({
             certificates: Joi.array().items(Joi.object({

@@ -102,6 +102,12 @@ router.post('/:id/messages/internal', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'),
 
 // ─── Survey Status Report ──────────────────────────────
 router.get('/:id/survey-status-report', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobSurveyStatusReport);
+router.put(
+    '/:id/survey-status-report',
+    authorizeRoles('ADMIN', 'GM', 'TM', 'TO'),
+    validate(schemas.updateSurveyStatusReport),
+    jobController.saveJobSurveyStatusReport
+);
 
 // ─── Deletion ────────────────────────────────────────────
 router.delete('/:id', authorizeRoles('ADMIN', 'GM'), jobController.deleteJob);

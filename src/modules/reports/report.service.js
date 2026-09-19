@@ -6,7 +6,7 @@ import path from 'path';
 import { Op } from 'sequelize';
 import JSZip from 'jszip';
 import { fileURLToPath } from 'url';
-import { generateSurveyStatusReport, generateSampleReport } from './templates/survey-status-report.template.js';
+import { generateSurveyStatusReport, generateSampleReport, hydrateSavedSurveyStatusReport } from './templates/survey-status-report.template.js';
 import QRCode from 'qrcode';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -521,10 +521,14 @@ export const getSurveyStatusReportData = async (filters = {}) => {
         classCertificates,
         statutoryCertificates,
         nonConformities: nonConformitiesFormatted,
-        manualNotes: filters.notes || ''
+        manualNotes: filters.notes || '',
+        printDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
     };
 
-    const html = generateSurveyStatusReport(reportPayload);
+    const savedHtml = job?.survey_status_report_html?.trim();
+    const html = (savedHtml && filters.fresh !== 'true')
+        ? hydrateSavedSurveyStatusReport(savedHtml, reportPayload)
+        : generateSurveyStatusReport(reportPayload);
     return { html, data: reportPayload };
 };
 

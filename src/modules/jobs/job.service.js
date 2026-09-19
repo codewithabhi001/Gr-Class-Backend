@@ -2780,6 +2780,12 @@ export const deleteJob = async (jobId, transaction = null) => {
     }
 };
 
+export const saveSurveyStatusReportHtml = async (id, html) => {
+    const job = await requireJob(id, { useMaster: true });
+    await job.update({ survey_status_report_html: html });
+    return { id: job.id, saved: true };
+};
+
 export const updateJobStatus = (id, status, remarks, userId) => {
     throw { statusCode: 400, message: 'Direct status update is disabled. Use semantic workflow endpoints.' };
 };

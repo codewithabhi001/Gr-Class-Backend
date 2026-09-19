@@ -446,6 +446,128 @@ export function generateSurveyStatusReport(data = {}) {
   return renderedHtml;
 }
 
+const LIVE_TABLE_IDS = [
+  'classCertsTable',
+  'statCertsTable',
+  'planApprovalTable',
+  'classificationSurveysTable',
+  'statutorySurveysTable',
+  'conditionsTable',
+  'ncTable',
+  'pscTable',
+  'infoTable',
+  'historyTable',
+];
+
+function extractTableTbody(html, tableId) {
+  const re = new RegExp(
+    `<table[^>]*\\bid=["']${tableId}["'][^>]*>[\\s\\S]*?<tbody[^>]*>([\\s\\S]*?)</tbody>`,
+    'i',
+  );
+  const match = html.match(re);
+  return match ? match[1] : null;
+}
+
+function replaceTableTbody(html, tableId, innerHtml) {
+  const re = new RegExp(
+    `(<table[^>]*\\bid=["']${tableId}["'][^>]*>[\\s\\S]*?<tbody[^>]*>)[\\s\\S]*?(</tbody>)`,
+    'i',
+  );
+  if (!re.test(html)) return html;
+  return html.replace(re, `$1${innerHtml}$2`);
+}
+
+function replaceFirstMatch(html, regex, replacementHtml) {
+  if (!regex.test(html) || !replacementHtml) return html;
+  return html.replace(regex, replacementHtml);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Keep custom editor layout (advice text, notes, extra copy) from saved HTML,
+ * but always inject live vessel / certificate / survey data from the database.
+ */
+export function hydrateSavedSurveyStatusReport(savedHtml, data = {}) {
+  if (!savedHtml || !String(savedHtml).trim()) {
+    return generateSurveyStatusReport(data);
+  }
+
+  const freshHtml = generateSurveyStatusReport(data);
+  let html = savedHtml;
+
+  for (const tableId of LIVE_TABLE_IDS) {
+    const liveBody = extractTableTbody(freshHtml, tableId);
+    if (liveBody != null) {
+      html = replaceTableTbody(html, tableId, liveBody);
+    }
+  }
+
+  html = replaceFirstMatch(
+    html,
+    /<table[^>]*class=["'][^"']*particulars-table[^"']*["'][^>]*>[\s\S]*?<\/table>/i,
+    freshHtml.match(/<table[^>]*class=["'][^"']*particulars-table[^"']*["'][^>]*>[\s\S]*?<\/table>/i)?.[0],
+  );
+
+  const liveName = escapeHtml(data.vesselName || '—');
+  const liveFlag = escapeHtml(data.flag || '—');
+  const liveImo = escapeHtml(data.imoNumber || '—');
+  const liveClassNo = escapeHtml(data.classNumber || '—');
+  const liveStatus = escapeHtml(data.classStatus || '—');
+  const livePrintDate = escapeHtml(
+    data.printDate ||
+      new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+  );
+
+  html = html.replace(
+    /(<div class="cover-vessel-name"[^>]*>)[\s\S]*?(<\/div>)/i,
+    `$1${liveName}$2`,
+  );
+  html = html.replace(
+    /(<div class="cover-vessel-flag"[^>]*>)[\s\S]*?(<\/div>)/i,
+    `$1${liveFlag}$2`,
+  );
+  html = html.replace(
+    /(<div class="pmh-cell pmh-cell-vessel"[^>]*>)[\s\S]*?(<\/div>)/gi,
+    `$1${liveName}$2`,
+  );
+  html = html.replace(
+    /(<div class="pmh-cell pmh-cell-flag"[^>]*>)[\s\S]*?(<\/div>)/gi,
+    `$1${liveFlag}$2`,
+  );
+  html = html.replace(
+    /(IMO No\.\s*<strong[^>]*>)[\s\S]*?(<\/strong>)/gi,
+    `$1${liveImo}$2`,
+  );
+  html = html.replace(
+    /(GR CLASS No\.\s*<strong[^>]*>)[\s\S]*?(<\/strong>)/gi,
+    `$1${liveClassNo}$2`,
+  );
+
+  const coverMetaValues = [liveImo, liveClassNo, liveStatus];
+  let coverMetaIdx = 0;
+  html = html.replace(
+    /(<span[^>]*class=["'][^"']*\bcover-meta-value\b[^"']*["'][^>]*>)[\s\S]*?(<\/span>)/gi,
+    (full, open, close) => {
+      const next = coverMetaValues[coverMetaIdx++];
+      return next == null ? full : `${open}${next}${close}`;
+    },
+  );
+
+  html = html.replace(
+    /(Date Printout\s*:\s*<strong>)[\s\S]*?(<\/strong>)/gi,
+    `$1${livePrintDate}$2`,
+  );
+
+  return html;
+}
+
 export function generateSampleReport() {
   return generateSurveyStatusReport({});
 }

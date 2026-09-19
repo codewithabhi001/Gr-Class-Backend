@@ -370,3 +370,10 @@ export const getJobSurveyStatusReport = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+export const saveJobSurveyStatusReport = async (req, res, next) => {
+    try {
+        const result = await jobService.saveSurveyStatusReportHtml(req.params.id, req.body.html);
+        res.json({ success: true, message: 'Survey status report saved', data: result });
+    } catch (error) { next(error); }
+};
+
