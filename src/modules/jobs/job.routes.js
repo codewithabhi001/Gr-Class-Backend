@@ -1,7 +1,7 @@
 import express from 'express';
 import { docUpload } from '../../utils/upload.util.js';
 import * as jobController from './job.controller.js';
-import { authenticate } from '../../middlewares/auth.middleware.js';
+import { authenticate, optionalAuthenticate } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../middlewares/rbac.middleware.js';
 import { validate, schemas } from '../../middlewares/validate.middleware.js';
 import { RBAC } from '../../config/rbac.config.js';
@@ -9,13 +9,17 @@ import { RBAC } from '../../config/rbac.config.js';
 const upload = docUpload;
 const router = express.Router();
 
+// ─── Survey Status Report (Supports Direct Browser Print Preview) ─────
+router.get('/:id/survey-status-report', optionalAuthenticate, jobController.getJobSurveyStatusReport);
+
 router.use(authenticate);
+
 // @deprecated - Use GET /api/v1/documents/get-upload-url instead
 router.get('/upload-url', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'SURVEYOR'), jobController.getUploadUrl);
 
 // ─── List & Detail ───────────────────────────────────────
-router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobs);
-router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobById);
+router.get('/', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'ACCOUNTANT'), jobController.getJobs);
+router.get('/:id', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'ACCOUNTANT'), jobController.getJobById);
 router.get('/:id/eligible-surveyors', authorizeRoles('ADMIN', 'GM', 'TM'), jobController.getEligibleSurveyors);
 
 // ─── Create ───────────────────────────────────────────────
@@ -96,7 +100,17 @@ router.post('/:id/messages/external', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'T
 
 router.post('/:id/messages/internal', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), upload.any(), validate(schemas.createJobMessage), jobController.createInternalJobMessage);
 
+// ─── Survey Status Report ──────────────────────────────
+router.get('/:id/survey-status-report', authorizeRoles('CLIENT', 'ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR'), jobController.getJobSurveyStatusReport);
+router.put(
+    '/:id/survey-status-report',
+    authorizeRoles('ADMIN', 'GM', 'TM', 'TO'),
+    validate(schemas.updateSurveyStatusReport),
+    jobController.saveJobSurveyStatusReport
+);
+
 // ─── Deletion ────────────────────────────────────────────
 router.delete('/:id', authorizeRoles('ADMIN', 'GM'), jobController.deleteJob);
 
 export default router;
+

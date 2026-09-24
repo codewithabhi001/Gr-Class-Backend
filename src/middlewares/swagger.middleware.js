@@ -17,7 +17,7 @@ import { fileURLToPath } from 'url';
 import yaml from 'yamljs';
 import { buildFullSpec, clearCache, getSpecForRole } from '../docs/build-openapi.js';
 
-const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'public'];
+const ROLE_SLUGS = ['admin', 'gm', 'tm', 'to', 'surveyor', 'client', 'accountant', 'public'];
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MODULE_SWAGGER_DIR = path.resolve(__dirname, '../../docs/swagger-by-module');
@@ -84,6 +84,7 @@ const ROLE_MAP = {
   to: 'TO',
   surveyor: 'SURVEYOR',
   client: 'CLIENT',
+  accountant: 'ACCOUNTANT',
   public: 'PUBLIC',
 };
 
@@ -126,6 +127,7 @@ export function setupSwagger(app) {
     { url: '/api-docs/spec.json?role=TO', name: 'TO' },
     { url: '/api-docs/spec.json?role=SURVEYOR', name: 'SURVEYOR' },
     { url: '/api-docs/spec.json?role=CLIENT', name: 'CLIENT' },
+    { url: '/api-docs/spec.json?role=ACCOUNTANT', name: 'ACCOUNTANT' },
     { url: '/api-docs/spec.json?role=PUBLIC', name: 'PUBLIC' },
   ];
 

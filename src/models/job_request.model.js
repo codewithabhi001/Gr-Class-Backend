@@ -205,6 +205,11 @@ export default (sequelize, DataTypes) => {
             allowNull: true,
             comment: 'Set when job is created via activity request conversion',
         },
+        survey_status_report_html: {
+            type: DataTypes.TEXT('long'),
+            allowNull: true,
+            comment: 'Saved visual-editor HTML for the Class & Statutory Survey Status Report',
+        },
     }, {
         tableName: 'job_requests',
         underscored: true,

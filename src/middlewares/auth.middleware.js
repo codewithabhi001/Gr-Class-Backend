@@ -122,7 +122,7 @@ export const optionalAuthenticate = async (req, res, next) => {
         try {
             if (token) {
                 const decoded = jwt.decode(token);
-                const staffRoles = ['ADMIN', 'GM', 'TM', 'TO'];
+                const staffRoles = ['ADMIN', 'GM', 'TM', 'TO', 'ACCOUNTANT'];
                 if (decoded && staffRoles.includes(decoded.role)) {
                     return res.status(401).json({
                         success: false,
