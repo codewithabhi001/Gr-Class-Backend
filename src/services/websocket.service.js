@@ -91,7 +91,7 @@ const registerSocketEvents = (socket) => {
             logger.info(`[WebSocket] User ${user.name} (${user.id}) joined room: job:${jobId}:external`);
 
             // Only internal staff roles join the internal-only room
-            if (['ADMIN', 'GM', 'TM', 'TO'].includes(user.role)) {
+            if (['ADMIN', 'GM', 'TM', 'TO', 'ACCOUNTANT'].includes(user.role)) {
                 socket.join(`job:${jobId}:internal`);
                 logger.info(`[WebSocket] User ${user.name} (${user.id}) joined internal room: job:${jobId}:internal`);
             }
@@ -101,7 +101,7 @@ const registerSocketEvents = (socket) => {
     socket.on('leave_job', (jobId) => {
         if (jobId) {
             socket.leave(`job:${jobId}:external`);
-            if (['ADMIN', 'GM', 'TM', 'TO'].includes(user.role)) {
+            if (['ADMIN', 'GM', 'TM', 'TO', 'ACCOUNTANT'].includes(user.role)) {
                 socket.leave(`job:${jobId}:internal`);
             }
             logger.info(`[WebSocket] User ${user.name} (${user.id}) left rooms for job: ${jobId}`);

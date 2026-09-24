@@ -690,7 +690,7 @@ export const generateInvoicePdf = async (paymentId) => {
         imoRow = `<div class="info-line"${imoMargin}><div class="info-label">IMO No.</div><div class="info-value" style="margin-left:auto;">${imoNumber}</div></div>`;
     }
 
-    // Dynamic bank details (empty bank details as requested by user)
+    // Official GR Class bank details
     const replacements = {
         vessel_row: vesselRow,
         imo_row: imoRow,
@@ -709,10 +709,16 @@ export const generateInvoicePdf = async (paymentId) => {
         total_eur: totalEur,
         say_amount: sayAmount,
         client_company: clientCompany,
-        bank_name: '',
-        bank_branch: '',
-        bank_swift: '',
-        iban_usd: '',
+        beneficiary_name: 'GR Class - F.Z.C',
+        bank_address: '3rd floor, N- Building, Nad Al Sheba-1, Meydan, Dubai, UAE',
+        acc_no_aed: '1015977378501',
+        iban_aed: 'AE500260001015977378501',
+        acc_no_usd: '1025977378502',
+        iban_usd: 'AE580260001025977378502',
+        bank_name: 'Emirates NBD',
+        bank_branch: '3rd floor, N- Building, Nad Al Sheba-1, Meydan, Dubai, UAE',
+        bank_routing: '302620122',
+        bank_swift: 'EBILAEAD',
         iban_eur: '',
         signature_img: signImgBase64,
         signature_display: signImgBase64 ? 'block' : 'none',

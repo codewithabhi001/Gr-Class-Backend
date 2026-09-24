@@ -1,12 +1,36 @@
 import db from '../../models/index.js';
+import env from '../../config/env.js';
 import { fillDocxContentControls } from '../../utils/docxFill.util.js';
 import fs from 'fs';
 import path from 'path';
 import { Op } from 'sequelize';
 import JSZip from 'jszip';
 import { fileURLToPath } from 'url';
+import { generateSurveyStatusReport, generateSampleReport, hydrateSavedSurveyStatusReport } from './templates/survey-status-report.template.js';
+import QRCode from 'qrcode';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const { Certificate, NonConformity, Payment, Survey, JobRequest } = db;
+const { Certificate, CertificateTemplate, CertificateType, NonConformity, Payment, Survey, JobRequest, Vessel } = db;
+
+let cachedSignatureBase64 = null;
+const getCachedSignature = () => {
+    if (cachedSignatureBase64 !== null) return cachedSignatureBase64;
+    try {
+        const sigPath = path.resolve('src/modules/payments/Gr-class-sign.png');
+        if (fs.existsSync(sigPath)) {
+            const buffer = fs.readFileSync(sigPath);
+            cachedSignatureBase64 = `data:image/png;base64,${buffer.toString('base64')}`;
+            return cachedSignatureBase64;
+        }
+    } catch (err) {
+        console.error('Error loading signature image:', err);
+    }
+    cachedSignatureBase64 = '';
+    return cachedSignatureBase64;
+};
+
+
+
 
 // Helper to fetch raw certificate data
 const fetchCertificates = async (filters = {}) => {
@@ -267,3 +291,245 @@ export const generateFinancialDocx = async (filters = {}) => {
         return await docx.generateAsync({ type: 'nodebuffer' });
     }
 };
+
+export const getSurveyStatusReportData = async (filters = {}) => {
+    // If demo or sample is requested or no vessel/job specified, return sample report
+    if (filters.sample === 'true' || (!filters.job_id && !filters.vessel_id)) {
+        return {
+            html: generateSampleReport(),
+            data: { isSample: true }
+        };
+    }
+
+    let vessel = null;
+    let job = null;
+
+    if (filters.job_id) {
+        job = await JobRequest.findByPk(filters.job_id, {
+            include: [
+                {
+                    model: Vessel,
+                    include: [
+                        {
+                            model: db.FlagAdministration,
+                            as: 'FlagAdministration',
+                            attributes: ['flag_state_name', 'country'],
+                            required: false,
+                        },
+                        {
+                            model: db.Client,
+                            as: 'Client',
+                            attributes: ['company_name', 'address'],
+                            required: false,
+                        },
+                    ],
+                },
+                { model: db.Client, as: 'Client' },
+                {
+                    model: db.JobCertificate,
+                    as: 'certificates',
+                    include: [
+                        { model: db.CertificateType },
+                        { model: db.Certificate, as: 'Certificate' }
+                    ]
+                }
+            ],
+            useReplica: true
+        });
+        if (job) vessel = job.Vessel;
+    }
+
+
+    if (!vessel && filters.vessel_id) {
+        vessel = await Vessel.findByPk(filters.vessel_id, {
+            include: [
+                {
+                    model: db.FlagAdministration,
+                    as: 'FlagAdministration',
+                    attributes: ['flag_state_name', 'country'],
+                    required: false,
+                },
+                {
+                    model: db.Client,
+                    as: 'Client',
+                    attributes: ['company_name', 'address'],
+                    required: false,
+                },
+            ],
+            useReplica: true,
+        });
+    }
+
+    if (!vessel) {
+        return {
+            html: generateSampleReport(),
+            data: { isSample: true, note: 'Vessel not found, showing sample report' }
+        };
+    }
+
+    // Fetch certificates for vessel
+    const certs = await Certificate.findAll({
+        where: { vessel_id: vessel.id },
+        include: [db.CertificateType],
+        useReplica: true
+    });
+
+    const classCertificates = [];
+    const statutoryCertificates = [];
+
+    /** Runtime status from expiry date — always fresh when report is opened */
+    const resolveCertDisplayStatus = (dbStatus, expiryDate) => {
+        const locked = new Set(['SUSPENDED', 'REVOKED', 'CANCELLED', 'TRANSFERRED', 'DOWNGRADED', 'DRAFT']);
+        const upper = String(dbStatus || '').toUpperCase();
+        if (locked.has(upper)) return upper;
+
+        if (!expiryDate) return upper === 'ISSUED' || !upper ? 'VALID' : upper;
+
+        const expiry = new Date(expiryDate);
+        if (Number.isNaN(expiry.getTime())) return upper || 'VALID';
+        expiry.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (expiry < today) return 'EXPIRED';
+        const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysLeft <= 30) return 'DUE SOON';
+        return 'VALID';
+    };
+
+    const formatCertTerm = (term) => {
+        if (!term) return 'ST';
+        const t = String(term).toUpperCase().trim();
+        if (t === 'SHORT_TERM' || t === 'SHORT TERM') return 'ST';
+        if (t === 'FULL_TERM' || t === 'FULL TERM') return 'FT';
+        if (t === 'INTERIM') return 'IT';
+        if (t === 'CONDITIONAL') return 'COND';
+        if (t === 'PROVISIONAL') return 'PROV';
+        return t;
+    };
+
+    certs.forEach(c => {
+        const item = {
+            description: c.CertificateType?.name || 'Certificate',
+            code: c.certificate_number || c.id,
+            issuedDate: c.issue_date ? new Date(c.issue_date).toLocaleDateString('en-GB') : '—',
+            validUntil: c.expiry_date ? new Date(c.expiry_date).toLocaleDateString('en-GB') : '—',
+            type: formatCertTerm(c.certificate_term || c.term_type),
+            status: resolveCertDisplayStatus(c.status, c.expiry_date),
+            convention: c.CertificateType?.category || 'STATUTORY'
+        };
+        if (c.CertificateType?.category === 'CLASS' || c.CertificateType?.name?.toUpperCase().includes('CLASS') || c.CertificateType?.name?.toUpperCase().includes('HULL')) {
+            classCertificates.push(item);
+        } else {
+            statutoryCertificates.push(item);
+        }
+    });
+
+    // Fetch non conformities by job_id
+    const ncWhere = {};
+    if (job) {
+        ncWhere.job_id = job.id;
+    } else if (vessel) {
+        const vesselJobs = await JobRequest.findAll({
+            where: { vessel_id: vessel.id },
+            attributes: ['id'],
+            useReplica: true
+        });
+        const jobIds = vesselJobs.map(j => j.id);
+        ncWhere.job_id = { [Op.in]: jobIds.length > 0 ? jobIds : ['00000000-0000-0000-0000-000000000000'] };
+    }
+
+    const ncs = await NonConformity.findAll({
+        where: ncWhere,
+        useReplica: true
+    });
+
+
+    const nonConformitiesFormatted = ncs.map(nc => ({
+        requestNo: nc.id ? String(nc.id).slice(0, 8) : '—',
+        observation: nc.description || nc.title || 'Non-Conformity',
+        limitDate: nc.due_date ? new Date(nc.due_date).toLocaleDateString('en-GB') : '—',
+        certificate: nc.certificate_type || '—',
+        status: nc.status || 'OPEN'
+    }));
+
+    // Stable UTN so the same job/vessel always produces the same tracking number & QR target
+    const imoDigits = String(vessel.imo_number || '').replace(/\D/g, '').padStart(7, '0').slice(-7);
+    const jobDigits = String(job?.job_number || job?.id || vessel.class_number || vessel.id || '')
+        .replace(/\D/g, '')
+        .padStart(9, '0')
+        .slice(-9);
+    const utnNumber = `0027${imoDigits}${jobDigits}`.slice(0, 20);
+
+    // Public marketing site hosts /verify — NOT the ops portal (ops has no public verify route)
+    const verifyPath = (env.certificateVerifyPublicUrl || 'https://grclass.com/verify?certificate={number}')
+        .split('?')[0]
+        .replace(/\/$/, '');
+    const qrVerifyUrl = `${verifyPath}?utn=${encodeURIComponent(utnNumber)}&imo=${encodeURIComponent(vessel.imo_number || '')}`;
+    let qrCodeHtml = '';
+    try {
+        const qrDataUri = await QRCode.toDataURL(qrVerifyUrl, { margin: 1, width: 160, errorCorrectionLevel: 'M' });
+        qrCodeHtml = `<img src="${qrDataUri}" alt="Scan to verify" style="width: 100%; height: 100%; object-fit: contain;">`;
+    } catch (qrErr) {
+        qrCodeHtml = `<div style="width:100%; height:100%; background:#eee; display:flex; align-items:center; justify-content:center; font-size:6pt; font-weight:bold;">QR CODE</div>`;
+    }
+
+    let signatureBase64 = getCachedSignature();
+
+    const ownerClient = vessel.Client || job?.Client || null;
+    const flagName =
+        vessel.FlagAdministration?.flag_state_name ||
+        vessel.FlagAdministration?.country ||
+        vessel.flag ||
+        '—';
+
+    // Use the auto-generated GR CLASS number from the vessel record
+    const grClassNumber = vessel.gr_class_number || '';
+
+    const reportPayload = {
+        logo: 'https://grclass.com/grclass-logo.webp',
+        vesselName: vessel.vessel_name || vessel.name || '—',
+        imoNumber: vessel.imo_number || '—',
+        classNumber: grClassNumber || '—',
+        callSign: vessel.call_sign || '—',
+        flag: flagName,
+        portOfRegistry: vessel.port_of_registry || '—',
+        shipType: vessel.ship_type || vessel.vessel_type || '—',
+        keelLayingDate: vessel.keel_date ? new Date(vessel.keel_date).toLocaleDateString('en-GB') : '—',
+        dateOfBuild: vessel.year_built
+            ? String(vessel.year_built)
+            : (vessel.build_date ? new Date(vessel.build_date).toLocaleDateString('en-GB') : '—'),
+        vesselEntryDate: vessel.createdAt ? new Date(vessel.createdAt).toLocaleDateString('en-GB') : '—',
+        classNotation: vessel.class_notation || vessel.current_class_society || 'GR CLASS',
+        deadweight: vessel.deadweight ? `${vessel.deadweight} MT` : (vessel.dead_weight || vessel.dwt || '—'),
+        grossTonnage: vessel.gross_tonnage ? `${vessel.gross_tonnage} GT` : (vessel.gt || '—'),
+        netTonnage: vessel.net_tonnage ? `${vessel.net_tonnage} NT` : (vessel.nt || '—'),
+        length: vessel.length ? `${vessel.length} Meter` : '—',
+        breadth: vessel.breadth ? `${vessel.breadth} Meter` : '—',
+        depth: vessel.depth ? `${vessel.depth} Meter` : '—',
+        radioArea: vessel.radio_area || '—',
+        registeredOwner: vessel.owner_name || ownerClient?.company_name || '—',
+        ownerAddress: vessel.owner_address || ownerClient?.address || '—',
+        managementCompany: vessel.manager_name || ownerClient?.company_name || '—',
+        managementAddress: vessel.manager_address || ownerClient?.address || '—',
+        classStatus: vessel.class_status || vessel.status || 'ACTIVE',
+        jobNumber: job ? job.job_number : '',
+        jobType: job ? job.job_type : '',
+        utnNumber,
+        qrCodeHtml,
+        signature: signatureBase64,
+        classCertificates,
+        statutoryCertificates,
+        nonConformities: nonConformitiesFormatted,
+        manualNotes: filters.notes || '',
+        printDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    };
+
+    const savedHtml = job?.survey_status_report_html?.trim();
+    const html = (savedHtml && filters.fresh !== 'true')
+        ? hydrateSavedSurveyStatusReport(savedHtml, reportPayload)
+        : generateSurveyStatusReport(reportPayload);
+    return { html, data: reportPayload };
+};
+
+

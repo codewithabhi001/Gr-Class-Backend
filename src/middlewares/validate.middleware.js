@@ -61,7 +61,7 @@ export const schemas = {
         name: Joi.string().required(),
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT').required(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT').required(),
         company_name: Joi.string().optional(),
         client_id: Joi.string().guid().optional().allow(null, ''),
         phone: Joi.string().optional().allow('', null)
@@ -306,7 +306,7 @@ export const schemas = {
         name: Joi.string().required(),
         email: Joi.string().email().required(),
         password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).required().messages({ 'string.pattern.base': 'Password must contain uppercase, lowercase, and digit' }),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT').required(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT').required(),
         phone: Joi.string().pattern(/^(\+?\d{1,4}[\s-]?)?\d{6,15}$/).message('Invalid phone number').required(),
         client_id: Joi.string().guid().optional().allow(null, ''),
         license_number: Joi.string().optional().allow(''),
@@ -584,7 +584,7 @@ export const schemas = {
     updateUser: Joi.object({
         name: Joi.string().optional().max(100),
         email: Joi.string().email().optional(),
-        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT').optional(),
+        role: Joi.string().valid('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT').optional(),
         phone: Joi.string().pattern(/^(\+?\d{1,4}[\s-]?)?\d{6,15}$/).message('Invalid phone number').optional(),
         status: Joi.string().valid('ACTIVE', 'INACTIVE', 'SUSPENDED').optional(),
         client_id: Joi.string().guid().optional().allow(null),
@@ -592,12 +592,12 @@ export const schemas = {
 
     // ── Contact / Website Enquiry ───────────────────────────────────────────
     submitContactEnquiry: Joi.object({
-        full_name: Joi.string().min(2).max(100).required(),
+        full_name: Joi.string().min(3).max(80).pattern(/^[a-zA-Z\s'-]{3,80}$/).message('Full name must contain 3-80 alphabetic characters').required(),
         company: Joi.string().max(150).optional().allow('', null),
         corporate_email: Joi.string().email().required(),
         message: Joi.string().min(10).max(5000).required(),
-        phone: Joi.string().pattern(/^(\+?\d{1,4}[\s-]?)?\d{6,15}$/).message('Invalid phone number').required(),
-        subject: Joi.string().max(200).optional().allow('', null),
+        phone: Joi.string().pattern(/^(\+?\d{1,4}[\s-]?)?\(?\d{1,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}$/).message('Invalid phone number format').required(),
+        subject: Joi.string().min(3).max(200).optional().allow('', null),
         source_page: Joi.string().max(50).optional().allow('', null),
         website: Joi.string().max(200).optional().allow('', null), // Honeypot
         captcha_token: Joi.string().optional().allow('', null), // Cloudflare Turnstile token
@@ -638,6 +638,9 @@ export const schemas = {
     }),
     updateCertificateLayout: Joi.object({
         custom_html: Joi.string().required(),
+    }),
+    updateSurveyStatusReport: Joi.object({
+        html: Joi.string().required(),
     }),
     uploadExternalCertificate: Joi.alternatives().try(
         Joi.object({

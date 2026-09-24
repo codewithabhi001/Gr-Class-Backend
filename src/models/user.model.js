@@ -20,7 +20,7 @@ export default (sequelize, DataTypes) => {
             allowNull: false,
         },
         role: {
-            type: DataTypes.ENUM('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT'),
+            type: DataTypes.ENUM('ADMIN', 'GM', 'TM', 'TO', 'SURVEYOR', 'CLIENT', 'ACCOUNTANT'),
             allowNull: false,
         },
         phone: DataTypes.STRING,
