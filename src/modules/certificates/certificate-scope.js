@@ -31,7 +31,7 @@ export async function buildCertificateScopeWhere(user, deps) {
     }
     if (role === 'CLIENT') {
         if (!user.client_id) {
-            return { vessel_id: { [Op.in]: [null] } };
+            return { id: { [Op.in]: [] } };
         }
         const vessels = await Vessel.findAll({
             where: { client_id: user.client_id },
@@ -39,12 +39,17 @@ export async function buildCertificateScopeWhere(user, deps) {
             raw: true,
         });
         const vesselIds = vessels.map((v) => v.id);
-        if (vesselIds.length === 0) {
-            return { vessel_id: { [Op.in]: [null] } };
+
+        const clientConditions = [{ client_id: user.client_id }];
+        if (vesselIds.length > 0) {
+            clientConditions.push({ vessel_id: { [Op.in]: vesselIds } });
         }
+
         return { 
-            vessel_id: { [Op.in]: vesselIds },
-            status: { [Op.ne]: 'DRAFT' } // Hide drafts from clients
+            [Op.and]: [
+                { [Op.or]: clientConditions },
+                { status: { [Op.ne]: 'DRAFT' } } // Hide drafts from clients
+            ]
         };
     }
     return { vessel_id: { [Op.in]: [null] } };
