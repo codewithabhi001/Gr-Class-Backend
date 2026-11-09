@@ -7,7 +7,15 @@ const getScopeFilters = async (user) => {
     if (user.role === 'CLIENT') {
         const vessels = await db.Vessel.findAll({ where: { client_id: user.client_id }, attributes: ['id'] });
         const vesselIds = vessels.map(v => v.id);
-        const jobs = await db.JobRequest.findAll({ where: { vessel_id: vesselIds }, attributes: ['id'] });
+        const jobs = await db.JobRequest.findAll({
+            where: {
+                [db.Sequelize.Op.or]: [
+                    { client_id: user.client_id },
+                    ...(vesselIds.length ? [{ vessel_id: { [db.Sequelize.Op.in]: vesselIds } }] : [])
+                ]
+            },
+            attributes: ['id']
+        });
         const jobIds = jobs.map(j => j.id);
         scopeFilters.job_id = jobIds;
     }

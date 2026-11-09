@@ -8,11 +8,8 @@ import db from '../../models/index.js';
 // ─────────────────────────────────────────────
 const getScopeFilters = async (user) => {
     const scopeFilters = {};
-    if (user.role === 'CLIENT') {
-        const vessels = await db.Vessel.findAll({ where: { client_id: user.client_id }, attributes: ['id'] });
-        scopeFilters.vessel_id = vessels.map(v => v.id);
-    }
-    // Surveyor scope: job row OR any JobCertificate.assigned_surveyor_id (handled in service)
+    // Surveyor and Client scopes are handled securely in job.service.js
+    // (applySurveyorScope & applyClientScope)
     return scopeFilters;
 };
 

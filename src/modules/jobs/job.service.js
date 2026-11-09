@@ -418,6 +418,47 @@ const applySurveyorScope = async (whereClause, user) => {
     ];
 };
 
+export const clientCanAccessJob = async (jobId, clientId) => {
+    if (!clientId) return false;
+    const job = await JobRequest.findByPk(jobId, {
+        attributes: ['id', 'client_id', 'vessel_id'],
+        include: [{
+            model: Vessel,
+            attributes: ['id', 'client_id']
+        }],
+        useReplica: true,
+    });
+    if (!job) return false;
+    if (job.client_id === clientId) return true;
+    if (job.Vessel?.client_id === clientId) return true;
+    return false;
+};
+
+const applyClientScope = async (whereClause, user) => {
+    if (!user || user.role !== 'CLIENT') return;
+    const vessels = await Vessel.findAll({
+        where: { client_id: user.client_id },
+        attributes: ['id'],
+        raw: true,
+        useReplica: true,
+    });
+    const vesselIds = vessels.map((v) => v.id);
+
+    const clientConditions = [
+        { client_id: user.client_id }
+    ];
+    if (vesselIds.length > 0) {
+        clientConditions.push({ vessel_id: { [Op.in]: vesselIds } });
+    }
+
+    const clientScope = { [Op.or]: clientConditions };
+    if (whereClause[Op.and]) {
+        whereClause[Op.and].push(clientScope);
+    } else {
+        whereClause[Op.and] = [clientScope];
+    }
+};
+
 export const surveyorCanAccessJob = async (jobId, userId) => {
     const job = await JobRequest.findByPk(jobId, {
         attributes: ['id', 'assigned_surveyor_id'],
@@ -440,6 +481,7 @@ export const getJobs = async (query, scopeFilters = {}, userRole = null, user = 
         whereClause[k] = Array.isArray(v) ? { [Op.in]: v } : v;
     });
     await applySurveyorScope(whereClause, user);
+    await applyClientScope(whereClause, user);
 
     if (without_payment === 'true') {
         const jobsWithPayments = await Payment.findAll({
@@ -577,6 +619,11 @@ export const getJobById = async (id, scopeFilters = {}, user = null) => {
     let accessWhere = { id, ...scopeFilters };
     if (user?.role === 'SURVEYOR') {
         const allowed = await surveyorCanAccessJob(id, user.id);
+        if (!allowed) throw { statusCode: 403, message: 'You do not have access to this job.' };
+        accessWhere = { id };
+    }
+    if (user?.role === 'CLIENT') {
+        const allowed = await clientCanAccessJob(id, user.client_id);
         if (!allowed) throw { statusCode: 403, message: 'You do not have access to this job.' };
         accessWhere = { id };
     }
@@ -2505,8 +2552,14 @@ export const updatePriority = async (jobId, priority, reason, userId) => {
     return job;
 };
 export const getJobHistory = async (id, scopeFilters = {}, user = null) => {
+    let accessWhere = { id, ...scopeFilters };
+    if (user?.role === 'CLIENT') {
+        const allowed = await clientCanAccessJob(id, user.client_id);
+        if (!allowed) throw { statusCode: 403, message: 'The requested job could not be found or you do not have permission to view its history.' };
+        accessWhere = { id };
+    }
     // Verify job existence with scope filtering
-    const job = await JobRequest.findOne({ where: { id, ...scopeFilters } });
+    const job = await JobRequest.findOne({ where: accessWhere });
     if (!job) {
         throw { statusCode: 404, message: 'The requested job could not be found or you do not have permission to view its history.' };
     }

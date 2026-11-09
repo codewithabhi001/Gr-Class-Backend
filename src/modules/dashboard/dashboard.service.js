@@ -128,7 +128,7 @@ const getOperationalStats = async () => {
         Certificate.findAll({
             limit: 5,
             order: [['createdAt', 'DESC']],
-            include: [{ model: Vessel, attributes: ['vessel_name'] }],
+            include: [{ model: Vessel, attributes: ['vessel_name'] }, { model: CertificateType, attributes: ['name'] }],
             useReplica: true
         }),
         SurveyorApplication.findAll({
@@ -271,7 +271,8 @@ const getOperationalStats = async () => {
             certificates: recentCertificates.map(c => ({
                 id: c.id,
                 vessel: c.vessel_id === null || c.vessel_id === undefined ? "Company Wide" : (c.Vessel?.vessel_name || null),
-                name: c.certificate_name,
+                name: c.CertificateType?.name || c.certificate_number || c.certificate_name,
+            certificate_number: c.certificate_number,
                 status: c.status,
                 issued_at: c.issued_date || c.createdAt
             })),
@@ -714,23 +715,14 @@ export const getClientDashboard = async (clientId) => {
     });
     const vesselIds = vessels.map(v => v.id);
 
-    if (vesselIds.length === 0) {
-        return {
-            role: 'CLIENT',
-            stats: { total_vessels: 0, active_jobs: 0, expiring_soon: 0, pending_payments: 0 },
-            recent_jobs: [],
-            expiring_certificates: [],
-            recent_vessels: [],
-            recent_certificates: [],
-            recent_payments: []
-        };
-    }
-
+    const clientScopeCondition = vesselIds.length > 0
+        ? { [db.Sequelize.Op.or]: [{ vessel_id: vesselIds }, { client_id: clientId }] }
+        : { client_id: clientId };
 
     // 2. Parallel fetch jobs, certificates, payments, surveys and NCs
     const [jobs, certificates, payments, surveys, ncs] = await Promise.all([
         JobRequest.findAll({
-            where: { [db.Sequelize.Op.or]: [{ vessel_id: vesselIds }, { client_id: clientId }] },
+            where: clientScopeCondition,
             include: [
                 { model: Vessel, attributes: ['vessel_name'] },
                 { model: db.Client, as: 'Client', attributes: ['company_name'] },
@@ -741,7 +733,12 @@ export const getClientDashboard = async (clientId) => {
             useReplica: true
         }),
         Certificate.findAll({
-            where: { [db.Sequelize.Op.or]: [{ vessel_id: vesselIds }, { client_id: clientId }] },
+            where: {
+                [db.Sequelize.Op.and]: [
+                    clientScopeCondition,
+                    { status: { [db.Sequelize.Op.ne]: 'DRAFT' } }
+                ]
+            },
             include: [{ model: Vessel, attributes: ['vessel_name'] }],
             order: [['createdAt', 'DESC']],
             useReplica: true
@@ -749,7 +746,7 @@ export const getClientDashboard = async (clientId) => {
         Payment.findAll({
             include: [{
                 model: JobRequest,
-                where: { [db.Sequelize.Op.or]: [{ vessel_id: vesselIds }, { client_id: clientId }] },
+                where: clientScopeCondition,
                 required: true,
                 include: [
                     { model: Vessel, attributes: ['vessel_name'] },
@@ -765,7 +762,7 @@ export const getClientDashboard = async (clientId) => {
                 required: true,
                 include: [{
                     model: JobRequest,
-                    where: { [db.Sequelize.Op.or]: [{ vessel_id: vesselIds }, { client_id: clientId }] },
+                    where: clientScopeCondition,
                     required: true,
                     include: [{ model: Vessel, attributes: ['vessel_name'] }]
                 }]
@@ -778,7 +775,7 @@ export const getClientDashboard = async (clientId) => {
         NonConformity.findAll({
             include: [{
                 model: JobRequest,
-                where: { [db.Sequelize.Op.or]: [{ vessel_id: vesselIds }, { client_id: clientId }] },
+                where: clientScopeCondition,
                 required: true,
                 include: [{ model: Vessel, attributes: ['vessel_name'] }]
             }],
@@ -796,7 +793,11 @@ export const getClientDashboard = async (clientId) => {
     const stats = {
         total_vessels: vessels.length,
         active_jobs: jobs.filter(j => !['CERTIFIED', 'REJECTED', 'CANCELLED'].includes(j.job_status)).length,
+        total_jobs: jobs.length,
+        jobs_count: jobs.length,
         jobs_by_status: jobsByStatus,
+        total_surveys: surveys.length,
+        completed_surveys: surveys.filter(s => s.survey_status === 'COMPLETED' || s.survey_status === 'CERTIFIED').length,
         expiring_soon: certificates.filter(c => {
             const expiry = new Date(c.expiry_date);
             const today = new Date();
@@ -830,7 +831,8 @@ export const getClientDashboard = async (clientId) => {
         })),
         recent_certificates: certificates.slice(0, 5).map(c => ({
             id: c.id,
-            name: c.certificate_name,
+            name: c.CertificateType?.name || c.certificate_number || 'Certificate',
+            certificate_number: c.certificate_number,
             vessel: c.vessel_id === null || c.vessel_id === undefined ? "Company Wide" : (c.Vessel?.vessel_name || null),
             expiry_date: c.expiry_date,
             issued_date: c.issued_date || c.createdAt
