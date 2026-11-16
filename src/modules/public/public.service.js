@@ -97,7 +97,8 @@ export const getFlagsPublic = async () => {
             'authority_name',
             'logo_url'
         ],
-        useReplica: true
+        order: [['created_at', 'ASC']],
+        useMaster: true
     });
     return await fileAccessService.resolveEntity(list);
 };

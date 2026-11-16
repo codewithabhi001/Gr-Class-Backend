@@ -5,7 +5,11 @@ import { resolveEntity } from '../../services/fileAccess.service.js';
 const FlagAdministration = db.FlagAdministration;
 
 export const createFlag = async (data) => {
-    const flag = await FlagAdministration.create(data);
+    const payload = { ...data };
+    if (payload.status && typeof payload.status === 'string') {
+        payload.status = payload.status.trim().toUpperCase();
+    }
+    const flag = await FlagAdministration.create(payload);
     return await resolveEntity(flag);
 };
 
@@ -23,23 +27,31 @@ export const getFlags = async (search) => {
             'country',
             'authority_name',
             'contact_email',
+            'authorization_scope',
             'logo_url',
-            'status'
+            'status',
+            'created_at',
+            'updated_at'
         ],
-        useReplica: true
+        order: [['created_at', 'ASC']],
+        useMaster: true
     });
     return await resolveEntity(list);
 };
 
 export const getFlag = async (id) => {
-    const flag = await FlagAdministration.findByPk(id);
+    const flag = await FlagAdministration.findByPk(id, { useMaster: true });
     return await resolveEntity(flag);
 };  
 
 export const updateFlag = async (id, data) => {
     const flag = await FlagAdministration.findByPk(id, { useMaster: true });
     if (!flag) throw { statusCode: 404, message: 'Flag not found' };
-    const updated = await flag.update(data);
+    const payload = { ...data };
+    if (payload.status && typeof payload.status === 'string') {
+        payload.status = payload.status.trim().toUpperCase();
+    }
+    const updated = await flag.update(payload);
     return await resolveEntity(updated);
 };
 

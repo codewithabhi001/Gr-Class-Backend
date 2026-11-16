@@ -11,6 +11,7 @@ router.post('/', authorizeRoles('ADMIN'), validate(schemas.createFlag), flagCont
 router.get('/', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), flagController.getFlags);
 router.get('/:id', authorizeRoles('ADMIN', 'GM', 'TM', 'TO'), flagController.getFlag);
 router.put('/:id', authorizeRoles('ADMIN'), validate(schemas.updateFlag), flagController.updateFlag);
+router.patch('/:id/status', authorizeRoles('ADMIN'), flagController.updateFlagStatus);
 router.delete('/:id', authorizeRoles('ADMIN'), flagController.deleteFlag);
 
 export default router;
