@@ -136,7 +136,9 @@ export const flatPaymentListRow = (row) => {
     let vessel_name = 'N/A';
     let client_id = 'N/A';
     let company_name = 'N/A';
-    
+    let document_type = 'PROFORMA_INVOICE';
+    let notes = '';
+
     if (p.JobRequest) {
         if (p.JobRequest.vessel_id === null || p.JobRequest.vessel_id === undefined) {
             vessel_name = 'Company Wide';
@@ -147,13 +149,19 @@ export const flatPaymentListRow = (row) => {
             client_id = p.JobRequest.Vessel?.client_id || 'N/A';
             company_name = p.JobRequest.Vessel?.Client?.company_name || 'N/A';
         }
-    } else if (p.reason && p.reason.trim().startsWith('{')) {
+    }
+
+    if (p.reason && p.reason.trim().startsWith('{')) {
         try {
             const parsed = JSON.parse(p.reason);
-            company_name = parsed.client_name || 'N/A';
-            vessel_name = parsed.vessel_name || 'N/A';
+            if (!p.JobRequest) {
+                company_name = parsed.client_name || company_name;
+                vessel_name = parsed.vessel_name || vessel_name;
+            }
+            if (parsed.document_type) document_type = parsed.document_type;
+            if (parsed.notes) notes = parsed.notes;
         } catch (e) {}
-    } else if (p.reason) {
+    } else if (p.reason && !p.JobRequest) {
         company_name = p.reason;
     }
 
@@ -177,6 +185,8 @@ export const flatPaymentListRow = (row) => {
         company_name: na(company_name),
         job_status: na(p.JobRequest?.job_status),
         reason: na(p.reason),
+        document_type: na(document_type),
+        notes: na(notes),
     };
 };
 

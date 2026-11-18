@@ -101,9 +101,7 @@ export const recordPartial = async (req, res, next) => {
 
 export const downloadInvoicePdf = async (req, res, next) => {
     try {
-        const pdfBuffer = await paymentService.generateInvoicePdf(req.params.id);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="invoice-${req.params.id}.pdf"`);
+        const payment = await paymentService.getPaymentById(req.params.id, {}, req.user); const pdfBuffer = await paymentService.generateInvoicePdf(req.params.id); const docType = (payment?.document_type || "PROFORMA_INVOICE").toLowerCase().replace(/_/g, "-"); const filename = `${docType}-${payment?.invoice_number || req.params.id}.pdf`; res.setHeader("Content-Type", "application/pdf"); res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
         res.send(pdfBuffer);
     } catch (e) { next(e); }
 };

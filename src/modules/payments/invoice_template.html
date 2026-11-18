@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GR Class — Invoice {{invoice_number}}</title>
+<title>GR Class — {{doc_type_label}} {{invoice_number}}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { background: #fff; }
@@ -126,6 +126,36 @@
   }
   .say-box .lbl { font-weight: 700; font-style: normal; display: block; margin-bottom: 3px; color: #0B2443; text-transform: uppercase; letter-spacing: .5px; font-size: 8pt; }
 
+  /* custom notes */
+  .notes-box {
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    border: 1px solid #c8d4e3;
+    border-left: 3px solid #B5891F;
+    background: #FAFCFF;
+    border-radius: 2px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .notes-title {
+    font-size: 8pt;
+    font-weight: 800;
+    color: #0B2443;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+  .notes-list {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 8.5pt;
+    color: #222;
+    line-height: 1.4;
+  }
+  .notes-list li {
+    margin-bottom: 2px;
+  }
+
   /* charges note */
   .charges-note { font-size: 9pt; font-weight: 700; font-style: italic; margin-bottom: 6px; color: #0B2443; page-break-inside: avoid; break-inside: avoid; }
 
@@ -174,8 +204,8 @@
       </div>
     </div>
     <div class="doc-title-block">
-      <div class="doc-title">DEBIT NOTE</div>
-      <div class="doc-subtitle">Combined Maritime Services</div>
+      <div class="doc-title">{{doc_title}}</div>
+      <div class="doc-subtitle">{{doc_subtitle}}</div>
     </div>
   </div>
 
@@ -251,6 +281,8 @@
     </div>
   </div>
 
+  {{notes_section}}
+
   <div class="charges-note">"All charges are for the remitter."</div>
 
   <div class="sign-area">
@@ -274,7 +306,7 @@
 
   <div class="doc-footer">
     <span>GR CLASS &nbsp;|&nbsp; info@grclass.com &nbsp;|&nbsp; www.grclass.com</span>
-    <span>Debit Note No: {{invoice_number}} &nbsp;|&nbsp; Page 1 of 1</span>
+    <span>{{doc_type_label}} No: {{invoice_number}} &nbsp;|&nbsp; Page 1 of 1</span>
   </div>
 
 </div>

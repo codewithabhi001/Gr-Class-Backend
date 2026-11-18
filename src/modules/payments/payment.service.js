@@ -146,7 +146,7 @@ const formatLedgerRows = (ledgers) => ledgers.map((l) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const createInvoice = async (data, userId = null) => {
-    const { job_id, amount, currency, reason } = data;
+    const { job_id, amount, currency, reason, document_type, notes } = data;
 
     let job = null;
     if (job_id) {
@@ -166,18 +166,41 @@ export const createInvoice = async (data, userId = null) => {
             throw { statusCode: 409, message: 'An invoice already exists for this job.' };
         }
     } else {
-        if (!reason || reason.trim() === '') {
+        if (!reason || (typeof reason === 'string' && reason.trim() === '')) {
             throw { statusCode: 400, message: 'Billing reason is required for standalone payments.' };
         }
     }
 
+    // Determine document type (default: PROFORMA_INVOICE)
+    const docType = (document_type || data.documentType || 'PROFORMA_INVOICE').toUpperCase();
+    const prefix = docType === 'QUOTATION' ? 'QUO' : docType === 'DEBIT_NOTE' ? 'DN' : 'INV';
+
+    // Build structured reason object preserving document_type and notes
+    let reasonObj = {};
+    if (typeof reason === 'object' && reason !== null) {
+        reasonObj = { ...reason };
+    } else if (typeof reason === 'string' && reason.trim().startsWith('{')) {
+        try { reasonObj = JSON.parse(reason); } catch (e) { reasonObj = { text: reason }; }
+    } else if (reason) {
+        reasonObj = { text: reason };
+    }
+
+    reasonObj.document_type = docType;
+    if (notes !== undefined && notes !== null) {
+        reasonObj.notes = notes;
+    } else if (reasonObj.notes === undefined && data.notes) {
+        reasonObj.notes = data.notes;
+    }
+
+    const finalReason = JSON.stringify(reasonObj);
+
     const payment = await Payment.create({
         job_id: job_id || null,
-        invoice_number: `INV-${uuidv4().substring(0, 8).toUpperCase()}`,
+        invoice_number: `${prefix}-${uuidv4().substring(0, 8).toUpperCase()}`,
         amount,
         currency: currency || 'USD',
         payment_status: 'UNPAID',
-        reason: job_id ? null : reason
+        reason: finalReason
     });
 
     await AuditLog.create({
@@ -187,7 +210,7 @@ export const createInvoice = async (data, userId = null) => {
         new_values: { job_id: job_id || null, amount, currency: payment.currency, payment_status: 'UNPAID', reason: payment.reason || null }
     });
 
-    logger.info({ entity: 'PAYMENT', event: 'INVOICE_CREATED', jobId: job_id || null, paymentId: payment.id, jobStatus: job ? job.job_status : 'STANDALONE', triggeredBy: userId });
+    logger.info({ entity: 'PAYMENT', event: 'INVOICE_CREATED', jobId: job_id || null, paymentId: payment.id, jobStatus: job ? job.job_status : 'STANDALONE', triggeredBy: userId, documentType: docType });
 
     return payment;
 };
@@ -410,6 +433,8 @@ export const getPaymentById = async (id, scopeFilters = {}, user = null) => {
         }
     } catch (e) {}
     enriched.parsed_reason = parsedReason;
+    enriched.document_type = parsedReason?.document_type || 'PROFORMA_INVOICE';
+    enriched.notes = parsedReason?.notes || '';
 
     delete enriched.JobRequest;
     enriched.ledgers = formatLedgerRows(ledgers);
@@ -471,6 +496,8 @@ export const getPaymentByJobId = async (jobId, scopeFilters = {}, user = null) =
         }
     } catch (e) {}
     enriched.parsed_reason = parsedReason;
+    enriched.document_type = parsedReason?.document_type || 'PROFORMA_INVOICE';
+    enriched.notes = parsedReason?.notes || '';
 
     delete enriched.JobRequest;
     enriched.ledgers = formatLedgerRows(ledgers);
@@ -524,7 +551,51 @@ export const generateInvoicePdf = async (paymentId) => {
         }
     } catch (e) {}
 
-    if (payment.JobRequest && !parsedReason) {
+    // Determine document type & header labels (Default: PROFORMA INVOICE)
+    const docTypeRaw = (parsedReason?.document_type || 'PROFORMA_INVOICE').toUpperCase();
+    let docTitle = 'PROFORMA INVOICE';
+    let docSubtitle = 'Combined Maritime Services';
+    let docTypeLabel = 'Proforma Invoice';
+
+    if (docTypeRaw === 'QUOTATION') {
+        docTitle = 'QUOTATION';
+        docSubtitle = 'Estimated Maritime Services';
+        docTypeLabel = 'Quotation';
+    } else if (docTypeRaw === 'DEBIT_NOTE') {
+        docTitle = 'DEBIT NOTE';
+        docSubtitle = 'Combined Maritime Services';
+        docTypeLabel = 'Debit Note';
+    } else if (docTypeRaw === 'TAX_INVOICE') {
+        docTitle = 'TAX INVOICE';
+        docSubtitle = 'Combined Maritime Services';
+        docTypeLabel = 'Tax Invoice';
+    }
+
+    // Format custom notes
+    const customNotes = parsedReason?.notes || '';
+    let notesSectionHtml = '';
+    if (customNotes && customNotes.trim() !== '') {
+        const lines = customNotes
+            .split('\n')
+            .map(l => l.trim())
+            .filter(Boolean);
+
+        if (lines.length > 0) {
+            const listItems = lines.map(line => {
+                const cleanLine = line.replace(/^[•\-\*]\s*/, '');
+                return `<li>${cleanLine}</li>`;
+            }).join('');
+            notesSectionHtml = `
+            <div class="notes-box">
+              <div class="notes-title">Important Notes / Terms &amp; Conditions</div>
+              <ul class="notes-list">
+                ${listItems}
+              </ul>
+            </div>`;
+        }
+    }
+
+    if (payment.JobRequest && (!parsedReason || !parsedReason.client_name)) {
         const vessel = payment.JobRequest.Vessel;
         const client = vessel?.Client || payment.JobRequest.Client;
 
@@ -534,35 +605,51 @@ export const generateInvoicePdf = async (paymentId) => {
             clientCompany = client.company_name || 'VSV MARINE MANAGEMENT';
         }
         
-        subject = payment.JobRequest.reason || `Flag Change & Class change (OMCS to GR Class)`;
-        vesselName = vessel ? (vessel.vessel_name || '') : 'Company Wide';
-        imoNumber = vessel ? (vessel.imo_number || '') : 'N/A';
+        subject = (parsedReason && parsedReason.subject) || payment.JobRequest.reason || `Flag Change & Class change (OMCS to GR Class)`;
+        vesselName = (parsedReason && parsedReason.vessel_name) || (vessel ? (vessel.vessel_name || '') : 'Company Wide');
+        imoNumber = (parsedReason && parsedReason.imo_number) || (vessel ? (vessel.imo_number || '') : 'N/A');
 
-        // Build item rows for job certificates
-        const certs = payment.JobRequest.certificates || [];
-        if (certs.length > 0) {
-            certs.forEach((cert, index) => {
-                const certName = cert.CertificateType?.name || 'Certificate';
+        // Check if custom items were provided in parsedReason, else use job certificates
+        const items = parsedReason?.items || [];
+        if (items.length > 0) {
+            items.forEach((item, index) => {
+                const itemDesc = item.description || 'General maritime services';
+                const itemAmt = parseFloat(item.amount || 0);
                 itemRows += `
                 <tr>
                   <td class="idx">${index + 1}</td>
-                  <td>
-                    Statutory inspection and certification for: <strong>${certName}</strong> under job <strong>${payment.JobRequest.job_request_number}</strong>
-                  </td>
-                  <td class="num"></td>
-                  <td class="num"></td>
+                  <td>${itemDesc}</td>
+                  <td class="num">${Number(itemAmt).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td class="num">${Number(itemAmt).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>`;
             });
         } else {
-            itemRows += `
-            <tr>
-              <td class="idx">1</td>
-              <td>
-                Statutory marine classification and certification services for job <strong>${payment.JobRequest.job_request_number}</strong>
-              </td>
-              <td class="num">${Number(payment.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-              <td class="num">${Number(payment.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-            </tr>`;
+            // Build item rows for job certificates
+            const certs = payment.JobRequest.certificates || [];
+            if (certs.length > 0) {
+                certs.forEach((cert, index) => {
+                    const certName = cert.CertificateType?.name || 'Certificate';
+                    itemRows += `
+                    <tr>
+                      <td class="idx">${index + 1}</td>
+                      <td>
+                        Statutory inspection and certification for: <strong>${certName}</strong> under job <strong>${payment.JobRequest.job_request_number}</strong>
+                      </td>
+                      <td class="num"></td>
+                      <td class="num"></td>
+                    </tr>`;
+                });
+            } else {
+                itemRows += `
+                <tr>
+                  <td class="idx">1</td>
+                  <td>
+                    Statutory marine classification and certification services for job <strong>${payment.JobRequest.job_request_number}</strong>
+                  </td>
+                  <td class="num">${Number(payment.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td class="num">${Number(payment.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                </tr>`;
+            }
         }
     } else {
         // Standalone invoice
@@ -615,7 +702,7 @@ export const generateInvoicePdf = async (paymentId) => {
                 const agentBannerHtml = `
                 <div style="background:#f0f5ff;border:1px solid #c8d4e8;border-left:4px solid #0B2443;padding:6px 12px;font-size:8.5pt;color:#1a1a1a;margin-bottom:8px;line-height:1.4;">
                   <span style="background:#0B2443;color:#fff;font-size:7pt;font-weight:700;padding:1px 6px;border-radius:2px;letter-spacing:.5px;margin-right:6px;">AGENT</span>
-                  This Debit Note is raised in the name of <strong>${billingParty}</strong> as the billing party, acting as
+                  This ${docTypeLabel} is raised in the name of <strong>${billingParty}</strong> as the billing party, acting as
                   authorized agent for and on behalf of <strong>${principalCompany || 'the Principal Company'}</strong>${agentPersonName ? ` — represented by <strong>${agentPersonName}</strong>` : ''}.
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:8px;font-size:8.5pt;">
@@ -692,6 +779,10 @@ export const generateInvoicePdf = async (paymentId) => {
 
     // Official GR Class bank details
     const replacements = {
+        doc_title: docTitle,
+        doc_subtitle: docSubtitle,
+        doc_type_label: docTypeLabel,
+        notes_section: notesSectionHtml,
         vessel_row: vesselRow,
         imo_row: imoRow,
         invoice_number: payment.invoice_number,
@@ -962,8 +1053,46 @@ export const updatePayment = async (paymentId, data, userId) => {
             updatedFields.currency = data.currency;
         }
 
-        if (data.reason !== undefined) {
-            updatedFields.reason = typeof data.reason === 'object' ? JSON.stringify(data.reason) : data.reason;
+        if (data.reason !== undefined || data.document_type !== undefined || data.notes !== undefined) {
+            let currentReason = {};
+            try {
+                if (payment.reason && payment.reason.trim().startsWith('{')) {
+                    currentReason = JSON.parse(payment.reason);
+                } else if (payment.reason) {
+                    currentReason = { text: payment.reason };
+                }
+            } catch (e) {}
+
+            let newReason = {};
+            if (typeof data.reason === 'object' && data.reason !== null) {
+                newReason = { ...currentReason, ...data.reason };
+            } else if (typeof data.reason === 'string' && data.reason.trim().startsWith('{')) {
+                try {
+                    newReason = { ...currentReason, ...JSON.parse(data.reason) };
+                } catch (e) {
+                    newReason = { ...currentReason, text: data.reason };
+                }
+            } else if (data.reason !== undefined) {
+                newReason = { ...currentReason, text: data.reason };
+            } else {
+                newReason = { ...currentReason };
+            }
+
+            if (data.document_type) newReason.document_type = data.document_type.toUpperCase();
+            if (data.notes !== undefined) newReason.notes = data.notes;
+
+            // If document_type changed, update invoice_number prefix if appropriate
+            const targetDocType = newReason.document_type || data.document_type;
+            if (targetDocType && payment.invoice_number) {
+                const docType = targetDocType.toUpperCase();
+                const targetPrefix = docType === 'QUOTATION' ? 'QUO' : docType === 'DEBIT_NOTE' ? 'DN' : 'INV';
+                const currentPrefix = payment.invoice_number.split('-')[0];
+                if (currentPrefix !== targetPrefix && ['INV', 'QUO', 'DN'].includes(currentPrefix)) {
+                    updatedFields.invoice_number = payment.invoice_number.replace(/^([A-Z]+)-/, `${targetPrefix}-`);
+                }
+            }
+
+            updatedFields.reason = JSON.stringify(newReason);
         }
 
         if (data.amount !== undefined) {
